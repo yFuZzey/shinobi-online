@@ -197,7 +197,7 @@ function onMessage(c, m) {
     case 'join': return onJoin(p, m);
     case 'pos': if (!p.map) return;
       p.x = clamp(num(m.x, p.x), 0, 50 * T); p.y = clamp(num(m.y, p.y), 0, 50 * T); p.fl = m.fl ? 1 : 0; p.mv = m.mv ? 1 : 0; p.run = m.run ? 1 : 0;
-      p.au = num(m.au, -1); p.th = num(m.th, -1); p.sc = m.sc ? 1 : 0; p.hp = clamp(num(m.hp, p.hp), 0, 1e5); p.max = clamp(num(m.max, p.max), 1, 1e5); p.dirty = true; return;
+      p.au = num(m.au, -1); p.th = num(m.th, -1); p.sc = m.sc ? 1 : 0; p.hp = clamp(num(m.hp, p.hp), 0, 1e5); p.max = clamp(num(m.max, p.max), 1, 1e5); p.ct = Number.isFinite(m.c) ? Math.round(m.c) : null; p.dirty = true; return;
     case 'meta': setMeta(p, m); if (p.map) toRoom(room(p.map), { t: 'pm', id: p.id, lv: p.lv, eq: p.eq, look: p.look, clan: p.clan }, p); return;
     case 'fx': if (!p.map) return; {
       const fx = Array.isArray(m.fx) ? m.fx.slice(0, 8) : [], pr = Array.isArray(m.pr) ? m.pr.slice(0, 8) : [];
@@ -394,19 +394,20 @@ function epTick(r, dt) {
 }
 
 // ---------------------------------------------------------------- laço principal
-const TICK = 1 / 30; let snapAcc = 0, partyAcc = 0, last = now();
+// 30 passos de simulação e 15 fotos por segundo; cada foto leva a hora do servidor (st) para o cliente interpolar liso
+const TICK = 1 / 30, SNAP = 1 / 15; let snapAcc = 0, partyAcc = 0, last = now();
 setInterval(() => {
   const t = now(); let dt = Math.min(.1, t - last); last = t;
   for (const k in rooms) { const r = rooms[k];
     if (!r.players.size) { if (!r.empty) { r.empty = 1; for (const e of r.mobs) if (e.kind === 'mob' && !e.dead) { const p = spreadPoint(r, e.A, e); Object.assign(e, { x: p[0], y: p[1], hx: p[0], hy: p[1], back: 0, wx: p[0], wy: p[1] }); } }
       for (const e of r.mobs) { if (e.kind === 'mob') { if (!e.dead) { e.hp = e.max; e.dmg = {}; e.tg = null; } else mobTickG(r, e, dt); } else if (!e.dead && (e.hp < e.max || hyp(e.x - e.hx, e.y - e.hy) > 2 * T)) resetMob(r, e, false); } r.eps = []; continue; }
     r.empty = 0; for (const e of r.mobs) e.kind === 'mob' ? mobTickG(r, e, dt) : mobTick(r, e, dt); epTick(r, dt); }
-  snapAcc += dt; if (snapAcc >= .1) { snapAcc = 0;
+  snapAcc += dt; if (snapAcc >= SNAP - .004) { snapAcc = 0; const sts = Math.round(performance.now());
     for (const k in rooms) { const r = rooms[k]; if (!r.players.size) continue;
       const st = new Map(r.mobs.map(e => [e, [e.id, ...mobState(e)]]));
-      for (const q of r.players) { if (!q.conn.open) continue; const l = []; for (const [e, a] of st) if (e.boss || hyp(q.x - e.x, q.y - e.y) < 24 * T) l.push(a); q.conn.send({ t: 'mobs', m: l }); }
+      for (const q of r.players) { if (!q.conn.open) continue; const l = []; for (const [e, a] of st) if (e.boss || hyp(q.x - e.x, q.y - e.y) < 24 * T) l.push(a); q.conn.send({ t: 'mobs', st: sts, m: l }); }
       const ch = [...r.players].filter(q => q.dirty); if (ch.length) { ch.forEach(q => q.dirty = false);
-        toRoom(r, { t: 'ps', p: ch.map(q => [q.id, Math.round(q.x), Math.round(q.y), q.fl, q.mv, q.run, Math.round(q.au * 100) / 100, Math.round(q.th * 100) / 100, q.sc, Math.round(q.hp), q.max]) }); } } }
+        toRoom(r, { t: 'ps', st: sts, p: ch.map(q => [q.id, Math.round(q.x), Math.round(q.y), q.fl, q.mv, q.run, Math.round(q.au * 100) / 100, Math.round(q.th * 100) / 100, q.sc, Math.round(q.hp), q.max, q.ct]) }); } } }
   partyAcc += dt; if (partyAcc >= 1) { partyAcc = 0; const tt = now();
     for (const [u, o] of offlineInfo) if (o.until < tt) partyLeave(u, 'desconectou');
     for (const q of players.values()) if (q.invites) for (const [f, ex] of q.invites) if (ex < tt) q.invites.delete(f);

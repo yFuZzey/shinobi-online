@@ -44,8 +44,8 @@ try {
   const rb = await B.wait(m => m.t === 'room'); ok(rb.players.some(p => p.id === ta.user.id), 'B vê A ao entrar');
   await A.wait(m => m.t === 'pj' && m.p.id === tb.user.id); ok(true, 'A é avisado que B entrou');
   A.send({ t: 'pos', x: 950, y: 1210, fl: 0, mv: 1, run: 0, au: -1, th: -1, sc: 0, hp: 100, max: 100 });
-  await B.wait(m => m.t === 'ps' && m.p.some(a => a[0] === ta.user.id && a[1] === 950)); ok(true, 'B recebe o movimento de A');
-  await A.wait(m => m.t === 'mobs'); ok(true, 'estado da raposa chegando do servidor');
+  const ps = await B.wait(m => m.t === 'ps' && m.p.some(a => a[0] === ta.user.id && a[1] === 950)); ok(typeof ps.st === 'number', 'B recebe o movimento de A');
+  const ms = await A.wait(m => m.t === 'mobs'); ok(typeof ms.st === 'number', 'estado dos monstros chegando do servidor (com hora para interpolar)');
   A.send({ t: 'pinv', to: tb.user.id }); const inv = await B.wait(m => m.t === 'pinvite'); ok(inv.from === ta.user.id, 'convite de grupo chegou');
   B.send({ t: 'pacc', from: ta.user.id }); const pa = await A.wait(m => m.t === 'party' && m.members && m.members.length === 2); ok(!!pa, 'grupo formado');
   B.send({ t: 'chat', text: 'teste do grupo', ch: 'g' }); await A.wait(m => m.t === 'chat' && m.ch === 'g'); ok(true, 'chat de grupo');
