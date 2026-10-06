@@ -50,6 +50,13 @@ try {
   B.send({ t: 'pacc', from: ta.user.id }); const pa = await A.wait(m => m.t === 'party' && m.members && m.members.length === 2); ok(!!pa, 'grupo formado');
   B.send({ t: 'chat', text: 'teste do grupo', ch: 'g' }); await A.wait(m => m.t === 'chat' && m.ch === 'g'); ok(true, 'chat de grupo');
   B.send({ t: 'pleave' }); await A.wait(m => m.t === 'party' && m.none); ok(true, 'grupo desfeito');
+  const wel = A.msgs.find(m => m.t === 'welcome');
+  if (!wel.inv) console.log('::warning::Trocas desligadas no servidor — coloque SUPABASE_SERVICE_KEY no Render e rode sql/04_trocas.sql no Supabase');
+  else {
+    A.send({ t: 'tinv', to: tb.user.id }); const ti = await B.wait(m => m.t === 'tinvite'); ok(ti.from === ta.user.id, 'pedido de troca chegou');
+    B.send({ t: 'tacc', from: ta.user.id }); const tr = await A.wait(m => m.t === 'trade'); ok(tr.other.id === tb.user.id, 'janela de troca aberta nos dois');
+    A.send({ t: 'tcancel' }); await B.wait(m => m.t === 'tend'); ok(true, 'troca cancelada sem mexer nas mochilas');
+  }
   A.ws.close(); B.ws.close();
 } catch (e) { ok(false, 'servidor: ' + e.message); }
 console.log(fails ? '\n' + fails + ' FALHA(S)' : '\nTUDO OK'); process.exit(fails ? 1 : 0);

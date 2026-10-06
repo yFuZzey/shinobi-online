@@ -18,8 +18,16 @@ ok(r.s===200,'ler personagem + inventário em colunas ('+r.s+' '+JSON.stringify(
 if(r.s===200&&r.j.length===0){r=await F('/rest/v1/personagens',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id:a.id,nome:a.nome,cla:'uchiha',nivel:1})},a.tok);ok(r.s===201,'criar personagem ('+r.s+' '+JSON.stringify(r.j)+')')}
 {const q=await F('/rest/v1/personagens?select=proficiencia,prof_xp&id=eq.'+a.id,{},a.tok);if(q.s===200)ok(true,'colunas da proficiência no banco');else console.log('::warning::O banco ainda não tem as colunas da proficiência — rode sql/03_proficiencia.sql no Supabase ('+q.s+')')}
 r=await F('/rest/v1/personagens?id=eq.'+a.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({xp:Date.now()%50,atualizado:new Date().toISOString()})},a.tok);ok(r.s===204,'salvar coluna xp ('+r.s+')');
-r=await F('/rest/v1/rpc/salvar_inventario',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({itens:[{item:'chidori',equipado:true}]})},a.tok);ok(r.s===204||r.s===200,'salvar inventário ('+r.s+' '+JSON.stringify(r.j&&r.j.message||'')+')');
-r=await F('/rest/v1/personagens?select=inventario(item,equipado)&id=eq.'+a.id,{},a.tok);ok(r.s===200&&r.j[0]&&r.j[0].inventario.length===1,'inventário gravado');
+{const tag='zz_falso_'+(Date.now()%100000);
+r=await F('/rest/v1/rpc/salvar_inventario',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({itens:[{item:'chidori',equipado:true},{item:tag,equipado:false}]})},a.tok);ok(r.s===204||r.s===200,'salvar inventário ('+r.s+' '+JSON.stringify(r.j&&r.j.message||'')+')');
+r=await F('/rest/v1/inventario?select=item&personagem_id=eq.'+a.id,{},a.tok);ok(r.s===200,'ler a própria mochila ('+r.s+')');
+if(r.s===200&&r.j.some(x=>x.item===tag)){console.log('::warning::O inventário ainda usa a regra antiga (o app consegue criar item) — coloque SUPABASE_SERVICE_KEY no Render e rode sql/04_trocas.sql');
+ r=await F('/rest/v1/rpc/salvar_inventario',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({itens:[{item:'chidori',equipado:true}]})},a.tok);
+ r=await F('/rest/v1/personagens?select=inventario(item,equipado)&id=eq.'+a.id,{},a.tok);ok(r.s===200&&r.j[0]&&r.j[0].inventario.length===1,'inventário gravado (regra antiga)')}
+else{ok(true,'salvar mochila pelo app NÃO cria item (sem duplicar)');
+ r=await F('/rest/v1/inventario',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({personagem_id:a.id,item:tag,equipado:false})},a.tok);ok(r.s>=400,'jogador NÃO consegue criar item direto no banco ('+r.s+')');
+ r=await F('/rest/v1/rpc/trocar_itens',{method:'POST',body:JSON.stringify({p_a:a.id,p_b:b.id,p_ia:[],p_ib:['chidori']})},a.tok);ok(r.s>=400,'jogador NÃO consegue chamar a troca direto ('+r.s+')');
+ r=await F('/rest/v1/rpc/dar_itens',{method:'POST',body:JSON.stringify({p_personagem:a.id,p_itens:[tag]})},a.tok);ok(r.s>=400,'jogador NÃO consegue se dar itens ('+r.s+')')}}
 r=await F('/rest/v1/personagens?id=eq.'+a.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({admin:true})},a.tok);ok(r.s>=400,'jogador NÃO consegue se dar admin ('+r.s+')');
 r=await F('/rest/v1/personagens?select=nome&id=eq.'+a.id,{},b.tok);ok(r.s===200&&r.j.length===0,'outro jogador NÃO lê personagem alheio (segurança)');
 r=await F('/rest/v1/inventario?select=item&personagem_id=eq.'+a.id,{},b.tok);ok(r.s===200&&r.j.length===0,'outro jogador NÃO lê inventário alheio');

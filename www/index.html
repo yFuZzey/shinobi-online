@@ -286,6 +286,20 @@ body:not(.adm) .admo{display:none!important}body:not(.adm) #paneBag .ivf{display
 .cht small.cbk{display:block;font-size:10px;color:var(--mute);line-height:1.1}
 .strow .sv small.svf{display:block;font-size:11px;font-weight:600;color:#3aa35a;line-height:1}
 .cht small.rkb{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;border:1px solid #ffc94a88;color:#ffc94a;font-weight:700}
+/* trocas */
+#trd{position:absolute;inset:0;z-index:22;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center}#trd[hidden]{display:none}
+#trd .td{background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:10px 12px;width:min(640px,96vw);max-height:96%;overflow:auto;text-align:left;font-family:system-ui,sans-serif;display:flex;flex-direction:column;gap:7px}
+.tdh{display:flex;justify-content:space-between;align-items:center;gap:8px}.tdh b{font-size:17px}.tdh button{margin:0;padding:6px 14px;font-size:13px}
+.tdc{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tdp{border:1px solid var(--line);border-radius:12px;padding:7px 8px}
+.tdt{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin-bottom:5px}.tdt small{font-weight:400;text-transform:none;letter-spacing:0}
+.tdt i{font-style:normal;font-weight:600;text-transform:none;letter-spacing:0;margin-left:4px;color:var(--mute)}.tdt i.on{color:#3aa35a}
+.tdg{display:grid;grid-template-columns:repeat(6,40px);gap:4px}.tdg .sl{width:40px;height:40px}.tdb{grid-template-columns:repeat(auto-fill,40px)}
+.tdi{font-size:12.5px;line-height:1.4;min-height:1.4em;padding:5px 8px;border-radius:8px;background:rgba(0,0,0,.06)}
+.tdf{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:7px}.tdf span{flex:1;min-width:0;font-size:12px;color:var(--mute);line-height:1.35}
+#tdOk{margin:0;padding:9px 18px;font-size:15px;flex:0 0 auto}#tdOk.go{background:#2f8a4a}
+#tinvp{position:absolute;left:50%;top:56px;transform:translateX(-50%);z-index:15;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 16px;border-radius:14px;background:rgba(12,10,20,.9);border:2px solid #ffc94a;color:#fff;font:600 14px system-ui,sans-serif;text-align:center;max-width:90vw}
+#tinvp[hidden]{display:none}#tinvp div{display:flex;gap:8px}#tinvp button{margin:0;padding:8px 16px;font-size:14px}#tinvp .sec{color:#fff;border-color:#ffffff66}
+.gr button+button{margin-left:6px}
 /* fluidez: desfoque de fundo por cima do jogo é caro no celular (refaz a cada quadro) */
 #mapbtn,#bagbtn,#statbtn,#grpbtn{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(12,10,20,.66)!important}
 @media (orientation:landscape) and (max-height:560px){#grpbtn{top:104px;padding:6px 11px;font-size:12px;min-width:96px}#phud .pm{width:150px}#chatrow{margin-top:5px}#chatp{height:calc(100% - 16px)}#toast{bottom:110px}}
@@ -343,6 +357,14 @@ body:not(.adm) .admo{display:none!important}body:not(.adm) #paneBag .ivf{display
 <p class="gpd">Convide quem está perto de você. Em grupo, o dano de todos soma na luta contra a raposa, e cada membro ganha a recompensa.</p><p class="gpd admo">[ADM] Lista: até 10 tiles · recompensa por maior dano somado · XP e chance de item para cada membro no mapa · chat Local: 15 tiles.</p>
 <div class="gpt">Seu grupo</div><p id="grpNone" class="gpe">Você ainda não está em um grupo. Convide alguém da lista abaixo.</p><div id="grpMem"></div><button id="grpLeave" class="sec" hidden>Sair do grupo</button>
 <div class="gpt">Jogadores próximos</div><p id="grpMapNone" class="gpe">Ninguém por perto. Chegue perto de alguém para convidar.</p><div id="grpMap"></div></div></div>
+<div id="trd" hidden><div class="td">
+<div class="tdh"><b>🤝 Troca com <span id="tdNome"></span></b><button id="tdX" class="sec">Cancelar</button></div>
+<div class="tdc"><div class="tdp"><div class="tdt">Você oferece <i id="tdSt0"></i></div><div class="tdg" id="tdMine"></div></div>
+<div class="tdp"><div class="tdt"><span id="tdNome2"></span> oferece <i id="tdSt1"></i></div><div class="tdg" id="tdTheirs"></div></div></div>
+<div id="tdInfo" class="tdi">Toque num item da sua mochila para colocar na troca. Qualquer mudança desfaz o "Pronto" dos dois.</div>
+<div class="tdt">Sua mochila <small>(itens equipados não entram: desequipe antes)</small></div><div class="tdg tdb" id="tdBag"></div>
+<div class="tdf"><span id="tdMsg"></span><button id="tdOk">Pronto</button></div></div></div>
+<div id="tinvp" hidden><span></span><div><button id="tinvOk">Aceitar</button><button id="tinvNo" class="sec">Recusar</button></div></div>
 <div id="pinv" hidden><span></span><div><button id="pinvOk">Aceitar</button><button id="pinvNo" class="sec">Recusar</button></div></div>
 <div id="netbar" hidden>Reconectando ao servidor…</div>
 <div id="netblock" hidden><div><b></b><span></span><button>Voltar ao início</button></div></div>
@@ -1218,7 +1240,7 @@ function gsHit(e,d,st,kx,ky){if(!ONL.on)return false;if(!e.sid||e.dead||!ONL.joi
  gsSend({t:'hit',m:e.sid,d,st:st||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec)});return true}
 function gsMsg(m){
  switch(m.t){
- case 'welcome':ONL.authed=true;ONL.uid=m.id;ONL.adm=!!m.adm;document.body.classList.toggle('adm',ONL.adm);if(ONL.welcomeCb){const f=ONL.welcomeCb;ONL.welcomeCb=null;f()}else if(cur==='game')gsJoin();onlStatus();break;
+ case 'welcome':ONL.authed=true;ONL.uid=m.id;ONL.adm=!!m.adm;ONL.inv=!!m.inv;document.body.classList.toggle('adm',ONL.adm);if(ONL.adm&&!m.inv&&m.invWhy&&!ONL.invWarn){ONL.invWarn=1;onlReg('⚠️ [ADM] Trocas desligadas: '+m.invWhy+'.')}if(ONL.welcomeCb){const f=ONL.welcomeCb;ONL.welcomeCb=null;f()}else if(cur==='game')gsJoin();onlStatus();break;
  case 'authfail':onlReg('⚠️ Falha ao entrar no servidor: '+m.msg);if(ONL.rtok)onlRefresh();break;
  case 'old':ONL.closing=true;gsBlock('Versão desatualizada','Seu app está desatualizado. Baixe a versão nova do jogo no GitHub (Releases) e instale por cima.');break;
  case 'kicked':ONL.closing=true;gsBlock('Desconectado',m.msg||'Sua conta entrou em outro aparelho.');break;
@@ -1246,6 +1268,11 @@ function gsMsg(m){
  case 'sys':onlReg('ℹ️ '+m.msg);toast(m.msg);break;
  case 'fx':{const pe=ONL.peers[m.id];if(!pe||pe.sc!==(scene|0))break;(m.fx||[]).forEach(f=>{f.rm=1;f._s=1;f.life=f.max||f.life||.5;fx.push(f)});(m.pr||[]).forEach(b=>{b.rm=1;b._s=1;b.dmg=0;P.push(b)});break}
  case 'pinvite':grpInvite(m);break;
+ case 'tinvite':tradeInvite(m);break;
+ case 'trade':ONL.trade=m;tradeDraw();grpDraw();break;
+ case 'tend':ONL.trade=null;tradeDraw();if(m.msg){toast(m.msg);onlReg('🤝 '+m.msg)}grpDraw();break;
+ case 'tdone':ONL.trade=null;tradeDraw();invReload().then(()=>{const nm=x=>(ITEMS[x]&&ITEMS[x].name)||x,g=m.ganhou.map(nm).join(', ')||'nada',d=m.deu.map(nm).join(', ')||'nada';toast('🤝 Troca concluída! Você recebeu: '+g);onlReg('🤝 Troca com '+m.com+' concluída. Você deu: '+d+' · recebeu: '+g+'.')});grpDraw();break;
+ case 'invreload':invReload();break;
  case 'party':ONL.party=m.none?null:m;grpDraw();break;
  case 'pong':ONL.ping=Math.round(performance.now()-m.c);onlStatus();break}}
 function gsMev(m){if(scene|0)return;
@@ -1376,6 +1403,7 @@ function grpDraw(){const pt=ONL.party,h=$('#phud');
   pt.members.forEach(x=>{const r=document.createElement('div');r.className='gr';const me=x.id===ONL.uid;
    r.innerHTML='<span class="gn"></span><span class="gi"></span>';r.querySelector('.gn').textContent=(pt.leader===x.id?'👑 ':'')+x.nome+(me?' (você)':'');
    r.querySelector('.gi').textContent='Nv '+x.lv+' · '+(x.on?(x.map?mapNm(x.map):'—'):'offline');
+   if(!me){const pe=ONL.peers[x.id];if(pe&&pe.x!==null&&Math.hypot(pe.x-p.x,pe.y-p.y)<=320)tradeBtn(r,x.id)}
    if(lead&&!me){const b=document.createElement('button');b.textContent='Remover';b.onclick=()=>gsSend({t:'pkick',id:x.id});r.appendChild(b)}L.appendChild(r)})}
  else{$('#grpNone').hidden=false;$('#grpLeave').hidden=true}
  const NEAR=10*32,now=performance.now();
@@ -1384,8 +1412,36 @@ function grpDraw(){const pt=ONL.party,h=$('#phud');
  others.forEach(({pe,d})=>{const r=document.createElement('div');r.className='gr';r.innerHTML='<span class="gn"></span><span class="gi"></span>';
   r.querySelector('.gn').textContent=pe.nome;r.querySelector('.gi').textContent='Nv '+(pe.lv||1)+(ONL.adm?' · '+Math.max(1,Math.round(d/32))+' tiles':'')+(pe.g?' · já tem grupo':'');
   const sent=ONL.invSent[pe.id]&&now-ONL.invSent[pe.id]<30000;
-  const b=document.createElement('button');b.textContent=sent?'Enviado':'Convidar';b.disabled=sent||!!pe.g||(pt&&pt.members.length>=6);b.onclick=()=>{gsSend({t:'pinv',to:pe.id});ONL.invSent[pe.id]=performance.now();b.disabled=true;b.textContent='Enviado'};r.appendChild(b);O.appendChild(r)})}
+  const b=document.createElement('button');b.textContent=sent?'Enviado':'Convidar';b.disabled=sent||!!pe.g||(pt&&pt.members.length>=6);b.onclick=()=>{gsSend({t:'pinv',to:pe.id});ONL.invSent[pe.id]=performance.now();b.disabled=true;b.textContent='Enviado'};r.appendChild(b);tradeBtn(r,pe.id);O.appendChild(r)})}
+function tradeBtn(r,id){if(!ONL.inv)return;const tb=document.createElement('button');tb.className='sec';const sent=ONL.tSent&&ONL.tSent[id]&&performance.now()-ONL.tSent[id]<30000;tb.textContent=sent?'Pedido enviado':'🤝 Trocar';tb.disabled=sent||!!ONL.trade;tb.onclick=()=>{gsSend({t:'tinv',to:id});(ONL.tSent=ONL.tSent||{})[id]=performance.now();tb.disabled=true;tb.textContent='Pedido enviado'};r.appendChild(tb)}
 setInterval(()=>{if(ONL.on&&!$('#grp').hidden)grpDraw()},1000);
+// ---------- mochila vinda do banco (o servidor é quem cria/move itens; o app só lê) ----------
+async function invReload(){if(!ONL.on||!ONL.uid)return;try{const rows=await onlFetch('/rest/v1/inventario?select=item,equipado&personagem_id=eq.'+ONL.uid);
+ INV=[];EQ={};(rows||[]).forEach(r=>{const it=ITEMS[r.item];if(!it)return;if(r.equipado&&!EQ[it.slot])EQ[it.slot]=r.item;else if(!INV.includes(r.item))INV.push(r.item)});
+ if(invSel&&!hasItem(invSel))invSel=null;invSave();stats();if(ONL.last)ONL.last.inv=JSON.stringify(onlInv());if(!$('#inv').hidden)bagRefresh();tradeDraw()}
+ catch(e){onlReg('⚠️ Não consegui recarregar a mochila: '+onlErr(e))}}
+// ---------- Trocas: o servidor confere tudo e o banco troca os donos de uma vez (tudo ou nada) ----------
+let tInvQ=null,tInvT=0,tPick=null;
+function tradeInvite(m){tInvQ=m;const b=$('#tinvp');b.querySelector('span').textContent='🤝 '+m.nome+' quer trocar itens com você';b.hidden=false;clearTimeout(tInvT);tInvT=setTimeout(()=>{b.hidden=true;tInvQ=null},(m.ttl||30)*1000)}
+function tradeSet(list){const T=ONL.trade;if(!T||T.busy)return;T.mine=list;T.ok=[false,false];T.conf=[false,false];tradeDraw();gsSend({t:'toff',items:list})}
+function tradeInfo(id){const it=ITEMS[id];if(!it)return;const rc=rarOf(it),L=Object.keys(STX).filter(k=>+(it.stats||{})[k]).map(k=>stLine(k,+it.stats[k]));
+ $('#tdInfo').innerHTML='<b style="color:'+rc[1]+'">'+esc(it.name)+'</b> <span class="z">'+rc[0]+'</span>'+(L.length?' · '+L.join(' · '):'')+(it.atk&&it.atk.kind?' · ⚡ ataque especial':'')}
+function tradeDraw(){const w=$('#trd'),T=ONL.trade;if(!w)return;w.hidden=!T;if(!T)return;
+ $('#tdNome').textContent=T.other.nome;$('#tdNome2').textContent=T.other.nome;
+ const st=i=>T.busy?'trocando…':T.conf[i]?'✔✔ confirmou':T.ok[i]?'✔ pronto':'escolhendo…';
+ $('#tdSt0').textContent=st(0);$('#tdSt1').textContent=st(1);$('#tdSt0').className=T.ok[0]?'on':'';$('#tdSt1').className=T.ok[1]?'on':'';
+ const fill=(el,list,on)=>{el.innerHTML='';for(let i=0;i<6;i++){const id=list[i];const b=bagSlot(id,'',()=>on(id));if(!id)b.innerHTML='';el.appendChild(b)}};
+ fill($('#tdMine'),T.mine,id=>{tradeInfo(id);tradeSet(T.mine.filter(x=>x!==id))});
+ fill($('#tdTheirs'),T.theirs,id=>tradeInfo(id));
+ const bag=$('#tdBag');bag.innerHTML='';const livres=INV.filter(x=>!T.mine.includes(x));
+ if(!livres.length)bag.innerHTML='<p class="z">Nenhum item livre na mochila.</p>';
+ livres.forEach(id=>bag.appendChild(bagSlot(id,'',()=>{tradeInfo(id);if(T.mine.length>=6)return toast('Máximo de 6 itens por troca.');tradeSet(T.mine.concat(id))})));
+ const b=$('#tdOk'),both=T.ok[0]&&T.ok[1];
+ b.disabled=!!T.busy||(T.ok[0]&&!T.ok[1])||(T.conf[0]&&!T.conf[1]);
+ b.textContent=T.busy?'Trocando…':!T.ok[0]?'Pronto':!T.ok[1]?'Esperando '+T.other.nome+'…':!T.conf[0]?'Confirmar troca':'Esperando confirmação…';
+ b.className=both&&!T.conf[0]?'go':'';
+ const nm=x=>(ITEMS[x]&&ITEMS[x].name)||x;
+ $('#tdMsg').textContent='Você dá: '+(T.mine.map(nm).join(', ')||'nada')+' · Você recebe: '+(T.theirs.map(nm).join(', ')||'nada');}
 let gsInvQ=null,gsInvT=0;
 function grpInvite(m){gsInvQ=m;const b=$('#pinv');b.querySelector('span').textContent=m.nome+' te convidou para o grupo';b.hidden=false;clearTimeout(gsInvT);gsInvT=setTimeout(()=>{b.hidden=true;gsInvQ=null},(m.ttl||30)*1000)}
 
@@ -1515,6 +1571,11 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
  $('#chatin').addEventListener('keyup',e=>e.stopPropagation());
  $('#grpbtn').onclick=()=>{$('#grp').hidden=false;grpDraw()};$('#grpX').onclick=()=>{$('#grp').hidden=true};
  $('#grpLeave').onclick=()=>gsSend({t:'pleave'});
+ $('#tinvOk').onclick=()=>{if(tInvQ)gsSend({t:'tacc',from:tInvQ.from});$('#tinvp').hidden=true;tInvQ=null};
+ $('#tinvNo').onclick=()=>{if(tInvQ)gsSend({t:'tdec',from:tInvQ.from});$('#tinvp').hidden=true;tInvQ=null};
+ $('#tdX').onclick=()=>gsSend({t:'tcancel'});
+ $('#tdOk').onclick=()=>{const T=ONL.trade;if(!T)return;gsSend({t:!T.ok[0]?'tlock':'tconf'})};
+ {const g0=$('#ivGive').onclick,r0=$('#ivReset').onclick;$('#ivGive').onclick=()=>{if(ONL.on&&ONL.inv)gsSend({t:'admitem'});else g0()};$('#ivReset').onclick=()=>{if(ONL.on&&ONL.inv)gsSend({t:'admreset'});else r0()}}
  $('#pinvOk').onclick=()=>{if(gsInvQ)gsSend({t:'pacc',from:gsInvQ.from});$('#pinv').hidden=true;gsInvQ=null};
  $('#pinvNo').onclick=()=>{if(gsInvQ)gsSend({t:'pdec',from:gsInvQ.from});$('#pinv').hidden=true;gsInvQ=null};
  $('#netblock button').onclick=()=>location.reload();

@@ -15,6 +15,13 @@ MMORPG 2D no universo Naruto (protótipo).
 - `personagens`: uma coluna por informação (cla, nivel, xp, pontos, forca, agilidade, vitalidade, inteligencia, destreza, sorte, mapa, pele, cabelo, roupa, admin).
 - `inventario`: uma linha por item (personagem_id, item, equipado).
 - SQL de criação/atualização em `sql/`. Edite de preferência com o jogador fora do jogo.
+- `trocas`: histórico das trocas entre jogadores.
+
+## Trocas e itens (anti-duplicação)
+- O app só lê a mochila e marca equipado/desequipado. Criar, dar e trocar itens é só pelo servidor do jogo, com a chave secreta `SUPABASE_SERVICE_KEY` (variável no Render, nunca no código).
+- Cada personagem tem no máximo 1 de cada item (índice único no banco).
+- A troca é feita de uma vez no banco (`trocar_itens`): ou troca tudo, ou nada.
+- Ativar: chave no Render → rodar `sql/04_trocas.sql` no Supabase.
 
 ## Mobs
 - Criados no editor (aba Mobs) e colocados nos mapas com a ferramenta Mobs (áreas).

@@ -11,6 +11,8 @@ const http = require('http'), crypto = require('crypto'), fs = require('fs'), pa
 const PORT = +process.env.PORT || 8080;
 const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
 const SB_KEY = process.env.SUPABASE_KEY || '';
+// chave SECRETA do Supabase (só no painel do Render, nunca no app): o servidor passa a cuidar do inventário no banco
+const SB_SVC = process.env.SUPABASE_SERVICE_KEY || '';
 const PROTO = 2;                                   // versão do protocolo (cliente precisa bater)
 const COMMIT = process.env.RENDER_GIT_COMMIT || process.env.COMMIT || 'dev';
 const T = 32;
@@ -164,6 +166,84 @@ function toRoom(r, o, except) { const s = JSON.stringify(o), fr = wsFrame(1, s);
 function sys(p, msg) { p.conn.send({ t: 'sys', msg }); }
 const pub = p => ({ id: p.id, nome: p.nome, clan: p.clan, lv: p.lv, eq: p.eq, look: p.look, x: p.x, y: p.y, fl: p.fl, mv: p.mv, run: p.run, au: p.au, th: p.th, sc: p.sc, hp: p.hp, max: p.max, g: memberParty.get(p.id) || 0, adm: p.adm ? 1 : 0 });
 
+// ---------------------------------------------------------------- inventário no banco (anti-duplicação)
+// Com a chave secreta + o SQL 04, só o servidor cria/move itens: drops, trocas e comandos de admin.
+let INV_OK = false, INV_WHY = 'iniciando';
+async function svc(pth, opt = {}) {
+  const h = { apikey: SB_SVC, 'Content-Type': 'application/json' }; if (SB_SVC.startsWith('eyJ')) h.Authorization = 'Bearer ' + SB_SVC;
+  const r = await fetch(SB_URL + pth, Object.assign({}, opt, { headers: Object.assign(h, opt.headers || {}), signal: AbortSignal.timeout(10000) }));
+  const t = await r.text(); let j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+  if (!r.ok) { const e = new Error((j && (j.message || j.msg || j.hint)) || ('Erro ' + r.status)); e.status = r.status; throw e; } return j;
+}
+const rpc = (fn, args) => svc('/rest/v1/rpc/' + fn, { method: 'POST', body: JSON.stringify(args) });
+async function invCheck() {
+  if (!SB_URL || !SB_SVC) { INV_OK = false; INV_WHY = 'falta a chave secreta (SUPABASE_SERVICE_KEY) no Render'; return; }
+  try { await rpc('dar_itens', { p_personagem: '00000000-0000-0000-0000-000000000000', p_itens: [] }); INV_OK = true; INV_WHY = ''; }
+  catch (e) { INV_OK = false; INV_WHY = e.status === 404 ? 'falta rodar o SQL 04 (trocas) no Supabase' : 'o banco recusou a chave do servidor (' + e.message + ')'; }
+  log('inventário pelo servidor: ' + (INV_OK ? 'ligado' : 'desligado — ' + INV_WHY));
+}
+setTimeout(invCheck, 500); setInterval(invCheck, 5 * 60 * 1000);
+async function invOf(uid) { const rows = await svc('/rest/v1/inventario?select=item,equipado&personagem_id=eq.' + encodeURIComponent(uid)); return rows || []; }
+// dá itens (drop/admin); devolve só os que entraram de fato (quem já tem o item não ganha outro igual)
+async function giveDb(uid, items) { if (!items.length) return []; const got = await rpc('dar_itens', { p_personagem: uid, p_itens: items }); return Array.isArray(got) ? got : []; }
+
+// ---------------------------------------------------------------- trocas
+const TRADE = { near: 10, maxItems: 6, inviteTtl: 30 };
+const trades = new Map(), inTrade = new Map(); let tradeSeq = 0;
+const tNear = (p, q) => p && q && p.map && p.map === q.map && !p.sc && !q.sc && hyp(p.x - q.x, p.y - q.y) <= TRADE.near * T;
+function tSend(t) { for (const [me, ot] of [[t.a, t.b], [t.b, t.a]]) { const q = players.get(me), o = players.get(ot); if (!q) continue;
+  q.conn.send({ t: 'trade', id: t.id, other: { id: ot, nome: o ? o.nome : '?' }, mine: t.off[me], theirs: t.off[ot], ok: [!!t.ok[me], !!t.ok[ot]], conf: [!!t.conf[me], !!t.conf[ot]], busy: t.busy ? 1 : 0 }); } }
+function tEnd(t, msg) { if (!trades.has(t.id)) return; trades.delete(t.id); inTrade.delete(t.a); inTrade.delete(t.b);
+  for (const u of [t.a, t.b]) { const q = players.get(u); if (q) q.conn.send({ t: 'tend', id: t.id, msg: msg || '' }); } }
+function tradeInvite(p, to) {
+  if (!INV_OK) return sys(p, 'As trocas ainda estão desligadas no servidor.');
+  const q = players.get(to); if (!q || q === p) return sys(p, 'Jogador não encontrado.');
+  if (!tNear(p, q)) return sys(p, q.nome + ' precisa estar perto de você (até ' + TRADE.near + ' tiles).');
+  if (inTrade.has(p.id) || inTrade.has(q.id)) return sys(p, (inTrade.has(p.id) ? 'Você' : q.nome) + ' já está em uma troca.');
+  q.tinv = q.tinv || new Map(); q.tinv.set(p.id, now() + TRADE.inviteTtl);
+  q.conn.send({ t: 'tinvite', from: p.id, nome: p.nome, ttl: TRADE.inviteTtl }); sys(p, 'Pedido de troca enviado para ' + q.nome + '.');
+}
+function tradeAccept(p, from) {
+  const exp = p.tinv && p.tinv.get(from); if (p.tinv) p.tinv.delete(from); const q = players.get(from);
+  if (!exp || exp < now() || !q) return sys(p, 'O pedido de troca expirou.');
+  if (!tNear(p, q)) return sys(p, 'Vocês precisam estar perto para trocar.');
+  if (inTrade.has(p.id) || inTrade.has(q.id)) return sys(p, 'Um de vocês já está em uma troca.');
+  const t = { id: ++tradeSeq, a: q.id, b: p.id, off: { [q.id]: [], [p.id]: [] }, ok: {}, conf: {}, busy: false };
+  trades.set(t.id, t); inTrade.set(t.a, t.id); inTrade.set(t.b, t.id); tSend(t);
+}
+async function tradeOffer(p, items) {
+  const t = trades.get(inTrade.get(p.id)); if (!t || t.busy) return;
+  items = [...new Set((Array.isArray(items) ? items : []).map(x => str(x, 40)).filter(x => ITEMS[x]))].slice(0, TRADE.maxItems);
+  let have; try { have = await invOf(p.id); } catch (e) { return sys(p, 'Não consegui ver sua mochila no banco. Tente de novo.'); }
+  const livres = new Set(have.filter(r => !r.equipado).map(r => r.item));
+  if (!trades.has(t.id)) return;
+  t.off[p.id] = items.filter(x => livres.has(x)); t.ok = {}; t.conf = {}; tSend(t); // qualquer mudança desfaz o "pronto" dos dois
+}
+function tradeLock(p) { const t = trades.get(inTrade.get(p.id)); if (!t || t.busy) return;
+  if (!t.off[t.a].length && !t.off[t.b].length) return sys(p, 'Coloque pelo menos um item na troca.');
+  t.ok[p.id] = true; t.conf = {}; tSend(t); }
+async function tradeConfirm(p) {
+  const t = trades.get(inTrade.get(p.id)); if (!t || t.busy) return; if (!t.ok[t.a] || !t.ok[t.b]) return sys(p, 'Os dois precisam apertar "Pronto" antes.');
+  t.conf[p.id] = true; tSend(t); if (!t.conf[t.a] || !t.conf[t.b]) return;
+  const A = players.get(t.a), B = players.get(t.b); if (!tNear(A, B)) return tEnd(t, 'Vocês se afastaram, a troca foi cancelada.');
+  t.busy = true; tSend(t);
+  try {
+    await rpc('trocar_itens', { p_a: t.a, p_b: t.b, p_ia: t.off[t.a], p_ib: t.off[t.b] }); // tudo ou nada, dentro do banco
+    for (const [me, ot] of [[t.a, t.b], [t.b, t.a]]) { const q = players.get(me); if (q) q.conn.send({ t: 'tdone', deu: t.off[me], ganhou: t.off[ot], com: (players.get(ot) || {}).nome || '?' }); }
+    log('troca ' + t.id + ': ' + t.a + ' [' + t.off[t.a] + '] <-> ' + t.b + ' [' + t.off[t.b] + ']');
+    trades.delete(t.id); inTrade.delete(t.a); inTrade.delete(t.b);
+  } catch (e) {
+    const why = /já tem/.test(e.message) ? 'um de vocês já tem um dos itens' : /não está/.test(e.message) ? 'um item não está mais disponível' : 'erro no banco';
+    tEnd(t, 'A troca não foi feita: ' + why + '. Nada mudou nas mochilas.');
+  }
+}
+function tradeTick() { for (const t of trades.values()) { if (t.busy) continue; const A = players.get(t.a), B = players.get(t.b);
+  if (!A || !B) tEnd(t, 'O outro jogador saiu. Troca cancelada.'); else if (!tNear(A, B)) tEnd(t, 'Vocês se afastaram. Troca cancelada.'); } }
+// admin: itens de teste direto no banco
+async function admItems(p, m) { if (!p.adm) return; if (!INV_OK) return sys(p, '[ADM] Inventário pelo servidor desligado: ' + INV_WHY);
+  try { if (m.t === 'admitem') await giveDb(p.id, Object.keys(ITEMS)); else await svc('/rest/v1/inventario?personagem_id=eq.' + encodeURIComponent(p.id), { method: 'DELETE' });
+    p.conn.send({ t: 'invreload' }); } catch (e) { sys(p, '[ADM] Erro no banco: ' + e.message); } }
+
 // ---------------------------------------------------------------- autenticação
 async function verifyToken(token) {
   if (!SB_URL || !SB_KEY) throw new Error('servidor sem configuração do Supabase');
@@ -191,7 +271,7 @@ function onMessage(c, m) {
       if (old && old.conn.open) { old.conn.send({ t: 'kicked', msg: 'Sua conta entrou em outro aparelho.' }); old.kicked = true; old.conn.close(4001, 'duplicado'); }
       const p = { id: u.id, nome: u.nome, adm: u.adm, conn: c, map: null, x: 0, y: 0, fl: 0, mv: 0, run: 0, au: -1, th: -1, sc: 0, hp: 100, max: 100, lv: 1, clan: 'uchiha', eq: [], look: null, hitT: now(), hitN: 0 };
       c.player = p; players.set(u.id, p); offlineInfo.delete(u.id);
-      c.send({ t: 'welcome', id: u.id, nome: u.nome, adm: u.adm ? 1 : 0, cfg: { aggro: CFG.aggro, resetNear: CFG.resetNear, resetHome: CFG.resetHome, partyMax: CFG.partyMax } });
+      c.send({ t: 'welcome', id: u.id, nome: u.nome, adm: u.adm ? 1 : 0, inv: INV_OK ? 1 : 0, invWhy: u.adm ? INV_WHY : '', cfg: { aggro: CFG.aggro, resetNear: CFG.resetNear, resetHome: CFG.resetHome, partyMax: CFG.partyMax } });
       const pid = memberParty.get(u.id); if (pid) partySync(parties.get(pid));
       log('entrou', u.nome + (u.adm ? ' [ADM]' : ''), '(' + players.size + ' online)');
     }).catch(e => { c.send({ t: 'authfail', msg: String(e.message || e) }); c.close(4002, 'auth'); });
@@ -214,6 +294,14 @@ function onMessage(c, m) {
         for (const q of room(p.map).players) if (q.sc === p.sc && hyp(q.x - p.x, q.y - p.y) <= CFG.localChat * T && q.conn.open) { try { q.conn.sock.write(wsFrame(1, o)); } catch (e) {} } }
       else if (p.map) toRoom(room(p.map), { t: 'chat', id: p.id, nome: p.nome, text, ch: 'm' }); } return;
     case 'hit': return onHit(p, m);
+    case 'tinv': return tradeInvite(p, str(m.to, 64));
+    case 'tacc': return tradeAccept(p, str(m.from, 64));
+    case 'tdec': { const f = str(m.from, 64), q = players.get(f); if (p.tinv) p.tinv.delete(f); if (q) sys(q, p.nome + ' recusou a troca.'); } return;
+    case 'toff': return tradeOffer(p, m.items);
+    case 'tlock': return tradeLock(p);
+    case 'tconf': return tradeConfirm(p);
+    case 'tcancel': { const t = trades.get(inTrade.get(p.id)); if (t && !t.busy) tEnd(t, p.nome + ' cancelou a troca.'); } return;
+    case 'admitem': case 'admreset': return admItems(p, m);
     case 'pinv': return partyInvite(p, str(m.to, 64));
     case 'pacc': return partyAccept(p, str(m.from, 64));
     case 'pdec': { const q = players.get(str(m.from, 64)); if (p.invites) p.invites.delete(str(m.from, 64)); if (q) sys(q, p.nome + ' recusou o convite.'); } return;
@@ -239,7 +327,8 @@ function onJoin(p, m) {
   toRoom(r, { t: 'pj', p: pub(p) }, p);
   const pt = parties.get(memberParty.get(p.id)); if (pt) partySync(pt);
 }
-function leaveRoom(p) { const r = rooms[p.map]; if (!r) return; r.players.delete(p); toRoom(r, { t: 'pl', id: p.id }); p.map = null; }
+function leaveRoom(p) { { const t = trades.get(inTrade.get(p.id)); if (t && !t.busy) tEnd(t, p.nome + ' saiu do mapa. Troca cancelada.'); }
+  const r = rooms[p.map]; if (!r) return; r.players.delete(p); toRoom(r, { t: 'pl', id: p.id }); p.map = null; }
 function onDisconnect(c) {
   const p = c.player; if (!p) return;
   if (players.get(p.id) === p) players.delete(p.id);
@@ -318,7 +407,8 @@ function killMob(r, e) {
     const items = isBoss && !fd.length ? Object.values(ITEMS).filter(it => it.drop && it.drop.src === 'boss' && Math.random() * 100 < (it.drop.chance == null ? 100 : +it.drop.chance)).map(it => it.id)
       : isBoss ? fd.filter(x => ITEMS[x.item] && Math.random() * 100 < clamp(num(x.chance, 0), 0, 100)).map(x => x.item)
       : (d.drops || []).filter(x => ITEMS[x.item] && Math.random() * 100 < clamp(num(x.chance, 0), 0, 100)).map(x => x.item);
-    q.conn.send({ t: 'reward', xp: isBoss ? clamp(num(FOXDEF().xp, CFG.xp), 0, 1e8) | 0 : clamp(num(d.xp, 0), 0, 1e7) | 0, items, mob: e.nome, dmg: tot[best], grp: pt ? 1 : 0, boss: isBoss ? 1 : 0 });
+    const sendRw = got => q.conn.send({ t: 'reward', xp: isBoss ? clamp(num(FOXDEF().xp, CFG.xp), 0, 1e8) | 0 : clamp(num(d.xp, 0), 0, 1e7) | 0, items: got, mob: e.nome, dmg: tot[best], grp: pt ? 1 : 0, boss: isBoss ? 1 : 0, db: INV_OK ? 1 : 0 });
+    if (INV_OK && items.length) giveDb(q.id, items).then(sendRw, err => { log('drop não gravado: ' + err.message); sendRw([]); }); else sendRw(items);
   }
   const nomeG = k => { const g = parties.get(k); if (g) return 'grupo de ' + ((players.get(g.leader) || offlineInfo.get(g.leader) || {}).nome || '?'); const u = k.slice(2); return (players.get(u) || offlineInfo.get(u) || {}).nome || '?'; };
   const rank = Object.keys(tot).sort((a, b) => tot[b] - tot[a]).slice(0, 5).map(k => ({ quem: nomeG(k), dmg: tot[k] }));
@@ -421,7 +511,7 @@ setInterval(() => {
   partyAcc += dt; if (partyAcc >= 1) { partyAcc = 0; const tt = now();
     for (const [u, o] of offlineInfo) if (o.until < tt) partyLeave(u, 'desconectou');
     for (const q of players.values()) if (q.invites) for (const [f, ex] of q.invites) if (ex < tt) q.invites.delete(f);
-    for (const pt of parties.values()) partySync(pt); }
+    for (const pt of parties.values()) partySync(pt); tradeTick(); }
 }, TICK * 1000);
 // mantém as conexões vivas e derruba as mortas
 setInterval(() => { for (const q of players.values()) { const c = q.conn; if (!c.alive) { c.close(1001, 'sem resposta'); continue; } c.alive = false; try { c.sock.write(wsFrame(9, '')); } catch (e) {} } }, 25000);
