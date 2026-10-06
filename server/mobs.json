@@ -1,4 +1,19 @@
 {
+ "ninja_renegado": {
+  "id": "ninja_renegado",
+  "name": "Ninja Renegado",
+  "escala": 90.0,
+  "vida": 80,
+  "dano": 8.0,
+  "vel": 80.0,
+  "atkInt": 1.1,
+  "alcance": 1.0,
+  "visao": 6.0,
+  "persegue": 8.0,
+  "xp": 15,
+  "renasce": 20.0,
+  "drops": []
+ },
  "lobo_cinzento": {
   "id": "lobo_cinzento",
   "name": "Lobo Cinzento",
@@ -27,21 +42,6 @@
   "persegue": 10.0,
   "xp": 40,
   "renasce": 60.0,
-  "drops": []
- },
- "ninja_renegado": {
-  "id": "ninja_renegado",
-  "name": "Ninja Renegado",
-  "escala": 90.0,
-  "vida": 80,
-  "dano": 8.0,
-  "vel": 80.0,
-  "atkInt": 1.1,
-  "alcance": 1.0,
-  "visao": 6.0,
-  "persegue": 8.0,
-  "xp": 15,
-  "renasce": 20.0,
   "drops": []
  }
 }
