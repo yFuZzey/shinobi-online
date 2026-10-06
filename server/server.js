@@ -102,23 +102,26 @@ function mobDef(e) { return { id: e.id, kind: e.kind, nome: e.nome, boss: e.boss
 
 // ---------------------------------------------------------------- mobs comuns (criados no editor, nas áreas do mapa)
 function inSafe(map, x, y, extra) { if (!(CFG.safe > 0)) return false; const s = MAPS[map].spawn; return !!s && hyp(x - s[0] * T, y - s[1] * T) < (CFG.safe + (extra || 0)) * T; }
+function spreadPoint(r, A, self) { let best = null, bd = -1;
+  for (let i = 0; i < 8; i++) { const p = areaPoint(r.map, A); let md = 1e9; for (const o of r.mobs) if (o !== self && o.kind === 'mob' && !o.dead) md = Math.min(md, hyp(o.x - p[0], o.y - p[1])); if (md > 1.5 * T) return p; if (md > bd) { bd = md; best = p; } }
+  return best || areaPoint(r.map, A); }
 function areaPoint(map, A) { for (let i = 0; i < 60; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y) && !inSafe(map, x, y, 1)) return [x, y]; } for (let i = 0; i < 40; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y)) return [x, y]; } return [(A.x + A.w / 2) * T, (A.y + A.h / 2) * T]; }
-function newMob(r, d, A, id) { const [x, y] = areaPoint(r.map, A), sc = clamp(num(d.escala, 100), 30, 400) / 100;
+function newMob(r, d, A, id) { const [x, y] = spreadPoint(r, A, null), sc = clamp(num(d.escala, 100), 30, 400) / 100;
   return { id, kind: 'mob', t: d.id, def: d, A, nome: d.name || d.id, boss: 0, rad: Math.round(18 * sc), max: Math.max(1, d.vida | 0), hp: Math.max(1, d.vida | 0), hx: x, hy: y, x, y,
     dead: 0, dt: 0, rt: 0, mv: 0, fl: 0, ch: 0, lunge: 0, ja: 0, jz: 0, jc: 0, jx: 0, jy: 0, stun: 0, hurt: 0, atkT: 0, tg: null, back: 0, wt: 0, wx: x, wy: y, dmg: {}, alone: 0 }; }
 function rectDist(A, x, y) { const x0 = A.x * T, y0 = A.y * T, x1 = (A.x + A.w) * T, y1 = (A.y + A.h) * T; return hyp(Math.max(x0 - x, 0, x - x1), Math.max(y0 - y, 0, y - y1)); }
 function mobTickG(r, e, dt) {
   const d = e.def;
-  if (e.dead) { e.dt += dt; if ((e.rt -= dt) <= 0) { const [x, y] = areaPoint(r.map, e.A); Object.assign(e, { x, y, hx: x, hy: y, hp: e.max, dead: 0, dt: 0, tg: null, back: 0, dmg: {}, stun: 0, hurt: 0, lunge: 0 }); } return; }
+  if (e.dead) { e.dt += dt; if ((e.rt -= dt) <= 0) { const [x, y] = spreadPoint(r, e.A, e); Object.assign(e, { x, y, hx: x, hy: y, hp: e.max, dead: 0, dt: 0, tg: null, back: 0, dmg: {}, stun: 0, hurt: 0, lunge: 0 }); } return; }
   e.hurt = Math.max(0, e.hurt - dt); e.lunge = Math.max(0, e.lunge - dt); e.atkT -= dt;
   if (e.stun > 0) { e.stun -= dt; e.mv = 0; return; }
   const vel = clamp(num(d.vel, 70), 10, 300), leash = clamp(num(d.persegue, 8), 1, 40) * T, vis = clamp(num(d.visao, 6), 0, 20) * T;
   // ninguém por perto por um tempo: volta inteira para a área
   let nd = 1e9; for (const q of r.players) if (!q.sc && q.hp > 0) nd = Math.min(nd, hyp(q.x - e.x, q.y - e.y));
-  if (nd > CFG.resetNear * T) { e.alone += dt; if (e.alone >= CFG.resetWait && (e.hp < e.max || Object.keys(e.dmg).length)) { e.hp = e.max; e.dmg = {}; e.tg = null; e.back = 1; } } else e.alone = 0;
+  if (nd > CFG.resetNear * T) { e.alone += dt; if (e.alone >= CFG.resetWait && (e.hp < e.max || Object.keys(e.dmg).length)) { e.hp = e.max; e.dmg = {}; e.tg = null; e.back = 1; const p = spreadPoint(r, e.A, e); e.hx = p[0]; e.hy = p[1]; } } else e.alone = 0;
   // alvo: continua com o atual enquanto ele estiver dentro do limite de perseguição
   let tg = e.tg;
-  if (tg && (!r.players.has(tg) || tg.sc || tg.hp <= 0 || rectDist(e.A, tg.x, tg.y) > leash || inSafe(r.map, tg.x, tg.y))) { tg = null; e.tg = null; e.back = 1; }
+  if (tg && (!r.players.has(tg) || tg.sc || tg.hp <= 0 || rectDist(e.A, tg.x, tg.y) > leash || inSafe(r.map, tg.x, tg.y))) { tg = null; e.tg = null; e.back = 1; const p = spreadPoint(r, e.A, e); e.hx = p[0]; e.hy = p[1]; }
   if (!tg && !e.back && vis > 0) { let best = null, bd = vis; for (const q of r.players) { if (q.sc || q.hp <= 0 || rectDist(e.A, q.x, q.y) > leash || inSafe(r.map, q.x, q.y)) continue; const dd = hyp(q.x - e.x, q.y - e.y); if (dd <= bd) { bd = dd; best = q; } } if (best) { tg = e.tg = best; } }
   let vx = 0, vy = 0, sp = vel;
   if (e.back) { // voltando para casa: não aceita alvo e recupera a vida ao chegar
@@ -283,7 +286,7 @@ function onHit(p, m) {
   if (e.hp <= 0) killMob(r, e);
 }
 function killMob(r, e) {
-  e.hp = 0; e.dead = 1; e.dt = 0; e.rt = e.kind === 'mob' ? clamp(num(e.def.renasce, 15), 2, 3600) : CFG.respawn; e.ch = e.lunge = e.ja = e.jc = e.jz = e.stun = 0; e.tg = null; if (e.kind !== 'mob') r.eps = [];
+  e.hp = 0; e.dead = 1; e.dt = 0; e.rt = e.kind === 'mob' ? clamp(num(e.def.renasce, 15), 2, 3600) * (.8 + Math.random() * .4) : CFG.respawn; e.ch = e.lunge = e.ja = e.jc = e.jz = e.stun = 0; e.tg = null; if (e.kind !== 'mob') r.eps = [];
   const tot = {}; for (const uid in e.dmg) { const k = groupKey(uid); tot[k] = (tot[k] || 0) + e.dmg[uid]; }
   let best = null; for (const k in tot) if (!best || tot[k] > tot[best]) best = k;
   e.dmg = {};
@@ -384,8 +387,9 @@ const TICK = 1 / 30; let snapAcc = 0, partyAcc = 0, last = now();
 setInterval(() => {
   const t = now(); let dt = Math.min(.1, t - last); last = t;
   for (const k in rooms) { const r = rooms[k];
-    if (!r.players.size) { for (const e of r.mobs) { if (e.kind === 'mob') { if (!e.dead) { e.hp = e.max; e.dmg = {}; e.tg = null; } else mobTickG(r, e, dt); } else if (!e.dead && (e.hp < e.max || hyp(e.x - e.hx, e.y - e.hy) > 2 * T)) resetMob(r, e, false); } r.eps = []; continue; }
-    for (const e of r.mobs) e.kind === 'mob' ? mobTickG(r, e, dt) : mobTick(r, e, dt); epTick(r, dt); }
+    if (!r.players.size) { if (!r.empty) { r.empty = 1; for (const e of r.mobs) if (e.kind === 'mob' && !e.dead) { const p = spreadPoint(r, e.A, e); Object.assign(e, { x: p[0], y: p[1], hx: p[0], hy: p[1], back: 0, wx: p[0], wy: p[1] }); } }
+      for (const e of r.mobs) { if (e.kind === 'mob') { if (!e.dead) { e.hp = e.max; e.dmg = {}; e.tg = null; } else mobTickG(r, e, dt); } else if (!e.dead && (e.hp < e.max || hyp(e.x - e.hx, e.y - e.hy) > 2 * T)) resetMob(r, e, false); } r.eps = []; continue; }
+    r.empty = 0; for (const e of r.mobs) e.kind === 'mob' ? mobTickG(r, e, dt) : mobTick(r, e, dt); epTick(r, dt); }
   snapAcc += dt; if (snapAcc >= .1) { snapAcc = 0;
     for (const k in rooms) { const r = rooms[k]; if (!r.players.size) continue;
       const st = new Map(r.mobs.map(e => [e, [e.id, ...mobState(e)]]));
