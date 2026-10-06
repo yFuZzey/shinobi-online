@@ -129,6 +129,9 @@ function mobTickG(r, e, dt) {
   } else { // passeia dentro da área
     if ((e.wt -= dt) <= 0) { e.wt = 2 + Math.random() * 3; if (Math.random() < .55) { const [x, y] = areaPoint(r.map, e.A); e.wx = x; e.wy = y; } else { e.wx = e.x; e.wy = e.y; } }
     const wd = hyp(e.wx - e.x, e.wy - e.y); if (wd > 6) { vx = (e.wx - e.x) / wd; vy = (e.wy - e.y) / wd; sp = vel * .5; } }
+  if (tg) { // não empilha: afasta um pouco dos outros mobs
+    let px = 0, py = 0; for (const o of r.mobs) { if (o === e || o.dead || o.kind !== 'mob') continue; const dx = e.x - o.x, dy = e.y - o.y, dd = hyp(dx, dy), mn = (e.rad + o.rad) * .9; if (dd > 0.01 && dd < mn) { px += dx / dd * (mn - dd) / mn; py += dy / dd * (mn - dd) / mn; } }
+    if (px || py) { vx += px * 1.2; vy += py * 1.2; const l = hyp(vx, vy); if (l > 1) { vx /= l; vy /= l; } } }
   if (!tg && Math.abs(vx) > .05) e.fl = vx < 0 ? 1 : 0;
   const ox = e.x, oy = e.y; go(r.map, e, vx, vy, sp, dt);
   if (e.mv && e.x === ox && e.y === oy) { e.wt = 0; if (e.back) { e.x = e.hx; e.y = e.hy; } } // preso numa parede
