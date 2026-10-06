@@ -38,8 +38,10 @@ jobs:
           node tests/smoke.mjs "$SB" "$KEY" > /dev/null || true
           # o Render só atualiza quando a pasta server muda: espera a versão do último envio que mexeu nela
           EXP=$(git log -1 --format=%H -- server)
-          echo "versão esperada do servidor: $EXP"
-          node tests/server_smoke.mjs "$SB" "$KEY" "$GS" "$EXP"
+          # salvar uma variável no Render reinstala a versão mais nova: qualquer envio a partir de EXP serve
+          OKS="$EXP,$(git rev-list $EXP..HEAD | paste -sd, -)"
+          echo "versões aceitas do servidor: $OKS"
+          node tests/server_smoke.mjs "$SB" "$KEY" "$GS" "$OKS"
 
   apk:
     runs-on: ubuntu-latest

@@ -5,17 +5,20 @@ const U = SB.replace(/\/+$/, ''), G = GS.replace(/\/+$/, '');
 const DOM = '@jogadores.shinobi-online.app'; let fails = 0;
 const ok = (c, m) => { console.log((c ? '::notice::OK ' : '::error::FALHA ') + m); if (!c) fails++; };
 const W = ms => new Promise(r => setTimeout(r, ms));
+// COMMIT pode ser uma lista (a última versão que mexeu no servidor e as que vieram depois): qualquer uma serve
+const OKV = COMMIT ? COMMIT.split(',').filter(Boolean) : null;
 
 // 1) espera o servidor acordar e estar na versão certa
 let h = null; const t0 = Date.now();
 while (Date.now() - t0 < 12 * 60 * 1000) {
-  try { const r = await fetch(G + '/health', { signal: AbortSignal.timeout(20000) }); if (r.ok) { h = await r.json(); if (!COMMIT || h.commit === COMMIT) break; console.log('servidor ainda na versão', h.commit, '- esperando o deploy de', COMMIT); } }
+  try { const r = await fetch(G + '/health', { signal: AbortSignal.timeout(20000) }); if (r.ok) { h = await r.json(); if (!OKV || OKV.includes(h.commit)) break; console.log('servidor ainda na versão', h.commit, '- esperando o deploy de', COMMIT); } }
   catch (e) { console.log('servidor ainda não respondeu:', e.message); }
   await W(15000);
 }
 ok(h && h.ok, 'servidor no ar (' + (h ? 'commit ' + h.commit + ', ' + h.online + ' online' : 'sem resposta') + ')');
 if (!h) process.exit(1);
-if (COMMIT) ok(h.commit === COMMIT, 'servidor rodando a versão nova');
+if (OKV) ok(OKV.includes(h.commit), 'servidor rodando a versão nova');
+if ('trocas' in h) { if (h.trocas) ok(true, 'trocas ligadas no servidor (chave secreta aceita e SQL 04 no banco)'); else console.log('::warning::Trocas desligadas no servidor: ' + h.trocasMotivo); }
 
 // 2) contas de teste
 async function token(nome) {

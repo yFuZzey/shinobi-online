@@ -564,7 +564,7 @@ const server = http.createServer((req, res) => {
   const cors = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
   const u = req.url.split('?')[0];
   if (u === '/health' || u === '/') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true, jogo: 'Shinobi Online', v: PROTO, commit: COMMIT, online: players.size, mapas: Object.fromEntries(Object.entries(rooms).map(([k, r]) => [k, r.players.size])) })); }
+    return res.end(JSON.stringify({ ok: true, jogo: 'Shinobi Online', v: PROTO, commit: COMMIT, online: players.size, trocas: INV_OK ? 1 : 0, trocasMotivo: INV_OK ? '' : INV_WHY, mapas: Object.fromEntries(Object.entries(rooms).map(([k, r]) => [k, r.players.size])) })); }
   res.writeHead(404, cors); res.end('nada aqui');
 });
 server.on('upgrade', (req, sock) => {
