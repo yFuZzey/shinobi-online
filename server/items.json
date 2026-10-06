@@ -1,0 +1,18 @@
+{
+ "manto": {
+  "id": "manto",
+  "name": "Manto da Raposa",
+  "drop": {
+   "chance": 100,
+   "src": "boss"
+  }
+ },
+ "chidori": {
+  "id": "chidori",
+  "name": "Chidori",
+  "drop": {
+   "chance": 100,
+   "src": "boss"
+  }
+ }
+}

@@ -19,6 +19,23 @@ jobs:
           KEY=$(node -p "require('./online.json').key")
           node tests/smoke.mjs "$URL" "$KEY"
 
+  teste-servidor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Testar servidor do jogo (Render)
+        run: |
+          SB=$(node -p "require('./online.json').url")
+          KEY=$(node -p "require('./online.json').key")
+          GS=$(node -p "require('./online.json').gs||''")
+          if [ -z "$GS" ]; then echo "::warning::servidor do jogo ainda não configurado"; exit 0; fi
+          node tests/smoke.mjs "$SB" "$KEY" > /dev/null || true
+          node tests/server_smoke.mjs "$SB" "$KEY" "$GS" "${{ github.sha }}"
+
   apk:
     runs-on: ubuntu-latest
     steps:
