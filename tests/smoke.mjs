@@ -16,6 +16,7 @@ if(!a||!b){process.exit(1)}
 let r=await F('/rest/v1/personagens?select=nome,cla,nivel,xp,admin,inventario(item,equipado)&id=eq.'+a.id,{},a.tok);
 ok(r.s===200,'ler personagem + inventário em colunas ('+r.s+' '+JSON.stringify(r.j&&r.j.message||'')+')');
 if(r.s===200&&r.j.length===0){r=await F('/rest/v1/personagens',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id:a.id,nome:a.nome,cla:'uchiha',nivel:1})},a.tok);ok(r.s===201,'criar personagem ('+r.s+' '+JSON.stringify(r.j)+')')}
+{const q=await F('/rest/v1/personagens?select=proficiencia,prof_xp&id=eq.'+a.id,{},a.tok);if(q.s===200)ok(true,'colunas da proficiência no banco');else console.log('::warning::O banco ainda não tem as colunas da proficiência — rode sql/03_proficiencia.sql no Supabase ('+q.s+')')}
 r=await F('/rest/v1/personagens?id=eq.'+a.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({xp:Date.now()%50,atualizado:new Date().toISOString()})},a.tok);ok(r.s===204,'salvar coluna xp ('+r.s+')');
 r=await F('/rest/v1/rpc/salvar_inventario',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({itens:[{item:'chidori',equipado:true}]})},a.tok);ok(r.s===204||r.s===200,'salvar inventário ('+r.s+' '+JSON.stringify(r.j&&r.j.message||'')+')');
 r=await F('/rest/v1/personagens?select=inventario(item,equipado)&id=eq.'+a.id,{},a.tok);ok(r.s===200&&r.j[0]&&r.j[0].inventario.length===1,'inventário gravado');

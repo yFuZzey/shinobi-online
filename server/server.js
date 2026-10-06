@@ -289,7 +289,7 @@ function onHit(p, m) {
   const d = Math.round(clamp(num(m.d, 0), 0, CFG.maxHit)); if (!d) return;
   if (e.back) return; if (e.kind === 'mob' && !e.tg) e.tg = p;
   e.hp -= d; e.hurt = .28; e.alone = 0;
-  const st = clamp(num(m.st, 0), 0, 6); if (st) e.stun = Math.max(e.stun, st);
+  const st = clamp(num(m.st, 0), 0, 8); if (st) e.stun = Math.max(e.stun, st); // até 8 s (Genjutsu rank alto alonga o atordoamento)
   const kx = clamp(num(m.kx, 0), -30, 30), ky = clamp(num(m.ky, 0), -30, 30);
   if (!e.ja && (kx || ky) && !blk(r.map, e.x + kx, e.y + ky)) { e.x += kx; e.y += ky; }
   e.dmg[p.id] = (e.dmg[p.id] || 0) + d;
