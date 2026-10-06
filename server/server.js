@@ -100,7 +100,7 @@ const mobState = e => MK.map(k => { const v = e[k]; return typeof v === 'number'
 
 function toRoom(r, o, except) { const s = JSON.stringify(o), fr = wsFrame(1, s); for (const p of r.players) if (p !== except && p.conn.open) { try { p.conn.sock.write(fr); } catch (e) {} } }
 function sys(p, msg) { p.conn.send({ t: 'sys', msg }); }
-const pub = p => ({ id: p.id, nome: p.nome, clan: p.clan, lv: p.lv, eq: p.eq, look: p.look, x: p.x, y: p.y, fl: p.fl, mv: p.mv, run: p.run, au: p.au, th: p.th, sc: p.sc, hp: p.hp, max: p.max, g: memberParty.get(p.id) || 0 });
+const pub = p => ({ id: p.id, nome: p.nome, clan: p.clan, lv: p.lv, eq: p.eq, look: p.look, x: p.x, y: p.y, fl: p.fl, mv: p.mv, run: p.run, au: p.au, th: p.th, sc: p.sc, hp: p.hp, max: p.max, g: memberParty.get(p.id) || 0, adm: p.adm ? 1 : 0 });
 
 // ---------------------------------------------------------------- autenticação
 async function verifyToken(token) {
@@ -109,7 +109,11 @@ async function verifyToken(token) {
   const r = await fetch(SB_URL + '/auth/v1/user', { headers: h, signal: AbortSignal.timeout(10000) });
   if (!r.ok) throw new Error('token inválido (' + r.status + ')');
   const u = await r.json(); if (!u || !u.id) throw new Error('token inválido');
-  return { id: u.id, nome: str((u.user_metadata && u.user_metadata.nome) || (u.email || '').split('@')[0], 14) };
+  // TAG admin: coluna "admin" da tabela personagens (só o dono do projeto muda, pelo painel do Supabase)
+  let adm = false;
+  try { const q = await fetch(SB_URL + '/rest/v1/personagens?select=admin&id=eq.' + u.id, { headers: h, signal: AbortSignal.timeout(8000) });
+    if (q.ok) { const rows = await q.json(); adm = !!(rows[0] && rows[0].admin === true); } } catch (e) {}
+  return { id: u.id, adm, nome: str((u.user_metadata && u.user_metadata.nome) || (u.email || '').split('@')[0], 14) };
 }
 
 // ---------------------------------------------------------------- mensagens
@@ -123,11 +127,11 @@ function onMessage(c, m) {
       if (!c.open) return;
       const old = players.get(u.id);
       if (old && old.conn.open) { old.conn.send({ t: 'kicked', msg: 'Sua conta entrou em outro aparelho.' }); old.kicked = true; old.conn.close(4001, 'duplicado'); }
-      const p = { id: u.id, nome: u.nome, conn: c, map: null, x: 0, y: 0, fl: 0, mv: 0, run: 0, au: -1, th: -1, sc: 0, hp: 100, max: 100, lv: 1, clan: 'uchiha', eq: [], look: null, hitT: now(), hitN: 0 };
+      const p = { id: u.id, nome: u.nome, adm: u.adm, conn: c, map: null, x: 0, y: 0, fl: 0, mv: 0, run: 0, au: -1, th: -1, sc: 0, hp: 100, max: 100, lv: 1, clan: 'uchiha', eq: [], look: null, hitT: now(), hitN: 0 };
       c.player = p; players.set(u.id, p); offlineInfo.delete(u.id);
-      c.send({ t: 'welcome', id: u.id, nome: u.nome, cfg: { aggro: CFG.aggro, resetNear: CFG.resetNear, resetHome: CFG.resetHome, partyMax: CFG.partyMax } });
+      c.send({ t: 'welcome', id: u.id, nome: u.nome, adm: u.adm ? 1 : 0, cfg: { aggro: CFG.aggro, resetNear: CFG.resetNear, resetHome: CFG.resetHome, partyMax: CFG.partyMax } });
       const pid = memberParty.get(u.id); if (pid) partySync(parties.get(pid));
-      log('entrou', u.nome, '(' + players.size + ' online)');
+      log('entrou', u.nome + (u.adm ? ' [ADM]' : ''), '(' + players.size + ' online)');
     }).catch(e => { c.send({ t: 'authfail', msg: String(e.message || e) }); c.close(4002, 'auth'); });
     return;
   }

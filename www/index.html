@@ -197,6 +197,7 @@ button:disabled{opacity:.55}
 .gpe{font-size:13px;color:var(--mute);margin:4px 0}
 .gr{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}.gr .gn{font-weight:700;font-size:14px}.gr .gi{flex:1;font-size:12px;color:var(--mute)}
 .gr button{margin:0;padding:6px 12px;font-size:13px}
+body:not(.adm) .admo{display:none!important}body:not(.adm) #paneBag .ivf{display:none}
 #grpLeave{margin-top:8px;padding:7px 14px;font-size:13px}
 #pinv{position:absolute;left:50%;top:56px;transform:translateX(-50%);z-index:15;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 16px;border-radius:14px;background:rgba(12,10,20,.9);border:2px solid #4fd06a;color:#fff;font:600 14px system-ui,sans-serif;text-align:center;max-width:90vw}
 #pinv[hidden]{display:none}#pinv div{display:flex;gap:8px}#pinv button{margin:0;padding:8px 16px;font-size:14px}#pinv .sec{color:#fff;border-color:#ffffff66}
@@ -232,13 +233,13 @@ button:disabled{opacity:.55}
 <button id="statbtn" aria-label="Status">📊 Status<i id="stBadge" hidden>0</i></button>
 <div id="drop" hidden><small>Item obtido!</small><span></span><em>toque para abrir a mochila</em></div>
 <div id="lvup" hidden><small>Você subiu de nível!</small><span></span><em></em></div>
-<div id="inv" hidden><div class="iv"><div class="ivh"><div class="tabs"><button id="tbBag" class="on">🎒 Mochila</button><button id="tbSt">📊 Status</button></div><button id="ivX">Fechar</button></div><div id="paneBag"><div class="ivb"><div class="ivl"><div class="ivt">Equipado</div><div id="ivEq"></div><div class="ivt">Itens</div><div id="ivGrid"></div></div><div class="ivr" id="ivDet"></div></div><div class="ivf"><button id="ivGive">Dar todos os itens (teste)</button><button id="ivReset">Zerar mochila (teste)</button></div></div><div id="paneSt" hidden><div class="stTop"><b id="stLv">Nível 1</b><span id="stPts">Pontos disponíveis: 0</span></div><div class="bar xpb big"><i id="stXp"></i><b id="stXpT">XP</b></div><div id="stRows"></div><div class="ivt">Atributos derivados</div><div id="stDer"></div><div class="ivf"><button id="stXpB">+100 XP (teste)</button><button id="stLvB">+1 nível (teste)</button><button id="stRed">Redistribuir pontos</button><button id="stZero">Zerar personagem (teste)</button><button id="stOut">Sair da conta</button></div></div></div></div>
+<div id="inv" hidden><div class="iv"><div class="ivh"><div class="tabs"><button id="tbBag" class="on">🎒 Mochila</button><button id="tbSt">📊 Status</button></div><button id="ivX">Fechar</button></div><div id="paneBag"><div class="ivb"><div class="ivl"><div class="ivt">Equipado</div><div id="ivEq"></div><div class="ivt">Itens</div><div id="ivGrid"></div></div><div class="ivr" id="ivDet"></div></div><div class="ivf"><button id="ivGive" class="admo">Dar todos os itens (teste)</button><button id="ivReset" class="admo">Zerar mochila (teste)</button></div></div><div id="paneSt" hidden><div class="stTop"><b id="stLv">Nível 1</b><span id="stPts">Pontos disponíveis: 0</span></div><div class="bar xpb big"><i id="stXp"></i><b id="stXpT">XP</b></div><div id="stRows"></div><div class="ivt">Atributos derivados</div><div id="stDer"></div><div class="ivf"><button id="stXpB" class="admo">+100 XP (teste)</button><button id="stLvB" class="admo">+1 nível (teste)</button><button id="stRed" class="admo">Redistribuir pontos</button><button id="stZero" class="admo">Zerar personagem (teste)</button><button id="stOut">Sair da conta</button></div></div></div></div>
 <div id="mapmenu" hidden><div class="mm"><h3>Escolher mapa</h3><div id="mmList"></div><button id="mmX">Fechar</button></div></div>
 <div id="chatp" hidden><div class="cph"><button id="tabC" class="on">💬 Conversa</button><button id="tabR">📜 Registro<i id="regB" hidden></i></button><button id="chatX" aria-label="Fechar">✕</button></div><div id="cpList"></div><div id="cpIn"><div class="chs"><button data-ch="l" class="on">Local</button><button data-ch="g">Grupo</button><button data-ch="m">Mapa</button></div><div class="cpr"><input id="chatin" maxlength="80" placeholder="Mensagem…" autocomplete="off" enterkeyhint="send"><button id="chatgo">Enviar</button></div></div></div>
 <div id="toast" hidden></div>
 <button id="grpbtn" aria-label="Grupo" hidden>👥 Grupo</button>
 <div id="grp" hidden><div class="gp"><div class="gph"><b>Grupo</b><button id="grpX">Fechar</button></div>
-<p class="gpd">Mostra só quem está perto de você (até 10 tiles). A raposa dá a recompensa para quem causar <b>mais dano</b>. Em grupo, o dano de todos soma, e cada membro no mapa ganha o XP e a chance do item.</p>
+<p class="gpd">Convide quem está perto de você. Em grupo, o dano de todos soma na luta contra a raposa, e cada membro ganha a recompensa.</p><p class="gpd admo">[ADM] Lista: até 10 tiles · recompensa por maior dano somado · XP e chance de item para cada membro no mapa · chat Local: 15 tiles.</p>
 <div class="gpt">Seu grupo</div><p id="grpNone" class="gpe">Você ainda não está em um grupo. Convide alguém da lista abaixo.</p><div id="grpMem"></div><button id="grpLeave" class="sec" hidden>Sair do grupo</button>
 <div class="gpt">Jogadores próximos</div><p id="grpMapNone" class="gpe">Ninguém por perto. Chegue perto de alguém para convidar.</p><div id="grpMap"></div></div></div>
 <div id="pinv" hidden><span></span><div><button id="pinvOk">Aceitar</button><button id="pinvNo" class="sec">Recusar</button></div></div>
@@ -807,7 +808,7 @@ function render(ts,dt){
    for(const o of OB){const s=TSZ[o.k];if(o.x+s[0]/2<cx||o.x-s[0]/2>cx+w||o.y<cy||o.y-s[1]>cy+h)continue;L.push({y:o.y,d:()=>ctx.drawImage(TX[o.k],o.x-s[0]/2|0,o.y-s[1]|0)})}}
  L.push({y:p.y,d:()=>{const FL=eqFx();fxImpact(ctx,p.x,p.y,fxT,fxK);fxDraw(ctx,p.x,p.y,ts,FL,0);HERO?drawHero(ctx,p.x,p.y,{fl:p.fl,t:ts,mv:p.mv,run:p.run,aura:p.au,th:p.th}):drawChar(ctx,p.x,p.y,{...look,clan,dir:p.dir,t:ts,mv:p.mv,run:p.run});fxDraw(ctx,p.x,p.y,ts,FL,1,{fl:p.fl});
   ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#fff';
-  ctx.strokeText(name,p.x,p.y-62);ctx.fillText(name,p.x,p.y-62)}});onlDraw(L,ts);
+  {const lb=(ONL.adm?'[ADM] ':'')+name;if(ONL.adm)ctx.fillStyle='#ffd23f';ctx.strokeText(lb,p.x,p.y-62);ctx.fillText(lb,p.x,p.y-62)}}});onlDraw(L,ts);
  E.forEach(e=>{if(scene||(e.dead&&!(e.boss&&fxOK)))return;L.push({y:e.y,d:()=>{
   ctx.globalAlpha=e.dead?Math.max(0,Math.min(1,e.rt/3)):(e.hit>0&&!e.boss?.55:1);
   e.boss?(fxOK?drawFoxSpr(ctx,e.x,e.y,{t:ts,mv:e.mv,fl:e.fl,lunge:e.lunge,ch:e.ch,hurt:e.hurt,stun:e.stun,dead:e.dead,dt:e.dt,jz:e.dead?0:e.jz||0,jc:e.jc||0,ja:e.ja||0}):drawFox(ctx,e.x,e.y,{t:ts,mv:e.mv,fl:e.fl,lunge:e.lunge})):drawChar(ctx,e.x,e.y,{skin:'#d9a97f',hair:'#222',cloth:'#6a3030',band:'#8b1e1e',dir:e.dir,t:ts+e.id*300,mv:e.mv,run:0});
@@ -949,7 +950,7 @@ function gsJoin(){if(!ONL.authed||!clan)return;ONL.joined=false;ONL.peers={};E=[
 function onlMeta(){return {clan,lv:CH.lv,eq:Object.values(EQ),look:{skin:look.skin,hair:look.hair,cloth:look.cloth}}}
 let _gsmt=0;function gsMeta(){clearTimeout(_gsmt);_gsmt=setTimeout(()=>{if(ONL.joined)gsSend(Object.assign({t:'meta'},onlMeta()))},150)}
 function onlPeer(id,o){if(id===ONL.uid)return null;let pe=ONL.peers[id];if(!pe){pe=ONL.peers[id]={id,nome:'?',clan:'uchiha',lv:1,eq:[],x:null,y:null,tx:0,ty:0,fl:0,mv:0,run:0,au:-1,th:-1,sc:0,hp:1,max:1,seen:performance.now(),say:'',sayT:0,g:0}}
- if(o){['nome','clan','lv','eq','look','g'].forEach(k=>{if(o[k]!==undefined)pe[k]=o[k]});if(o.x!=null){pe.tx=o.x;pe.ty=o.y;if(pe.x===null){pe.x=o.x;pe.y=o.y}}['fl','mv','run','au','th','sc','hp','max'].forEach(k=>{if(o[k]!==undefined)pe[k]=o[k]})}
+ if(o){['nome','clan','lv','eq','look','g','adm'].forEach(k=>{if(o[k]!==undefined)pe[k]=o[k]});if(o.x!=null){pe.tx=o.x;pe.ty=o.y;if(pe.x===null){pe.x=o.x;pe.y=o.y}}['fl','mv','run','au','th','sc','hp','max'].forEach(k=>{if(o[k]!==undefined)pe[k]=o[k]})}
  return pe}
 const GMK=['x','y','hp','max','dead','dt','mv','fl','ch','lunge','ja','jz','jc','jx','jy','stun','hurt','rt'];
 function gsMob(def){let e=E.find(x=>x.sid===def.id);if(!e){e={sid:def.id,id:E.length,boss:def.boss,rad:def.rad,nome:def.nome,max:def.max,hp:def.max,x:0,y:0,dead:0,dt:0,mv:0,fl:0,ch:0,lunge:0,ja:0,jz:0,jc:0,jx:0,jy:0,stun:0,hurt:0,hit:0,rt:0,sn:null,dir:0,wt:0,atk:0,lunge0:0};E.push(e)}return e}
@@ -967,7 +968,7 @@ function gsHit(e,d,st,kx,ky){if(!ONL.on)return false;if(!e.sid||e.dead||!ONL.joi
  gsSend({t:'hit',m:e.sid,d,st:st||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0});regDmg('out',d,lastCrit,e.nome);return true}
 function gsMsg(m){
  switch(m.t){
- case 'welcome':ONL.authed=true;ONL.uid=m.id;if(ONL.welcomeCb){const f=ONL.welcomeCb;ONL.welcomeCb=null;f()}else if(cur==='game')gsJoin();onlStatus();break;
+ case 'welcome':ONL.authed=true;ONL.uid=m.id;ONL.adm=!!m.adm;document.body.classList.toggle('adm',ONL.adm);if(ONL.welcomeCb){const f=ONL.welcomeCb;ONL.welcomeCb=null;f()}else if(cur==='game')gsJoin();onlStatus();break;
  case 'authfail':onlReg('⚠️ Falha ao entrar no servidor: '+m.msg);if(ONL.rtok)onlRefresh();break;
  case 'old':ONL.closing=true;gsBlock('Versão desatualizada','Seu app está desatualizado. Baixe a versão nova do jogo no GitHub (Releases) e instale por cima.');break;
  case 'kicked':ONL.closing=true;gsBlock('Desconectado',m.msg||'Sua conta entrou em outro aparelho.');break;
@@ -1023,7 +1024,7 @@ function onlDraw(L,ts){if(!ONL.on)return;
    if(HERO)drawHero(ctx,pe.x,pe.y,{fl:pe.fl,t:ts+id.length*97,mv:pe.mv,run:pe.run,aura:pe.au,th:pe.th,set:heroFor(pe.look)});else drawChar(ctx,pe.x,pe.y,{...(pe.look||look),clan:pe.clan,dir:0,t:ts,mv:pe.mv,run:pe.run});
    fxDraw(ctx,pe.x,pe.y,ts,FL,1,{fl:pe.fl});
    const gp=inGrp(id);ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle=gp?'#7dff9a':'#9fe8ff';
-   const lb=(gp?'👥 ':'')+pe.nome+' · Nv '+(pe.lv||1);ctx.strokeText(lb,pe.x,pe.y-62);ctx.fillText(lb,pe.x,pe.y-62);
+   if(pe.adm)ctx.fillStyle='#ffd23f';const lb=(gp?'👥 ':'')+(pe.adm?'[ADM] ':'')+pe.nome+' · Nv '+(pe.lv||1);ctx.strokeText(lb,pe.x,pe.y-62);ctx.fillText(lb,pe.x,pe.y-62);
    if(pe.max>0&&pe.hp<pe.max){ctx.fillStyle='#000a';ctx.fillRect(pe.x-13,pe.y-58,26,4);ctx.fillStyle='#4fd06a';ctx.fillRect(pe.x-12,pe.y-57,24*Math.max(0,pe.hp)/pe.max,2)}
    if(pe.sayT>0)onlBubble(pe.x,pe.y-74,pe.say,pe.sayT)}})}
  if(myT>0)L.push({y:p.y+.1,d:()=>onlBubble(p.x,p.y-74,mySay,myT)})}
@@ -1037,7 +1038,7 @@ function onlBubble(x,y,t,life){ctx.save();ctx.globalAlpha=Math.min(1,life*2);ctx
 let mySay='',myT=0;
 function onlStatus(){const el=$('#onl');if(!el)return;el.hidden=!ONL.on;['#chatbtn','#grpbtn'].forEach(s=>$(s).hidden=!ONL.on);if(!ONL.on)return;
  const n=Object.keys(ONL.peers).length+1;el.className=ONL.joined?'ok':'off';
- el.textContent=ONL.joined?(n+' no mapa'+(ONL.ping?' · '+ONL.ping+' ms':'')):(ONL.ws&&ONL.ws.readyState===1?'entrando…':'reconectando…');
+ el.textContent=ONL.joined?(n+' no mapa'+(ONL.adm&&ONL.ping?' · '+ONL.ping+' ms':'')):(ONL.ws&&ONL.ws.readyState===1?'entrando…':'reconectando…');
  const nb=$('#netbar');if(nb)nb.hidden=ONL.joined||cur!=='game'}
 const CHN={l:'Local',g:'Grupo',m:'Mapa'};
 function hms(){return new Date().toTimeString().slice(0,8)}
@@ -1063,7 +1064,7 @@ function chatDraw(){const ov=$('#chatlog');if(!ov)return;const open=!$('#chatp')
  if(!rows.length){const e=document.createElement('div');e.className='cpe';e.textContent=ONL.tab==='c'?'Nenhuma mensagem ainda. Escolha Local, Grupo ou Mapa e escreva abaixo.':'O registro mostra dano causado e recebido, a raposa e as recompensas.';L.appendChild(e)}
  rows.forEach(r=>L.appendChild(chatRow(r,1)));if(stick||L._first!==ONL.tab){L.scrollTop=L.scrollHeight;L._first=ONL.tab}
  document.querySelectorAll('#cpIn .chs button').forEach(b=>{const c=b.dataset.ch;b.classList.toggle('on',ONL.chatCh===c);b.disabled=c==='g'&&!ONL.party});
- $('#chatin').placeholder={l:'Mensagem para quem está perto (15 tiles)…',g:'Mensagem para o seu grupo…',m:'Mensagem para todo o mapa…'}[ONL.chatCh]}
+ $('#chatin').placeholder={l:ONL.adm?'Mensagem local (até 15 tiles)…':'Mensagem para quem está perto…',g:'Mensagem para o seu grupo…',m:'Mensagem para todo o mapa…'}[ONL.chatCh]}
 setInterval(chatDraw,1000);
 function chatOpen(v,tab){const P=$('#chatp');P.hidden=!v;if(tab)ONL.tab=tab;if(v&&ONL.tab==='r')ONL.regNew=0;$('#cpList')._first=null;chatDraw();if(v&&ONL.tab==='c')setTimeout(()=>$('#chatin').focus(),30)}
 function onlChatSend(){const i=$('#chatin'),t=i.value.trim().slice(0,80);if(!t)return;i.value='';
@@ -1090,7 +1091,7 @@ function grpDraw(){const pt=ONL.party,h=$('#phud');
  const others=Object.values(ONL.peers).filter(pe=>!inGrp(pe.id)&&pe.x!==null&&pe.sc===(scene|0)).map(pe=>({pe,d:Math.hypot(pe.x-p.x,pe.y-p.y)})).filter(o=>o.d<=NEAR).sort((a,b)=>a.d-b.d).slice(0,8);
  $('#grpMapNone').hidden=others.length>0;
  others.forEach(({pe,d})=>{const r=document.createElement('div');r.className='gr';r.innerHTML='<span class="gn"></span><span class="gi"></span>';
-  r.querySelector('.gn').textContent=pe.nome;r.querySelector('.gi').textContent='Nv '+(pe.lv||1)+' · '+Math.max(1,Math.round(d/32))+' tiles'+(pe.g?' · já tem grupo':'');
+  r.querySelector('.gn').textContent=pe.nome;r.querySelector('.gi').textContent='Nv '+(pe.lv||1)+(ONL.adm?' · '+Math.max(1,Math.round(d/32))+' tiles':'')+(pe.g?' · já tem grupo':'');
   const sent=ONL.invSent[pe.id]&&now-ONL.invSent[pe.id]<30000;
   const b=document.createElement('button');b.textContent=sent?'Enviado':'Convidar';b.disabled=sent||!!pe.g||(pt&&pt.members.length>=6);b.onclick=()=>{gsSend({t:'pinv',to:pe.id});ONL.invSent[pe.id]=performance.now();b.disabled=true;b.textContent='Enviado'};r.appendChild(b);O.appendChild(r)})}
 setInterval(()=>{if(ONL.on&&!$('#grp').hidden)grpDraw()},1000);
