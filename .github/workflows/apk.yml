@@ -87,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Preparar site
-        run: mkdir -p site && cp www/index.html site/index.html && touch site/.nojekyll
+        run: mkdir -p site && cp www/game.html site/index.html && touch site/.nojekyll
       - uses: actions/configure-pages@v5
         with:
           enablement: true

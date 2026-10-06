@@ -6,6 +6,12 @@ MMORPG 2D no universo Naruto (protótipo).
 - A cada envio para a branch `main`, o GitHub gera o APK automaticamente (aba **Actions**).
 - Para baixar: **Releases** → `shinobi-online.apk`.
 
+## Atualização automática (sem reinstalar o APK)
+- `www/index.html` é só um carregador: abre a versão mais nova do jogo já baixada no celular ou a `www/game.html` que veio no APK.
+- O jogo confere `www/version.json` no GitHub (repositório público), baixa a `game.html` nova, confere o SHA-256 e mostra "Atualizar agora".
+- Se uma versão nova não abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
+- APK novo só é preciso quando mudar algo nativo do Android (aí o `loader` do version.json sobe).
+
 ## Online
 - Servidor: Supabase (contas, tabela `personagens`, canais em tempo real). Configuração pública em `online.json`.
 - A cada envio, o teste `tests/smoke.mjs` verifica contas, banco e tempo real (job **teste-online**).
