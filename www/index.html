@@ -165,15 +165,34 @@ button:disabled{opacity:.55}
 #onl{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:2px 9px 2px 8px;border-radius:10px;background:rgba(0,0,0,.45);font-size:11px;font-weight:600}
 #onl::before{content:"";width:7px;height:7px;border-radius:50%;background:#e8b13a}
 #onl.ok::before{background:#4fd06a;box-shadow:0 0 6px #4fd06a}
-#chatbtn{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));top:150px;z-index:6;margin:0;width:40px;height:36px;padding:0;font-size:18px;border-radius:12px;background:rgba(12,10,20,.5);border:1px solid rgba(255,255,255,.28)}
-#chatlog{position:absolute;left:calc(58px + env(safe-area-inset-left,0px));top:150px;z-index:5;max-width:min(320px,45vw);pointer-events:none;font:12px/1.35 system-ui,sans-serif;color:#fff;text-shadow:0 1px 2px #000,0 0 4px #000;text-align:left}
-#chatlog div{padding:1px 0;word-break:break-word}#chatlog .sys{color:#c9f3d4;font-size:11px}
+#phud{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+#phud .pm{font-size:11px;font-weight:600;width:170px}#phud .pm span{display:block;color:#7dff9a}#phud .pm i{display:block;height:4px;margin-top:2px;border-radius:2px;background:#0008;overflow:hidden}#phud .pm i b{display:block;height:100%;background:#4fd06a}
+#phud .offm{opacity:.55}
+#chatrow{display:flex;gap:8px;align-items:flex-start;margin-top:8px;width:min(380px,52vw)}
+#chatbtn{flex:0 0 auto;margin:0;width:40px;height:36px;padding:0;font-size:18px;border-radius:12px;background:rgba(12,10,20,.5);border:1px solid rgba(255,255,255,.28)}
+#chatlog{flex:1;min-width:0;pointer-events:none;font:12px/1.35 system-ui,sans-serif;color:#fff;text-shadow:0 1px 2px #000,0 0 4px #000;text-align:left}
+#chatlog div{padding:1px 0;word-break:break-word}#chatlog .sys{color:#c9f3d4;font-size:11px}#chatlog .gp{color:#7dff9a}
 #chatbar{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:12;display:flex;gap:6px;width:min(460px,60vw);padding:6px;border-radius:12px;background:rgba(12,10,20,.82);border:1px solid rgba(255,255,255,.25)}
 #chatbar[hidden]{display:none}
 #chatin{flex:1;min-width:0;width:auto;margin:0;padding:8px 10px;font-size:14px;border-radius:8px;font-family:system-ui,sans-serif}
 #chatgo{margin:0;padding:8px 14px;font-size:14px;font-family:system-ui,sans-serif}
 #stOut{background:transparent!important;color:var(--acc)!important;border:2px solid var(--acc)!important}
-@media (orientation:landscape) and (max-height:560px){.lg button{margin-top:6px;padding:9px 26px}#chatbtn{top:126px}#chatlog{top:126px}}
+#chch{margin:0;padding:8px 10px;font-size:13px;background:#3a3f5c;font-family:system-ui,sans-serif}#chch.g{background:#2f8a4a}
+#grpbtn{position:absolute;right:calc(10px + env(safe-area-inset-right,0px));top:116px;z-index:6;margin:0;padding:7px 12px;font-size:13px;border-radius:16px;background:rgba(12,10,20,.5);border:1px solid rgba(255,255,255,.28);color:#fff;font-weight:600;min-width:104px;text-align:left;font-family:system-ui,sans-serif;backdrop-filter:blur(4px)}
+#grp{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}#grp[hidden]{display:none}
+#grp .gp{background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:12px 14px;width:min(480px,94vw);max-height:94%;overflow:auto;text-align:left;font-family:system-ui,sans-serif}
+.gph{display:flex;justify-content:space-between;align-items:center}.gph b{font-size:18px}.gph button{margin:0;padding:7px 14px;font-size:14px}
+.gpd{font-size:12px;color:var(--mute);margin:6px 0 4px;line-height:1.4}.gpt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin:12px 0 4px}
+.gpe{font-size:13px;color:var(--mute);margin:4px 0}
+.gr{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}.gr .gn{font-weight:700;font-size:14px}.gr .gi{flex:1;font-size:12px;color:var(--mute)}
+.gr button{margin:0;padding:6px 12px;font-size:13px}
+#grpLeave{margin-top:8px;padding:7px 14px;font-size:13px}
+#pinv{position:absolute;left:50%;top:56px;transform:translateX(-50%);z-index:15;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 16px;border-radius:14px;background:rgba(12,10,20,.9);border:2px solid #4fd06a;color:#fff;font:600 14px system-ui,sans-serif;text-align:center;max-width:90vw}
+#pinv[hidden]{display:none}#pinv div{display:flex;gap:8px}#pinv button{margin:0;padding:8px 16px;font-size:14px}#pinv .sec{color:#fff;border-color:#ffffff66}
+#netbar{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:14;padding:6px 14px;border-radius:12px;background:rgba(160,60,20,.9);color:#fff;font:600 13px system-ui,sans-serif}#netbar[hidden]{display:none}
+#netblock{position:absolute;inset:0;z-index:40;background:rgba(10,8,18,.92);display:flex;align-items:center;justify-content:center;color:#fff;text-align:center;font-family:system-ui,sans-serif;padding:24px}#netblock[hidden]{display:none}
+#netblock>div{display:flex;flex-direction:column;gap:10px;align-items:center;max-width:340px}#netblock b{font-size:20px}#netblock span{color:#ffffffc0;line-height:1.4}
+@media (orientation:landscape) and (max-height:560px){.lg button{margin-top:6px;padding:9px 26px}#grpbtn{top:104px;padding:6px 11px;font-size:12px;min-width:96px}#phud .pm{width:150px}#chatrow{margin-top:5px}}
 </style></head><body>
 
 <div id="s-login" class="scr on">
@@ -195,7 +214,7 @@ button:disabled{opacity:.55}
 
 <div id="s-game" class="scr">
 <canvas id="cv"></canvas>
-<div id="hud"><div id="hn"></div><div class="bar hpb"><i class="gh" id="hpg"></i><i id="hp"></i><b id="hpt">HP</b></div><div class="bar mpb"><i id="mp"></i><b id="mpt">Chakra</b></div><div class="bar xpb"><i id="xp"></i><b id="xpt">XP</b></div><div id="onl" hidden></div></div>
+<div id="hud"><div id="hn"></div><div class="bar hpb"><i class="gh" id="hpg"></i><i id="hp"></i><b id="hpt">HP</b></div><div class="bar mpb"><i id="mp"></i><b id="mpt">Chakra</b></div><div class="bar xpb"><i id="xp"></i><b id="xpt">XP</b></div><div id="onl" hidden></div><div id="phud"></div><div id="chatrow"><button id="chatbtn" aria-label="Chat" hidden>💬</button><div id="chatlog" hidden></div></div></div>
 <div id="hint" style="opacity:0"></div>
 <button id="mapbtn" aria-label="Escolher mapa"></button>
 <button id="bagbtn" aria-label="Mochila">🎒 Mochila</button>
@@ -204,7 +223,15 @@ button:disabled{opacity:.55}
 <div id="lvup" hidden><small>Você subiu de nível!</small><span></span><em></em></div>
 <div id="inv" hidden><div class="iv"><div class="ivh"><div class="tabs"><button id="tbBag" class="on">🎒 Mochila</button><button id="tbSt">📊 Status</button></div><button id="ivX">Fechar</button></div><div id="paneBag"><div class="ivb"><div class="ivl"><div class="ivt">Equipado</div><div id="ivEq"></div><div class="ivt">Itens</div><div id="ivGrid"></div></div><div class="ivr" id="ivDet"></div></div><div class="ivf"><button id="ivGive">Dar todos os itens (teste)</button><button id="ivReset">Zerar mochila (teste)</button></div></div><div id="paneSt" hidden><div class="stTop"><b id="stLv">Nível 1</b><span id="stPts">Pontos disponíveis: 0</span></div><div class="bar xpb big"><i id="stXp"></i><b id="stXpT">XP</b></div><div id="stRows"></div><div class="ivt">Atributos derivados</div><div id="stDer"></div><div class="ivf"><button id="stXpB">+100 XP (teste)</button><button id="stLvB">+1 nível (teste)</button><button id="stRed">Redistribuir pontos</button><button id="stZero">Zerar personagem (teste)</button><button id="stOut">Sair da conta</button></div></div></div></div>
 <div id="mapmenu" hidden><div class="mm"><h3>Escolher mapa</h3><div id="mmList"></div><button id="mmX">Fechar</button></div></div>
-<button id="chatbtn" aria-label="Chat" hidden>💬</button><div id="chatlog" hidden></div><div id="chatbar" hidden><input id="chatin" maxlength="80" placeholder="Mensagem para quem está no mapa…" autocomplete="off" enterkeyhint="send"><button id="chatgo">Enviar</button></div>
+<div id="chatbar" hidden><button id="chch" hidden>Mapa</button><input id="chatin" maxlength="80" placeholder="Mensagem…" autocomplete="off" enterkeyhint="send"><button id="chatgo">Enviar</button></div>
+<button id="grpbtn" aria-label="Grupo" hidden>👥 Grupo</button>
+<div id="grp" hidden><div class="gp"><div class="gph"><b>Grupo</b><button id="grpX">Fechar</button></div>
+<p class="gpd">A raposa dá a recompensa para quem causar <b>mais dano</b>. Em grupo, o dano de todos soma, e cada membro no mapa ganha o XP e a chance do item.</p>
+<div class="gpt">Seu grupo</div><p id="grpNone" class="gpe">Você ainda não está em um grupo. Convide alguém da lista abaixo.</p><div id="grpMem"></div><button id="grpLeave" class="sec" hidden>Sair do grupo</button>
+<div class="gpt">Jogadores neste mapa</div><p id="grpMapNone" class="gpe">Ninguém mais neste mapa agora.</p><div id="grpMap"></div></div></div>
+<div id="pinv" hidden><span></span><div><button id="pinvOk">Aceitar</button><button id="pinvNo" class="sec">Recusar</button></div></div>
+<div id="netbar" hidden>Reconectando ao servidor…</div>
+<div id="netblock" hidden><div><b></b><span></span><button>Voltar ao início</button></div></div>
 <div id="rot" hidden><div><div class="ph">📱</div><b>Gire o celular</b><span>O jogo foi feito para jogar com o celular deitado.</span><button id="rotOk">Jogar assim mesmo</button></div></div>
 <div id="jb"><div id="jk"></div></div>
 <div class="sb" id="b0"></div><div class="sb" id="b1"></div><div class="sb" id="b2"></div>
@@ -464,8 +491,8 @@ function place(e){if(BOSSP){e.x=BOSSP[0]*T;e.y=BOSSP[1]*T;e.hp=e.max;e.dead=0;re
 //LAND
 let shk=0,rotOk=false;const coarse=matchMedia('(pointer:coarse)').matches;
 const JC=.55,JA=.62,JH=85,JR=92,JD=26;
-function foxJump(e){const t=e.tg||p;e.jc=JC;e.jcd=5+Math.random()*1.5;e.bc=Math.max(e.bc,1.6);e.jx=t.x;e.jy=t.y;e.fl=t.x<e.x}
-function foxCrouch(e,dt){const t=e.tg||p;e.jc-=dt;if(e.jc>.15){e.jx=t.x;e.jy=t.y;e.fl=t.x<e.x}
+function foxJump(e){e.jc=JC;e.jcd=5+Math.random()*1.5;e.bc=Math.max(e.bc,1.6);e.jx=p.x;e.jy=p.y;e.fl=p.x<e.x}
+function foxCrouch(e,dt){e.jc-=dt;if(e.jc>.15){e.jx=p.x;e.jy=p.y;e.fl=p.x<e.x}
  if(e.jc<=0){e.jc=0;let tx=e.jx,ty=e.jy;const d=Math.hypot(tx-e.x,ty-e.y),mx=330;if(d>mx){tx=e.x+(tx-e.x)/d*mx;ty=e.y+(ty-e.y)/d*mx}
   for(let i=0;i<12&&sol(tx,ty);i++){tx+=(e.x-tx)*.2;ty+=(e.y-ty)*.2}
   e.sx=e.x;e.sy=e.y;e.jx=tx;e.jy=ty;e.ja=JA;e.jz=0}}
@@ -473,7 +500,7 @@ function foxAir(e,dt){e.ja-=dt;const q=Math.min(1,1-e.ja/JA),qq=q*q*(3-2*q);
  e.x=e.sx+(e.jx-e.sx)*qq;e.y=e.sy+(e.jy-e.sy)*qq;e.jz=Math.sin(Math.PI*q)*JH;
  if(e.ja<=0){e.ja=0;e.jz=0;e.x=e.jx;e.y=e.jy;shk=1;
   fx.push({k:'shock',x:e.x,y:e.y,r:JR+10,life:.55,max:.55});
-  mobArea(e.x,e.y,JR,JD,1,1);
+  if(Math.hypot(p.x-e.x,(p.y-e.y)*1.25)<JR){hurt(JD);const a=Math.atan2(p.y-e.y,p.x-e.x);for(let i=0;i<8;i++){const nx=p.x+Math.cos(a)*5,ny=p.y+Math.sin(a)*5;if(!sol(nx,ny)){p.x=nx;p.y=ny}}}
   e.atk=.9}}
 function foxMark(c,e,ts){const x=e.ja>0?e.jx:e.jx,y=e.ja>0?e.jy:e.jy,q=e.ja>0?1-e.ja/JA:1-e.jc/JC,pul=.5+.5*Math.sin(ts/70);
  c.save();c.translate(x,y);c.scale(1,.42);c.globalAlpha=.18+.22*q;c.fillStyle='#ff3b1f';c.beginPath();c.arc(0,0,JR,0,7);c.fill();
@@ -695,11 +722,11 @@ function drawFox(c,x,y,o){
  c.fillStyle='#2a1a10';c.fillRect(hx+5,hy-4,1.6,4.2);
  if(lu>2){c.fillStyle='#fff';c.beginPath();c.moveTo(hx+14,hy+7);c.lineTo(hx+16,hy+12);c.lineTo(hx+18,hy+7);c.closePath();c.fill()}
  c.restore()}
-function hitE(e,d,st,kx,ky,raw){
- if(!raw){if(mobRemote(e,d,st,kx,ky))return;d=calcDmg(d)}e.hp-=d;e.hit=.15;e.hurt=.28;if(st)e.stun=Math.max(e.stun,st);
+function hitE(e,d,st,kx,ky){
+ if(gsHit(e,d,st,kx,ky))return;d=calcDmg(d);e.hp-=d;e.hit=.15;e.hurt=.28;if(st)e.stun=Math.max(e.stun,st);
  if(!blk(e.x+kx,e.y+ky)){e.x+=kx;e.y+=ky}
  FT.push({x:e.x,y:e.y-(e.boss?130:50),t:lastCrit?d+'!':d,crit:lastCrit,life:.8});
- if(e.hp<=0){e.dead=1;e.dt=0;e.rt=e.boss?20:5;kills++;if(e.boss)dropItems('boss');gainXp(e.boss?60:10);mobKilled(e)}}
+ if(e.hp<=0){e.dead=1;e.dt=0;e.rt=e.boss?20:5;kills++;if(e.boss)dropItems('boss');gainXp(e.boss?60:10)}}
 function hurt(n){if(Math.random()*100<D().dodge){FT.push({x:p.x,y:p.y-56,t:'esquivou',txt:1,life:.8});return}n=Math.max(1,Math.round(n*(1-D().red/100)));p.hp-=n;flash={col:'#e0483a',a:.25};FT.push({x:p.x,y:p.y-52,t:n,life:.8,r:1});
  if(p.hp<=0){p.hp=p.max;scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:.6}}}
 function useBtn(i){if(CLANS[clan].sk[i].auto){autoOn=!autoOn;$('#b'+i).classList.toggle('ao',autoOn)}else cast(i)}
@@ -728,27 +755,27 @@ function step(dt,ts){onlStep(dt);
  if(!scene&&DOOR&&p.y<DOOR.yIn&&p.y>DOOR.yIn-T&&Math.abs(p.x-DOOR.x)<30)enterSala();else if(scene&&p.y>30.35*T&&Math.abs(p.x-25*T)<30)leaveSala();
   for(let i=0;i<3;i++)cd[i]=Math.max(0,cd[i]-dt);
  if(autoOn&&CLANS[clan].sk[0].auto&&cd[0]<=0&&E.some(e=>!e.dead&&Math.hypot(e.x-p.x,e.y-p.y)<260))cast(0);
- if(!scene&&!mobHost())mobFollow(dt);
- if(!scene&&mobHost())E.forEach(e=>{const tg=mobTarget(e);
+ if(!scene&&ONL.on)gsMobFollow(dt);
+ if(!scene&&!ONL.on)E.forEach(e=>{
   if(e.dead){e.dt=(e.dt||0)+dt;if((e.rt-=dt)<=0){place(e);e.ch=0;e.lunge=0;e.dmgp=0;e.hurt=0;e.ja=0;e.jc=0;e.jz=0;e.jcd=3}return}
   e.hit=Math.max(0,e.hit-dt);e.lunge=Math.max(0,(e.lunge||0)-dt);e.hurt=Math.max(0,(e.hurt||0)-dt);e.bc=Math.max(0,(e.bc||0)-dt);
-  if(e.dmgp&&e.lunge<.26){e.dmgp=0;mobArea(e.x,e.y,100,12,0)}
+  if(e.dmgp&&e.lunge<.26){e.dmgp=0;if(Math.hypot(p.x-e.x,p.y-e.y)<100)hurt(12)}
   e.jcd=Math.max(0,(e.jcd||0)-dt);
   if(e.boss&&e.ja>0){e.mv=0;foxAir(e,dt);return}
   if(e.stun>0){e.stun-=dt;e.mv=0;e.jc=0;return}
   if(e.boss&&e.jc>0){e.mv=0;foxCrouch(e,dt);return}
-  if(e.boss&&e.ch>0){e.mv=0;e.ch-=dt;if(Math.abs(tg.x-e.x)>4)e.fl=tg.x<e.x;
-   if(!e.fired&&e.ch<=.4){e.fired=1;const ox=e.x+(e.fl?-1:1)*52,oy=e.y-46,a=Math.atan2(tg.y-22-oy,tg.x-ox);mobEP({x:ox,y:oy,vx:Math.cos(a)*360,vy:Math.sin(a)*360,life:1.35})}
+  if(e.boss&&e.ch>0){e.mv=0;e.ch-=dt;if(Math.abs(p.x-e.x)>4)e.fl=p.x<e.x;
+   if(!e.fired&&e.ch<=.4){e.fired=1;const ox=e.x+(e.fl?-1:1)*52,oy=e.y-46,a=Math.atan2(p.y-22-oy,p.x-ox);EP.push({x:ox,y:oy,vx:Math.cos(a)*360,vy:Math.sin(a)*360,life:1.35});shk=Math.max(shk,.35)}
    return}
   if(e.boss&&e.lunge>0){e.mv=0;return}
-  const dx=tg.x-e.x,dy=tg.y-e.y,dist=Math.hypot(dx,dy);let vx=0,vy=0;
-  if(dist<(e.boss?330:150)){if(e.boss&&dist>110&&dist<320&&e.jcd<=0&&!(dist>170&&e.bc<=0&&Math.random()<.5)){foxJump(e)}else if(e.boss&&dist>170&&dist<300&&e.bc<=0){e.ch=1.2;e.fired=0;e.bc=5.5;e.jcd=Math.max(e.jcd,2)}else if(dist>(e.boss?84:24)){vx=dx/dist;vy=dy/dist}else{e.dir=Math.abs(dx)>Math.abs(dy)?(dx<0?2:3):(dy<0?1:0);if((e.atk-=dt)<=0){e.atk=e.boss?1.6:1;if(e.boss){e.lunge=.5;e.dmgp=1}else mobArea(e.x,e.y,40,5,0)}}}
+  const dx=p.x-e.x,dy=p.y-e.y,dist=Math.hypot(dx,dy);let vx=0,vy=0;
+  if(dist<(e.boss?330:150)){if(e.boss&&dist>110&&dist<320&&e.jcd<=0&&!(dist>170&&e.bc<=0&&Math.random()<.5)){foxJump(e)}else if(e.boss&&dist>170&&dist<300&&e.bc<=0){e.ch=1.2;e.fired=0;e.bc=5.5;e.jcd=Math.max(e.jcd,2)}else if(dist>(e.boss?84:24)){vx=dx/dist;vy=dy/dist}else{e.dir=Math.abs(dx)>Math.abs(dy)?(dx<0?2:3):(dy<0?1:0);if((e.atk-=dt)<=0){e.atk=e.boss?1.6:1;if(e.boss){e.lunge=.5;e.dmgp=1}else hurt(5)}}}
   else{if((e.wt-=dt)<=0){e.wt=1+Math.random()*2;e.wa=Math.random()*6.3;e.wm=Math.random()<.6}
    if(e.wm){vx=Math.cos(e.wa)*.6;vy=Math.sin(e.wa)*.6}}
   if(e.boss&&Math.abs(dx)>4&&dist<260)e.fl=dx<0;else if(Math.abs(vx)>.05)e.fl=vx<0;go(e,vx,vy,e.boss?72:70,dt)});
  P=P.filter(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.life<=0||sol(b.x,b.y+16))return 0;
   for(const e of E)if(!b.rm&&!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);return 0}return 1});
- EP=EP.filter(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.life<=0||sol(b.x,b.y+16))return 0;if(Math.hypot(p.x-b.x,p.y-24-b.y)<22){hurt(30);shk=Math.max(shk,.6);fx.push({k:'boom',x:b.x,y:b.y,life:.35,max:.35});return 0}return 1});
+ EP=EP.filter(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.life<=0||sol(b.x,b.y+16))return 0;if(!b.sv&&Math.hypot(p.x-b.x,p.y-24-b.y)<22){hurt(30);shk=Math.max(shk,.6);fx.push({k:'boom',x:b.x,y:b.y,life:.35,max:.35});return 0}return 1});
  fx=fx.filter(f=>(f.life-=dt)>0);FT=FT.filter(f=>(f.life-=dt)>0&&(f.y-=20*dt,1));
  hudUpd(dt)
  CLANS[clan].sk.forEach((s,i)=>{const b=$('#b'+i);b.querySelector('.cd').style.height=cd[i]/cdOf(i,s)*100+'%';b.classList.toggle('off',p.mp<mpOf(i,s))});
@@ -846,12 +873,17 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys[k]=1;if(cur!='ga
 addEventListener('keyup',e=>delete keys[e.key.toLowerCase()]);
 document.addEventListener('contextmenu',e=>e.preventDefault());
 //ONLINE-BEGIN
-// ===== Modo online: contas (Supabase Auth), personagem na nuvem (tabela personagens) e multijogador (Supabase Realtime) =====
+// ===== Shinobi Online: contas (Supabase) + servidor de jogo próprio (WebSocket) =====
 const SUPA={url:'https://fnjigeqszfiwsuaulcul.supabase.co'.replace(/\/+$/,''),key:'sb_publishable_N3yk404XMTD24t_lFDiWnw_Cg7_ddXM'};
-const ONL={ok:/^https?:\/\//.test(SUPA.url)&&SUPA.key.length>20,on:false,tok:null,rtok:null,uid:null,nome:'',hasChar:false,dirty:false,
- ws:null,seq:0,hb:0,topic:'',jref:'',joined:false,peers:{},lastPos:0,lastSig:'',rtTimer:0,fxQ:[],chatLog:[],saving:false,refT:0,closing:false};
+const GS_URL='https://shinobi-server-gdhx.onrender.com'.replace(/\/+$/,''),GS_PROTO=1;
+const ONL={ok:/^https?:\/\//.test(SUPA.url)&&SUPA.key.length>20&&/^https?:\/\//.test(GS_URL),on:false,tok:null,rtok:null,uid:null,nome:'',hasChar:false,dirty:false,
+ ws:null,authed:false,joined:false,peers:{},lastPos:0,lastSig:'',chatLog:[],saving:false,refT:0,closing:false,retryT:0,tries:0,party:null,chatCh:'m',ping:0,pingT:0,welcomeCb:null};
 const ONL_DOM='@jogadores.shinobi-online.app',ONL_SESS='shinobi-sessao';
 const onlEmail=n=>n.toLowerCase()+ONL_DOM;
+// acorda o servidor (o plano grátis dorme) assim que o app abre
+if(ONL.ok){try{fetch(GS_URL+'/health',{cache:'no-store'}).catch(()=>{})}catch(_){}}
+
+// ---------- Supabase: contas e personagem ----------
 function onlHdr(json){const h={apikey:SUPA.key};if(ONL.tok)h.Authorization='Bearer '+ONL.tok;else if(SUPA.key.startsWith('eyJ'))h.Authorization='Bearer '+SUPA.key;if(json)h['Content-Type']='application/json';return h}
 async function onlFetch(path,opt){opt=opt||{};let r;
  try{r=await fetch(SUPA.url+path,Object.assign({},opt,{headers:Object.assign(onlHdr(!!opt.body),opt.headers||{})}))}
@@ -860,22 +892,21 @@ async function onlFetch(path,opt){opt=opt||{};let r;
  if(!r.ok){const x=new Error((j&&(j.msg||j.message||j.error_description||j.error))||('Erro '+r.status));x.status=r.status;x.code=j&&(j.error_code||j.code);throw x}
  return j}
 function onlErr(e){const m=String(e&&e.message||e),c=e&&e.code;
- if(e&&e.net)return 'Sem conexão com o servidor. Verifique a internet ou jogue offline.';
+ if(e&&e.net)return 'Sem conexão com a internet ou com o servidor.';
  if(/invalid login|invalid_credentials/i.test(m+c))return 'Usuário ou senha incorretos.';
  if(/already registered|user_already_exists|already been registered/i.test(m+c))return 'Esse nome de usuário já existe. Escolha outro ou entre na conta.';
  if(/at least 6|weak_password/i.test(m+c))return 'A senha precisa ter pelo menos 6 caracteres.';
  if(/not confirmed|email_not_confirmed/i.test(m+c))return 'A conta precisa ser confirmada por e-mail. No Supabase, desligue "Confirm email" em Authentication.';
  if(/rate limit|over_email_send/i.test(m+c))return 'Muitas tentativas seguidas. Espere um pouco e tente de novo.';
  if(/signups? (not allowed|disabled)/i.test(m+c))return 'Criação de contas está desligada no servidor.';
- if(/personagens/.test(m)&&/does not exist|relation|schema cache/i.test(m))return 'A tabela "personagens" não existe no servidor. Rode o SQL de criação no Supabase.';
+ if(/personagens/.test(m)&&/does not exist|relation|schema cache/i.test(m))return 'A tabela "personagens" não existe no servidor.';
  return 'Erro do servidor: '+m}
 function onlSess(s){ONL.tok=s.access_token;ONL.rtok=s.refresh_token;ONL.uid=s.user&&s.user.id||ONL.uid;
  try{localStorage.setItem(ONL_SESS,JSON.stringify({r:s.refresh_token,n:ONL.nome}))}catch(_){}
  clearTimeout(ONL.refT);ONL.refT=setTimeout(onlRefresh,Math.max(30,(+s.expires_in||3600)-120)*1000)}
-async function onlRefresh(){if(!ONL.rtok)return;try{const s=await onlFetch('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:ONL.rtok})});onlSess(s);
- if(ONL.ws&&ONL.joined)onlSend(ONL.topic,'access_token',{access_token:ONL.tok},ONL.jref)}catch(e){if(!e.net){ONL.rtok=null}else ONL.refT=setTimeout(onlRefresh,15000)}}
-async function onlLogin(nome,senha,novo){
- const email=onlEmail(nome);let s;
+async function onlRefresh(){if(!ONL.rtok)return;try{const s=await onlFetch('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:ONL.rtok})});onlSess(s)}
+ catch(e){ONL.refT=setTimeout(onlRefresh,e.net?15000:60000)}}
+async function onlLogin(nome,senha,novo){const email=onlEmail(nome);let s;
  if(novo){s=await onlFetch('/auth/v1/signup',{method:'POST',body:JSON.stringify({email,password:senha,data:{nome}})});
   if(!s||!s.access_token){const x=new Error('Email not confirmed');x.code='email_not_confirmed';throw x}}
  else s=await onlFetch('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password:senha})});
@@ -887,69 +918,96 @@ async function onlSave(keep){if(!ONL.on||!ONL.hasChar||ONL.saving||!clan)return;
  try{await onlFetch('/rest/v1/personagens?id=eq.'+ONL.uid,{method:'PATCH',keepalive:!!keep,headers:{Prefer:'return=minimal'},body:JSON.stringify({dados:onlDados(),atualizado:new Date().toISOString()})})}
  catch(e){ONL.dirty=true;if(e.status===401)onlRefresh()}ONL.saving=false}
 setInterval(()=>{if(ONL.dirty)onlSave()},12000);
-addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&ONL.on){onlSave(true)}});
+addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&ONL.on)onlSave(true)});
 addEventListener('pagehide',()=>{if(ONL.on)onlSave(true)});
-// marca alterações para salvar
-{const a=chSave,b=invSave;chSave=function(){a();ONL.dirty=true;if(ONL.joined)onlTrack()};invSave=function(){b();ONL.dirty=true;if(ONL.joined)setTimeout(onlTrack,50)}}
+{const a=chSave,b=invSave;chSave=function(){a();ONL.dirty=true;gsMeta()};invSave=function(){b();ONL.dirty=true;setTimeout(gsMeta,50)}}
 
-// ---------- Realtime (protocolo Phoenix do Supabase) ----------
-function onlSend(topic,event,payload,jref){const w=ONL.ws;if(!w||w.readyState!==1)return false;ONL.seq++;w.send(JSON.stringify({topic,event,payload,ref:String(ONL.seq),join_ref:jref||null}));return true}
-function onlConnect(){if(!ONL.on||ONL.ws)return;
- const u=SUPA.url.replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+encodeURIComponent(SUPA.key)+'&vsn=1.0.0';let w;
- try{w=new WebSocket(u)}catch(e){onlStatus();return}
- ONL.ws=w;ONL.joined=false;onlStatus();
- w.onopen=()=>{clearInterval(ONL.hb);ONL.hb=setInterval(()=>onlSend('phoenix','heartbeat',{}),25000);onlJoin(CURMAP)};
- w.onmessage=ev=>{let m;try{m=JSON.parse(ev.data)}catch(_){return}onlMsg(m)};
- w.onclose=()=>{clearInterval(ONL.hb);ONL.ws=null;ONL.joined=false;ONL.peers={};onlStatus();if(ONL.on&&!ONL.closing)ONL.rtTimer=setTimeout(onlConnect,2500)};
+// ---------- servidor de jogo ----------
+function gsSend(o){const w=ONL.ws;if(!w||w.readyState!==1)return false;w.send(JSON.stringify(o));return true}
+function gsConnect(){if(!ONL.on||ONL.ws||ONL.closing)return;
+ let w;try{w=new WebSocket(GS_URL.replace(/^http/,'ws')+'/ws')}catch(e){gsRetry();return}
+ ONL.ws=w;ONL.authed=false;ONL.joined=false;onlStatus();
+ w.onopen=()=>{ONL.tries=0;gsSend({t:'auth',v:GS_PROTO,token:ONL.tok})};
+ w.onmessage=ev=>{let m;try{m=JSON.parse(ev.data)}catch(_){return}try{gsMsg(m)}catch(e){console.error(e)}};
+ w.onclose=()=>{ONL.ws=null;ONL.authed=false;ONL.joined=false;ONL.peers={};onlStatus();gsRetry()};
  w.onerror=()=>{}}
-function onlJoin(map){if(!ONL.ws||ONL.ws.readyState!==1)return;
- if(ONL.topic&&ONL.joined)onlSend(ONL.topic,'phx_leave',{},ONL.jref);
- ONL.peers={};ONL.joined=false;ONL.topic='realtime:shinobi-'+map;ONL.jref=String(++ONL.seq);
- const msg={topic:ONL.topic,event:'phx_join',payload:{config:{broadcast:{self:false,ack:false},presence:{key:ONL.uid,enabled:true},postgres_changes:[],private:false},access_token:ONL.tok},ref:ONL.jref,join_ref:ONL.jref};
- ONL.ws.send(JSON.stringify(msg));onlStatus()}
-function onlMeta(){return {nome:ONL.nome,clan,lv:CH.lv,eq:Object.values(EQ),look:{skin:look.skin,hair:look.hair,cloth:look.cloth}}}
-let _trk=0;function onlTrack(){clearTimeout(_trk);_trk=setTimeout(()=>{if(ONL.joined)onlSend(ONL.topic,'presence',{type:'presence',event:'track',payload:onlMeta()},ONL.jref)},120)}
-function onlBc(event,payload){if(ONL.joined)onlSend(ONL.topic,'broadcast',{type:'broadcast',event,payload},ONL.jref)}
-function onlPeer(id){if(id===ONL.uid)return null;return ONL.peers[id]||(ONL.peers[id]={id,nome:'?',clan:'uchiha',lv:1,eq:[],x:null,y:null,tx:0,ty:0,fl:0,mv:0,run:0,au:-1,th:-1,sc:0,hp:1,max:1,seen:0,say:'',sayT:0,pres:false})}
-function onlMsg(m){
- if(m.topic!==ONL.topic)return;
- if((m.event==='phx_error'||m.event==='phx_close')&&ONL.joined){ONL.joined=false;onlStatus();setTimeout(()=>onlJoin(CURMAP),2000);return}
- if(m.event==='phx_reply'&&m.ref===ONL.jref){if(m.payload&&m.payload.status==='ok'){ONL.joined=true;onlTrack();onlPos(true)}else{console.warn('realtime join',m.payload)}onlStatus();return}
- if(m.event==='presence_state'){for(const id in m.payload){const pe=onlPeer(id);if(!pe)continue;const mt=(m.payload[id].metas||[])[0]||{};Object.assign(pe,pick(mt));pe.pres=true}onlStatus();return}
- if(m.event==='presence_diff'){const d=m.payload||{};for(const id in d.joins||{}){const pe=onlPeer(id);if(!pe)continue;const mt=(d.joins[id].metas||[])[0]||{};Object.assign(pe,pick(mt));pe.pres=true;if(!pe.hi){pe.hi=1;onlLog('🟢 '+pe.nome+' entrou no mapa')}}
-  for(const id in d.leaves||{}){if(d.joins&&d.joins[id])continue;const pe=ONL.peers[id];if(pe){onlLog('⚪ '+pe.nome+' saiu');delete ONL.peers[id]}}onlStatus();return}
- if(m.event==='broadcast'&&m.payload){const ev=m.payload.event,d=m.payload.payload||{};const pe=onlPeer(d.id);if(!pe)return;
-  if(ev==='pos'){if(pe.x===null||Math.hypot(d.x-pe.x,d.y-pe.y)>400||d.sc!==pe.sc){pe.x=d.x;pe.y=d.y}pe.tx=d.x;pe.ty=d.y;pe.fl=d.fl;pe.mv=d.mv;pe.run=d.run;pe.au=d.au;pe.th=d.th;pe.sc=d.sc|0;pe.hp=d.hp;pe.max=d.max;pe.seen=performance.now();if(d.nome)pe.nome=d.nome}
-  else if(ev==='fx'&&pe.sc===scene){(d.fx||[]).forEach(f=>{f.rm=1;f.life=f.max||f.life||.5;fx.push(f)});(d.pr||[]).forEach(b=>{b.rm=1;b.dmg=0;P.push(b)})}
-  else if(ev[0]==='m'&&ev!=='m'){mobOnMsg(ev,d)}
-  else if(ev==='chat'){pe.say=String(d.t||'').slice(0,80);pe.sayT=5;onlLog(pe.nome+': '+pe.say,1)}}}
-function pick(mt){const o={};['nome','clan','lv','eq','look'].forEach(k=>{if(mt[k]!==undefined)o[k]=mt[k]});if(!CLANS[o.clan])delete o.clan;return o}
-function onlPos(force){const now=performance.now();if(!ONL.joined)return;
+function gsRetry(){if(!ONL.on||ONL.closing)return;clearTimeout(ONL.retryT);ONL.tries++;ONL.retryT=setTimeout(gsConnect,Math.min(5000,800+ONL.tries*600));onlStatus()}
+function gsJoin(){if(!ONL.authed||!clan)return;ONL.joined=false;ONL.peers={};E=[];EP=[];
+ gsSend(Object.assign({t:'join',map:CURMAP,x:p.x|0,y:p.y|0,hp:Math.round(p.hp),max:p.max,sc:scene|0},onlMeta()))}
+function onlMeta(){return {clan,lv:CH.lv,eq:Object.values(EQ),look:{skin:look.skin,hair:look.hair,cloth:look.cloth}}}
+let _gsmt=0;function gsMeta(){clearTimeout(_gsmt);_gsmt=setTimeout(()=>{if(ONL.joined)gsSend(Object.assign({t:'meta'},onlMeta()))},150)}
+function onlPeer(id,o){if(id===ONL.uid)return null;let pe=ONL.peers[id];if(!pe){pe=ONL.peers[id]={id,nome:'?',clan:'uchiha',lv:1,eq:[],x:null,y:null,tx:0,ty:0,fl:0,mv:0,run:0,au:-1,th:-1,sc:0,hp:1,max:1,seen:performance.now(),say:'',sayT:0,g:0}}
+ if(o){['nome','clan','lv','eq','look','g'].forEach(k=>{if(o[k]!==undefined)pe[k]=o[k]});if(o.x!=null){pe.tx=o.x;pe.ty=o.y;if(pe.x===null){pe.x=o.x;pe.y=o.y}}['fl','mv','run','au','th','sc','hp','max'].forEach(k=>{if(o[k]!==undefined)pe[k]=o[k]})}
+ return pe}
+const GMK=['x','y','hp','max','dead','dt','mv','fl','ch','lunge','ja','jz','jc','jx','jy','stun','hurt','rt'];
+function gsMob(def){let e=E.find(x=>x.sid===def.id);if(!e){e={sid:def.id,id:E.length,boss:def.boss,rad:def.rad,nome:def.nome,max:def.max,hp:def.max,x:0,y:0,dead:0,dt:0,mv:0,fl:0,ch:0,lunge:0,ja:0,jz:0,jc:0,jx:0,jy:0,stun:0,hurt:0,hit:0,rt:0,sn:null,dir:0,wt:0,atk:0,lunge0:0};E.push(e)}return e}
+function gsMobState(e,a){const s={};GMK.forEach((k,j)=>s[k]=a[j]);const wasDead=!!e.dead;
+ if(!e.sn||Math.hypot(s.x-e.x,s.y-e.y)>260||wasDead!==!!s.dead){e.x=s.x;e.y=s.y;e.jz=s.jz}
+ e.sn=s;['hp','max','ch','lunge','ja','jc','jx','jy','stun','rt'].forEach(k=>e[k]=s[k]);e.fl=!!s.fl;e.mv=s.mv;if(s.hurt>(e.hurt||0))e.hurt=s.hurt;
+ if(s.dead&&!wasDead){e.dead=1;e.dt=s.dt}else if(!s.dead&&wasDead){e.dead=0;e.dt=0}}
+function gsMobFollow(dt){const k=Math.min(1,dt*14);
+ for(const e of E){e.hit=Math.max(0,(e.hit||0)-dt);if(!e.sn)continue;if(e.dead){e.dt=(e.dt||0)+dt;continue}
+  const s=e.sn;e.x+=(s.x-e.x)*k;e.y+=(s.y-e.y)*k;e.jz=(e.jz||0)+((s.jz||0)-(e.jz||0))*Math.min(1,dt*20);
+  ['lunge','ch','jc','ja','stun','hurt'].forEach(q=>{if(e[q]>0)e[q]=Math.max(0,e[q]-dt)})}}
+// golpes do jogador vão para o servidor (ele decide a vida da raposa)
+function gsHit(e,d,st,kx,ky){if(!ONL.on)return false;if(!e.sid||e.dead||!ONL.joined)return true;
+ d=calcDmg(d);e.hit=.15;e.hurt=.28;FT.push({x:e.x,y:e.y-(e.boss?130:50)-(e.jz||0),t:lastCrit?d+'!':d,crit:lastCrit,life:.8});
+ gsSend({t:'hit',m:e.sid,d,st:st||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0});return true}
+function gsMsg(m){
+ switch(m.t){
+ case 'welcome':ONL.authed=true;ONL.uid=m.id;if(ONL.welcomeCb){const f=ONL.welcomeCb;ONL.welcomeCb=null;f()}else if(cur==='game')gsJoin();onlStatus();break;
+ case 'authfail':onlLog('⚠️ Falha ao entrar no servidor: '+m.msg);if(ONL.rtok)onlRefresh();break;
+ case 'old':ONL.closing=true;gsBlock('Versão desatualizada','Seu app está desatualizado. Baixe a versão nova do jogo no GitHub (Releases) e instale por cima.');break;
+ case 'kicked':ONL.closing=true;gsBlock('Desconectado',m.msg||'Sua conta entrou em outro aparelho.');break;
+ case 'room':if(m.map!==CURMAP)break;ONL.joined=true;ONL.peers={};(m.players||[]).forEach(o=>onlPeer(o.id,o));E=[];(m.mobs||[]).forEach(x=>gsMobState(gsMob(x.def),x.s));onlStatus();gsPos(true);break;
+ case 'pj':{const pe=onlPeer(m.p.id,m.p);if(pe)onlLog('🟢 '+pe.nome+' entrou no mapa');onlStatus();break}
+ case 'pl':{const pe=ONL.peers[m.id];if(pe){onlLog('⚪ '+pe.nome+' saiu do mapa');delete ONL.peers[m.id]}onlStatus();grpDraw();break}
+ case 'pm':onlPeer(m.id,m);grpDraw();break;
+ case 'ps':(m.p||[]).forEach(a=>{const pe=onlPeer(a[0]);if(!pe)return;const nx=a[1],ny=a[2];if(pe.x===null||Math.hypot(nx-pe.x,ny-pe.y)>400||(a[8]|0)!==pe.sc){pe.x=nx;pe.y=ny}
+  pe.tx=nx;pe.ty=ny;pe.fl=a[3];pe.mv=a[4];pe.run=a[5];pe.au=a[6];pe.th=a[7];pe.sc=a[8]|0;pe.hp=a[9];pe.max=a[10];pe.seen=performance.now()});break;
+ case 'mobs':(m.m||[]).forEach(a=>{const e=E.find(x=>x.sid===a[0]);if(e)gsMobState(e,a.slice(1))});break;
+ case 'mh':{const e=E.find(x=>x.sid===m.m);if(e&&!(scene|0)){e.hit=.12;FT.push({x:e.x+(Math.random()*30-15),y:e.y-(e.boss?120:46)-(e.jz||0),t:m.c?m.d+'!':m.d,life:.7,crit:m.c,oth:1})}break}
+ case 'mev':gsMev(m);break;
+ case 'hurt':if(scene|0)break;hurt(m.d);if(m.kx||m.ky){for(let i=0;i<8;i++){const nx=p.x+m.kx*5,ny=p.y+m.ky*5;if(!sol(nx,ny)){p.x=nx;p.y=ny}}}shk=Math.max(shk,.6);gsPos(true);break;
+ case 'mkill':{const mine=(m.ids||[]).includes(ONL.uid);onlLog((mine?'🏆 ':'☠️ ')+m.nome+' derrotada! Maior dano: '+m.quem+' ('+m.dmg+')'+(mine?'':' — a recompensa foi para eles.'));break}
+ case 'reward':gainXp(m.xp);if(m.items&&m.items.length)giveItems(m.items);onlLog('🎁 Recompensa: +'+m.xp+' XP'+(m.items&&m.items.length?' e '+m.items.map(i=>ITEMS[i]?ITEMS[i].name:i).join(', '):'')+(m.grp?' (grupo)':''));ONL.dirty=true;break;
+ case 'chat':{const pe=ONL.peers[m.id];if(pe&&m.ch!=='g'){pe.say=m.text;pe.sayT=5}if(m.id===ONL.uid)break;onlLog((m.ch==='g'?'[Grupo] ':'')+m.nome+': '+m.text,m.ch==='g'?2:1);break}
+ case 'sys':onlLog('ℹ️ '+m.msg);break;
+ case 'fx':{const pe=ONL.peers[m.id];if(!pe||pe.sc!==(scene|0))break;(m.fx||[]).forEach(f=>{f.rm=1;f._s=1;f.life=f.max||f.life||.5;fx.push(f)});(m.pr||[]).forEach(b=>{b.rm=1;b._s=1;b.dmg=0;P.push(b)});break}
+ case 'pinvite':grpInvite(m);break;
+ case 'party':ONL.party=m.none?null:m;grpDraw();break;
+ case 'pong':ONL.ping=Math.round(performance.now()-m.c);onlStatus();break}}
+function gsMev(m){if(scene|0)return;
+ if(m.k==='ep'){EP.push({sid:m.id,sv:1,x:m.x,y:m.y,vx:m.vx,vy:m.vy,life:m.life||1.35});shk=Math.max(shk,.3)}
+ else if(m.k==='epx'){EP=EP.filter(b=>b.sid!==m.id);fx.push({k:'boom',x:m.x,y:m.y,life:.35,max:.35,rm:1,_s:1})}
+ else if(m.k==='shock'){fx.push({k:'shock',x:m.x,y:m.y,r:m.r||102,life:.55,max:.55,rm:1,_s:1});if(Math.hypot(p.x-m.x,p.y-m.y)<500)shk=1}
+ else if(m.k==='reset'){const e=E.find(x=>x.sid===m.m);if(e){e.x=m.x;e.y=m.y;e.jz=0}fx.push({k:'ring',x:m.x,y:m.y-20,r:70,col:'#ffd27a',life:.6,max:.6,rm:1,_s:1});onlLog('🦊 A raposa voltou ao covil e recuperou toda a vida.')}
+ else if(m.k==='spawn'){const e=E.find(x=>x.sid===m.m);if(e){e.x=m.x;e.y=m.y;e.dead=0;e.dt=0}onlLog('🦊 A Raposa de Nove Caudas renasceu.')}}
+function gsPos(force){const now=performance.now();if(!ONL.joined)return;
  const s=[p.x|0,p.y|0,p.fl?1:0,p.mv?1:0,p.run?1:0,scene|0,Math.round(p.hp),p.au>=0?1:0,p.th>=0?1:0].join(',');
- if(!force&&(now-ONL.lastPos<110||(s===ONL.lastSig&&now-ONL.lastPos<1500)))return;
- ONL.lastPos=now;ONL.lastSig=s;
- onlBc('pos',{id:ONL.uid,x:p.x|0,y:p.y|0,fl:p.fl?1:0,mv:p.mv?1:0,run:p.run?1:0,au:p.au>=0?+p.au.toFixed(2):-1,th:p.th>=0?+p.th.toFixed(2):-1,sc:scene|0,hp:Math.round(p.hp),max:p.max})}
+ if(!force&&(now-ONL.lastPos<100||(s===ONL.lastSig&&now-ONL.lastPos<2000)))return;ONL.lastPos=now;ONL.lastSig=s;
+ gsSend({t:'pos',x:p.x|0,y:p.y|0,fl:p.fl?1:0,mv:p.mv?1:0,run:p.run?1:0,au:p.au>=0?+p.au.toFixed(2):-1,th:p.th>=0?+p.th.toFixed(2):-1,sc:scene|0,hp:Math.round(p.hp),max:p.max})}
 const FXOK={ring:1,rimp:1,bolt:1,line:1};
 function onlStep(dt){if(!ONL.on)return;
- // efeitos e projéteis novos do próprio jogador
  if(ONL.joined){const nf=[],np=[];
   for(const f of fx){if(f._s)continue;f._s=1;if(!f.rm&&FXOK[f.k||'line'])nf.push(Object.assign({},f,{_s:undefined}))}
   for(const b of P){if(b._s)continue;b._s=1;if(!b.rm)np.push({x:b.x|0,y:b.y|0,vx:b.vx|0,vy:b.vy|0,col:b.col,life:b.life,big:b.big,spin:b.spin})}
-  if(nf.length||np.length)onlBc('fx',{id:ONL.uid,fx:nf,pr:np})}
- onlPos(false);
- if(ONL.joined&&mobHost())mobSend();
- const k=Math.min(1,dt*12),now=performance.now();
+  if(nf.length||np.length)gsSend({t:'fx',fx:nf.slice(0,8),pr:np.slice(0,8)})}
+ gsPos(false);
+ const now=performance.now();if(now-ONL.pingT>5000){ONL.pingT=now;gsSend({t:'ping',c:now})}
+ const k=Math.min(1,dt*12);
  for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.x===null)continue;pe.x+=(pe.tx-pe.x)*k;pe.y+=(pe.ty-pe.y)*k;
-  if(pe.th>=0)pe.th+=dt;if(pe.th>.35)pe.th=-1;if(pe.au>=0)pe.au+=dt;if(pe.sayT>0)pe.sayT-=dt;
-  if(now-pe.seen>6000)pe.mv=0}}
+  if(pe.th>=0)pe.th+=dt;if(pe.th>.35)pe.th=-1;if(pe.au>=0)pe.au+=dt;if(pe.sayT>0)pe.sayT-=dt}
+ if(myT>0)myT-=dt}
+const inGrp=id=>!!(ONL.party&&ONL.party.members.some(x=>x.id===id));
 function onlDraw(L,ts){if(!ONL.on)return;
  for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.x===null||pe.sc!==(scene|0))continue;
   L.push({y:pe.y,d:()=>{const FL=(pe.eq||[]).map(i=>ITEMS[i]).filter(it=>it&&it.fx&&(it.fx.tails||it.fx.orbit||it.fx.glow||it.fx.hand)).map(it=>it.fx);
    fxDraw(ctx,pe.x,pe.y,ts,FL,0);
    if(HERO)drawHero(ctx,pe.x,pe.y,{fl:pe.fl,t:ts+id.length*97,mv:pe.mv,run:pe.run,aura:pe.au,th:pe.th,set:heroFor(pe.look)});else drawChar(ctx,pe.x,pe.y,{...(pe.look||look),clan:pe.clan,dir:0,t:ts,mv:pe.mv,run:pe.run});
    fxDraw(ctx,pe.x,pe.y,ts,FL,1,{fl:pe.fl});
-   ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#9fe8ff';
-   const lb=pe.nome+' · Nv '+(pe.lv||1);ctx.strokeText(lb,pe.x,pe.y-62);ctx.fillText(lb,pe.x,pe.y-62);
+   const gp=inGrp(id);ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle=gp?'#7dff9a':'#9fe8ff';
+   const lb=(gp?'👥 ':'')+pe.nome+' · Nv '+(pe.lv||1);ctx.strokeText(lb,pe.x,pe.y-62);ctx.fillText(lb,pe.x,pe.y-62);
    if(pe.max>0&&pe.hp<pe.max){ctx.fillStyle='#000a';ctx.fillRect(pe.x-13,pe.y-58,26,4);ctx.fillStyle='#4fd06a';ctx.fillRect(pe.x-12,pe.y-57,24*Math.max(0,pe.hp)/pe.max,2)}
    if(pe.sayT>0)onlBubble(pe.x,pe.y-74,pe.say,pe.sayT)}})}
  if(myT>0)L.push({y:p.y+.1,d:()=>onlBubble(p.x,p.y-74,mySay,myT)})}
@@ -961,27 +1019,57 @@ function onlBubble(x,y,t,life){ctx.save();ctx.globalAlpha=Math.min(1,life*2);ctx
  ctx.fillStyle='rgba(255,255,255,.95)';ctx.strokeStyle='#0006';ctx.lineWidth=1;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x-w/2,y-16,w,16,6);else ctx.rect(x-w/2,y-16,w,16);ctx.fill();ctx.stroke();
  ctx.beginPath();ctx.moveTo(x-4,y);ctx.lineTo(x+4,y);ctx.lineTo(x,y+5);ctx.fill();ctx.fillStyle='#1d1a2b';ctx.textAlign='center';ctx.fillText(t.length>26?t.slice(0,25)+'…':t,x,y-5);ctx.restore()}
 let mySay='',myT=0;
-function onlStatus(){const el=$('#onl');if(!el)return;el.hidden=!ONL.on;$('#chatbtn').hidden=!ONL.on;$('#chatlog').hidden=!ONL.on;if(!ONL.on)return;
- const n=Object.values(ONL.peers).filter(pe=>pe.pres).length+1;
- el.className=ONL.joined?'ok':'off';el.textContent=ONL.joined?(n+' online'):'conectando…'}
-function onlLog(t,chat){ONL.chatLog.push({t,at:performance.now(),chat});if(ONL.chatLog.length>30)ONL.chatLog.shift();onlLogDraw()}
+function onlStatus(){const el=$('#onl');if(!el)return;el.hidden=!ONL.on;['#chatbtn','#chatlog','#grpbtn'].forEach(s=>$(s).hidden=!ONL.on);if(!ONL.on)return;
+ const n=Object.keys(ONL.peers).length+1;el.className=ONL.joined?'ok':'off';
+ el.textContent=ONL.joined?(n+' no mapa'+(ONL.ping?' · '+ONL.ping+' ms':'')):(ONL.ws&&ONL.ws.readyState===1?'entrando…':'reconectando…');
+ const nb=$('#netbar');if(nb)nb.hidden=ONL.joined||cur!=='game'}
+function onlLog(t,chat){ONL.chatLog.push({t,at:performance.now(),chat});if(ONL.chatLog.length>40)ONL.chatLog.shift();onlLogDraw()}
 function onlLogDraw(){const el=$('#chatlog');if(!el)return;const now=performance.now(),open=!$('#chatbar').hidden;
  const rows=ONL.chatLog.filter(r=>open||now-r.at<9000).slice(open?-8:-4);
- el.innerHTML='';rows.forEach(r=>{const d=document.createElement('div');d.textContent=r.t;if(!r.chat)d.className='sys';el.appendChild(d)})}
+ el.innerHTML='';rows.forEach(r=>{const d=document.createElement('div');d.textContent=r.t;d.className=r.chat===2?'gp':r.chat?'':'sys';el.appendChild(d)})}
 setInterval(onlLogDraw,1000);
 function onlChatSend(){const i=$('#chatin'),t=i.value.trim().slice(0,80);if(!t)return;i.value='';
- mySay=t;myT=5;onlLog(ONL.nome+': '+t,1);onlBc('chat',{id:ONL.uid,t})}
+ const g=ONL.chatCh==='g'&&ONL.party;if(!g){mySay=t;myT=5}onlLog((g?'[Grupo] ':'')+ONL.nome+': '+t,g?2:1);gsSend({t:'chat',text:t,ch:g?'g':'m'})}
+function gsBlock(tt,msg){const b=$('#netblock');b.querySelector('b').textContent=tt;b.querySelector('span').textContent=msg;b.hidden=false;try{ONL.ws&&ONL.ws.close()}catch(_){}}
+
+// ---------- grupo ----------
+function grpDraw(){const pt=ONL.party,h=$('#phud');
+ h.innerHTML='';if(pt)pt.members.filter(x=>x.id!==ONL.uid).forEach(x=>{const d=document.createElement('div');d.className='pm'+(x.on?'':' offm');
+  const pc=x.on&&x.max?Math.max(0,Math.min(100,x.hp/x.max*100)):0;const fora=x.on&&x.map!==CURMAP?' · outro mapa':'';
+  d.innerHTML='<span></span><i><b style="width:'+pc+'%"></b></i>';d.querySelector('span').textContent=(pt.leader===x.id?'👑 ':'')+x.nome+' Nv '+x.lv+(x.on?fora:' · offline');h.appendChild(d)});
+ $('#chch').hidden=!pt;if(!pt&&ONL.chatCh==='g'){ONL.chatCh='m';chchDraw()}
+ if($('#grp').hidden)return;
+ const L=$('#grpMem'),O=$('#grpMap');L.innerHTML='';O.innerHTML='';
+ if(pt){$('#grpNone').hidden=true;$('#grpLeave').hidden=false;const lead=pt.leader===ONL.uid;
+  pt.members.forEach(x=>{const r=document.createElement('div');r.className='gr';const me=x.id===ONL.uid;
+   r.innerHTML='<span class="gn"></span><span class="gi"></span>';r.querySelector('.gn').textContent=(pt.leader===x.id?'👑 ':'')+x.nome+(me?' (você)':'');
+   r.querySelector('.gi').textContent='Nv '+x.lv+' · '+(x.on?(x.map?mapNm(x.map):'—'):'offline');
+   if(lead&&!me){const b=document.createElement('button');b.textContent='Remover';b.onclick=()=>gsSend({t:'pkick',id:x.id});r.appendChild(b)}L.appendChild(r)})}
+ else{$('#grpNone').hidden=false;$('#grpLeave').hidden=true}
+ const others=Object.values(ONL.peers).filter(pe=>!inGrp(pe.id));
+ $('#grpMapNone').hidden=others.length>0;
+ others.forEach(pe=>{const r=document.createElement('div');r.className='gr';r.innerHTML='<span class="gn"></span><span class="gi"></span>';
+  r.querySelector('.gn').textContent=pe.nome;r.querySelector('.gi').textContent='Nv '+(pe.lv||1)+(pe.g?' · já tem grupo':'');
+  const b=document.createElement('button');b.textContent='Convidar';b.disabled=!!pe.g||(pt&&pt.members.length>=6);b.onclick=()=>{gsSend({t:'pinv',to:pe.id});b.disabled=true;b.textContent='Enviado'};r.appendChild(b);O.appendChild(r)})}
+let gsInvQ=null,gsInvT=0;
+function grpInvite(m){gsInvQ=m;const b=$('#pinv');b.querySelector('span').textContent=m.nome+' te convidou para o grupo';b.hidden=false;clearTimeout(gsInvT);gsInvT=setTimeout(()=>{b.hidden=true;gsInvQ=null},(m.ttl||30)*1000)}
+function chchDraw(){const b=$('#chch');b.textContent=ONL.chatCh==='g'?'Grupo':'Mapa';b.classList.toggle('g',ONL.chatCh==='g')}
 
 // ---------- integração com o jogo ----------
-{const _start=start;start=function(k){_start(k);if(ONL.on){if(!ONL.hasChar)onlCreateChar().catch(e=>onlLog('⚠️ '+onlErr(e)));else onlSave();onlConnect();onlStatus()}}}
-{const _sw=switchMap;switchMap=function(k){_sw(k);if(ONL.on){onlJoin(k);ONL.dirty=true}}}
+{const _start=start;start=function(k){_start(k);if(ONL.on){E=[];EP=[];if(!ONL.hasChar)onlCreateChar().catch(e=>onlLog('⚠️ '+onlErr(e)));else onlSave();if(ONL.authed)gsJoin();else gsConnect();onlStatus();grpDraw()}}}
+{const _sw=switchMap;switchMap=function(k){_sw(k);if(ONL.on){gsJoin();ONL.dirty=true;grpDraw()}}}
+function gsReady(){return new Promise((res,rej)=>{if(ONL.authed)return res();ONL.welcomeCb=res;gsConnect();
+ const er=$('#err'),t0=performance.now();const tk=setInterval(()=>{if(ONL.authed||!ONL.welcomeCb){clearInterval(tk);return}const s=Math.round((performance.now()-t0)/1000);
+  er.textContent=s<4?'Conectando ao servidor do jogo…':'Acordando o servidor do jogo… '+s+'s (no plano grátis ele dorme quando ninguém joga; pode levar até 1 minuto)';
+  if(s>120){clearInterval(tk);ONL.welcomeCb=null;rej(new Error('O servidor do jogo não respondeu. Tente de novo em instantes.'))}},500)})}
 async function onlEnter(novo){const n=$('#u').value.trim(),s=$('#p').value,er=$('#err');
  if(!/^[A-Za-z0-9_]{3,14}$/.test(n)){er.textContent='Usuário: de 3 a 14 letras, números ou _ (sem espaços nem acentos).';return}
  if(s.length<6){er.textContent='A senha precisa ter pelo menos 6 caracteres.';return}
  er.textContent=novo?'Criando conta…':'Entrando…';onlBusy(true);
- try{await onlLogin(n,s,novo);await onlAfterLogin()}catch(e){er.textContent=onlErr(e)}onlBusy(false)}
-async function onlAfterLogin(){const er=$('#err');ONL.on=true;name=ONL.nome;
+ try{await onlLogin(n,s,novo);await onlAfterLogin()}catch(e){er.textContent=e.gs?e.message:onlErr(e);ONL.on=false;ONL.closing=false;try{ONL.ws&&ONL.ws.close()}catch(_){}}onlBusy(false)}
+async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;name=ONL.nome;
  const row=await onlLoadChar();
+ try{await gsReady()}catch(e){e.gs=1;throw e}
  if(row&&row.dados&&row.dados.clan&&CLANS[row.dados.clan]){const d=row.dados;ONL.hasChar=true;name=ONL.nome=row.nome||ONL.nome;
   if(d.look)Object.assign(look,d.look);
   try{localStorage.setItem(chKey(),JSON.stringify(d.ch||{}));localStorage.setItem(invKey(),JSON.stringify(d.inv||{inv:[],eq:{}}))}catch(_){}
@@ -990,57 +1078,30 @@ async function onlAfterLogin(){const er=$('#err');ONL.on=true;name=ONL.nome;
  else{ONL.hasChar=false;try{localStorage.removeItem(chKey());localStorage.removeItem(invKey())}catch(_){}er.textContent='';show('cust')}}
 function onlBusy(b){['#go1','#goNew','#goCont'].forEach(s=>{const e=$(s);if(e)e.disabled=b})}
 function onlLogout(){ONL.closing=true;const fin=()=>{try{localStorage.removeItem(ONL_SESS)}catch(_){}location.reload()};
- const pr=ONL.on?onlSave():Promise.resolve();Promise.resolve(pr).finally(()=>{if(ONL.tok)onlFetch('/auth/v1/logout',{method:'POST'}).catch(()=>{}).finally(fin);else fin()})}
+ const pr=ONL.on?onlSave():Promise.resolve();Promise.resolve(pr).finally(()=>{try{ONL.ws&&ONL.ws.close()}catch(_){}if(ONL.tok)onlFetch('/auth/v1/logout',{method:'POST'}).catch(()=>{}).finally(fin);else fin()})}
 (function(){
  const goOff=$('#go1').onclick;
  $('#goOff').onclick=()=>{ONL.on=false;$('#err').textContent='';goOff()};
  if(!ONL.ok){$('#goNew').hidden=true;$('#goOff').hidden=true;$('#s-login .m').textContent='Protótipo jogável (modo offline).';return}
+ $('#goOff').hidden=true;
  $('#go1').onclick=()=>onlEnter(false);$('#goNew').onclick=()=>onlEnter(true);
  $('#p').addEventListener('keydown',e=>{if(e.key==='Enter')onlEnter(false)});
  let sv=null;try{sv=JSON.parse(localStorage.getItem(ONL_SESS)||'null')}catch(_){}
  if(sv&&sv.r){const b=$('#goCont');b.hidden=false;b.textContent='Continuar como '+(sv.n||'jogador');if(sv.n)$('#u').value=sv.n;
   b.onclick=async()=>{const er=$('#err');er.textContent='Entrando…';onlBusy(true);
    try{const s=await onlFetch('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:sv.r})});ONL.nome=(s.user&&s.user.user_metadata&&s.user.user_metadata.nome)||sv.n||'';onlSess(s);await onlAfterLogin()}
-   catch(e){er.textContent=e.net?onlErr(e):'Sessão expirada. Entre com usuário e senha.';if(!e.net){try{localStorage.removeItem(ONL_SESS)}catch(_){}b.hidden=true}}onlBusy(false)}}
+   catch(e){ONL.on=false;try{ONL.ws&&ONL.ws.close()}catch(_){}
+    if(e.gs)er.textContent=e.message;else{er.textContent=e.net?onlErr(e):'Sessão expirada. Entre com usuário e senha.';if(!e.net){try{localStorage.removeItem(ONL_SESS)}catch(_){}b.hidden=true}}}onlBusy(false)}}
  $('#chatbtn').onclick=()=>{const b=$('#chatbar');b.hidden=!b.hidden;if(!b.hidden)setTimeout(()=>$('#chatin').focus(),30);onlLogDraw()};
  $('#chatgo').onclick=onlChatSend;$('#chatin').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')onlChatSend();if(e.key==='Escape'){$('#chatbar').hidden=true;onlLogDraw()}});
  $('#chatin').addEventListener('keyup',e=>e.stopPropagation());
+ $('#chch').onclick=()=>{ONL.chatCh=ONL.chatCh==='g'?'m':'g';chchDraw()};
+ $('#grpbtn').onclick=()=>{$('#grp').hidden=false;grpDraw()};$('#grpX').onclick=()=>{$('#grp').hidden=true};
+ $('#grpLeave').onclick=()=>gsSend({t:'pleave'});
+ $('#pinvOk').onclick=()=>{if(gsInvQ)gsSend({t:'pacc',from:gsInvQ.from});$('#pinv').hidden=true;gsInvQ=null};
+ $('#pinvNo').onclick=()=>{if(gsInvQ)gsSend({t:'pdec',from:gsInvQ.from});$('#pinv').hidden=true;gsInvQ=null};
+ $('#netblock button').onclick=()=>location.reload();
  $('#stOut').onclick=onlLogout})();
-// ---------- monstros compartilhados: um jogador do mapa (o "anfitrião") simula, os outros seguem ----------
-const MOB={last:0,was:true};
-function mobCands(){const c=[];if(!(scene|0))c.push({id:ONL.uid,me:1});const now=performance.now();
- for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.pres&&pe.x!==null&&!(pe.sc|0)&&now-pe.seen<8000)c.push({id,pe})}return c}
-function mobHost(){if(!ONL.on||!ONL.joined)return true;const c=mobCands();if(!c.length)return false;let m=c[0];for(const x of c)if(x.id<m.id)m=x;const h=m.id===ONL.uid;
- if(h&&!MOB.was){E.forEach(e=>{e.tg=null;e.atk=Math.max(e.atk||0,.8)})}MOB.was=h;return h}
-function mobTarget(e){let best=null,bd=1e9;for(const c of mobCands()){const o=c.me?p:c.pe;const d=Math.hypot(o.x-e.x,o.y-e.y);if(d<bd){bd=d;best=o}}e.tg=best||p;return e.tg}
-function mobArea(x,y,r,d,kb,fxk){mobAreaLocal(x,y,r,d,kb);if(ONL.on&&ONL.joined)onlBc('marea',{id:ONL.uid,x:x|0,y:y|0,r,d,kb,fxk:fxk||0})}
-function mobAreaLocal(x,y,r,d,kb){if(scene|0)return;if(Math.hypot(p.x-x,(p.y-y)*(kb?1.25:1))<r){hurt(d);if(kb){const a=Math.atan2(p.y-y,p.x-x);for(let i=0;i<8;i++){const nx=p.x+Math.cos(a)*5,ny=p.y+Math.sin(a)*5;if(!sol(nx,ny)){p.x=nx;p.y=ny}}}}}
-function mobEP(b){EP.push(b);shk=Math.max(shk,.35);if(ONL.on&&ONL.joined)onlBc('mep',{id:ONL.uid,x:b.x|0,y:b.y|0,vx:b.vx|0,vy:b.vy|0,life:b.life})}
-function mobRemote(e,d,st,kx,ky){if(!ONL.on||!ONL.joined||mobHost())return false;const i=E.indexOf(e);if(i<0||e.dead)return true;
- d=calcDmg(d);e.hit=.15;e.hurt=.28;FT.push({x:e.x,y:e.y-(e.boss?130:50)-(e.jz||0),t:lastCrit?d+'!':d,crit:lastCrit,life:.8});
- e.mine=performance.now();onlBc('mhit',{id:ONL.uid,i,d,st:st||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1)});return true}
-function mobKilled(e){if(ONL.on&&ONL.joined)onlBc('mkill',{id:ONL.uid,i:E.indexOf(e),boss:e.boss?1:0})}
-const MK=['x','y','hp','max','dead','dt','mv','fl','ch','lunge','ja','jz','jc','jx','jy','stun','hurt','rt','fired'];
-function mobSend(){const now=performance.now();if(now-MOB.last<100)return;MOB.last=now;
- if(!Object.values(ONL.peers).some(pe=>pe.pres&&!(pe.sc|0)))return;
- onlBc('mob',{id:ONL.uid,m:E.map(e=>MK.map(k=>{const v=e[k];return typeof v==='number'?Math.round(v*100)/100:(v?1:0)}))})}
-function mobFollow(dt){const k=Math.min(1,dt*14);
- for(const e of E){if(!e.sn){continue}
-  e.hit=Math.max(0,(e.hit||0)-dt);
-  if(e.dead){e.dt=(e.dt||0)+dt;continue}
-  const s=e.sn;e.x+=(s.x-e.x)*k;e.y+=(s.y-e.y)*k;e.jz=(e.jz||0)+((s.jz||0)-(e.jz||0))*Math.min(1,dt*20);
-  ['lunge','ch','jc','ja','stun','hurt'].forEach(q=>{if(e[q]>0)e[q]=Math.max(0,e[q]-dt)});e.mv=s.mv}}
-function mobOnMsg(ev,d){
- if(ev==='mob'){(d.m||[]).forEach((a,i)=>{const e=E[i];if(!e)return;const s={};MK.forEach((k,j)=>s[k]=a[j]);
-   const wasDead=e.dead;if(!e.sn||Math.hypot(s.x-e.x,s.y-e.y)>300||wasDead!==!!s.dead){e.x=s.x;e.y=s.y}
-   e.sn=s;['hp','max','fl','ch','lunge','ja','jc','jx','jy','stun','rt'].forEach(k=>e[k]=s[k]);e.fl=!!s.fl;e.fired=s.fired;
-   if(s.hurt>(e.hurt||0))e.hurt=s.hurt;
-   if(s.dead&&!wasDead){e.dead=1;e.dt=s.dt}else if(!s.dead&&wasDead){e.dead=0;e.dt=0}})}
- else if(ev==='mep'){if(!(scene|0)){EP.push({x:d.x,y:d.y,vx:d.vx,vy:d.vy,life:d.life||1.35});shk=Math.max(shk,.35)}}
- else if(ev==='marea'){if(scene|0)return;if(d.fxk===1){fx.push({k:'shock',x:d.x,y:d.y,r:(d.r||92)+10,life:.55,max:.55,rm:1,_s:1});if(Math.hypot(p.x-d.x,p.y-d.y)<500)shk=1}mobAreaLocal(d.x,d.y,d.r,d.d,d.kb)}
- else if(ev==='mhit'){if(!mobHost())return;const e=E[d.i];if(!e||e.dead)return;lastCrit=false;hitE(e,d.d,d.st,d.kx,d.ky,1)}
- else if(ev==='mkill'){if(scene|0)return;const e=E[d.i];if(e&&!e.dead){e.dead=1;e.dt=0;e.rt=e.boss?20:5}
-  kills++;if(d.boss)dropItems('boss');gainXp(d.boss?60:10)}}
 //ONLINE-END
 
 </script></body></html>
