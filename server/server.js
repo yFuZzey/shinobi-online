@@ -255,6 +255,38 @@ async function admItems(p, m) { if (!p.adm) return; if (!INV_OK) return sys(p, '
   try { if (m.t === 'admitem') await giveDb(p.id, Object.keys(ITEMS)); else await svc('/rest/v1/inventario?personagem_id=eq.' + encodeURIComponent(p.id), { method: 'DELETE' });
     p.conn.send({ t: 'invreload' }); } catch (e) { sys(p, '[ADM] Erro no banco: ' + e.message); } }
 
+// ---------------------------------------------------------------- comandos de admin no chat
+// Mensagem que começa com "/" não vai para o chat: só quem mandou recebe a resposta.
+// /admin nome · /desadmin nome · /ajuda  (só para quem já é admin; para os outros é "comando desconhecido")
+async function findChar(nome) {
+  const low = nome.toLowerCase();
+  for (const q of players.values()) if (q.nome.toLowerCase() === low) return { id: q.id, nome: q.nome };
+  const pat = nome.replace(/[\\%_*]/g, c => '\\' + c); // "_" é curinga no ilike: procura o nome exato
+  const rows = await svc('/rest/v1/personagens?select=id,nome&nome=ilike.' + encodeURIComponent(pat) + '&limit=5');
+  const r = (rows || []).find(x => String(x.nome).toLowerCase() === low); return r ? { id: r.id, nome: r.nome } : null; }
+async function setAdmin(id, on) {
+  const r = await svc('/rest/v1/personagens?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ admin: on }) });
+  return Array.isArray(r) && r.length > 0; }
+async function onCmd(p, m) {
+  const txt = str(m.text, 80).trim(), parts = txt.split(/\s+/), cmd = (parts[0] || '').toLowerCase(), arg = parts.slice(1).join(' ').replace(/^@/, '');
+  const me = msg => p.conn.send({ t: 'cmdr', msg });
+  if (!p.adm) return me('Comando desconhecido.');
+  if (cmd === '/ajuda' || cmd === '/help') return me('Comandos de admin (ninguém mais vê): /admin nome = dá admin · /desadmin nome = tira o admin.');
+  if (cmd !== '/admin' && cmd !== '/desadmin') return me('Comando desconhecido. Digite /ajuda.');
+  const on = cmd === '/admin';
+  if (!/^[A-Za-z0-9_]{3,14}$/.test(arg)) return me('Use assim: ' + cmd + ' nomedojogador');
+  if (!SB_SVC) return me('Para isso o servidor precisa da chave secreta (SUPABASE_SERVICE_KEY) no Render.');
+  try {
+    const t = await findChar(arg); if (!t) return me('Jogador "' + arg + '" não encontrado.');
+    if (!on && t.id === p.id) return me('Você não pode tirar o seu próprio admin.');
+    if (!(await setAdmin(t.id, on))) return me('Não consegui gravar no banco.');
+    const q = players.get(t.id);
+    if (q) { q.adm = on; q.conn.send({ t: 'adm', on: on ? 1 : 0 }); if (q.map) toRoom(room(q.map), { t: 'pm', id: q.id, adm: on ? 1 : 0 }, q); }
+    log('ADM:', p.nome, on ? 'deu admin para' : 'tirou o admin de', t.nome);
+    me(on ? '✅ ' + t.nome + ' agora é admin' + (q ? '.' : ' (vale quando ele entrar no jogo).') : '✅ ' + t.nome + ' não é mais admin.');
+  } catch (e) { me('Erro no banco: ' + e.message); }
+}
+
 // ---------------------------------------------------------------- autenticação
 async function verifyToken(token) {
   if (!SB_URL || !SB_KEY) throw new Error('servidor sem configuração do Supabase');
@@ -305,6 +337,7 @@ function onMessage(c, m) {
         for (const q of room(p.map).players) if (q.sc === p.sc && hyp(q.x - p.x, q.y - p.y) <= CFG.localChat * T && q.conn.open) { try { q.conn.sock.write(wsFrame(1, o)); } catch (e) {} } }
       else if (p.map) toRoom(room(p.map), { t: 'chat', id: p.id, nome: p.nome, text, ch: 'm' }); } return;
     case 'hit': return onHit(p, m);
+    case 'cmd': return onCmd(p, m);
     case 'pvp': return onPvp(p, m);
     case 'phr': return onPvpResult(p, m);
     case 'tinv': return tradeInvite(p, str(m.to, 64));
