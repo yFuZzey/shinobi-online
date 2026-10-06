@@ -32,6 +32,12 @@ const CFG = {
   partyGrace: 120,  // segundos que um membro desconectado continua no grupo
   localChat: 15,    // chat Local chega a quem está a até 15 tiles
   safe: 0,          // zona segura em volta do início (em tiles); 0 = desligada
+  // PvP: quem não está no mesmo grupo pode se atacar
+  pvp: 1,           // 0 = desligado
+  pvpMul: .6,       // golpes em jogadores causam 60% do dano normal (as lutas não acabam em 2 golpes)
+  pvpSafe: 4,       // em volta do ponto de início (tiles) ninguém ataca nem é atacado (protege quem acabou de renascer)
+  pvpStun: 1.5,     // atordoamento máximo em jogador (s)
+  pvpMaxHit: 1500,
 };
 
 // chance de esquivar: 5% + (Esquiva de quem defende − Precisão de quem ataca), entre 0% e 60%
@@ -184,11 +190,13 @@ async function invCheck() {
 }
 setTimeout(invCheck, 500); setInterval(invCheck, 5 * 60 * 1000);
 async function invOf(uid) { const rows = await svc('/rest/v1/inventario?select=item,equipado&personagem_id=eq.' + encodeURIComponent(uid)); return rows || []; }
-// dá itens (drop/admin); devolve só os que entraram de fato (quem já tem o item não ganha outro igual)
+// dá itens (drop/admin); cada nome = 1 unidade; devolve o que entrou de fato
 async function giveDb(uid, items) { if (!items.length) return []; const got = await rpc('dar_itens', { p_personagem: uid, p_itens: items }); return Array.isArray(got) ? got : []; }
 
 // ---------------------------------------------------------------- trocas
-const TRADE = { near: 10, maxItems: 6, inviteTtl: 30 };
+const TRADE = { near: 10, maxItems: 6, maxQty: 999, inviteTtl: 30 }; // até 6 tipos de item, cada um com a quantidade que quiser
+const offN = L => L.reduce((a, x) => a + x.n, 0);
+const offFlat = L => L.flatMap(x => Array(x.n).fill(x.i)); // [{i:'kunai',n:2}] -> ['kunai','kunai'] (formato do banco)
 const trades = new Map(), inTrade = new Map(); let tradeSeq = 0;
 const tNear = (p, q) => p && q && p.map && p.map === q.map && !p.sc && !q.sc && hyp(p.x - q.x, p.y - q.y) <= TRADE.near * T;
 function tSend(t) { for (const [me, ot] of [[t.a, t.b], [t.b, t.a]]) { const q = players.get(me), o = players.get(ot); if (!q) continue;
@@ -213,14 +221,17 @@ function tradeAccept(p, from) {
 }
 async function tradeOffer(p, items) {
   const t = trades.get(inTrade.get(p.id)); if (!t || t.busy) return;
-  items = [...new Set((Array.isArray(items) ? items : []).map(x => str(x, 40)).filter(x => ITEMS[x]))].slice(0, TRADE.maxItems);
+  const want = new Map(); // item -> quantidade (aceita [{i,n}] ou lista simples de nomes)
+  for (const x of (Array.isArray(items) ? items : []).slice(0, 50)) { const id = str(x && typeof x === 'object' ? x.i : x, 40), n = x && typeof x === 'object' ? clamp(num(x.n, 1) | 0, 0, TRADE.maxQty) : 1;
+    if (ITEMS[id] && n > 0 && (want.has(id) || want.size < TRADE.maxItems)) want.set(id, Math.min(TRADE.maxQty, (want.get(id) || 0) + n)); }
   let have; try { have = await invOf(p.id); } catch (e) { return sys(p, 'Não consegui ver sua mochila no banco. Tente de novo.'); }
-  const livres = new Set(have.filter(r => !r.equipado).map(r => r.item));
-  if (!trades.has(t.id)) return;
-  t.off[p.id] = items.filter(x => livres.has(x)); t.ok = {}; t.conf = {}; tSend(t); // qualquer mudança desfaz o "pronto" dos dois
+  const livres = {}; for (const r of have) if (!r.equipado) livres[r.item] = (livres[r.item] || 0) + 1; // só o que não está equipado
+  if (!trades.has(t.id) || t.busy) return;
+  t.off[p.id] = [...want].map(([i, n]) => ({ i, n: Math.min(n, livres[i] || 0) })).filter(x => x.n > 0);
+  t.ok = {}; t.conf = {}; tSend(t); // qualquer mudança desfaz o "pronto" dos dois
 }
 function tradeLock(p) { const t = trades.get(inTrade.get(p.id)); if (!t || t.busy) return;
-  if (!t.off[t.a].length && !t.off[t.b].length) return sys(p, 'Coloque pelo menos um item na troca.');
+  if (!t.off[t.a].length && !t.off[t.b].length) return sys(p, 'Coloque pelo menos um item na troca (pode ser só de um lado, como presente).');
   t.ok[p.id] = true; t.conf = {}; tSend(t); }
 async function tradeConfirm(p) {
   const t = trades.get(inTrade.get(p.id)); if (!t || t.busy) return; if (!t.ok[t.a] || !t.ok[t.b]) return sys(p, 'Os dois precisam apertar "Pronto" antes.');
@@ -228,12 +239,12 @@ async function tradeConfirm(p) {
   const A = players.get(t.a), B = players.get(t.b); if (!tNear(A, B)) return tEnd(t, 'Vocês se afastaram, a troca foi cancelada.');
   t.busy = true; tSend(t);
   try {
-    await rpc('trocar_itens', { p_a: t.a, p_b: t.b, p_ia: t.off[t.a], p_ib: t.off[t.b] }); // tudo ou nada, dentro do banco
+    await rpc('trocar_itens', { p_a: t.a, p_b: t.b, p_ia: offFlat(t.off[t.a]), p_ib: offFlat(t.off[t.b]) }); // as unidades escolhidas mudam de dono juntas, dentro do banco
     for (const [me, ot] of [[t.a, t.b], [t.b, t.a]]) { const q = players.get(me); if (q) q.conn.send({ t: 'tdone', deu: t.off[me], ganhou: t.off[ot], com: (players.get(ot) || {}).nome || '?' }); }
-    log('troca ' + t.id + ': ' + t.a + ' [' + t.off[t.a] + '] <-> ' + t.b + ' [' + t.off[t.b] + ']');
+    const ls = L => L.map(x => x.n + 'x ' + x.i).join(', '); log('troca ' + t.id + ': ' + t.a + ' [' + ls(t.off[t.a]) + '] <-> ' + t.b + ' [' + ls(t.off[t.b]) + ']');
     trades.delete(t.id); inTrade.delete(t.a); inTrade.delete(t.b);
   } catch (e) {
-    const why = /já tem/.test(e.message) ? 'um de vocês já tem um dos itens' : /não está/.test(e.message) ? 'um item não está mais disponível' : 'erro no banco';
+    const why = /não está/.test(e.message) ? 'um item não está mais na mochila (foi equipado ou usado)' : 'erro no banco';
     tEnd(t, 'A troca não foi feita: ' + why + '. Nada mudou nas mochilas.');
   }
 }
@@ -271,7 +282,7 @@ function onMessage(c, m) {
       if (old && old.conn.open) { old.conn.send({ t: 'kicked', msg: 'Sua conta entrou em outro aparelho.' }); old.kicked = true; old.conn.close(4001, 'duplicado'); }
       const p = { id: u.id, nome: u.nome, adm: u.adm, conn: c, map: null, x: 0, y: 0, fl: 0, mv: 0, run: 0, au: -1, th: -1, sc: 0, hp: 100, max: 100, lv: 1, clan: 'uchiha', eq: [], look: null, hitT: now(), hitN: 0 };
       c.player = p; players.set(u.id, p); offlineInfo.delete(u.id);
-      c.send({ t: 'welcome', id: u.id, nome: u.nome, adm: u.adm ? 1 : 0, inv: INV_OK ? 1 : 0, invWhy: u.adm ? INV_WHY : '', cfg: { aggro: CFG.aggro, resetNear: CFG.resetNear, resetHome: CFG.resetHome, partyMax: CFG.partyMax } });
+      c.send({ t: 'welcome', id: u.id, nome: u.nome, adm: u.adm ? 1 : 0, inv: INV_OK ? 1 : 0, invWhy: u.adm ? INV_WHY : '', cfg: { aggro: CFG.aggro, resetNear: CFG.resetNear, resetHome: CFG.resetHome, partyMax: CFG.partyMax, pvp: CFG.pvp, pvpSafe: CFG.pvpSafe } });
       const pid = memberParty.get(u.id); if (pid) partySync(parties.get(pid));
       log('entrou', u.nome + (u.adm ? ' [ADM]' : ''), '(' + players.size + ' online)');
     }).catch(e => { c.send({ t: 'authfail', msg: String(e.message || e) }); c.close(4002, 'auth'); });
@@ -294,6 +305,8 @@ function onMessage(c, m) {
         for (const q of room(p.map).players) if (q.sc === p.sc && hyp(q.x - p.x, q.y - p.y) <= CFG.localChat * T && q.conn.open) { try { q.conn.sock.write(wsFrame(1, o)); } catch (e) {} } }
       else if (p.map) toRoom(room(p.map), { t: 'chat', id: p.id, nome: p.nome, text, ch: 'm' }); } return;
     case 'hit': return onHit(p, m);
+    case 'pvp': return onPvp(p, m);
+    case 'phr': return onPvpResult(p, m);
     case 'tinv': return tradeInvite(p, str(m.to, 64));
     case 'tacc': return tradeAccept(p, str(m.from, 64));
     case 'tdec': { const f = str(m.from, 64), q = players.get(f); if (p.tinv) p.tinv.delete(f); if (q) sys(q, p.nome + ' recusou a troca.'); } return;
@@ -424,6 +437,36 @@ function hurtP(q, d, kx, ky, src, pr) { q.conn.send({ t: 'hurt', d: Math.round(d
 function areaHurt(r, x, y, rad, d, kb, src, pr) {
   for (const q of r.players) { if (q.sc || q.hp <= 0 || inSafe(r.map, q.x, q.y)) continue; const dy = (q.y - y) * (kb ? 1.25 : 1);
     if (hyp(q.x - x, dy) < rad) { let kx = 0, ky = 0; if (kb) { const a = Math.atan2(q.y - y, q.x - x); kx = Math.cos(a); ky = Math.sin(a); } hurtP(q, d, kx, ky, src, pr); } }
+}
+// ---------------------------------------------------------------- PvP (jogador x jogador)
+// quem bate manda o golpe; o servidor confere e repassa para o alvo, que sorteia a esquiva (Esquiva dele x Precisão de quem bateu)
+// e devolve o resultado; aí todo mundo do mapa vê o número e, se morrer, o aviso de quem derrotou quem.
+function pvpSafeAt(map, x, y) { const s = MAPS[map] && MAPS[map].spawn; return !!s && CFG.pvpSafe > 0 && hyp(x - s[0] * T, y - s[1] * T) < CFG.pvpSafe * T; }
+function pvpWhy(a, b) {
+  if (!CFG.pvp) return 'O PvP está desligado.';
+  if (!b || b === a || !a.map || a.map !== b.map || a.sc !== b.sc) return 'longe';
+  if (a.hp <= 0 || b.hp <= 0) return 'longe';
+  const g = memberParty.get(a.id); if (g && g === memberParty.get(b.id)) return 'grupo';
+  if (hyp(a.x - b.x, a.y - b.y) > CFG.hitRange) return 'longe';
+  if (pvpSafeAt(a.map, a.x, a.y) || pvpSafeAt(b.map, b.x, b.y)) return 'seguro';
+  return ''; }
+function onPvp(p, m) {
+  const q = players.get(str(m.to, 64)); const why = pvpWhy(p, q);
+  if (why === 'seguro') return p.conn.send({ t: 'ph', to: q.id, by: p.id, safe: 1 });
+  if (why) return;
+  const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
+  const d = Math.max(1, Math.round(clamp(num(m.d, 0), 0, CFG.pvpMaxHit) * CFG.pvpMul)); if (!num(m.d, 0)) return;
+  let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); if (kl > .01) { kx = kx / kl * .6; ky = ky / kl * .6; } else { kx = ky = 0; }
+  const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(p.id) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(p.id, o);
+  q.conn.send({ t: 'hurt', d, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, pr: Math.round(clamp(num(m.pr, 0), 0, 5000)), by: p.id, st: Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, 8)), c: m.c ? 1 : 0 });
+}
+function onPvpResult(q, m) { // q = quem apanhou, contando o que aconteceu
+  const by = str(m.by, 64), pe = q.pvpPend && q.pvpPend.get(by); if (!pe || pe.exp < now() || pe.n <= 0 || !q.map) return;
+  pe.n--; const a = players.get(by), r = room(q.map), miss = m.miss ? 1 : 0, dead = !miss && m.dead ? 1 : 0, d = miss ? 0 : clamp(num(m.d, 0) | 0, 0, 1e5);
+  toRoom(r, { t: 'ph', to: q.id, by, d, miss, c: !miss && m.c ? 1 : 0, dead });
+  if (dead) { q.pvpPend.clear(); if (a) a.pvpK = (a.pvpK || 0) + 1; q.pvpD = (q.pvpD || 0) + 1;
+    toRoom(r, { t: 'pk', by, byN: a ? a.nome : '?', to: q.id, toN: q.nome, k: a ? a.pvpK : 0 });
+    log('PvP:', a ? a.nome : by, 'derrotou', q.nome, 'em', q.map); }
 }
 function resetMob(r, e, announce) {
   Object.assign(e, { x: e.hx, y: e.hy, hp: e.max, dead: 0, dt: 0, rt: 0, mv: 0, ch: 0, fired: 0, lunge: 0, dmgp: 0, ja: 0, jc: 0, jz: 0, stun: 0, hurt: 0, dmg: {}, alone: 0, jcd: 3, bc: 2, atk: 0, aim: null, jt: null });

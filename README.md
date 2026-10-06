@@ -19,9 +19,15 @@ MMORPG 2D no universo Naruto (protótipo).
 
 ## Trocas e itens (anti-duplicação)
 - O app só lê a mochila e marca equipado/desequipado. Criar, dar e trocar itens é só pelo servidor do jogo, com a chave secreta `SUPABASE_SERVICE_KEY` (variável no Render, nunca no código).
-- Cada personagem tem no máximo 1 de cada item (índice único no banco).
-- A troca é feita de uma vez no banco (`trocar_itens`): ou troca tudo, ou nada.
+- Cada linha de `inventario` é 1 unidade: dá para ter vários do mesmo item (a mochila mostra pilhas ×N).
+- Na troca, cada jogador escolhe quais itens e quantas unidades manda (até 6 tipos); pode ser só de um lado (presente).
+- Ao confirmar, o banco (`trocar_itens`) muda o dono de todas as unidades escolhidas de uma vez: nunca fica metade feita.
 - Ativar: chave no Render → rodar `sql/04_trocas.sql` no Supabase.
+
+## PvP
+- Quem não está no mesmo grupo pode se atacar. Zona segura em volta do ponto de início (4 tiles).
+- O servidor confere mapa, distância, grupo e zona segura; o alvo sorteia a esquiva e devolve o resultado.
+- Ajustes em `server/server.js` (`CFG.pvp`, `pvpMul` = 60% do dano, `pvpSafe`, `pvpStun`).
 
 ## Mobs
 - Criados no editor (aba Mobs) e colocados nos mapas com a ferramenta Mobs (áreas).
