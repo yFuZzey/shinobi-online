@@ -31,7 +31,7 @@ function client(tok, nome) {
     const ws = new WebSocket(G.replace(/^http/, 'ws') + '/ws'); const c = { ws, msgs: [], nome, send: o => ws.send(JSON.stringify(o)) };
     c.wait = (f, ms = 8000) => new Promise((ok2, no) => { const f2 = c.msgs.find(f); if (f2) return ok2(f2); const t = setTimeout(() => no(new Error('timeout ' + nome)), ms); c.waiters.push([f, m => { clearTimeout(t); ok2(m); }]); });
     c.waiters = [];
-    ws.onopen = () => c.send({ t: 'auth', v: 2, token: tok });
+    ws.onopen = () => c.send({ t: 'auth', v: 3, token: tok });
     ws.onmessage = e => { const m = JSON.parse(e.data); c.msgs.push(m); c.waiters = c.waiters.filter(([f, cb]) => f(m) ? (cb(m), false) : true); if (m.t === 'welcome') res(c); if (m.t === 'authfail') rej(new Error(m.msg)); };
     ws.onerror = () => rej(new Error('websocket erro')); setTimeout(() => rej(new Error('timeout auth')), 15000);
   });
@@ -54,8 +54,8 @@ try {
   B.send({ t: 'chat', text: 'teste do grupo', ch: 'g' }); await A.wait(m => m.t === 'chat' && m.ch === 'g'); ok(true, 'chat de grupo');
   B.send({ t: 'pleave' }); await A.wait(m => m.t === 'party' && m.none); ok(true, 'grupo desfeito');
   // PvP: fora do grupo e longe do ponto de início, o golpe chega no outro e o resultado volta para todos
-  A.send({ t: 'pvp', to: tb.user.id, d: 10, pr: 0 }); const hu = await B.wait(m => m.t === 'hurt' && m.by === ta.user.id); ok(hu.d > 0, 'PvP: golpe de A chegou em B (' + hu.d + ' de dano)');
-  B.send({ t: 'phr', by: ta.user.id, d: hu.d, miss: 0, dead: 0 }); const ph = await A.wait(m => m.t === 'ph' && m.to === tb.user.id); ok(ph.d === hu.d, 'PvP: A vê o dano que causou');
+  A.send({ t: 'pvp', to: tb.user.id, d: 10, pr: 500 }); const hu = await B.wait(m => m.t === 'hurt' && m.by === ta.user.id); ok(hu.d > 0 && hu.fin, 'PvP: golpe de A chegou em B já decidido pelo servidor (' + hu.d + ' de dano)');
+  const ph = await A.wait(m => m.t === 'ph' && m.to === tb.user.id); ok(ph.d === hu.d, 'PvP: A vê o dano que causou');
   const wel = A.msgs.find(m => m.t === 'welcome');
   if (!wel.inv) console.log('::warning::Trocas desligadas no servidor — coloque SUPABASE_SERVICE_KEY no Render e rode sql/04_trocas.sql no Supabase');
   else {

@@ -13,7 +13,7 @@ const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
 const SB_KEY = process.env.SUPABASE_KEY || '';
 // chave SECRETA do Supabase (só no painel do Render, nunca no app): o servidor passa a cuidar do inventário no banco
 const SB_SVC = process.env.SUPABASE_SERVICE_KEY || '';
-const PROTO = 2;                                   // versão do protocolo (cliente precisa bater)
+const PROTO = 3;                                   // versão do protocolo (cliente precisa bater)
 const COMMIT = process.env.RENDER_GIT_COMMIT || process.env.COMMIT || 'dev';
 const T = 32;
 
@@ -267,11 +267,60 @@ async function findChar(nome) {
 async function setAdmin(id, on) {
   const r = await svc('/rest/v1/personagens?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ admin: on }) });
   return Array.isArray(r) && r.length > 0; }
+// banimento: tabela "banidos" (sql/05_banimento.sql), só o servidor lê e grava
+async function banOf(id) { // devolve {ate, motivo} se estiver banido agora; null se não
+  const rows = await svc('/rest/v1/banidos?select=ate,motivo&personagem_id=eq.' + encodeURIComponent(id));
+  const b = rows && rows[0]; if (!b) return null; if (b.ate && Date.parse(b.ate) <= Date.now()) return null; return b; }
+const banMsg = b => ({ t: 'banned', ate: b.ate || null, motivo: b.motivo || '' });
+function parseDur(t) { const m = /^(\d{1,4})(m|h|d)$/i.exec(t || ''); if (!m) return null; return +m[1] * { m: 60, h: 3600, d: 86400 }[m[2].toLowerCase()] * 1000; }
+const durTxt = ms => { const m = ms / 60000; return m % 1440 === 0 ? m / 1440 + (m / 1440 > 1 ? ' dias' : ' dia') : m % 60 === 0 ? m / 60 + 'h' : m + ' min'; };
+async function cmdBan(p, me, parts) {
+  const nome = (parts[1] || '').replace(/^@/, ''); let i = 2, dur = parseDur(parts[2]); if (dur) i = 3;
+  const motivo = parts.slice(i).join(' ').slice(0, 60);
+  if (!/^[A-Za-z0-9_]{3,14}$/.test(nome)) return me('Use assim: /ban nome [tempo] [motivo]  ·  tempo: 30m, 2h, 7d (sem tempo = para sempre)');
+  if (!SB_SVC) return me('Para isso o servidor precisa da chave secreta (SUPABASE_SERVICE_KEY) no Render.');
+  try {
+    const t = await findChar(nome); if (!t) return me('Jogador "' + nome + '" não encontrado.');
+    if (t.id === p.id) return me('Você não pode banir a si mesmo.');
+    const q = players.get(t.id);
+    const adm = q ? q.adm : !!((await svc('/rest/v1/personagens?select=admin&id=eq.' + encodeURIComponent(t.id)))[0] || {}).admin;
+    if (adm) return me(t.nome + ' é admin: tire o admin antes (/desadmin ' + t.nome + ').');
+    const ate = dur ? new Date(Date.now() + dur).toISOString() : null;
+    await svc('/rest/v1/banidos?on_conflict=personagem_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ personagem_id: t.id, ate, motivo: motivo || null, por: p.nome, quando: new Date().toISOString() }) });
+    if (q) { q.kicked = true; q.conn.send(banMsg({ ate, motivo })); q.conn.close(4005, 'ban'); }
+    log('ADM:', p.nome, 'baniu', t.nome, dur ? 'por ' + durTxt(dur) : 'para sempre', motivo ? '(' + motivo + ')' : '');
+    me('⛔ ' + t.nome + ' foi banido ' + (dur ? 'por ' + durTxt(dur) : 'para sempre') + (motivo ? ' (motivo: ' + motivo + ')' : '') + (q ? ' e saiu do jogo.' : '.'));
+  } catch (e) { me(e.status === 404 ? 'Falta rodar o sql/05_banimento.sql no Supabase.' : 'Erro no banco: ' + e.message); }
+}
+async function cmdUnban(p, me, parts) {
+  const nome = (parts[1] || '').replace(/^@/, '');
+  if (!/^[A-Za-z0-9_]{3,14}$/.test(nome)) return me('Use assim: /unban nome');
+  if (!SB_SVC) return me('Para isso o servidor precisa da chave secreta (SUPABASE_SERVICE_KEY) no Render.');
+  try {
+    const t = await findChar(nome); if (!t) return me('Jogador "' + nome + '" não encontrado.');
+    const r = await svc('/rest/v1/banidos?personagem_id=eq.' + encodeURIComponent(t.id), { method: 'DELETE', headers: { Prefer: 'return=representation' } });
+    log('ADM:', p.nome, 'desbaniu', t.nome);
+    me(Array.isArray(r) && r.length ? '✅ ' + t.nome + ' foi desbanido e já pode entrar.' : t.nome + ' não estava banido.');
+  } catch (e) { me(e.status === 404 ? 'Falta rodar o sql/05_banimento.sql no Supabase.' : 'Erro no banco: ' + e.message); }
+}
+async function cmdBanList(p, me) {
+  if (!SB_SVC) return me('Para isso o servidor precisa da chave secreta (SUPABASE_SERVICE_KEY) no Render.');
+  try {
+    const rows = await svc('/rest/v1/banidos?select=ate,motivo,personagens(nome)&order=quando.desc&limit=20');
+    const L = (rows || []).filter(b => !b.ate || Date.parse(b.ate) > Date.now());
+    if (!L.length) return me('Ninguém banido agora.');
+    me('Banidos: ' + L.map(b => ((b.personagens || {}).nome || '?') + (b.ate ? ' (até ' + b.ate.slice(0, 16).replace('T', ' ') + ' UTC)' : ' (para sempre)')).join(' · '));
+  } catch (e) { me(e.status === 404 ? 'Falta rodar o sql/05_banimento.sql no Supabase.' : 'Erro no banco: ' + e.message); }
+}
 async function onCmd(p, m) {
   const txt = str(m.text, 80).trim(), parts = txt.split(/\s+/), cmd = (parts[0] || '').toLowerCase(), arg = parts.slice(1).join(' ').replace(/^@/, '');
   const me = msg => p.conn.send({ t: 'cmdr', msg });
   if (!p.adm) return me('Comando desconhecido.');
-  if (cmd === '/ajuda' || cmd === '/help') return me('Comandos de admin (ninguém mais vê): /admin nome = dá admin · /desadmin nome = tira o admin.');
+  if (cmd === '/ajuda' || cmd === '/help') return me('Comandos de admin (ninguém mais vê): /admin nome · /desadmin nome · /ban nome [tempo] [motivo] (tempo: 30m, 2h, 7d; sem tempo = para sempre) · /unban nome · /banidos');
+  if (cmd === '/ban') return cmdBan(p, me, parts);
+  if (cmd === '/unban' || cmd === '/desbanir') return cmdUnban(p, me, parts);
+  if (cmd === '/banidos') return cmdBanList(p, me);
   if (cmd !== '/admin' && cmd !== '/desadmin') return me('Comando desconhecido. Digite /ajuda.');
   const on = cmd === '/admin';
   if (!/^[A-Za-z0-9_]{3,14}$/.test(arg)) return me('Use assim: ' + cmd + ' nomedojogador');
@@ -298,7 +347,8 @@ async function verifyToken(token) {
   let adm = false;
   try { const q = await fetch(SB_URL + '/rest/v1/personagens?select=admin&id=eq.' + u.id, { headers: h, signal: AbortSignal.timeout(8000) });
     if (q.ok) { const rows = await q.json(); adm = !!(rows[0] && rows[0].admin === true); } } catch (e) {}
-  return { id: u.id, adm, nome: str((u.user_metadata && u.user_metadata.nome) || (u.email || '').split('@')[0], 14) };
+  let ban = null; if (SB_SVC) { try { ban = await banOf(u.id); } catch (e) {} } // sem a tabela (SQL 05) ninguém fica banido
+  return { id: u.id, adm, ban, nome: str((u.user_metadata && u.user_metadata.nome) || (u.email || '').split('@')[0], 14) };
 }
 
 // ---------------------------------------------------------------- mensagens
@@ -306,10 +356,11 @@ function onMessage(c, m) {
   if (m.t === 'ping') return c.send({ t: 'pong', c: m.c });
   if (!c.player) {
     if (m.t !== 'auth' || c.authing) return;
-    if (m.v !== PROTO) { c.send({ t: 'old', msg: 'Seu app está desatualizado. Baixe a versão nova do jogo.' }); return c.close(4000, 'versao'); }
+    if (m.v !== PROTO) { c.send({ t: 'old', v: PROTO, msg: 'Seu app está desatualizado. Baixe a versão nova do jogo.' }); return c.close(4000, 'versao'); }
     c.authing = true;
     verifyToken(str(m.token, 4000)).then(u => {
       if (!c.open) return;
+      if (u.ban) { log('banido tentou entrar:', u.nome); c.send(banMsg(u.ban)); return c.close(4005, 'ban'); }
       const old = players.get(u.id);
       if (old && old.conn.open) { old.conn.send({ t: 'kicked', msg: 'Sua conta entrou em outro aparelho.' }); old.kicked = true; old.conn.close(4001, 'duplicado'); }
       const p = { id: u.id, nome: u.nome, adm: u.adm, conn: c, map: null, x: 0, y: 0, fl: 0, mv: 0, run: 0, au: -1, th: -1, sc: 0, hp: 100, max: 100, lv: 1, clan: 'uchiha', eq: [], look: null, hitT: now(), hitN: 0 };
@@ -361,6 +412,8 @@ function setMeta(p, m) {
   if (Array.isArray(m.eq)) p.eq = m.eq.slice(0, 8).map(x => str(x, 40));
   if (m.look && typeof m.look === 'object') { const ok = c => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c) ? c : undefined; p.look = { skin: ok(m.look.skin), hair: ok(m.look.hair), cloth: ok(m.look.cloth) }; }
   if (typeof m.clan === 'string' && /^(uchiha|hyuga|nara)$/.test(m.clan)) p.clan = m.clan;
+  if (m.esq != null) p.esq = clamp(num(m.esq, 0), 0, 500);
+  if (m.red != null) p.red = clamp(num(m.red, 0), -50, 90);
 }
 function onJoin(p, m) {
   const map = str(m.map, 40); if (!MAPS[map]) return sys(p, 'Mapa desconhecido.');
@@ -490,13 +543,18 @@ function onPvp(p, m) {
   const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
   const d = Math.max(1, Math.round(clamp(num(m.d, 0), 0, CFG.pvpMaxHit) * CFG.pvpMul)); if (!num(m.d, 0)) return;
   let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); if (kl > .01) { kx = kx / kl * .6; ky = ky / kl * .6; } else { kx = ky = 0; }
+  const r = room(p.map), pr = clamp(num(m.pr, 0), 0, 5000), c = m.c ? 1 : 0;
+  // o servidor sorteia a esquiva (Esquiva de quem apanha x Precisão de quem bate) e aplica a redução de dano:
+  // assim o número aparece para todo mundo com uma ida e volta só (antes eram duas)
+  if (Math.random() * 100 < dodgeChance(q.esq || 0, pr)) { toRoom(r, { t: 'ph', to: q.id, by: p.id, miss: 1 }, q); q.conn.send({ t: 'hurt', fin: 1, miss: 1, d: 0, src: p.nome, by: p.id }); return; }
+  const dd = Math.max(1, Math.round(d * (1 - clamp(q.red || 0, -50, 90) / 100)));
   const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(p.id) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(p.id, o);
-  q.conn.send({ t: 'hurt', d, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, pr: Math.round(clamp(num(m.pr, 0), 0, 5000)), by: p.id, st: Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, 8)), c: m.c ? 1 : 0 });
+  toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c }, q);
+  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, 8)), c });
 }
-function onPvpResult(q, m) { // q = quem apanhou, contando o que aconteceu
+function onPvpResult(q, m) { // q = quem apanhou, avisando que foi derrotado por "by"
   const by = str(m.by, 64), pe = q.pvpPend && q.pvpPend.get(by); if (!pe || pe.exp < now() || pe.n <= 0 || !q.map) return;
-  pe.n--; const a = players.get(by), r = room(q.map), miss = m.miss ? 1 : 0, dead = !miss && m.dead ? 1 : 0, d = miss ? 0 : clamp(num(m.d, 0) | 0, 0, 1e5);
-  toRoom(r, { t: 'ph', to: q.id, by, d, miss, c: !miss && m.c ? 1 : 0, dead });
+  pe.n--; const a = players.get(by), r = room(q.map), dead = m.dead ? 1 : 0;
   if (dead) { q.pvpPend.clear(); if (a) a.pvpK = (a.pvpK || 0) + 1; q.pvpD = (q.pvpD || 0) + 1;
     toRoom(r, { t: 'pk', by, byN: a ? a.nome : '?', to: q.id, toN: q.nome, k: a ? a.pvpK : 0 });
     log('PvP:', a ? a.nome : by, 'derrotou', q.nome, 'em', q.map); }
@@ -582,6 +640,10 @@ setInterval(() => {
     for (const k in rooms) { const r = rooms[k]; if (!r.players.size) continue;
       const st = new Map(r.mobs.map(e => [e, [e.id, ...mobState(e)]]));
       for (const q of r.players) { if (!q.conn.open) continue; const l = []; for (const [e, a] of st) if (e.boss || hyp(q.x - e.x, q.y - e.y) < 24 * T) l.push(a); q.conn.send({ t: 'mobs', st: sts, m: l }); }
+    } }
+  // posições dos jogadores: repassa a cada passo (30 por segundo), sem esperar a foto dos monstros
+  { const sts = Math.round(performance.now());
+    for (const k in rooms) { const r = rooms[k]; if (r.players.size < 2) { for (const q of r.players) q.dirty = false; continue; }
       const ch = [...r.players].filter(q => q.dirty); if (ch.length) { ch.forEach(q => q.dirty = false);
         toRoom(r, { t: 'ps', st: sts, p: ch.map(q => [q.id, Math.round(q.x), Math.round(q.y), q.fl, q.mv, q.run, Math.round(q.au * 100) / 100, Math.round(q.th * 100) / 100, q.sc, Math.round(q.hp), q.max, q.ct]) }); } } }
   partyAcc += dt; if (partyAcc >= 1) { partyAcc = 0; const tt = now();

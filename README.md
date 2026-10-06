@@ -30,9 +30,13 @@ MMORPG 2D no universo Naruto (protótipo).
 - Ao confirmar, o banco (`trocar_itens`) muda o dono de todas as unidades escolhidas de uma vez: nunca fica metade feita.
 - Ativar: chave no Render → rodar `sql/04_trocas.sql` no Supabase.
 
+## Comandos de admin (no chat, ninguém mais vê)
+- `/admin nome`, `/desadmin nome`, `/ban nome [tempo] [motivo]` (tempo: 30m, 2h, 7d; sem tempo = para sempre), `/unban nome`, `/banidos`, `/ajuda`.
+- Banimento fica na tabela `banidos` (`sql/05_banimento.sql`), que só o servidor lê e grava.
+
 ## PvP
 - Quem não está no mesmo grupo pode se atacar. Zona segura em volta do ponto de início (4 tiles).
-- O servidor confere mapa, distância, grupo e zona segura; o alvo sorteia a esquiva e devolve o resultado.
+- O servidor confere mapa, distância, grupo e zona segura, sorteia a esquiva e aplica a redução de dano; o número sai para todos na hora.
 - Ajustes em `server/server.js` (`CFG.pvp`, `pvpMul` = 60% do dano, `pvpSafe`, `pvpStun`).
 
 ## Mobs
