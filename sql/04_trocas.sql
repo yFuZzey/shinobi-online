@@ -14,6 +14,26 @@ create index if not exists inventario_dono_item on public.inventario (personagem
 revoke insert, update, delete on public.inventario from anon, authenticated;
 grant select on public.inventario to authenticated;
 grant update (equipado) on public.inventario to authenticated;
+drop policy if exists "inv criar o proprio"  on public.inventario;
+drop policy if exists "inv apagar o proprio" on public.inventario;
+
+-- 2b) trava no próprio banco: mesmo que sobre alguma permissão antiga, quem entra pelo app
+--     (anon/authenticated) só consegue mudar "equipado" de um item que já é dele
+create or replace function public.inventario_guarda()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user in ('anon', 'authenticated') then
+    if tg_op = 'UPDATE' and new.id = old.id and new.personagem_id = old.personagem_id
+       and new.item = old.item and old.personagem_id = auth.uid() then
+      return new;
+    end if;
+    raise exception 'inventário: só o servidor do jogo cria, apaga ou troca itens';
+  end if;
+  return coalesce(new, old);
+end $$;
+drop trigger if exists inventario_guarda on public.inventario;
+create trigger inventario_guarda before insert or update or delete on public.inventario
+  for each row execute function public.inventario_guarda();
 
 -- 3) salvar_inventario agora só marca o que está equipado (1 unidade de cada item equipado)
 create or replace function public.salvar_inventario(itens jsonb)
