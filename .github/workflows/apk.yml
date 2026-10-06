@@ -24,6 +24,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -34,7 +36,10 @@ jobs:
           GS=$(node -p "require('./online.json').gs||''")
           if [ -z "$GS" ]; then echo "::warning::servidor do jogo ainda não configurado"; exit 0; fi
           node tests/smoke.mjs "$SB" "$KEY" > /dev/null || true
-          node tests/server_smoke.mjs "$SB" "$KEY" "$GS" "${{ github.sha }}"
+          # o Render só atualiza quando a pasta server muda: espera a versão do último envio que mexeu nela
+          EXP=$(git log -1 --format=%H -- server)
+          echo "versão esperada do servidor: $EXP"
+          node tests/server_smoke.mjs "$SB" "$KEY" "$GS" "$EXP"
 
   apk:
     runs-on: ubuntu-latest
