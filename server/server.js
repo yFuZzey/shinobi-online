@@ -29,7 +29,7 @@ const CFG = {
   inviteTtl: 30,    // segundos para aceitar convite
   partyGrace: 120,  // segundos que um membro desconectado continua no grupo
   localChat: 15,    // chat Local chega a quem está a até 15 tiles
-  safe: 4,          // zona segura em volta do início do mapa: mob não nasce nem ataca ali
+  safe: 0,          // zona segura em volta do início (em tiles); 0 = desligada
 };
 
 const MAPS = JSON.parse(fs.readFileSync(path.join(__dirname, 'maps.json'), 'utf8'));
@@ -101,7 +101,7 @@ function newFox(map, b) { const x = b[0] * T, y = b[1] * T;
 function mobDef(e) { return { id: e.id, kind: e.kind, nome: e.nome, boss: e.boss, rad: e.rad, max: e.max, t: e.t || '' }; }
 
 // ---------------------------------------------------------------- mobs comuns (criados no editor, nas áreas do mapa)
-function inSafe(map, x, y, extra) { const s = MAPS[map].spawn; return !!s && hyp(x - s[0] * T, y - s[1] * T) < (CFG.safe + (extra || 0)) * T; }
+function inSafe(map, x, y, extra) { if (!(CFG.safe > 0)) return false; const s = MAPS[map].spawn; return !!s && hyp(x - s[0] * T, y - s[1] * T) < (CFG.safe + (extra || 0)) * T; }
 function areaPoint(map, A) { for (let i = 0; i < 60; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y) && !inSafe(map, x, y, 1)) return [x, y]; } for (let i = 0; i < 40; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y)) return [x, y]; } return [(A.x + A.w / 2) * T, (A.y + A.h / 2) * T]; }
 function newMob(r, d, A, id) { const [x, y] = areaPoint(r.map, A), sc = clamp(num(d.escala, 100), 30, 400) / 100;
   return { id, kind: 'mob', t: d.id, def: d, A, nome: d.name || d.id, boss: 0, rad: Math.round(18 * sc), max: Math.max(1, d.vida | 0), hp: Math.max(1, d.vida | 0), hx: x, hy: y, x, y,
