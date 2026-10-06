@@ -1,0 +1,9 @@
+{
+  "name": "shinobi-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Servidor do Shinobi Online (sem dependências)",
+  "main": "server.js",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node server.js" }
+}
