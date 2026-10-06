@@ -28,6 +28,7 @@ const CFG = {
   maxHit: 5000,
   inviteTtl: 30,    // segundos para aceitar convite
   partyGrace: 120,  // segundos que um membro desconectado continua no grupo
+  localChat: 15,    // chat Local chega a quem está a até 15 tiles
 };
 
 const MAPS = JSON.parse(fs.readFileSync(path.join(__dirname, 'maps.json'), 'utf8'));
@@ -143,6 +144,8 @@ function onMessage(c, m) {
     case 'chat': { const text = str(m.text, 80).trim(); if (!text) return;
       if (m.ch === 'g') { const pt = parties.get(memberParty.get(p.id)); if (!pt) return sys(p, 'Você não está em um grupo.');
         for (const u of pt.members) { const q = players.get(u); if (q) q.conn.send({ t: 'chat', id: p.id, nome: p.nome, text, ch: 'g' }); } }
+      else if (m.ch === 'l') { if (!p.map) return; const o = JSON.stringify({ t: 'chat', id: p.id, nome: p.nome, text, ch: 'l' });
+        for (const q of room(p.map).players) if (q.sc === p.sc && hyp(q.x - p.x, q.y - p.y) <= CFG.localChat * T && q.conn.open) { try { q.conn.sock.write(wsFrame(1, o)); } catch (e) {} } }
       else if (p.map) toRoom(room(p.map), { t: 'chat', id: p.id, nome: p.nome, text, ch: 'm' }); } return;
     case 'hit': return onHit(p, m);
     case 'pinv': return partyInvite(p, str(m.to, 64));
@@ -244,16 +247,18 @@ function killMob(r, e) {
     const items = Object.values(ITEMS).filter(it => it.drop && it.drop.src === 'boss' && Math.random() * 100 < (it.drop.chance == null ? 100 : +it.drop.chance)).map(it => it.id);
     q.conn.send({ t: 'reward', xp: CFG.xp, items, mob: e.nome, dmg: tot[best], grp: pt ? 1 : 0 });
   }
-  toRoom(r, { t: 'mkill', m: e.id, nome: e.nome, quem: names, dmg: tot[best], ids: winners.map(q => q.id) });
+  const nomeG = k => { const g = parties.get(k); if (g) return 'grupo de ' + ((players.get(g.leader) || offlineInfo.get(g.leader) || {}).nome || '?'); const u = k.slice(2); return (players.get(u) || offlineInfo.get(u) || {}).nome || '?'; };
+  const rank = Object.keys(tot).sort((a, b) => tot[b] - tot[a]).slice(0, 5).map(k => ({ quem: nomeG(k), dmg: tot[k] }));
+  toRoom(r, { t: 'mkill', m: e.id, nome: e.nome, quem: names, dmg: tot[best], ids: winners.map(q => q.id), rank });
   log('raposa derrotada em', r.map, 'por', names, tot[best]);
 }
 
 // ---------------------------------------------------------------- IA da raposa (roda só aqui)
 const JC = .55, JA = .62, JH = 85, JR = 92, JD = 26;
-function hurtP(q, d, kx, ky) { q.conn.send({ t: 'hurt', d, kx: kx || 0, ky: ky || 0 }); }
-function areaHurt(r, x, y, rad, d, kb) {
+function hurtP(q, d, kx, ky, src) { q.conn.send({ t: 'hurt', d, kx: kx || 0, ky: ky || 0, src: src || '' }); }
+function areaHurt(r, x, y, rad, d, kb, src) {
   for (const q of r.players) { if (q.sc || q.hp <= 0) continue; const dy = (q.y - y) * (kb ? 1.25 : 1);
-    if (hyp(q.x - x, dy) < rad) { let kx = 0, ky = 0; if (kb) { const a = Math.atan2(q.y - y, q.x - x); kx = Math.cos(a); ky = Math.sin(a); } hurtP(q, d, kx, ky); } }
+    if (hyp(q.x - x, dy) < rad) { let kx = 0, ky = 0; if (kb) { const a = Math.atan2(q.y - y, q.x - x); kx = Math.cos(a); ky = Math.sin(a); } hurtP(q, d, kx, ky, src); } }
 }
 function resetMob(r, e, announce) {
   Object.assign(e, { x: e.hx, y: e.hy, hp: e.max, dead: 0, dt: 0, rt: 0, mv: 0, ch: 0, fired: 0, lunge: 0, dmgp: 0, ja: 0, jc: 0, jz: 0, stun: 0, hurt: 0, dmg: {}, alone: 0, jcd: 3, bc: 2, atk: 0, aim: null, jt: null });
@@ -273,7 +278,7 @@ function mobTick(r, e, dt) {
     if (nd > CFG.resetNear * T) { e.alone += dt; if (e.alone >= CFG.resetWait && (e.hp < e.max || home > 2 * T || Object.keys(e.dmg).length)) { resetMob(r, e, true); return; } }
     else e.alone = 0;
   }
-  if (e.dmgp && e.lunge < .26) { e.dmgp = 0; areaHurt(r, e.x, e.y, 100, 12, 0); }
+  if (e.dmgp && e.lunge < .26) { e.dmgp = 0; areaHurt(r, e.x, e.y, 100, 12, 0, 'mordida'); }
   if (e.ja > 0) { e.mv = 0; foxAir(r, e, dt); return; }
   if (e.stun > 0) { e.stun -= dt; e.mv = 0; e.jc = 0; e.ch = 0; return; }
   const tg = near && nd <= CFG.aggro * T ? near : null;
@@ -312,14 +317,14 @@ function foxAir(r, e, dt) {
   e.x = e.sx + (e.jx - e.sx) * qq; e.y = e.sy + (e.jy - e.sy) * qq; e.jz = Math.sin(Math.PI * q) * JH;
   if (e.ja <= 0) { e.ja = 0; e.jz = 0; e.x = e.jx; e.y = e.jy;
     toRoom(r, { t: 'mev', k: 'shock', m: e.id, x: Math.round(e.x), y: Math.round(e.y), r: JR + 10 });
-    areaHurt(r, e.x, e.y, JR, JD, 1); e.atk = .9; }
+    areaHurt(r, e.x, e.y, JR, JD, 1, 'pulo'); e.atk = .9; }
 }
 function epTick(r, dt) {
   if (!r.eps.length) return;
   r.eps = r.eps.filter(b => {
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
     if (b.life <= 0 || sol(r.map, b.x, b.y + 16)) { toRoom(r, { t: 'mev', k: 'epx', id: b.id, x: Math.round(b.x), y: Math.round(b.y), hit: 0 }); return false; }
-    for (const q of r.players) { if (q.sc || q.hp <= 0) continue; if (hyp(q.x - b.x, q.y - 24 - b.y) < 24) { hurtP(q, 30, 0, 0); toRoom(r, { t: 'mev', k: 'epx', id: b.id, x: Math.round(b.x), y: Math.round(b.y), hit: 1 }); return false; } }
+    for (const q of r.players) { if (q.sc || q.hp <= 0) continue; if (hyp(q.x - b.x, q.y - 24 - b.y) < 24) { hurtP(q, 30, 0, 0, 'esfera'); toRoom(r, { t: 'mev', k: 'epx', id: b.id, x: Math.round(b.x), y: Math.round(b.y), hit: 1 }); return false; } }
     return true; });
 }
 
