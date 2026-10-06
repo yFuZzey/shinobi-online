@@ -29,6 +29,7 @@ const CFG = {
   inviteTtl: 30,    // segundos para aceitar convite
   partyGrace: 120,  // segundos que um membro desconectado continua no grupo
   localChat: 15,    // chat Local chega a quem está a até 15 tiles
+  safe: 4,          // zona segura em volta do início do mapa: mob não nasce nem ataca ali
 };
 
 const MAPS = JSON.parse(fs.readFileSync(path.join(__dirname, 'maps.json'), 'utf8'));
@@ -100,7 +101,8 @@ function newFox(map, b) { const x = b[0] * T, y = b[1] * T;
 function mobDef(e) { return { id: e.id, kind: e.kind, nome: e.nome, boss: e.boss, rad: e.rad, max: e.max, t: e.t || '' }; }
 
 // ---------------------------------------------------------------- mobs comuns (criados no editor, nas áreas do mapa)
-function areaPoint(map, A) { for (let i = 0; i < 40; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y)) return [x, y]; } return [(A.x + A.w / 2) * T, (A.y + A.h / 2) * T]; }
+function inSafe(map, x, y, extra) { const s = MAPS[map].spawn; return !!s && hyp(x - s[0] * T, y - s[1] * T) < (CFG.safe + (extra || 0)) * T; }
+function areaPoint(map, A) { for (let i = 0; i < 60; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y) && !inSafe(map, x, y, 1)) return [x, y]; } for (let i = 0; i < 40; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y)) return [x, y]; } return [(A.x + A.w / 2) * T, (A.y + A.h / 2) * T]; }
 function newMob(r, d, A, id) { const [x, y] = areaPoint(r.map, A), sc = clamp(num(d.escala, 100), 30, 400) / 100;
   return { id, kind: 'mob', t: d.id, def: d, A, nome: d.name || d.id, boss: 0, rad: Math.round(18 * sc), max: Math.max(1, d.vida | 0), hp: Math.max(1, d.vida | 0), hx: x, hy: y, x, y,
     dead: 0, dt: 0, rt: 0, mv: 0, fl: 0, ch: 0, lunge: 0, ja: 0, jz: 0, jc: 0, jx: 0, jy: 0, stun: 0, hurt: 0, atkT: 0, tg: null, back: 0, wt: 0, wx: x, wy: y, dmg: {}, alone: 0 }; }
@@ -116,15 +118,15 @@ function mobTickG(r, e, dt) {
   if (nd > CFG.resetNear * T) { e.alone += dt; if (e.alone >= CFG.resetWait && (e.hp < e.max || Object.keys(e.dmg).length)) { e.hp = e.max; e.dmg = {}; e.tg = null; e.back = 1; } } else e.alone = 0;
   // alvo: continua com o atual enquanto ele estiver dentro do limite de perseguição
   let tg = e.tg;
-  if (tg && (!r.players.has(tg) || tg.sc || tg.hp <= 0 || rectDist(e.A, tg.x, tg.y) > leash)) { tg = null; e.tg = null; e.back = 1; }
-  if (!tg && !e.back && vis > 0) { let best = null, bd = vis; for (const q of r.players) { if (q.sc || q.hp <= 0 || rectDist(e.A, q.x, q.y) > leash) continue; const dd = hyp(q.x - e.x, q.y - e.y); if (dd <= bd) { bd = dd; best = q; } } if (best) { tg = e.tg = best; } }
+  if (tg && (!r.players.has(tg) || tg.sc || tg.hp <= 0 || rectDist(e.A, tg.x, tg.y) > leash || inSafe(r.map, tg.x, tg.y))) { tg = null; e.tg = null; e.back = 1; }
+  if (!tg && !e.back && vis > 0) { let best = null, bd = vis; for (const q of r.players) { if (q.sc || q.hp <= 0 || rectDist(e.A, q.x, q.y) > leash || inSafe(r.map, q.x, q.y)) continue; const dd = hyp(q.x - e.x, q.y - e.y); if (dd <= bd) { bd = dd; best = q; } } if (best) { tg = e.tg = best; } }
   let vx = 0, vy = 0, sp = vel;
   if (e.back) { // voltando para casa: não aceita alvo e recupera a vida ao chegar
     const hd = hyp(e.hx - e.x, e.hy - e.y); if (hd < T * .8 || rectDist(e.A, e.x, e.y) === 0 && hd < 3 * T) { e.back = 0; e.hp = e.max; e.dmg = {}; } else { vx = (e.hx - e.x) / hd; vy = (e.hy - e.y) / hd; sp = vel * 1.6; } }
   else if (tg) {
     const dx = tg.x - e.x, dy = tg.y - e.y, dd = hyp(dx, dy), reach = clamp(num(d.alcance, 1), .5, 8) * T + 12 + e.rad * .4;
     if (dd > reach) { vx = dx / dd; vy = dy / dd; }
-    else if (e.atkT <= 0) { e.atkT = clamp(num(d.atkInt, 1.2), .3, 10); e.lunge = .3; hurtP(tg, Math.max(1, Math.round(num(d.dano, 5))), 0, 0, e.nome); }
+    else if (e.atkT <= 0 && !inSafe(r.map, tg.x, tg.y)) { e.atkT = clamp(num(d.atkInt, 1.2), .3, 10); e.lunge = .3; hurtP(tg, Math.max(1, Math.round(num(d.dano, 5))), 0, 0, e.nome); }
     if (Math.abs(dx) > 3) e.fl = dx < 0 ? 1 : 0;
   } else { // passeia dentro da área
     if ((e.wt -= dt) <= 0) { e.wt = 2 + Math.random() * 3; if (Math.random() < .55) { const [x, y] = areaPoint(r.map, e.A); e.wx = x; e.wy = y; } else { e.wx = e.x; e.wy = e.y; } }
@@ -306,7 +308,7 @@ function killMob(r, e) {
 const JC = .55, JA = .62, JH = 85, JR = 92, JD = 26;
 function hurtP(q, d, kx, ky, src) { q.conn.send({ t: 'hurt', d, kx: kx || 0, ky: ky || 0, src: src || '' }); }
 function areaHurt(r, x, y, rad, d, kb, src) {
-  for (const q of r.players) { if (q.sc || q.hp <= 0) continue; const dy = (q.y - y) * (kb ? 1.25 : 1);
+  for (const q of r.players) { if (q.sc || q.hp <= 0 || inSafe(r.map, q.x, q.y)) continue; const dy = (q.y - y) * (kb ? 1.25 : 1);
     if (hyp(q.x - x, dy) < rad) { let kx = 0, ky = 0; if (kb) { const a = Math.atan2(q.y - y, q.x - x); kx = Math.cos(a); ky = Math.sin(a); } hurtP(q, d, kx, ky, src); } }
 }
 function resetMob(r, e, announce) {
@@ -319,7 +321,7 @@ function mobTick(r, e, dt) {
   e.hurt = Math.max(0, e.hurt - dt); e.lunge = Math.max(0, e.lunge - dt); e.bc = Math.max(0, e.bc - dt); e.jcd = Math.max(0, e.jcd - dt);
   // jogadores válidos e o mais próximo
   let near = null, nd = 1e9;
-  for (const q of r.players) { if (q.sc || q.hp <= 0) continue; const d = hyp(q.x - e.x, q.y - e.y); if (d < nd) { nd = d; near = q; } }
+  for (const q of r.players) { if (q.sc || q.hp <= 0 || inSafe(r.map, q.x, q.y)) continue; const d = hyp(q.x - e.x, q.y - e.y); if (d < nd) { nd = d; near = q; } }
   // regras de reset (não no meio do pulo)
   if (!e.ja && !e.jc) {
     const home = hyp(e.x - e.hx, e.y - e.hy);
@@ -373,7 +375,7 @@ function epTick(r, dt) {
   r.eps = r.eps.filter(b => {
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
     if (b.life <= 0 || sol(r.map, b.x, b.y + 16)) { toRoom(r, { t: 'mev', k: 'epx', id: b.id, x: Math.round(b.x), y: Math.round(b.y), hit: 0 }); return false; }
-    for (const q of r.players) { if (q.sc || q.hp <= 0) continue; if (hyp(q.x - b.x, q.y - 24 - b.y) < 24) { hurtP(q, 30, 0, 0, 'esfera'); toRoom(r, { t: 'mev', k: 'epx', id: b.id, x: Math.round(b.x), y: Math.round(b.y), hit: 1 }); return false; } }
+    for (const q of r.players) { if (q.sc || q.hp <= 0 || inSafe(r.map, q.x, q.y)) continue; if (hyp(q.x - b.x, q.y - 24 - b.y) < 24) { hurtP(q, 30, 0, 0, 'esfera'); toRoom(r, { t: 'mev', k: 'epx', id: b.id, x: Math.round(b.x), y: Math.round(b.y), hit: 1 }); return false; } }
     return true; });
 }
 
