@@ -102,9 +102,20 @@ function mobDef(e) { return { id: e.id, kind: e.kind, nome: e.nome, boss: e.boss
 
 // ---------------------------------------------------------------- mobs comuns (criados no editor, nas áreas do mapa)
 function inSafe(map, x, y, extra) { if (!(CFG.safe > 0)) return false; const s = MAPS[map].spawn; return !!s && hyp(x - s[0] * T, y - s[1] * T) < (CFG.safe + (extra || 0)) * T; }
-function spreadPoint(r, A, self) { let best = null, bd = -1;
-  for (let i = 0; i < 8; i++) { const p = areaPoint(r.map, A); let md = 1e9; for (const o of r.mobs) if (o !== self && o.kind === 'mob' && !o.dead) md = Math.min(md, hyp(o.x - p[0], o.y - p[1])); if (md > 1.5 * T) return p; if (md > bd) { bd = md; best = p; } }
+// distância "ideal" entre os mobs de uma área (em tiles): cresce com o tamanho da área e diminui com a quantidade
+function areaGap(A) { if (A._gap == null) { let n = 0; for (const en of A.mobs || []) n += clamp(en.n | 0, 0, 40); A._gap = Math.sqrt(Math.max(1, A.w * A.h) / Math.max(1, n)) * .7; } return A._gap; }
+// sorteia vários pontos na área inteira e fica com o mais longe dos outros mobs da mesma área
+function spreadPoint(r, A, self) { let best = null, bd = -1; const want = areaGap(A) * T;
+  for (let i = 0; i < 30; i++) { const p = areaPoint(r.map, A); let md = 1e9;
+    for (const o of r.mobs) if (o !== self && o.kind === 'mob' && o.A === A && !o.dead) md = Math.min(md, hyp(o.x - p[0], o.y - p[1]), hyp(o.hx - p[0], o.hy - p[1]));
+    if (md >= want) return p; if (md > bd) { bd = md; best = p; } }
   return best || areaPoint(r.map, A); }
+// passeio: fica rondando o próprio ponto (assim eles continuam espalhados pela área)
+function wanderPoint(r, e) { const A = e.A, rad = clamp(areaGap(A) * .45, 1.5, 6) * T;
+  for (let i = 0; i < 12; i++) { const a = Math.random() * 6.2832, d = Math.sqrt(Math.random()) * rad,
+    x = clamp(e.hx + Math.cos(a) * d, (A.x + .5) * T, (A.x + A.w - .5) * T), y = clamp(e.hy + Math.sin(a) * d, (A.y + .5) * T, (A.y + A.h - .5) * T);
+    if (!blk(r.map, x, y)) return [x, y]; }
+  return [e.hx, e.hy]; }
 function areaPoint(map, A) { for (let i = 0; i < 60; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y) && !inSafe(map, x, y, 1)) return [x, y]; } for (let i = 0; i < 40; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y)) return [x, y]; } return [(A.x + A.w / 2) * T, (A.y + A.h / 2) * T]; }
 function newMob(r, d, A, id) { const [x, y] = spreadPoint(r, A, null), sc = clamp(num(d.escala, 100), 30, 400) / 100;
   return { id, kind: 'mob', t: d.id, def: d, A, nome: d.name || d.id, boss: 0, rad: Math.round(18 * sc), max: Math.max(1, d.vida | 0), hp: Math.max(1, d.vida | 0), hx: x, hy: y, x, y,
@@ -132,7 +143,7 @@ function mobTickG(r, e, dt) {
     else if (e.atkT <= 0 && !inSafe(r.map, tg.x, tg.y)) { e.atkT = clamp(num(d.atkInt, 1.2), .3, 10); e.lunge = .3; hurtP(tg, Math.max(1, Math.round(num(d.dano, 5))), 0, 0, e.nome); }
     if (Math.abs(dx) > 3) e.fl = dx < 0 ? 1 : 0;
   } else { // passeia dentro da área
-    if ((e.wt -= dt) <= 0) { e.wt = 2 + Math.random() * 3; if (Math.random() < .55) { const [x, y] = areaPoint(r.map, e.A); e.wx = x; e.wy = y; } else { e.wx = e.x; e.wy = e.y; } }
+    if ((e.wt -= dt) <= 0) { e.wt = 2 + Math.random() * 3; if (Math.random() < .55) { const [x, y] = wanderPoint(r, e); e.wx = x; e.wy = y; } else { e.wx = e.x; e.wy = e.y; } }
     const wd = hyp(e.wx - e.x, e.wy - e.y); if (wd > 6) { vx = (e.wx - e.x) / wd; vy = (e.wy - e.y) / wd; sp = vel * .5; } }
   if (tg) { // não empilha: afasta um pouco dos outros mobs
     let px = 0, py = 0; for (const o of r.mobs) { if (o === e || o.dead || o.kind !== 'mob') continue; const dx = e.x - o.x, dy = e.y - o.y, dd = hyp(dx, dy), mn = (e.rad + o.rad) * .9; if (dd > 0.01 && dd < mn) { px += dx / dd * (mn - dd) / mn; py += dy / dd * (mn - dd) / mn; } }
