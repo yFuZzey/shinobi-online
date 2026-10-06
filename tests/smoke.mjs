@@ -1,0 +1,37 @@
+// Teste do servidor online real (Supabase): contas, tabela personagens e canal em tempo real.
+// Uso: node smoke.mjs <URL> <CHAVE>
+const [URL_,KEY]=process.argv.slice(2);const U=URL_.replace(/\/+$/,'');
+const DOM='@jogadores.shinobi-online.app';let fails=0;
+const ok=(c,m)=>{console.log((c?"::notice::OK ":"::error::FALHA ")+m);if(!c)fails++};
+async function F(path,opt={},tok){const h={apikey:KEY,...(opt.body?{'Content-Type':'application/json'}:{}),...(tok?{Authorization:'Bearer '+tok}:KEY.startsWith('eyJ')?{Authorization:'Bearer '+KEY}:{}),...(opt.headers||{})};
+ const r=await fetch(U+path,{...opt,headers:h});const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch{}return {s:r.status,j}}
+async function conta(nome){const email=nome+DOM,pw='teste-'+nome+'-123';
+ let r=await F('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password:pw})});
+ if(r.s!==200){r=await F('/auth/v1/signup',{method:'POST',body:JSON.stringify({email,password:pw,data:{nome}})});
+  ok(r.s===200&&r.j&&r.j.access_token,'criar conta '+nome+' ('+r.s+' '+JSON.stringify(r.j&&(r.j.msg||r.j.error_code)||'')+')');
+  if(!(r.j&&r.j.access_token)){console.log('  → Se aparecer "email_not_confirmed" ou faltar access_token: desligue "Confirm email" no Supabase.');return null}}
+ else ok(true,'login '+nome);return {tok:r.j.access_token,id:r.j.user.id,nome}}
+const a=await conta('zz_teste_a'),b=await conta('zz_teste_b');
+if(!a||!b){process.exit(1)}
+let r=await F('/rest/v1/personagens?select=nome,dados&id=eq.'+a.id,{},a.tok);
+ok(r.s===200,'ler tabela personagens ('+r.s+' '+JSON.stringify(r.j&&r.j.message||'')+')');
+if(r.s===200&&r.j.length===0){r=await F('/rest/v1/personagens',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id:a.id,nome:a.nome,dados:{v:1,teste:1}})},a.tok);ok(r.s===201,'criar personagem ('+r.s+' '+JSON.stringify(r.j)+')')}
+r=await F('/rest/v1/personagens?id=eq.'+a.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({dados:{v:1,teste:2,t:Date.now()},atualizado:new Date().toISOString()})},a.tok);ok(r.s===204,'salvar personagem ('+r.s+')');
+r=await F('/rest/v1/personagens?select=nome,dados&id=eq.'+a.id,{},b.tok);ok(r.s===200&&r.j.length===0,'outro jogador NÃO lê personagem alheio (segurança)');
+// tempo real
+function canal(u,topic,onmsg){return new Promise((res,rej)=>{const w=new WebSocket(U.replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+encodeURIComponent(KEY)+'&vsn=1.0.0');let ref=0;
+ const send=(event,payload)=>w.send(JSON.stringify({topic,event,payload,ref:String(++ref),join_ref:'1'}));
+ w.onopen=()=>w.send(JSON.stringify({topic,event:'phx_join',payload:{config:{broadcast:{self:false,ack:false},presence:{key:u.id,enabled:true},postgres_changes:[],private:false},access_token:u.tok},ref:'1',join_ref:'1'}));
+ w.onmessage=e=>{const m=JSON.parse(e.data);if(m.event==='phx_reply'&&m.ref==='1'){if(m.payload.status==='ok')res({w,send});else rej(new Error(JSON.stringify(m.payload)))}onmsg(m)};
+ w.onerror=e=>rej(new Error('websocket erro'));setTimeout(()=>rej(new Error('timeout ao entrar no canal')),10000)})}
+const topic='realtime:shinobi-teste',got={pres:false,bc:false};
+try{
+ const A=await canal(a,topic,()=>{});ok(true,'jogador A entrou no canal');
+ const B=await canal(b,topic,m=>{if(m.event==='presence_diff'||m.event==='presence_state'){if(JSON.stringify(m.payload).includes('zz_teste_a'))got.pres=true}if(m.event==='broadcast'&&m.payload&&m.payload.event==='pos'&&m.payload.payload.x===123)got.bc=true});ok(true,'jogador B entrou no canal');
+ A.send('presence',{type:'presence',event:'track',payload:{nome:'zz_teste_a',lv:1}});
+ await new Promise(r=>setTimeout(r,1500));
+ for(let i=0;i<3;i++){A.send('broadcast',{type:'broadcast',event:'pos',payload:{id:a.id,x:123,y:45}});await new Promise(r=>setTimeout(r,400))}
+ await new Promise(r=>setTimeout(r,1500));
+ ok(got.pres,'B vê A online (presença)');ok(got.bc,'B recebe movimento de A (broadcast)');A.w.close();B.w.close();
+}catch(e){ok(false,'tempo real: '+e.message)}
+console.log(fails?('\n'+fails+' FALHA(S)'):'\nTUDO OK');process.exit(fails?1:0);

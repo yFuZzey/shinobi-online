@@ -6,6 +6,19 @@ on:
 permissions:
   contents: write
 jobs:
+  teste-online:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Testar servidor online (Supabase)
+        run: |
+          URL=$(node -p "require('./online.json').url")
+          KEY=$(node -p "require('./online.json').key")
+          node tests/smoke.mjs "$URL" "$KEY"
+
   apk:
     runs-on: ubuntu-latest
     steps:
@@ -36,3 +49,26 @@ jobs:
           name: Shinobi Online (build ${{ github.run_number }})
           body: Toque em shinobi-online.apk para baixar e instalar.
           files: shinobi-online.apk
+
+  site:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar site
+        run: mkdir -p site && cp www/index.html site/index.html && touch site/.nojekyll
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
