@@ -1,0 +1,6 @@
+{
+  "appId": "com.shinobi.online",
+  "appName": "Shinobi Online",
+  "webDir": "www",
+  "android": { "backgroundColor": "#000000" }
+}
