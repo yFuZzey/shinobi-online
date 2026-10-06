@@ -1,0 +1,17 @@
+{
+ "ninja_renegado": {
+  "id": "ninja_renegado",
+  "name": "Ninja Renegado",
+  "escala": 100.0,
+  "vida": 60,
+  "dano": 6.0,
+  "vel": 70.0,
+  "atkInt": 1.2,
+  "alcance": 1.0,
+  "visao": 6.0,
+  "persegue": 8.0,
+  "xp": 12,
+  "renasce": 15.0,
+  "drops": []
+ }
+}

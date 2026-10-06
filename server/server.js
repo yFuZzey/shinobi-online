@@ -11,7 +11,7 @@ const http = require('http'), crypto = require('crypto'), fs = require('fs'), pa
 const PORT = +process.env.PORT || 8080;
 const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
 const SB_KEY = process.env.SUPABASE_KEY || '';
-const PROTO = 1;                                   // versão do protocolo (cliente precisa bater)
+const PROTO = 2;                                   // versão do protocolo (cliente precisa bater)
 const COMMIT = process.env.RENDER_GIT_COMMIT || process.env.COMMIT || 'dev';
 const T = 32;
 
@@ -33,6 +33,7 @@ const CFG = {
 
 const MAPS = JSON.parse(fs.readFileSync(path.join(__dirname, 'maps.json'), 'utf8'));
 const ITEMS = JSON.parse(fs.readFileSync(path.join(__dirname, 'items.json'), 'utf8'));
+let MOBDEFS = {}; try { MOBDEFS = JSON.parse(fs.readFileSync(path.join(__dirname, 'mobs.json'), 'utf8')); } catch (e) {}
 const now = () => Date.now() / 1000;
 const hyp = Math.hypot, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const num = (v, d = 0) => (typeof v === 'number' && isFinite(v) ? v : d);
@@ -88,13 +89,50 @@ const offlineInfo = new Map(); // uid -> {nome, lv, map, until}
 
 function room(map) {
   if (!rooms[map]) { const r = rooms[map] = { map, players: new Set(), mobs: [], eps: [], epSeq: 0 };
-    const b = MAPS[map].boss; if (b) r.mobs.push(newFox(map, b)); }
+    const b = MAPS[map].boss; if (b) r.mobs.push(newFox(map, b));
+    (MAPS[map].areas || []).forEach((A, ai) => (A.mobs || []).forEach(en => { const d = MOBDEFS[en.m]; if (!d) return;
+      for (let k = 0; k < clamp(en.n | 0, 0, 40); k++) r.mobs.push(newMob(r, d, A, map + ':a' + ai + ':' + d.id + ':' + k)); })); }
   return rooms[map]; }
 function newFox(map, b) { const x = b[0] * T, y = b[1] * T;
   return { id: map + ':raposa', kind: 'raposa', nome: 'Raposa de Nove Caudas', boss: 1, rad: 56, max: 300, hp: 300, hx: x, hy: y, x, y,
     dead: 0, dt: 0, rt: 0, mv: 0, fl: 0, ch: 0, fired: 0, bc: 0, lunge: 0, dmgp: 0, atk: 0, jc: 0, ja: 0, jz: 0, jx: 0, jy: 0, sx: 0, sy: 0, jcd: 3,
     stun: 0, hurt: 0, wt: 0, wa: 0, wm: 0, dmg: {}, alone: 0, aim: null, jt: null }; }
-function mobDef(e) { return { id: e.id, kind: e.kind, nome: e.nome, boss: e.boss, rad: e.rad, max: e.max }; }
+function mobDef(e) { return { id: e.id, kind: e.kind, nome: e.nome, boss: e.boss, rad: e.rad, max: e.max, t: e.t || '' }; }
+
+// ---------------------------------------------------------------- mobs comuns (criados no editor, nas áreas do mapa)
+function areaPoint(map, A) { for (let i = 0; i < 40; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y)) return [x, y]; } return [(A.x + A.w / 2) * T, (A.y + A.h / 2) * T]; }
+function newMob(r, d, A, id) { const [x, y] = areaPoint(r.map, A), sc = clamp(num(d.escala, 100), 30, 400) / 100;
+  return { id, kind: 'mob', t: d.id, def: d, A, nome: d.name || d.id, boss: 0, rad: Math.round(18 * sc), max: Math.max(1, d.vida | 0), hp: Math.max(1, d.vida | 0), hx: x, hy: y, x, y,
+    dead: 0, dt: 0, rt: 0, mv: 0, fl: 0, ch: 0, lunge: 0, ja: 0, jz: 0, jc: 0, jx: 0, jy: 0, stun: 0, hurt: 0, atkT: 0, tg: null, back: 0, wt: 0, wx: x, wy: y, dmg: {}, alone: 0 }; }
+function rectDist(A, x, y) { const x0 = A.x * T, y0 = A.y * T, x1 = (A.x + A.w) * T, y1 = (A.y + A.h) * T; return hyp(Math.max(x0 - x, 0, x - x1), Math.max(y0 - y, 0, y - y1)); }
+function mobTickG(r, e, dt) {
+  const d = e.def;
+  if (e.dead) { e.dt += dt; if ((e.rt -= dt) <= 0) { const [x, y] = areaPoint(r.map, e.A); Object.assign(e, { x, y, hx: x, hy: y, hp: e.max, dead: 0, dt: 0, tg: null, back: 0, dmg: {}, stun: 0, hurt: 0, lunge: 0 }); } return; }
+  e.hurt = Math.max(0, e.hurt - dt); e.lunge = Math.max(0, e.lunge - dt); e.atkT -= dt;
+  if (e.stun > 0) { e.stun -= dt; e.mv = 0; return; }
+  const vel = clamp(num(d.vel, 70), 10, 300), leash = clamp(num(d.persegue, 8), 1, 40) * T, vis = clamp(num(d.visao, 6), 0, 20) * T;
+  // ninguém por perto por um tempo: volta inteira para a área
+  let nd = 1e9; for (const q of r.players) if (!q.sc && q.hp > 0) nd = Math.min(nd, hyp(q.x - e.x, q.y - e.y));
+  if (nd > CFG.resetNear * T) { e.alone += dt; if (e.alone >= CFG.resetWait && (e.hp < e.max || Object.keys(e.dmg).length)) { e.hp = e.max; e.dmg = {}; e.tg = null; e.back = 1; } } else e.alone = 0;
+  // alvo: continua com o atual enquanto ele estiver dentro do limite de perseguição
+  let tg = e.tg;
+  if (tg && (!r.players.has(tg) || tg.sc || tg.hp <= 0 || rectDist(e.A, tg.x, tg.y) > leash)) { tg = null; e.tg = null; e.back = 1; }
+  if (!tg && !e.back && vis > 0) { let best = null, bd = vis; for (const q of r.players) { if (q.sc || q.hp <= 0 || rectDist(e.A, q.x, q.y) > leash) continue; const dd = hyp(q.x - e.x, q.y - e.y); if (dd <= bd) { bd = dd; best = q; } } if (best) { tg = e.tg = best; } }
+  let vx = 0, vy = 0, sp = vel;
+  if (e.back) { // voltando para casa: não aceita alvo e recupera a vida ao chegar
+    const hd = hyp(e.hx - e.x, e.hy - e.y); if (hd < T * .8 || rectDist(e.A, e.x, e.y) === 0 && hd < 3 * T) { e.back = 0; e.hp = e.max; e.dmg = {}; } else { vx = (e.hx - e.x) / hd; vy = (e.hy - e.y) / hd; sp = vel * 1.6; } }
+  else if (tg) {
+    const dx = tg.x - e.x, dy = tg.y - e.y, dd = hyp(dx, dy), reach = clamp(num(d.alcance, 1), .5, 8) * T + 12 + e.rad * .4;
+    if (dd > reach) { vx = dx / dd; vy = dy / dd; }
+    else if (e.atkT <= 0) { e.atkT = clamp(num(d.atkInt, 1.2), .3, 10); e.lunge = .3; hurtP(tg, Math.max(1, Math.round(num(d.dano, 5))), 0, 0, e.nome); }
+    if (Math.abs(dx) > 3) e.fl = dx < 0 ? 1 : 0;
+  } else { // passeia dentro da área
+    if ((e.wt -= dt) <= 0) { e.wt = 2 + Math.random() * 3; if (Math.random() < .55) { const [x, y] = areaPoint(r.map, e.A); e.wx = x; e.wy = y; } else { e.wx = e.x; e.wy = e.y; } }
+    const wd = hyp(e.wx - e.x, e.wy - e.y); if (wd > 6) { vx = (e.wx - e.x) / wd; vy = (e.wy - e.y) / wd; sp = vel * .5; } }
+  if (!tg && Math.abs(vx) > .05) e.fl = vx < 0 ? 1 : 0;
+  const ox = e.x, oy = e.y; go(r.map, e, vx, vy, sp, dt);
+  if (e.mv && e.x === ox && e.y === oy) { e.wt = 0; if (e.back) { e.x = e.hx; e.y = e.hy; } } // preso numa parede
+}
 const MK = ['x', 'y', 'hp', 'max', 'dead', 'dt', 'mv', 'fl', 'ch', 'lunge', 'ja', 'jz', 'jc', 'jx', 'jy', 'stun', 'hurt', 'rt'];
 const mobState = e => MK.map(k => { const v = e[k]; return typeof v === 'number' ? Math.round(v * 100) / 100 : (v ? 1 : 0); });
 
@@ -230,6 +268,7 @@ function onHit(p, m) {
   const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
   if (hyp(p.x - e.x, p.y - e.y) > CFG.hitRange) return;
   const d = Math.round(clamp(num(m.d, 0), 0, CFG.maxHit)); if (!d) return;
+  if (e.back) return; if (e.kind === 'mob' && !e.tg) e.tg = p;
   e.hp -= d; e.hurt = .28; e.alone = 0;
   const st = clamp(num(m.st, 0), 0, 6); if (st) e.stun = Math.max(e.stun, st);
   const kx = clamp(num(m.kx, 0), -30, 30), ky = clamp(num(m.ky, 0), -30, 30);
@@ -239,7 +278,7 @@ function onHit(p, m) {
   if (e.hp <= 0) killMob(r, e);
 }
 function killMob(r, e) {
-  e.hp = 0; e.dead = 1; e.dt = 0; e.rt = CFG.respawn; e.ch = e.lunge = e.ja = e.jc = e.jz = e.stun = 0; r.eps = [];
+  e.hp = 0; e.dead = 1; e.dt = 0; e.rt = e.kind === 'mob' ? clamp(num(e.def.renasce, 15), 2, 3600) : CFG.respawn; e.ch = e.lunge = e.ja = e.jc = e.jz = e.stun = 0; e.tg = null; if (e.kind !== 'mob') r.eps = [];
   const tot = {}; for (const uid in e.dmg) { const k = groupKey(uid); tot[k] = (tot[k] || 0) + e.dmg[uid]; }
   let best = null; for (const k in tot) if (!best || tot[k] > tot[best]) best = k;
   e.dmg = {};
@@ -247,14 +286,17 @@ function killMob(r, e) {
   const pt = parties.get(best);
   const winners = pt ? pt.members.map(u => players.get(u)).filter(q => q && q.map === r.map) : [players.get(best.slice(2))].filter(q => q && q.map === r.map);
   const names = pt ? 'grupo de ' + (players.get(pt.leader) || { nome: '?' }).nome : ((players.get(best.slice(2)) || {}).nome || '?');
+  const isBoss = e.kind === 'raposa', d = e.def || {};
   for (const q of winners) {
-    const items = Object.values(ITEMS).filter(it => it.drop && it.drop.src === 'boss' && Math.random() * 100 < (it.drop.chance == null ? 100 : +it.drop.chance)).map(it => it.id);
-    q.conn.send({ t: 'reward', xp: CFG.xp, items, mob: e.nome, dmg: tot[best], grp: pt ? 1 : 0 });
+    const items = isBoss ? Object.values(ITEMS).filter(it => it.drop && it.drop.src === 'boss' && Math.random() * 100 < (it.drop.chance == null ? 100 : +it.drop.chance)).map(it => it.id)
+      : (d.drops || []).filter(x => ITEMS[x.item] && Math.random() * 100 < clamp(num(x.chance, 0), 0, 100)).map(x => x.item);
+    q.conn.send({ t: 'reward', xp: isBoss ? CFG.xp : clamp(num(d.xp, 0), 0, 1e6) | 0, items, mob: e.nome, dmg: tot[best], grp: pt ? 1 : 0, boss: isBoss ? 1 : 0 });
   }
   const nomeG = k => { const g = parties.get(k); if (g) return 'grupo de ' + ((players.get(g.leader) || offlineInfo.get(g.leader) || {}).nome || '?'); const u = k.slice(2); return (players.get(u) || offlineInfo.get(u) || {}).nome || '?'; };
   const rank = Object.keys(tot).sort((a, b) => tot[b] - tot[a]).slice(0, 5).map(k => ({ quem: nomeG(k), dmg: tot[k] }));
-  toRoom(r, { t: 'mkill', m: e.id, nome: e.nome, quem: names, dmg: tot[best], ids: winners.map(q => q.id), rank });
-  log('raposa derrotada em', r.map, 'por', names, tot[best]);
+  const msg = { t: 'mkill', m: e.id, nome: e.nome, quem: names, dmg: tot[best], ids: winners.map(q => q.id), rank: isBoss ? rank : undefined, boss: isBoss ? 1 : 0 };
+  if (isBoss) { toRoom(r, msg); log('raposa derrotada em', r.map, 'por', names, tot[best]); }
+  else { const who = new Set(Object.keys(tot).flatMap(k => { const g = parties.get(k); return g ? g.members : [k.slice(2)]; })); for (const u of who) { const q = players.get(u); if (q && q.map === r.map) q.conn.send(msg); } }
 }
 
 // ---------------------------------------------------------------- IA da raposa (roda só aqui)
@@ -337,11 +379,12 @@ const TICK = 1 / 30; let snapAcc = 0, partyAcc = 0, last = now();
 setInterval(() => {
   const t = now(); let dt = Math.min(.1, t - last); last = t;
   for (const k in rooms) { const r = rooms[k];
-    if (!r.players.size) { for (const e of r.mobs) if (!e.dead && (e.hp < e.max || hyp(e.x - e.hx, e.y - e.hy) > 2 * T)) resetMob(r, e, false); r.eps = []; continue; }
-    for (const e of r.mobs) mobTick(r, e, dt); epTick(r, dt); }
+    if (!r.players.size) { for (const e of r.mobs) { if (e.kind === 'mob') { if (!e.dead) { e.hp = e.max; e.dmg = {}; e.tg = null; } else mobTickG(r, e, dt); } else if (!e.dead && (e.hp < e.max || hyp(e.x - e.hx, e.y - e.hy) > 2 * T)) resetMob(r, e, false); } r.eps = []; continue; }
+    for (const e of r.mobs) e.kind === 'mob' ? mobTickG(r, e, dt) : mobTick(r, e, dt); epTick(r, dt); }
   snapAcc += dt; if (snapAcc >= .1) { snapAcc = 0;
     for (const k in rooms) { const r = rooms[k]; if (!r.players.size) continue;
-      toRoom(r, { t: 'mobs', m: r.mobs.map(e => [e.id, ...mobState(e)]) });
+      const st = new Map(r.mobs.map(e => [e, [e.id, ...mobState(e)]]));
+      for (const q of r.players) { if (!q.conn.open) continue; const l = []; for (const [e, a] of st) if (e.boss || hyp(q.x - e.x, q.y - e.y) < 24 * T) l.push(a); q.conn.send({ t: 'mobs', m: l }); }
       const ch = [...r.players].filter(q => q.dirty); if (ch.length) { ch.forEach(q => q.dirty = false);
         toRoom(r, { t: 'ps', p: ch.map(q => [q.id, Math.round(q.x), Math.round(q.y), q.fl, q.mv, q.run, Math.round(q.au * 100) / 100, Math.round(q.th * 100) / 100, q.sc, Math.round(q.hp), q.max]) }); } } }
   partyAcc += dt; if (partyAcc >= 1) { partyAcc = 0; const tt = now();

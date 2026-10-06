@@ -28,7 +28,7 @@ function client(tok, nome) {
     const ws = new WebSocket(G.replace(/^http/, 'ws') + '/ws'); const c = { ws, msgs: [], nome, send: o => ws.send(JSON.stringify(o)) };
     c.wait = (f, ms = 8000) => new Promise((ok2, no) => { const f2 = c.msgs.find(f); if (f2) return ok2(f2); const t = setTimeout(() => no(new Error('timeout ' + nome)), ms); c.waiters.push([f, m => { clearTimeout(t); ok2(m); }]); });
     c.waiters = [];
-    ws.onopen = () => c.send({ t: 'auth', v: 1, token: tok });
+    ws.onopen = () => c.send({ t: 'auth', v: 2, token: tok });
     ws.onmessage = e => { const m = JSON.parse(e.data); c.msgs.push(m); c.waiters = c.waiters.filter(([f, cb]) => f(m) ? (cb(m), false) : true); if (m.t === 'welcome') res(c); if (m.t === 'authfail') rej(new Error(m.msg)); };
     ws.onerror = () => rej(new Error('websocket erro')); setTimeout(() => rej(new Error('timeout auth')), 15000);
   });
@@ -39,7 +39,7 @@ try {
   const B = await client(tb.access_token, 'B'); ok(true, 'jogador B autenticado no servidor');
   const meta = { clan: 'uchiha', lv: 1, eq: [], look: {} };
   A.send({ t: 'join', map: 'vila_areia', x: 900, y: 1200, hp: 100, max: 100, sc: 0, ...meta });
-  const ra = await A.wait(m => m.t === 'room'); ok(ra.mobs && ra.mobs.length === 1, 'A entrou no mapa e recebeu a raposa');
+  const ra = await A.wait(m => m.t === 'room'); ok(ra.mobs && ra.mobs.some(x => x.def.kind === 'raposa'), 'A entrou no mapa e recebeu a raposa');
   B.send({ t: 'join', map: 'vila_areia', x: 920, y: 1200, hp: 100, max: 100, sc: 0, ...meta });
   const rb = await B.wait(m => m.t === 'room'); ok(rb.players.some(p => p.id === ta.user.id), 'B vê A ao entrar');
   await A.wait(m => m.t === 'pj' && m.p.id === tb.user.id); ok(true, 'A é avisado que B entrou');

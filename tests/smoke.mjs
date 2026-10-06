@@ -13,11 +13,15 @@ async function conta(nome){const email=nome+DOM,pw='teste-'+nome+'-123';
  else ok(true,'login '+nome);return {tok:r.j.access_token,id:r.j.user.id,nome}}
 const a=await conta('zz_teste_a'),b=await conta('zz_teste_b');
 if(!a||!b){process.exit(1)}
-let r=await F('/rest/v1/personagens?select=nome,dados&id=eq.'+a.id,{},a.tok);
-ok(r.s===200,'ler tabela personagens ('+r.s+' '+JSON.stringify(r.j&&r.j.message||'')+')');
-if(r.s===200&&r.j.length===0){r=await F('/rest/v1/personagens',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id:a.id,nome:a.nome,dados:{v:1,teste:1}})},a.tok);ok(r.s===201,'criar personagem ('+r.s+' '+JSON.stringify(r.j)+')')}
-r=await F('/rest/v1/personagens?id=eq.'+a.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({dados:{v:1,teste:2,t:Date.now()},atualizado:new Date().toISOString()})},a.tok);ok(r.s===204,'salvar personagem ('+r.s+')');
-r=await F('/rest/v1/personagens?select=nome,dados&id=eq.'+a.id,{},b.tok);ok(r.s===200&&r.j.length===0,'outro jogador NÃO lê personagem alheio (segurança)');
+let r=await F('/rest/v1/personagens?select=nome,cla,nivel,xp,admin,inventario(item,equipado)&id=eq.'+a.id,{},a.tok);
+ok(r.s===200,'ler personagem + inventário em colunas ('+r.s+' '+JSON.stringify(r.j&&r.j.message||'')+')');
+if(r.s===200&&r.j.length===0){r=await F('/rest/v1/personagens',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id:a.id,nome:a.nome,cla:'uchiha',nivel:1})},a.tok);ok(r.s===201,'criar personagem ('+r.s+' '+JSON.stringify(r.j)+')')}
+r=await F('/rest/v1/personagens?id=eq.'+a.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({xp:Date.now()%50,atualizado:new Date().toISOString()})},a.tok);ok(r.s===204,'salvar coluna xp ('+r.s+')');
+r=await F('/rest/v1/rpc/salvar_inventario',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({itens:[{item:'chidori',equipado:true}]})},a.tok);ok(r.s===204||r.s===200,'salvar inventário ('+r.s+' '+JSON.stringify(r.j&&r.j.message||'')+')');
+r=await F('/rest/v1/personagens?select=inventario(item,equipado)&id=eq.'+a.id,{},a.tok);ok(r.s===200&&r.j[0]&&r.j[0].inventario.length===1,'inventário gravado');
+r=await F('/rest/v1/personagens?id=eq.'+a.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({admin:true})},a.tok);ok(r.s>=400,'jogador NÃO consegue se dar admin ('+r.s+')');
+r=await F('/rest/v1/personagens?select=nome&id=eq.'+a.id,{},b.tok);ok(r.s===200&&r.j.length===0,'outro jogador NÃO lê personagem alheio (segurança)');
+r=await F('/rest/v1/inventario?select=item&personagem_id=eq.'+a.id,{},b.tok);ok(r.s===200&&r.j.length===0,'outro jogador NÃO lê inventário alheio');
 // tempo real
 function canal(u,topic,onmsg){return new Promise((res,rej)=>{const w=new WebSocket(U.replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+encodeURIComponent(KEY)+'&vsn=1.0.0');let ref=0;
  const send=(event,payload)=>w.send(JSON.stringify({topic,event,payload,ref:String(++ref),join_ref:'1'}));
