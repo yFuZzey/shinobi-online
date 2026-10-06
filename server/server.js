@@ -32,6 +32,10 @@ const CFG = {
   safe: 0,          // zona segura em volta do início (em tiles); 0 = desligada
 };
 
+// chance de esquivar: 5% + (Esquiva de quem defende − Precisão de quem ataca), entre 0% e 60%
+const dodgeChance = (esq, prec) => clamp(5 + num(esq, 0) - num(prec, 0), 0, 60);
+const FOXDEF = () => MOBDEFS.raposa || {};
+
 const MAPS = JSON.parse(fs.readFileSync(path.join(__dirname, 'maps.json'), 'utf8'));
 const ITEMS = JSON.parse(fs.readFileSync(path.join(__dirname, 'items.json'), 'utf8'));
 let MOBDEFS = {}; try { MOBDEFS = JSON.parse(fs.readFileSync(path.join(__dirname, 'mobs.json'), 'utf8')); } catch (e) {}
@@ -95,10 +99,11 @@ function room(map) {
       for (let k = 0; k < clamp(en.n | 0, 0, 40); k++) r.mobs.push(newMob(r, d, A, map + ':a' + ai + ':' + d.id + ':' + k)); })); }
   return rooms[map]; }
 function newFox(map, b) { const x = b[0] * T, y = b[1] * T;
-  return { id: map + ':raposa', kind: 'raposa', nome: 'Raposa de Nove Caudas', boss: 1, rad: 56, max: 300, hp: 300, hx: x, hy: y, x, y,
+  const d = FOXDEF(), vida = Math.max(1, num(d.vida, 300) | 0);
+  return { id: map + ':raposa', kind: 'raposa', t: 'raposa', def: d, nome: d.name || 'Raposa de Nove Caudas', boss: 1, rad: 56, max: vida, hp: vida, hx: x, hy: y, x, y,
     dead: 0, dt: 0, rt: 0, mv: 0, fl: 0, ch: 0, fired: 0, bc: 0, lunge: 0, dmgp: 0, atk: 0, jc: 0, ja: 0, jz: 0, jx: 0, jy: 0, sx: 0, sy: 0, jcd: 3,
     stun: 0, hurt: 0, wt: 0, wa: 0, wm: 0, dmg: {}, alone: 0, aim: null, jt: null }; }
-function mobDef(e) { return { id: e.id, kind: e.kind, nome: e.nome, boss: e.boss, rad: e.rad, max: e.max, t: e.t || '' }; }
+function mobDef(e) { return { id: e.id, kind: e.kind, nome: e.nome, boss: e.boss, rad: e.rad, max: e.max, t: e.t || '', lv: num((e.def || {}).nivel, 1) | 0 }; }
 
 // ---------------------------------------------------------------- mobs comuns (criados no editor, nas áreas do mapa)
 function inSafe(map, x, y, extra) { if (!(CFG.safe > 0)) return false; const s = MAPS[map].spawn; return !!s && hyp(x - s[0] * T, y - s[1] * T) < (CFG.safe + (extra || 0)) * T; }
@@ -140,7 +145,7 @@ function mobTickG(r, e, dt) {
   else if (tg) {
     const dx = tg.x - e.x, dy = tg.y - e.y, dd = hyp(dx, dy), reach = clamp(num(d.alcance, 1), .5, 8) * T + 12 + e.rad * .4;
     if (dd > reach) { vx = dx / dd; vy = dy / dd; }
-    else if (e.atkT <= 0 && !inSafe(r.map, tg.x, tg.y)) { e.atkT = clamp(num(d.atkInt, 1.2), .3, 10); e.lunge = .3; hurtP(tg, Math.max(1, Math.round(num(d.dano, 5))), 0, 0, e.nome); }
+    else if (e.atkT <= 0 && !inSafe(r.map, tg.x, tg.y)) { e.atkT = clamp(num(d.atkInt, 1.2), .3, 10); e.lunge = .3; hurtP(tg, Math.max(1, Math.round(num(d.dano, 5))), 0, 0, e.nome, num(d.precisao, 0)); }
     if (Math.abs(dx) > 3) e.fl = dx < 0 ? 1 : 0;
   } else { // passeia dentro da área
     if ((e.wt -= dt) <= 0) { e.wt = 2 + Math.random() * 3; if (Math.random() < .55) { const [x, y] = wanderPoint(r, e); e.wx = x; e.wy = y; } else { e.wx = e.x; e.wy = e.y; } }
@@ -286,18 +291,20 @@ function onHit(p, m) {
   if (!p.map || p.sc) return; const r = room(p.map); const e = r.mobs.find(x => x.id === m.m); if (!e || e.dead) return;
   const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
   if (hyp(p.x - e.x, p.y - e.y) > CFG.hitRange) return;
-  const d = Math.round(clamp(num(m.d, 0), 0, CFG.maxHit)); if (!d) return;
+  let d = Math.round(clamp(num(m.d, 0), 0, CFG.maxHit)); if (!d) return;
   if (e.back) return; if (e.kind === 'mob' && !e.tg) e.tg = p;
+  const pr = clamp(num(m.pr, 0), 0, 5000), esq = num((e.def || {}).esquiva, 0);
+  if (Math.random() * 100 < dodgeChance(esq, pr)) { e.alone = 0; toRoom(r, { t: 'mh', m: e.id, d: 0, miss: 1, by: p.id }); return; }
   e.hp -= d; e.hurt = .28; e.alone = 0;
   const st = clamp(num(m.st, 0), 0, 8); if (st) e.stun = Math.max(e.stun, st); // até 8 s (Genjutsu rank alto alonga o atordoamento)
   const kx = clamp(num(m.kx, 0), -30, 30), ky = clamp(num(m.ky, 0), -30, 30);
   if (!e.ja && (kx || ky) && !blk(r.map, e.x + kx, e.y + ky)) { e.x += kx; e.y += ky; }
   e.dmg[p.id] = (e.dmg[p.id] || 0) + d;
-  toRoom(r, { t: 'mh', m: e.id, d, by: p.id, c: m.c ? 1 : 0 }, p);
+  toRoom(r, { t: 'mh', m: e.id, d, by: p.id, c: m.c ? 1 : 0 }); // vai também para quem bateu: o número só aparece confirmado
   if (e.hp <= 0) killMob(r, e);
 }
 function killMob(r, e) {
-  e.hp = 0; e.dead = 1; e.dt = 0; e.rt = e.kind === 'mob' ? clamp(num(e.def.renasce, 15), 2, 3600) * (.8 + Math.random() * .4) : CFG.respawn; e.ch = e.lunge = e.ja = e.jc = e.jz = e.stun = 0; e.tg = null; if (e.kind !== 'mob') r.eps = [];
+  e.hp = 0; e.dead = 1; e.dt = 0; e.rt = e.kind === 'mob' ? clamp(num(e.def.renasce, 15), 2, 3600) * (.8 + Math.random() * .4) : clamp(num(FOXDEF().renasce, CFG.respawn), 2, 36000); e.ch = e.lunge = e.ja = e.jc = e.jz = e.stun = 0; e.tg = null; if (e.kind !== 'mob') r.eps = [];
   const tot = {}; for (const uid in e.dmg) { const k = groupKey(uid); tot[k] = (tot[k] || 0) + e.dmg[uid]; }
   let best = null; for (const k in tot) if (!best || tot[k] > tot[best]) best = k;
   e.dmg = {};
@@ -307,9 +314,11 @@ function killMob(r, e) {
   const names = pt ? 'grupo de ' + (players.get(pt.leader) || { nome: '?' }).nome : ((players.get(best.slice(2)) || {}).nome || '?');
   const isBoss = e.kind === 'raposa', d = e.def || {};
   for (const q of winners) {
-    const items = isBoss ? Object.values(ITEMS).filter(it => it.drop && it.drop.src === 'boss' && Math.random() * 100 < (it.drop.chance == null ? 100 : +it.drop.chance)).map(it => it.id)
+    const fd = FOXDEF().drops || [];
+    const items = isBoss && !fd.length ? Object.values(ITEMS).filter(it => it.drop && it.drop.src === 'boss' && Math.random() * 100 < (it.drop.chance == null ? 100 : +it.drop.chance)).map(it => it.id)
+      : isBoss ? fd.filter(x => ITEMS[x.item] && Math.random() * 100 < clamp(num(x.chance, 0), 0, 100)).map(x => x.item)
       : (d.drops || []).filter(x => ITEMS[x.item] && Math.random() * 100 < clamp(num(x.chance, 0), 0, 100)).map(x => x.item);
-    q.conn.send({ t: 'reward', xp: isBoss ? CFG.xp : clamp(num(d.xp, 0), 0, 1e6) | 0, items, mob: e.nome, dmg: tot[best], grp: pt ? 1 : 0, boss: isBoss ? 1 : 0 });
+    q.conn.send({ t: 'reward', xp: isBoss ? clamp(num(FOXDEF().xp, CFG.xp), 0, 1e8) | 0 : clamp(num(d.xp, 0), 0, 1e7) | 0, items, mob: e.nome, dmg: tot[best], grp: pt ? 1 : 0, boss: isBoss ? 1 : 0 });
   }
   const nomeG = k => { const g = parties.get(k); if (g) return 'grupo de ' + ((players.get(g.leader) || offlineInfo.get(g.leader) || {}).nome || '?'); const u = k.slice(2); return (players.get(u) || offlineInfo.get(u) || {}).nome || '?'; };
   const rank = Object.keys(tot).sort((a, b) => tot[b] - tot[a]).slice(0, 5).map(k => ({ quem: nomeG(k), dmg: tot[k] }));
@@ -320,10 +329,11 @@ function killMob(r, e) {
 
 // ---------------------------------------------------------------- IA da raposa (roda só aqui)
 const JC = .55, JA = .62, JH = 85, JR = 92, JD = 26;
-function hurtP(q, d, kx, ky, src) { q.conn.send({ t: 'hurt', d, kx: kx || 0, ky: ky || 0, src: src || '' }); }
-function areaHurt(r, x, y, rad, d, kb, src) {
+// pr = precisão de quem bateu: o cliente sorteia a esquiva do jogador (PvE); no PvP isso vai para o servidor
+function hurtP(q, d, kx, ky, src, pr) { q.conn.send({ t: 'hurt', d: Math.round(d), kx: kx || 0, ky: ky || 0, src: src || '', pr: Math.round(pr || 0) }); }
+function areaHurt(r, x, y, rad, d, kb, src, pr) {
   for (const q of r.players) { if (q.sc || q.hp <= 0 || inSafe(r.map, q.x, q.y)) continue; const dy = (q.y - y) * (kb ? 1.25 : 1);
-    if (hyp(q.x - x, dy) < rad) { let kx = 0, ky = 0; if (kb) { const a = Math.atan2(q.y - y, q.x - x); kx = Math.cos(a); ky = Math.sin(a); } hurtP(q, d, kx, ky, src); } }
+    if (hyp(q.x - x, dy) < rad) { let kx = 0, ky = 0; if (kb) { const a = Math.atan2(q.y - y, q.x - x); kx = Math.cos(a); ky = Math.sin(a); } hurtP(q, d, kx, ky, src, pr); } }
 }
 function resetMob(r, e, announce) {
   Object.assign(e, { x: e.hx, y: e.hy, hp: e.max, dead: 0, dt: 0, rt: 0, mv: 0, ch: 0, fired: 0, lunge: 0, dmgp: 0, ja: 0, jc: 0, jz: 0, stun: 0, hurt: 0, dmg: {}, alone: 0, jcd: 3, bc: 2, atk: 0, aim: null, jt: null });
@@ -343,7 +353,7 @@ function mobTick(r, e, dt) {
     if (nd > CFG.resetNear * T) { e.alone += dt; if (e.alone >= CFG.resetWait && (e.hp < e.max || home > 2 * T || Object.keys(e.dmg).length)) { resetMob(r, e, true); return; } }
     else e.alone = 0;
   }
-  if (e.dmgp && e.lunge < .26) { e.dmgp = 0; areaHurt(r, e.x, e.y, 100, 12, 0, 'mordida'); }
+  if (e.dmgp && e.lunge < .26) { e.dmgp = 0; areaHurt(r, e.x, e.y, 100, num(FOXDEF().dano, 12), 0, 'mordida', num(FOXDEF().precisao, 0)); }
   if (e.ja > 0) { e.mv = 0; foxAir(r, e, dt); return; }
   if (e.stun > 0) { e.stun -= dt; e.mv = 0; e.jc = 0; e.ch = 0; return; }
   const tg = near && nd <= CFG.aggro * T ? near : null;
@@ -382,14 +392,14 @@ function foxAir(r, e, dt) {
   e.x = e.sx + (e.jx - e.sx) * qq; e.y = e.sy + (e.jy - e.sy) * qq; e.jz = Math.sin(Math.PI * q) * JH;
   if (e.ja <= 0) { e.ja = 0; e.jz = 0; e.x = e.jx; e.y = e.jy;
     toRoom(r, { t: 'mev', k: 'shock', m: e.id, x: Math.round(e.x), y: Math.round(e.y), r: JR + 10 });
-    areaHurt(r, e.x, e.y, JR, JD, 1, 'pulo'); e.atk = .9; }
+    areaHurt(r, e.x, e.y, JR, num(FOXDEF().pulo, JD), 1, 'pulo', num(FOXDEF().precisao, 0)); e.atk = .9; }
 }
 function epTick(r, dt) {
   if (!r.eps.length) return;
   r.eps = r.eps.filter(b => {
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
     if (b.life <= 0 || sol(r.map, b.x, b.y + 16)) { toRoom(r, { t: 'mev', k: 'epx', id: b.id, x: Math.round(b.x), y: Math.round(b.y), hit: 0 }); return false; }
-    for (const q of r.players) { if (q.sc || q.hp <= 0 || inSafe(r.map, q.x, q.y)) continue; if (hyp(q.x - b.x, q.y - 24 - b.y) < 24) { hurtP(q, 30, 0, 0, 'esfera'); toRoom(r, { t: 'mev', k: 'epx', id: b.id, x: Math.round(b.x), y: Math.round(b.y), hit: 1 }); return false; } }
+    for (const q of r.players) { if (q.sc || q.hp <= 0 || inSafe(r.map, q.x, q.y)) continue; if (hyp(q.x - b.x, q.y - 24 - b.y) < 24) { hurtP(q, num(FOXDEF().esfera, 30), 0, 0, 'esfera', num(FOXDEF().precisao, 0)); toRoom(r, { t: 'mev', k: 'epx', id: b.id, x: Math.round(b.x), y: Math.round(b.y), hit: 1 }); return false; } }
     return true; });
 }
 
