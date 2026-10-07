@@ -42,11 +42,14 @@ MMORPG 2D no universo Naruto (protótipo).
 
 ## Golpes (4 botões) e aba Jutsus
 - Botão grande = ultimate. Em arco em volta dele: golpe inicial, golpe do meio e o botão do item da mão. Teclado: 1–4.
+- **Sua barra** (topo da aba Jutsus): o jogador escolhe os jutsus dos botões 1, 2 e 3 (o 3 é o lugar do item; o item volta quando quiser). O grande só aceita ultimate. Passivas não ocupam botão. A recarga acompanha o jutsu quando ele troca de botão. A escolha fica salva no celular.
 - Os jutsus do clã liberam com o nível (aba **Jutsus**, na mochila). Travado, o botão mostra 🔒 e o nível.
 - Uchiha: Bola de Fogo (Nv 1) · Sharingan no botão do meio, liga/desliga, gasta chakra por segundo (1 tomoe Nv 5, 2 tomoe Nv 15, 3 tomoe Nv 25). Ao ligar, o olhar paralisa quem está no cone à frente (menos tempo quanto mais esquiva o alvo tem; no PvP no máx. 1,5 s).
 - Nv 40: o jogador escolhe a Mangekyō (Itachi, Sasuke ou Madara), que toma o lugar do Sharingan. Nv 60: Susanoo no botão grande, só com a Mangekyō ligada (cada olho tem o seu). Desligar a Mangekyō desfaz o Susanoo. Arte em `arte/susanoo/`.
 - Hyuga: Palma (Nv 1, queima 2% do chakra do alvo no PvP) · Kaiten (Nv 10, reflete projéteis de jogadores e empurra) · 64 Palmas (Nv 20, sela o chakra de jogadores por 3 s: só jutsus de até 10% do chakra).
 - Nara: Shuriken (Nv 1) · Sombra/Kagemane (Nv 1: a sombra cresce no chão e prende no lugar por 2 s; o Nara fica parado junto) · Possessão/Kagemane múltiplo (Nv 30: prende até 3 alvos por 1,5 s; no PvP o tempo é dividido entre os jogadores presos).
+  Kage Nui (Nv 15: 3 agulhas de sombra que perseguem, dano + 25% mais lento por 1,5 s) · Kubishibari (Nv 20: só em quem está preso na sua sombra; silencia 1,5 s e aperta 4×) · Kageyose (Nv 40: puxa o primeiro inimigo da linha ~3 tiles) · Campo de Sombras (Nv 45: área de 6 s, inimigos lentos, você −10% de dano recebido) · Intelecto Nara (Nv 50, passiva: −10% de recarga nas sombras, controles +15% em monstros) · Domínio das Sombras (Nv 60, ultimate: prende 1,5 s e silencia 1 s todo mundo da área).
+- Silenciado = só o golpe básico funciona (não liga olho, não invoca, não usa item). Lento = anda mais devagar. No PvP o servidor limita: preso 2 s, silêncio 2 s, lento 2 s / 40%.
 - Susanoo: escudo de 25–35% da vida (Itachi o maior) por 8 s, mais lento e sem recuperar vida; quebrou o escudo, ele se desfaz.
 - Números de golpes, recargas, custos e efeitos: `server/balanceamento.json`.
 - 4º botão: habilidade do item equipado (Chidori…). Sem item que dê habilidade, ele aparece vazio.
@@ -56,6 +59,7 @@ MMORPG 2D no universo Naruto (protótipo).
 ## Código do jogo e testes
 - O código-fonte está em `src/` (veja `src/LEIA.md`). `bash src/build.sh` monta `www/` e os `server/*.json`.
 - `bash tests/rodar.sh` roda os testes no navegador (offline e online, com banco simulado e servidor local).
+- [ADM] Abas Personagem e Jutsus: "Trocar de clã" (só admin) — pede confirmação e começa do zero no clã novo (nível, pontos, especialidade, Mangekyō, barra e mochila).
 
 ## Mobs
 - Criados no editor (aba Mobs) e colocados nos mapas com a ferramenta Mobs (áreas).

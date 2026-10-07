@@ -114,11 +114,23 @@ const JRK=BAL.golpes.ranks; // balanceamento.json → golpes.ranks
 // JU[clã][id] = o jutsu (no formato que o jogo usa para soltar). Os 3 de hoje vêm de CLANS; os novos são definidos mais abaixo.
 const JU={};
 function juApply(s,b){const R=JRK[b.r]||{dmg:0,mp:0,cd:1};s.rk=b.r;s.dmg=Math.round((R.dmg||0)*(+b.f||0));s.mp=b.mp!=null?+b.mp:R.mp;s.cd=b.cd!=null?+b.cd:R.cd;s.mpPct=+b.mpPct||0;
- if(b.tel!=null)s.tel=+b.tel;if(b.stun!=null)s.stun=+b.stun;['queima','root','canal','alvos','ccPvp','tipo','papel','lv'].forEach(k=>{if(b[k]!=null)s[k]=b[k]});return s}
+ if(b.tel!=null)s.tel=+b.tel;if(b.stun!=null)s.stun=+b.stun;['queima','root','canal','alvos','ccPvp','tipo','papel','lv','pot','lento','silencio','dot','puxa','dur','red','exige','sombra','cdSombra','ccPve','raio'].forEach(k=>{if(b[k]!=null)s[k]=b[k]});
+ if(b.raio!=null)s.r=+b.raio*T;return s}
 for(const c in BAL.golpes.barra){JU[c]={};BAL.golpes.barra[c].forEach((id,i)=>{const s=CLANS[c]&&CLANS[c].sk[i];if(s){s.id=id;JU[c][id]=s}})}
 function juLoad(c,id,def){const b=(BAL.golpes.jutsus[c]||{})[id];if(!b)return null;const s=JU[c][id]||(JU[c][id]=Object.assign({id},def||{}));return juApply(s,b)}
 for(const c in BAL.golpes.jutsus)if(c[0]!=='_')for(const id in BAL.golpes.jutsus[c])if(id[0]!=='_'&&JU[c]&&JU[c][id])juLoad(c,id);
+// Entrega 7b: jutsus novos (números no catálogo; aqui só o visual e o jeito de soltar)
+juLoad('nara','nui',{n:'Kage Nui',i:'🪡',t:'nui',col:'#1a0f2e',sp:290});
+juLoad('nara','kubi',{n:'Kubishibari',i:'🫳',t:'kubi',col:'#1a0f2e'});
+juLoad('nara','yose',{n:'Kageyose',i:'🪝',t:'yose',col:'#1a0f2e',len:240});
+juLoad('nara','campo',{n:'Campo de Sombras',i:'🌘',t:'campo',col:'#120a22'});
+juLoad('nara','intelecto',{n:'Intelecto Nara',i:'♟️',t:'passiva'});
+juLoad('nara','dominio',{n:'Domínio das Sombras',i:'🌑',t:'dominio',col:'#3a2060',fx:1});
 const juLv=s=>s&&s.lv?+s.lv:1;
+// passiva do Nara (Intelecto): ligada a partir do nível dela
+const naraInt=()=>{const s=clan==='nara'&&JU.nara&&JU.nara.intelecto;return s&&CH&&(CH.lv|0)>=juLv(s)?s:null};
+function juCdMul(s){const n=s&&s.sombra?naraInt():null;return n?1-(+n.cdSombra||0)/100:1}
+const ccPveMul=()=>{const n=naraInt();return n?1+(+n.ccPve||0)/100:1};
 let HTP=null,profPick=null; // HTP = tipo do golpe que está acertando agora
 const nf=x=>String(Math.round(x*10)/10).replace('.',','),sgn=x=>(x>0?'+':x<0?'−':'')+nf(Math.abs(x)),clv=(v,a,b)=>Math.max(a,Math.min(b,v));
 function profNorm(o){const k=o&&PROF[o.k]?o.k:null;return{k,xp:k?Math.max(0,Math.min(1e7,o.xp|0)):0}}
@@ -213,10 +225,11 @@ function profDraw(){const el=$('#stProf');if(!el||!CH)return;CH.prof=profNorm(CH
  const tr=el.querySelector('[data-trocar]');if(tr)tr.onclick=()=>{profPick='?';profDraw()};
  const vt=el.querySelector('[data-voltar]');if(vt)vt.onclick=()=>{profPick=null;profDraw()}}
 // golpes usados agora: marca o tipo para o bônus/treino
-{const _c=cast;cast=function(i){if(actRoot())return;{const s=CLANS[clan]&&CLANS[clan].sk[i];if(s&&seloBloqueia(mpOf(i,s)))return seloAviso()}if(PST>0){if(!cast._t||performance.now()-cast._t>600){cast._t=performance.now();FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7})}return}
+{const _c=cast;cast=function(i){if(actRoot())return;{const s=CLANS[clan]&&CLANS[clan].sk[i];if(s&&seloBloqueia(mpOf(i,s)))return seloAviso();if(s&&silBloqueia(s))return silAviso();
+  if(s&&s.exige==='sombra'&&cd[i]<=0&&!sombraPresos().length){if(!cast._k||performance.now()-cast._k>900){cast._k=performance.now();FT.push({x:p.x,y:p.y-70,t:'ninguém preso na sombra',txt:1,life:.9});toast('🫳 '+s.n+': prenda alguém com o Kagemane antes.')}return}}if(PST>0){if(!cast._t||performance.now()-cast._t>600){cast._t=performance.now();FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7})}return}
  const sk=CLANS[clan]&&CLANS[clan].sk[i],c0=cd[i];HTP=skType(i);try{_c(i)}finally{HTP=null}
  if(sk&&sk.buf&&cd[i]>c0)bufStart('sk'+i,sk.buf,sk.aura)}} // só se o golpe saiu de verdade (entrou em recarga)
-const GMK=['x','y','hp','max','dead','dt','mv','fl','ch','lunge','ja','jz','jc','jx','jy','stun','hurt','rt','root'];
+const GMK=['x','y','hp','max','dead','dt','mv','fl','ch','lunge','ja','jz','jc','jx','jy','stun','hurt','rt','root','lento'];
 // ---------- interpolação: cada um é desenhado um pouquinho "no passado", entre duas fotos do servidor.
 // Assim o movimento fica contínuo (sem o acelera-e-freia de correr atrás da última posição).
 const IP={dm:110,dp:120,ext:120};
@@ -238,9 +251,9 @@ function gsMobState(e,a,t){const s={};GMK.forEach((k,j)=>s[k]=a[j]);const wasDea
  if(e.sn){const dx=s.x-e.sn.x,dy=s.y-e.sn.y;if(Math.abs(dx)+Math.abs(dy)>.5)e.dir=Math.abs(dx)>Math.abs(dy)?(dx<0?2:3):(dy<0?1:0)}
  if(!e.sn||Math.hypot(s.x-e.x,s.y-e.y)>260||wasDead!==!!s.dead){e.x=s.x;e.y=s.y;e.jz=s.jz;e.buf=null;e.fl=!!s.fl;e.mv=s.mv}
  ipPush(e,t,{x:s.x,y:s.y,jz:s.jz||0,fl:s.fl,mv:s.mv});
- e.sn=s;['hp','max','ch','lunge','ja','jc','jx','jy','stun','rt','root'].forEach(k=>e[k]=s[k]);if(s.hurt>(e.hurt||0))e.hurt=s.hurt;
+ e.sn=s;['hp','max','ch','lunge','ja','jc','jx','jy','stun','rt','root','lento'].forEach(k=>e[k]=s[k]);if(s.hurt>(e.hurt||0))e.hurt=s.hurt;
  if(s.dead&&!wasDead){e.dead=1;e.dt=s.dt}else if(!s.dead&&wasDead){e.dead=0;e.dt=0}}
-const MTIM=['lunge','ch','jc','ja','stun','hurt','root'];
+const MTIM=['lunge','ch','jc','ja','stun','hurt','root','lento'];
 function gsMobFollow(dt){const rt=performance.now()-IP.dm;
  for(const e of E){e.hit=Math.max(0,(e.hit||0)-dt);if(!e.sn)continue;if(e.dead){e.dt=(e.dt||0)+dt;continue}
   const r=ipAt(e,rt);if(r){e.x=r.x;e.y=r.y;e.jz=r.jz;e.fl=!!r.s.fl;e.mv=r.s.mv}
@@ -249,19 +262,28 @@ function gsMobFollow(dt){const rt=performance.now()-IP.dm;
 function gsHit(e,d,st,kx,ky){if(!ONL.on)return false;if(e.pvp)return pvpHit(e,d,st,kx,ky);if(!e.sid||e.dead||!ONL.joined)return true;
  const tp=tpN(HTP),pf=profOn(tp),base=d,x=hitRaw(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
  lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());d=Math.max(1,Math.round(lastCrit?x*BAL.combate.critMult:x));if(pf)profGain(base*HMUL);
- gsSend({t:'hit',m:e.sid,d,st:st||0,rt:HCC&&HCC.root||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec)});return true}
+ const cm=ccPveMul(),H=HCC||{};if(H.lento&&+H.lento.t>0)FT.push({x:e.x,y:e.y-(e.boss?110:46),t:'lento',txt:1,life:.6});
+ gsSend({t:'hit',m:e.sid,d,st:(st||0)*cm,rt:(H.root||0)*cm,lt:H.lento?(+H.lento.t||0)*cm:0,lp:H.lento?+H.lento.v||0:0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec)});return true}
 // ---------- PvP: quem não está no seu grupo pode ser atacado (menos na zona segura em volta do ponto de início) ----------
 // quem bate calcula o golpe igual ao dos monstros; o servidor confere (mapa, distância, grupo, zona segura) e repassa;
 // o alvo sorteia a esquiva (Esquiva dele x sua Precisão), aplica a redução e conta o resultado para todo mundo ver.
 const PVP={on:1,safe:4};let PST=0,HRES={miss:0,d:0,dead:0},pvpTold=0;
 // PRT = preso no lugar (não anda, mas usa golpes) · PSL = chakra selado (só jutsu que custa até seloLimite% do chakra) · SHD = escudo do Susanoo
-let PRT=0,PSL=0,SHD=null,HCC=null; // HCC = efeito do golpe que está acertando agora (como HTP): {root, selo, queima, pj (projétil), semStunPvp}
-function ccTick(dt){if(PRT>0)PRT=Math.max(0,PRT-dt);if(PSL>0)PSL=Math.max(0,PSL-dt);if(SHD&&SHD.until<=performance.now())SHD=null}
-function ccChips(){const L=[];if(PRT>0)L.push('<span class="cc">Preso <b>'+Math.ceil(PRT)+'s</b></span>');if(PSL>0)L.push('<span class="cc">Chakra selado <b>'+Math.ceil(PSL)+'s</b></span>');return L.join('')}
+// PSI = silenciado (Kubishibari, Domínio das Sombras): só o golpe básico funciona
+let PRT=0,PSL=0,PSI=0,SHD=null,HCC=null; // HCC = efeito do golpe que está acertando agora (como HTP): {root, selo, queima, lento:{v,t}, silencio, pj (projétil), semStunPvp}
+function ccTick(dt){if(PRT>0)PRT=Math.max(0,PRT-dt);if(PSL>0)PSL=Math.max(0,PSL-dt);if(PSI>0)PSI=Math.max(0,PSI-dt);if(SHD&&SHD.until<=performance.now())SHD=null}
+function ccChips(){const L=[];if(PRT>0)L.push('<span class="cc">Preso <b>'+Math.ceil(PRT)+'s</b></span>');if(PSL>0)L.push('<span class="cc">Chakra selado <b>'+Math.ceil(PSL)+'s</b></span>');if(PSI>0)L.push('<span class="cc">Silenciado <b>'+Math.ceil(PSI)+'s</b></span>');return L.join('')}
+const silBloqueia=s=>PSI>0&&!(s&&s.papel==='basico');
+function silAviso(){if(!silAviso._t||performance.now()-silAviso._t>700){silAviso._t=performance.now();FT.push({x:p.x,y:p.y-70,t:'silenciado',txt:1,life:.8})}}
+// efeitos do golpe que está acertando (HCC) no formato do servidor: um só ({k…}) ou até 2 juntos (lista)
+function ccDeHCC(H){const L=[];if(!H)return undefined;if(H.root)L.push({k:'root',t:+H.root});if(H.silencio)L.push({k:'silencio',t:+H.silencio});if(H.selo)L.push({k:'selo',t:+H.selo});if(H.queima)L.push({k:'queima',v:+H.queima});if(H.lento&&+H.lento.t>0)L.push({k:'lento',t:+H.lento.t,v:+H.lento.v||0});
+ return L.length>1?L.slice(0,2):L[0]}
 function seloBloqueia(mp){return PSL>0&&mp>BAL.golpes.seloLimite/100*p.mpMax}
 function seloAviso(){if(!seloAviso._t||performance.now()-seloAviso._t>700){seloAviso._t=performance.now();FT.push({x:p.x,y:p.y-70,t:'chakra selado',txt:1,life:.8})}}
 // efeito recebido no PvP (o servidor confere e repassa)
-function ccRecebe(cc,src){if(!cc||!cc.k)return;const t=+cc.t||0;
+function ccRecebe(cc,src){if(Array.isArray(cc)){cc.forEach(c=>ccRecebe(c,src));return}if(!cc||!cc.k)return;const t=+cc.t||0;
+ if(cc.k==='lento'&&t>0){const v=Math.max(0,Math.min(60,+cc.v||0));bufStart('lento',{spd:-v,t,nm:'Lento: '+v+'% mais devagar'});FT.push({x:p.x,y:p.y-70,t:'lento',txt:1,life:.8});onlReg('🪡 '+(src||'?')+' deixou você lento ('+v+'%, '+nf(t)+' s).');return}
+ if(cc.k==='silencio'&&t>0){PSI=Math.max(PSI,t);FT.push({x:p.x,y:p.y-84,t:'silenciado',txt:1,life:1});onlReg('🤐 '+(src||'?')+' silenciou você ('+nf(t)+' s): só o golpe básico.');return}
  if(cc.k==='root'&&t>0){PRT=Math.max(PRT,t);FT.push({x:p.x,y:p.y-70,t:'preso pela sombra',txt:1,life:1});onlReg('🌑 '+(src||'?')+' prendeu você no lugar ('+nf(t)+' s).')}
  else if(cc.k==='selo'&&t>0){PSL=Math.max(PSL,t);FT.push({x:p.x,y:p.y-70,t:'chakra selado',txt:1,life:1});onlReg('✋ '+(src||'?')+' selou o seu chakra ('+nf(t)+' s): só jutsus baratos.')}
  else if(cc.k==='queima'){const v=Math.min(p.mp,(+cc.v||0)/100*p.mpMax);if(v>0){p.mp-=v;FT.push({x:p.x+14,y:p.y-60,t:'−'+Math.round(v)+' chakra',txt:1,life:.8})}}}
@@ -284,7 +306,7 @@ function pvpHit(e,d,st,kx,ky){const pe=ONL.peers[e.pvp];if(!pe||!ONL.joined)retu
  if(pvpSafeAt(pe.x,pe.y)||pvpSafeAt(p.x,p.y)){pvpSafeMsg(pe);return true}
  const tp=tpN(HTP),pf=profOn(tp),x=hitRaw(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
  lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());
- const H=HCC||{},cc=H.root?{k:'root',t:+H.root}:H.selo?{k:'selo',t:+H.selo}:H.queima?{k:'queima',v:+H.queima}:null;if(H.semStunPvp)st=0;
+ const H=HCC||{},cc=ccDeHCC(H);if(H.semStunPvp)st=0;
  gsSend({t:'pvp',to:e.pvp,d:Math.max(1,Math.round(lastCrit?x*BAL.combate.critMult:x)),st:st||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec),pj:H.pj?1:0,cc:cc||undefined});pe.hitT=.12;return true}
 function pvpShow(m){const pe=ONL.peers[m.to];if(m.safe){pvpSafeMsg(pe);return}
  if(m.to===ONL.uid||!pe||pe.sc!==(scene|0))return; // quem apanhou já viu o próprio número
@@ -362,7 +384,7 @@ function perfTick(dt){if(document.hidden)return;PQ.acc+=dt;PQ.n++;if(PQ.acc<3)re
 function onlStep(dt){kfxStep(dt);if(!ONL.on)return;perfTick(dt);
  if(ONL.joined){const nf=[],np=[];
   for(const f of fx){if(f._s)continue;f._s=1;if(!f.rm&&FXOK[f.k||'line'])nf.push(Object.assign({},f,{_s:undefined}))}
-  for(const b of P){if(b._s)continue;b._s=1;if(!b.rm)np.push({x:b.x|0,y:b.y|0,vx:b.vx|0,vy:b.vy|0,col:b.col,life:b.life,big:b.big,spin:b.spin,fire:b.fire})}
+  for(const b of P){if(b._s)continue;b._s=1;if(!b.rm)np.push({x:b.x|0,y:b.y|0,vx:b.vx|0,vy:b.vy|0,col:b.col,life:b.life,big:b.big,spin:b.spin,fire:b.fire,sh:b.sh})}
   if(nf.length||np.length)gsSend({t:'fx',fx:nf.slice(0,8),pr:np.slice(0,8)})}
  gsPos(false);
  const now=performance.now();if(now-ONL.pingT>5000){ONL.pingT=now;gsSend({t:'ping',c:now})}
@@ -388,6 +410,10 @@ function onlDraw(L,ts){if(!ONL.on)return;
   for(let i=0;i<4;i++){const a=i*1.57+ts/900;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*14,y+Math.sin(a)*5);ctx.lineTo(x+Math.cos(a)*5,y-10-i%2*4);ctx.stroke()}ctx.restore()};
  if(PRT>0&&!(scene|0))L.push({y:p.y-.3,d:()=>rootDraw(p.x,p.y)});
  if(!(scene|0))for(const e of E)if(!e.dead&&e.root>0)L.push({y:e.y-.3,d:()=>rootDraw(e.x,e.y)});
+ // lento (Kage Nui, Campo de Sombras): fiapos de sombra presos nos pés · silenciado: selo de sombra em cima da cabeça
+ const slowDraw=(x,y)=>{ctx.save();ctx.strokeStyle='#120a22';ctx.lineCap='round';ctx.lineWidth=2;ctx.globalAlpha=.75;for(let i=0;i<3;i++){const a=i*2.09+ts/500,ox=Math.cos(a)*11;ctx.beginPath();ctx.moveTo(x+ox,y+2);ctx.quadraticCurveTo(x+ox*1.6,y+6+Math.sin(ts/220+i)*2,x+ox*2.1,y+3);ctx.stroke()}ctx.restore()};
+ if(!(scene|0)){for(const e of E)if(!e.dead&&!(e.root>0)&&(e.lento>0||e.slw>0))L.push({y:e.y-.31,d:()=>slowDraw(e.x,e.y)});if(BUFS.lento&&!(PRT>0))L.push({y:p.y-.31,d:()=>slowDraw(p.x,p.y)})}
+ if(PSI>0)L.push({y:p.y+.21,d:()=>{ctx.save();ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.globalAlpha=.6+.4*Math.sin(ts/150);ctx.fillText('🤐',p.x,p.y-70);ctx.restore()}});
  if(PST>0)L.push({y:p.y+.2,d:()=>{ctx.fillStyle='#d9b3ff';for(let i=0;i<3;i++){const a=ts/200+i*2.1;ctx.beginPath();ctx.arc(p.x+Math.cos(a)*9,p.y-56+Math.sin(a)*3,2.4,0,7);ctx.fill()}}});
  if(!(scene|0)&&PVP.on&&PVP.safe>0&&SPAWN)L.push({y:-1e9,d:()=>{const x=SPAWN[0]*T,y=SPAWN[1]*T,r=PVP.safe*T;ctx.save();ctx.fillStyle='rgba(120,200,255,.07)';ctx.strokeStyle='rgba(150,220,255,.45)';ctx.lineWidth=2;ctx.setLineDash([8,6]);
   ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.stroke();ctx.setLineDash([]);ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#bfe8ff';ctx.strokeText('🛡 Zona segura (sem PvP)',x,y-r-4);ctx.fillText('🛡 Zona segura (sem PvP)',x,y-r-4);ctx.restore()}})}
@@ -609,7 +635,10 @@ const JT={
   {b:'Sharingan → Mangekyō',n:[{id:'tm1',j:'olho',tm:1},{id:'tm2',j:'olho',tm:2},{id:'tm3',j:'olho',tm:3},{id:'mgk',j:'olho',tm:4}]},
   {b:'Técnicas da Mangekyō (só com ela ligada)',n:[{id:'sus',j:'sus'},{id:'amat',soon:1,nm:'Amaterasu',ic:'🔥'},{id:'tsuku',soon:1,nm:'Tsukuyomi',ic:'🌕'}]}],
  hyuga:[{b:'Punho Gentil (Jūken)',n:[{id:'palma',j:'palma'},{id:'kaiten',j:'kaiten'},{id:'hakke',j:'hakke'}]}],
- nara:[{b:'Ferramentas ninja',n:[{id:'shuri',j:'shuri'}]},{b:'Técnicas de sombra (Kagemane)',n:[{id:'sombra',j:'sombra'},{id:'poss',j:'poss'}]}]};
+ nara:[{b:'Ferramentas ninja',n:[{id:'shuri',j:'shuri'}]},
+  {b:'Kagemane (prender)',n:[{id:'sombra',j:'sombra'},{id:'kubi',j:'kubi'},{id:'poss',j:'poss'},{id:'dominio',j:'dominio'}]},
+  {b:'Kage Nui (atacar com a sombra)',n:[{id:'nui',j:'nui'},{id:'yose',j:'yose'}]},
+  {b:'Estratégia',n:[{id:'campo',j:'campo'},{id:'intelecto',j:'intelecto'}]}]};
 // nível de cada nó: olhos do Uchiha em olhos.tomoe, o resto no catálogo (balanceamento.json → golpes.jutsus)
 for(const c in JT)JT[c].forEach(B=>B.n.forEach(n=>{if(n.soon)return;n.lv=n.tm?TOM[n.tm].lv:juLv(JU[c]&&JU[c][n.j])}));
 const JTD={
@@ -626,7 +655,13 @@ const JTD={
  hakke:'Hakke Rokujūyon Shō: 64 golpes seguidos nos pontos de chakra; quem está perto fica preso, toma dano contínuo e é empurrado.',
  shuri:'Arremesso de shuriken.',
  sombra:'Kagemane no Jutsu: a sombra estica em linha e prende quem tocar.',
- poss:'A sombra se espalha em área e prende vários inimigos ao mesmo tempo.'};
+ poss:'A sombra se espalha em área e prende vários inimigos ao mesmo tempo.',
+ nui:'Kage Nui: a sombra vira agulhas que perseguem o alvo, ferem e deixam lento. Elas viram devagar: dá para desviar correndo.',
+ kubi:'Kage Kubishibari: a sombra sobe pelo corpo de quem já está preso no seu Kagemane e aperta o pescoço: silencia (só o golpe básico funciona) e machuca aos poucos. Só pega quem está preso na sua sombra.',
+ yose:'Kageyose: a sombra estica em linha, agarra o primeiro inimigo e puxa ele até você.',
+ campo:'Campo de Sombras: a sombra cobre o chão em volta por alguns segundos. Inimigos dentro ficam lentos; você recebe menos dano enquanto ele dura.',
+ intelecto:'Intelecto Nara (passiva): pensar dez jogadas à frente. Não ocupa botão: os jutsus de sombra recarregam mais rápido e prender/atordoar/deixar lento duram mais nos monstros.',
+ dominio:'Domínio das Sombras: a sombra toma toda a área em volta, prende e silencia todo mundo dentro.'};
 const SLN=['1','2','grande','3'],TPN={ninjutsu:'Ninjutsu',genjutsu:'Genjutsu',taijutsu:'Taijutsu',bukijutsu:'Bukijutsu'};
 // ícone da Mangekyō: o Sharingan sobre a explosão vermelha da folha dos Susanoo
 let MGKIC=null;{const U=[null,JU.uchiha&&JU.uchiha.olho];if(U[1]&&SPR.ic&&SPR.ic[U[1].ic]){const a=new Image(),b=new Image();let n=0;
@@ -659,6 +694,7 @@ function jtLvUp(a,b){const L=jtNodes().filter(n=>!n.soon&&n.lv>a&&n.lv<=b);L.for
 {const _u=useBtn;useBtn=function(i){const s=clan&&CH&&CLANS[clan].sk[i];if(s){const o=jtBtn(i);
   if(o.eye){toast('👁️ Escolha o seu Mangekyō na aba Jutsus para liberar o Susanoo.');juSel='mgk';juPick=null;toggleBag(true,'ju');return}
   if(o.lk){toast('🔒 '+o.nm+' libera no Nv '+o.lk+'. A árvore está na aba Jutsus.');return}
+  if((s.t==='eye'&&!EYE.on||s.t==='sus')&&silBloqueia(s))return silAviso(); // silenciado: não liga o olho nem invoca (desligar pode)
   if(s.t==='eye')return eyeToggle(i);if(s.t==='sus')return susPress(i)}
  return _u(i)}}
 // ---------- Sharingan / Mangekyō: liga e desliga, gasta chakra por segundo (o chakra não volta enquanto estiver ligado) ----------
@@ -738,7 +774,7 @@ function jtStart(){EYE.on=null;SUS=null;BUFS={};jtBtnTick.l=null;jtBtnTick.lv=CH
 // ---------- barra de jutsus: botões 0 e 1 e o 3 (no lugar do item) escolhidos pelo jogador; o grande (2) só para ultimate ----------
 let BAR=null;const barKey=()=>'shinobi-barra-'+String(name).toLowerCase();
 const barDefault=()=>(BAL.golpes.barra[clan]||[]).concat(['item']);
-const barOkEm=(id,i)=>{const s=JU[clan]&&JU[clan][id];if(!s)return i===3&&id==='item';return i===2?s.papel==='ult':s.papel!=='ult'};
+const barOkEm=(id,i)=>{const s=JU[clan]&&JU[clan][id];if(!s)return i===3&&id==='item';if(s.papel==='passiva')return false;return i===2?s.papel==='ult':s.papel!=='ult'};
 function barLoad(){if(!clan||!JU[clan])return;let b=null;try{b=JSON.parse(localStorage.getItem(barKey())||'null')}catch(_){}const d=barDefault();
  BAR=d.map((x,i)=>Array.isArray(b)&&b[i]&&barOkEm(b[i],i)?b[i]:x);if(new Set(BAR).size<BAR.length)BAR=d;barApply()}
 function barSave(){try{localStorage.setItem(barKey(),JSON.stringify(BAR))}catch(_){}}
@@ -749,6 +785,7 @@ function barApply(){const C=CLANS[clan];if(!C||!BAR)return;for(let i=0;i<3;i++)i
 // A recarga acompanha o jutsu (JCD guarda quando cada um volta): trocar de botão nunca zera recarga.
 const JCD={};
 function barSet(i,id){if(!BAR||!barOkEm(id,i))return false;const j=BAR.indexOf(id);if(j>=0&&j!==i&&!barOkEm(BAR[i],j))return false;
+ if(j<0&&id!=='item'){const s=JU[clan][id];if((CH.lv|0)<(s.t==='eye'?TOM[1].lv:juLv(s)))return false} // jutsu ainda travado não entra na barra
  if(EYE.on)eyeOff();if(susOn())susEnd();const t=performance.now();BAR.forEach((x,k)=>{JCD[x]=Math.max(JCD[x]||0,t+(cd[k]||0)*1000)});
  if(j>=0&&j!==i)BAR[j]=BAR[i];BAR[i]=id;BAR.forEach((x,k)=>{cd[k]=Math.max(0,((JCD[x]||0)-t)/1000)});barSave();barApply();return true}
 // ---------- aba Jutsus ----------
@@ -767,7 +804,11 @@ function juStats(n){const L=[],J=JU[clan]||{},bi=id=>BAR?BAR.indexOf(id):-1,sl=i
   if(E2){const A=E2.sus;L.push('Ao surgir: '+A.dmg+' de dano em área'+(A.hits>1?' ('+A.hits+' vezes)':'')+(A.stun?' e atordoa '+nf(A.stun)+' s':'')+'.');L.push(A.t+' s de pé: escudo de '+(+A.escudo||0)+'% da vida'+(A.dmgb?' e +'+A.dmgb+'% de dano':'')+'; '+(+BAL.olhos.susanooLento||0)+'% mais lento e sem recuperar vida; quebrou o escudo, ele se desfaz.')}
   else L.push('Cada Mangekyō tem o seu: escolha o olho no nó da Mangekyō.');return L}
  if(n.soon)return L;const s=J[n.j];if(!s)return L;const k=sl(n.j);
- L.push((s.dmg?'Dano base '+s.dmg+' · ':'')+'Chakra '+mpOf(k,s)+' · Recarga '+nf(cdOf(k,s))+' s'+(s.tel?' · Aviso '+nf(s.tel)+' s':'')+(s.stun?' · Atordoa '+nf(s.stun)+' s':'')+(s.root?' · Prende '+nf(s.root)+' s'+(s.alvos?' (até '+s.alvos+' alvos)':''):'')+(s.ccPvp&&s.ccPvp.k==='selo'?' · Sela o chakra '+nf(s.ccPvp.t)+' s (PvP)':'')+(s.queima?' · Queima '+s.queima+'% do chakra (PvP)':'')+(s.r?' · Área '+nf(s.r/T)+' tiles':''));return L}
+ if(s.papel==='passiva'){L.push('Jutsus de sombra (Kagemane, Kage Nui, Kubishibari, Possessão, Kageyose, Campo e Domínio): −'+(+s.cdSombra||0)+'% de recarga.');L.push('Em monstros, prender, atordoar e deixar lento duram +'+(+s.ccPve||0)+'%.');return L}
+ L.push((s.dmg?'Dano base '+s.dmg+' · ':'')+'Chakra '+mpOf(k,s)+' · Recarga '+nf(cdOf(k,s))+' s'+(s.tel?' · Aviso '+nf(s.tel)+' s':'')+(s.stun?' · Atordoa '+nf(s.stun)+' s':'')+(s.root?' · Prende '+nf(s.root)+' s'+(s.alvos?' (até '+s.alvos+' alvos)':''):'')+(s.ccPvp&&s.ccPvp.k==='selo'?' · Sela o chakra '+nf(s.ccPvp.t)+' s (PvP)':'')+(s.queima?' · Queima '+s.queima+'% do chakra (PvP)':'')+(s.r?' · Área '+nf(s.r/T)+' tiles':''));
+ const X=[];if(s.pot&&+s.pot!==1)X.push('Força '+Math.round(s.pot*100)+'%'+(s.t==='nui'?' (3 agulhas)':s.t==='yose'?' (4 puxões)':''));if(s.lento)X.push('Deixa lento '+s.lento.v+'% por '+nf(s.lento.t)+' s');if(s.silencio)X.push('Silencia '+nf(s.silencio)+' s');
+ if(s.dot&&s.dot.n)X.push('Mais '+s.dot.n+' apertos ('+Math.round((+s.dot.pot||0)*100)+'% cada)');if(s.puxa)X.push('Puxa até '+s.puxa+' tiles');if(s.dur)X.push('Fica '+nf(s.dur)+' s no chão');if(s.red)X.push('Você: −'+s.red+'% de dano recebido');
+ if(s.exige==='sombra')X.push('Só em quem está preso na sua sombra');if(s.sombra&&naraInt())X.push('Intelecto Nara: −'+(+naraInt().cdSombra||0)+'% de recarga (já contado)');if(X.length)L.push(X.join(' · '));return L}
 function juDraw(){const el=$('#paneJu');if(!el||el.hidden||!clan||!CH)return;const all=jtNodes();if(!juSel||!all.some(n=>n.id===juSel))juSel=(all.find(n=>jtInfo(n).cur)||all[0]).id;
  let h='<p class="pfd">Clã <b>'+CLANS[clan].n+'</b> · Nv '+CH.lv+'. Os jutsus liberam com o nível. Toque num jutsu para ver os detalhes e escolher em que botão ele fica.</p>'+juBarHtml()+'<div class="jgrid"><div class="jtree">';
  for(const B of JT[clan]){h+='<div class="jbr"><div class="jbt">'+B.b+'</div><div class="jrow">'+B.n.map((n,k)=>{const I=jtInfo(n);
@@ -793,7 +834,7 @@ function juBarHtml(){if(!BAR)return '';const ic=id=>{if(id==='item'){const it=at
  const nm=id=>id==='item'?(atkItem()?atkItem().name:'Item da mão'):(JU[clan][id]||{}).n||id;
  return '<div class="jbar"><span class="jbl">Sua barra</span>'+[0,1,3,2].map(i=>'<button class="jbs'+(i===2?' big':'')+'" data-bs="'+i+'"><span class="ji">'+ic(BAR[i])+'</span><small>'+(i===2?'Grande':'Botão '+SLN[i])+'</small><b>'+String(nm(BAR[i])).replace(/[<>&]/g,'')+'</b></button>').join('')+'</div>'}
 // botões "pôr no botão…" no detalhe de um jutsu liberado
-function juBarBtns(n,js,I){if(!js||!BAR||!I.ok||n.soon)return '';const at=BAR.indexOf(js.id);
+function juBarBtns(n,js,I){if(!js||!BAR||!I.ok||n.soon)return '';const at=BAR.indexOf(js.id);if(js.papel==='passiva')return '<div class="jbb"><span class="z">Passiva: vale sempre, não ocupa botão.</span></div>';
  if(js.papel==='ult')return '<div class="jbb">'+(at===2?'<span class="z">Está no botão grande.</span>':'<button data-bar="2:'+js.id+'">Usar no botão grande</button>')+'</div>';
  return '<div class="jbb"><span>Pôr no botão:</span>'+[0,1,3].map(i=>'<button data-bar="'+i+':'+js.id+'"'+(at===i?' disabled':'')+'>'+SLN[i]+(i===3?' (no lugar do item)':'')+'</button>').join('')+(BAR[3]!=='item'?'<button data-bar="3:item">Item de volta no 3</button>':'')+'</div>'}
 function juEye(k){if(!EYES[k]||(CH.lv|0)<TOM[4].lv||CH.mgk===k)return;if(CH.mgk&&juPick!==k){juPick=k;return juDraw()}
@@ -831,18 +872,61 @@ function actFrame(A){const D=A&&ACTS[A.a];if(!D)return null;const t=actEl(A);if(
 function castLine(s,ax,ay){const tp=HTP,x0=p.x,y0=p.y,t=+s.tel||0,root=+s.root||0;
  fx.push({k:'sline',x:x0,y:y0-4,ax,ay,len:s.len,col:'#120a22',life:t+.6,max:t+.6,tel:t});if(s.canal&&root)PRT=Math.max(PRT,t+root);
  KDEL.push({t,fn:()=>{HTP=tp;HCC=root?{root}:null;let n=0;try{E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-x0,dy=e.y-y0,pr=Math.max(0,Math.min(s.len,dx*ax+dy*ay));
-   if(Math.hypot(dx-ax*pr,dy-ay*pr)<20+(e.rad||0)*.5){n++;hitE(e,s.dmg,ONL.on?+s.stun||0:Math.max(+s.stun||0,root),0,0)}})}finally{HTP=null;HCC=null}
+   if(Math.hypot(dx-ax*pr,dy-ay*pr)<20+(e.rad||0)*.5){n++;hitE(e,s.dmg,ONL.on?+s.stun||0:Math.max(+s.stun||0,root),0,0);if(root)sombraMarca(e,root)}})}finally{HTP=null;HCC=null}
   if(!n&&s.canal)PRT=0;else if(n)onlReg('🌑 Kagemane prendeu '+n+' alvo'+(n>1?'s':'')+' ('+nf(root)+' s).')}})}
 // Kagemane múltiplo: a sombra se espalha em área por "tel" s e prende os "alvos" mais perto (no PvP o tempo é dividido entre os jogadores presos)
 function castPoss(s,ax,ay){const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,root=+s.root||0;
  fx.push({k:'sarea',x:x0,y:y0-4,r:s.r,col:'#120a22',life:t+.6,max:t+.6,tel:t});
  KDEL.push({t,fn:()=>{HTP=tp;try{const all=E.concat(PVT()).filter(e=>!e.dead&&Math.hypot(e.x-x0,e.y-y0)<s.r+(e.rad||0)*.6).sort((a,b)=>Math.hypot(a.x-x0,a.y-y0)-Math.hypot(b.x-x0,b.y-y0)).slice(0,+s.alvos||3);
-   const np=all.filter(e=>e.pvp).length;all.forEach(e=>{const r=e.pvp?root/Math.max(1,np):root;HCC=r?{root:r}:null;hitE(e,s.dmg,ONL.on?+s.stun||0:Math.max(+s.stun||0,r),0,0);HCC=null});
+   const np=all.filter(e=>e.pvp).length;all.forEach(e=>{const r=e.pvp?root/Math.max(1,np):root;HCC=r?{root:r}:null;hitE(e,s.dmg,ONL.on?+s.stun||0:Math.max(+s.stun||0,r),0,0);HCC=null;if(r)sombraMarca(e,r)});
    if(all.length){flash={col:s.col,a:.3};onlReg('🌑 Kagemane múltiplo prendeu '+all.length+' alvo'+(all.length>1?'s':'')+'.')}}finally{HTP=null;HCC=null}}})}
 function shadowFxDraw(f){const el=f.max-f.life,g=f.tel>0?Math.min(1,el/f.tel):1,a=Math.min(1,f.life/.3);ctx.save();ctx.globalAlpha=.75*a;ctx.fillStyle=f.col;ctx.strokeStyle=f.col;
  if(f.k==='sline'){const L=f.len*g;ctx.lineCap='round';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+f.ax*L,f.y+f.ay*L);ctx.stroke();
   ctx.globalAlpha=.35*a;ctx.lineWidth=18;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+f.ax*L,f.y+f.ay*L);ctx.stroke()}
  else{const r=f.r*g;ctx.globalAlpha=.28*a;ctx.beginPath();ctx.ellipse(f.x,f.y,r,r*.55,0,0,7);ctx.fill();ctx.globalAlpha=.7*a;ctx.lineWidth=3;ctx.setLineDash([10,6]);ctx.stroke()}ctx.restore()}
+// ---------- Entrega 7b: jutsus novos do Nara (números no balanceamento.json → golpes.jutsus.nara) ----------
+// quem está preso na MINHA sombra agora (Kagemane, Possessão, Domínio): o Kubishibari só pega esses
+const SOMBRA_PRESOS=new Map();
+const ccAlvoId=e=>e.pvp?'p:'+e.pvp:'m:'+(e.sid!=null?e.sid:e.id);
+function sombraMarca(e,t){if(e&&t>0)SOMBRA_PRESOS.set(ccAlvoId(e),{e,until:performance.now()+t*1000+300})}
+function sombraPresos(){const n=performance.now(),L=[];for(const [k,o] of SOMBRA_PRESOS){if(o.until<n||o.e.dead){SOMBRA_PRESOS.delete(k);continue}if(Math.hypot(o.e.x-p.x,o.e.y-p.y)<7*T)L.push(o.e)}return L}
+// acerta com o efeito/força certos e volta tudo ao normal
+function hitCom(e,s,mul,cc,st,kx,ky){HCC=cc||null;HMUL=mul||1;try{hitE(e,s.dmg,st||0,kx||0,ky||0)}finally{HCC=null;HMUL=1}}
+const alvosEm=(x,y,r)=>E.concat(PVT()).filter(e=>!e.dead&&Math.hypot(e.x-x,e.y-y)<r+(e.rad||0)*.6);
+// Kage Nui: 3 agulhas de sombra que perseguem (viram devagar: dá para desviar correndo); cada uma vale 1/3 do golpe e deixa lento
+function castNui(s,ax,ay){const tp=HTP,t=+s.tel||0;fx.push({k:'sarea',x:p.x,y:p.y-4,r:26,col:'#120a22',life:t+.3,max:t+.3,tel:t});
+ KDEL.push({t,fn:()=>{const a0=Math.atan2(ay,ax),n=3,sp=s.sp||290;for(let q=0;q<n;q++){const a=a0+(q-1)*.38;
+  P.push({x:p.x+Math.cos(a)*8,y:p.y-14,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:s.col,dmg:s.dmg,life:1.4,sh:1,seek:1,hm:(+s.pot||1)/n,tp,cc:s.lento?{lento:s.lento}:null})}}})}
+function nuiSeek(b,dt){let best=270,tg=null;for(const e of E.concat(PVT())){if(e.dead)continue;const d=Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y);if(d<best){best=d;tg=e}}if(!tg)return;
+ const want=Math.atan2(tg.y-(tg.boss?44:16)-b.y,tg.x-b.x),cur=Math.atan2(b.vy,b.vx);let da=want-cur;while(da>Math.PI)da-=6.2832;while(da<-Math.PI)da+=6.2832;
+ const mx=3.2*dt,na=cur+Math.max(-mx,Math.min(mx,da)),sp=Math.hypot(b.vx,b.vy);b.vx=Math.cos(na)*sp;b.vy=Math.sin(na)*sp}
+function nuiDraw(b){const tr=b.tr||(b.tr=[]);tr.push([b.x,b.y]);if(tr.length>10)tr.shift();ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+ ctx.strokeStyle='#120a22';ctx.globalAlpha=.35;ctx.lineWidth=7;ctx.beginPath();tr.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.stroke();
+ ctx.globalAlpha=.9;ctx.lineWidth=3;ctx.stroke();ctx.fillStyle='#2a1747';ctx.beginPath();ctx.arc(b.x,b.y,3.4,0,7);ctx.fill();ctx.restore()}
+// Kubishibari: a sombra sobe em quem está preso nela e aperta: silencia e machuca aos poucos
+function castKubi(s,ax,ay){const tp=HTP,t=+s.tel||0,L=sombraPresos(),D=s.dot||{};
+ L.forEach(e=>fx.push({k:'sline',x:p.x,y:p.y-4,ax:(e.x-p.x)/(Math.hypot(e.x-p.x,e.y-p.y)||1),ay:(e.y-p.y)/(Math.hypot(e.x-p.x,e.y-p.y)||1),len:Math.hypot(e.x-p.x,e.y-p.y),col:'#120a22',life:t+.5,max:t+.5,tel:t}));
+ KDEL.push({t,fn:()=>{HTP=tp;try{L.forEach(e=>{if(e.dead)return;hitCom(e,s,+s.pot||1,s.silencio?{silencio:+s.silencio}:null);fx.push({k:'ring',x:e.x,y:e.y-30,r:16,col:'#5b3a8a',life:.4,max:.4})})}finally{HTP=null}
+  if(L.length)onlReg('🫳 Kubishibari em '+L.length+' alvo'+(L.length>1?'s':'')+': silenciado'+(L.length>1?'s':'')+' por '+nf(+s.silencio||0)+' s.')}});
+ for(let j=1;j<=(D.n|0);j++)KDEL.push({t:t+j*(+D.int||.5),fn:()=>{HTP=tp;try{L.forEach(e=>{if(!e.dead)hitCom(e,s,+D.pot||.1)})}finally{HTP=null}}})}
+// Kageyose: a sombra estica em linha, agarra o primeiro inimigo e puxa até você (4 puxões)
+function castYose(s,ax,ay){const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,len=s.len||240;
+ fx.push({k:'sline',x:x0,y:y0-4,ax,ay,len,col:'#120a22',life:t+.25,max:t+.25,tel:t});
+ KDEL.push({t,fn:()=>{let tg=null,bp=1e9;E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-x0,dy=e.y-y0,pr=dx*ax+dy*ay;if(pr<0||pr>len)return;if(Math.hypot(dx-ax*pr,dy-ay*pr)<22+(e.rad||0)*.5&&pr<bp){bp=pr;tg=e}});
+  if(!tg)return;const N=4,step=(+s.puxa||3)*T/N;onlReg('🪝 Kageyose puxou '+(tg.nome||'o alvo')+'.');
+  for(let j=0;j<N;j++)KDEL.push({t:j*.1,fn:()=>{if(tg.dead)return;const dx=p.x-tg.x,dy=p.y-tg.y,d=Math.hypot(dx,dy)||1,k=Math.max(0,Math.min(step,d-T*.9));HTP=tp;
+   try{hitCom(tg,s,(+s.pot||1)/N,null,0,dx/d*k,dy/d*k)}finally{HTP=null}fx.push({k:'sline',x:p.x,y:p.y-4,ax:-dx/d,ay:-dy/d,len:d,col:'#120a22',life:.18,max:.18,tel:0})}})}})}
+// Campo de Sombras: a sombra cobre o chão por "dur" s; a cada 1 s quem está dentro fica lento (e leva um arranhão); você recebe menos dano enquanto dura
+function castCampo(s,ax,ay){const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,dur=+s.dur||6,r=s.r||3.5*T;
+ fx.push({k:'sarea',x:x0,y:y0-4,r,col:'#120a22',life:t+dur,max:t+dur,tel:t});
+ KDEL.push({t,fn:()=>{if(s.red)bufStart('campo',{red:+s.red,t:dur,nm:'Campo de Sombras: −'+s.red+'% de dano recebido'});onlReg('🌘 Campo de Sombras por '+nf(dur)+' s.')}});
+ for(let j=0;j<Math.round(dur);j++)KDEL.push({t:t+j+.05,fn:()=>{HTP=tp;try{alvosEm(x0,y0,r).forEach(e=>hitCom(e,s,+s.pot||.05,s.lento?{lento:s.lento}:null))}finally{HTP=null}}})}
+// Domínio das Sombras (ultimate): a sombra toma a área toda e prende + silencia todo mundo dentro
+function castDominio(s,ax,ay){const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,r=s.r||3.5*T,root=+s.root||0;
+ fx.push({k:'sarea',x:x0,y:y0-4,r,col:'#120a22',life:t+.9,max:t+.9,tel:t});
+ KDEL.push({t,fn:()=>{HTP=tp;let L=[];try{L=alvosEm(x0,y0,r);L.forEach(e=>{hitCom(e,s,+s.pot||1,{root,silencio:+s.silencio||0},ONL.on?0:root);sombraMarca(e,root)})}finally{HTP=null}
+  flash={col:s.col,a:.35};shk=Math.max(shk,.3);if(L.length)onlReg('🌑 Domínio das Sombras: '+L.length+' alvo'+(L.length>1?'s':'')+' preso'+(L.length>1?'s':'')+' e silenciado'+(L.length>1?'s':'')+'.')}})}
+const JCAST={nui:castNui,kubi:castKubi,yose:castYose,campo:castCampo,dominio:castDominio};
 // Bola de Fogo (Uchiha): selo com as mãos, depois a bola sai da boca e explode ao acertar
 function castFire(s,ax,ay){actStart('fogo');const tp=HTP;
  KDEL.push({t:s.tel||.16,fn:()=>{const l=Math.hypot(ax,ay)||1,ux=ax/l,uy=ay/l;P.push({x:p.x+ux*14,y:p.y-24,vx:ux*(s.sp||300),vy:uy*(s.sp||300),col:s.col,dmg:s.dmg,life:1.1,big:1,fire:1,tp})}})}
@@ -863,7 +947,7 @@ function itemBtn(){const b=$('#b3');if(!b||(clan&&CLANS[clan].sk[3]))return;cons
 function itemBtnTick(){const b=$('#b3'),it=atkItem();if(!b||(clan&&CLANS[clan].sk[3]))return;if(!!it===b.classList.contains('empty'))itemBtn();const c=b.querySelector('.cd');if(!it){if(c)c.style.height='0';return}
  if(c)c.style.height=Math.min(100,cd[3]/Math.max(.01,cdOf(3))*100)+'%';b.classList.toggle('off',p.mp<mpOf(3))}
 function castItem(){const it=atkItem();if(!it){toast('Equipe um item que dá habilidade (como o Chidori) para usar este botão.');return}
- if(actRoot()||cd[3]>0)return;if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}
+ if(actRoot()||cd[3]>0)return;if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}if(PSI>0)return silAviso();
  if(seloBloqueia(mpOf(3)))return seloAviso();if(p.mp<mpOf(3)){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
  cd[3]=cdOf(3);p.mp-=mpOf(3);let ax=p.ax,ay=p.ay,best=300,tg=null;
  E.concat(PVT()).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});
@@ -872,7 +956,8 @@ function castItem(){const it=atkItem();if(!it){toast('Equipe um item que dá hab
 
 // golpes em área: os Hyuga usam a folha; os outros continuam com o círculo
 let KDEL=[];
-function kfxStep(dt){bufTick();eyeTick(dt);ccTick(dt);if(!KDEL.length)return;KDEL=KDEL.filter(d=>{if((d.t-=dt)>0)return true;try{d.fn()}catch(e){console.error(e)}return false})}
+// o que um efeito agenda de dentro de outro (ex.: os puxões do Kageyose) entra na fila nova e não se perde
+function kfxStep(dt){bufTick();eyeTick(dt);ccTick(dt);if(!KDEL.length)return;const cur=KDEL;KDEL=[];const keep=cur.filter(d=>{if((d.t-=dt)>0)return true;try{d.fn()}catch(e){console.error(e)}return false});KDEL=keep.concat(KDEL)}
 function castAoe(s,ax,ay){
  const hitAll=(cx,cy,radial,onHit)=>{let n=0;E.concat(PVT()).forEach(e=>{if(e.dead||Math.hypot(e.x-cx,e.y-cy)>=s.r+(e.rad||0)*.6)return;n++;
    let kx=ax*(s.kb||0),ky=ay*(s.kb||0);if(radial){const d=Math.hypot(e.x-cx,e.y-cy)||1;kx=(e.x-cx)/d*(s.kb||0);ky=(e.y-cy)/d*(s.kb||0)}

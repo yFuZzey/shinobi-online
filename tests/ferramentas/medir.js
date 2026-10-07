@@ -8,7 +8,10 @@ const OUT=process.argv[2]||__dirname+'/audit_dump.json';
   await W(300);return pg};
  const dump=pg=>pg.evaluate(()=>{autoOn=false;const C=CLANS[clan];
   const sk=C.sk.map((s,i)=>({slot:i,n:s.n,t:s.t,rk:s.rk||null,tipo:skType(i),dmgBase:s.dmg||0,mp:mpOf(i,s),cd:+cdOf(i,s).toFixed(2),stun:s.stun||0,r:s.r||0,len:s.len||0,kb:s.kb||0,raw:s.dmg?+hitRaw(s.dmg,skType(i)).toFixed(1):0}));
-  const d=D();return{lv:CH.lv,st:CH.st,hp:p.max,mp:p.mpMax,regenMp_s:+(5*MG()).toFixed(2),regenHp_s:+(1.2*RG()).toFixed(2),D:d,sk,
+  // catálogo inteiro do clã (inclui jutsus fora da barra): raw = (dano + poder) × força (pot); dot = apertos extras
+  const cat=Object.values(JU[clan]||{}).filter(s=>s.papel!=='passiva'&&s.t!=='eye'&&s.t!=='sus').map(s=>{const sl=s.papel==='ult'?2:1,tp=s.tipo||null,one=hitRaw(s.dmg||0,tp);
+   const ticks=s.t==='campo'?Math.round(+s.dur||0):1;return{id:s.id,n:s.n,lv:s.lv||1,pot:+s.pot||1,cd:+cdOf(sl,s).toFixed(2),mp:mpOf(sl,s),raw:+(one*(+s.pot||1)*ticks).toFixed(1),dot:s.dot?+(one*(+s.dot.pot||0)*(s.dot.n|0)).toFixed(1):0}});
+  const d=D();return{lv:CH.lv,st:CH.st,hp:p.max,mp:p.mpMax,regenMp_s:+(5*MG()).toFixed(2),regenHp_s:+(1.2*RG()).toFixed(2),D:d,sk,cat,
    item:(()=>{const it=atkItem&&atkItem();return it?{n:it.name,mp:mpOf(3),cd:+cdOf(3).toFixed(2)}:null})()}});
  // build "médio" Nv 60: 5 pts/nível = 295 pontos; distribuição típica por clã
  const BUILD={uchiha:{int:110,dex:60,agi:50,vit:50,luk:25,str:0},hyuga:{str:110,agi:70,vit:70,dex:45,int:0,luk:0},nara:{int:100,dex:70,vit:70,agi:40,luk:15,str:0}};

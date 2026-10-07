@@ -38,6 +38,14 @@ dps_raw = {
   'hyuga': H['Palma']['raw'] / H['Palma']['cd'],
   'nara': N['Shuriken']['raw'] / N['Shuriken']['cd'] + N['Sombra']['raw'] / N['Sombra']['cd'] + N['Possessão']['raw'] / N['Possessão']['cd'],
 }
+# Nara com os jutsus da Entrega 7b (catálogo inteiro, cada um no limite da recarga)
+if 'cat' in L['nara']:
+  dps_raw['nara+7b'] = sum((c['raw'] + c['dot']) / max(.2, c['cd']) for c in L['nara']['cat'])
+  burst_raw['nara 7b (Domínio + Kage Nui + Kubishibari + Shuriken)'] = ('nara', sum(c['raw'] + c['dot'] * .5 for c in L['nara']['cat'] if c['id'] in ('dominio', 'nui', 'kubi')) + n2(N['Shuriken']) * N['Shuriken']['raw'])
+  for k, (att, raw) in list(burst_raw.items())[-1:]:
+    for dfn in d:
+      if dfn == att: continue
+      dmg = hit(raw, dfn); out['burst'].append((k, dfn, round(dmg), L[dfn]['hp'], round(dmg / L[dfn]['hp'] * 100)))
 for a, raw in dps_raw.items():
   att = a.split('+')[0]
   for dfn in d:

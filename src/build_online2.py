@@ -28,6 +28,14 @@ for _c in ('uchiha','hyuga','nara'):
     _b=BAL['golpes']['barra'][_c];assert len(_b)==3 and all(x in BAL['golpes']['jutsus'][_c] for x in _b),'balanceamento.json: barra de '+_c
     assert BAL['golpes']['jutsus'][_c][_b[2]].get('papel')=='ult','balanceamento.json: o botão grande de '+_c+' precisa de um jutsu com papel ult'
 for _k in ('itachi','sasuke','madara'):assert _k in BAL['olhos']['susanoo'],'balanceamento.json: Susanoo '+_k
+for _c,_J in BAL['golpes']['jutsus'].items():
+    if _c[0]=='_':continue
+    for _id,_j in _J.items():
+        if _id[0]=='_':continue
+        assert _j.get('r') in BAL['golpes']['ranks'],'balanceamento.json: rank de '+_c+'.'+_id
+        assert _j.get('papel') in ('basico','ativo','ult','passiva'),'balanceamento.json: papel de '+_c+'.'+_id+' (basico, ativo, ult ou passiva)'
+        for _q in ('lento',):
+            if _q in _j:assert isinstance(_j[_q],dict) and 'v' in _j[_q] and 't' in _j[_q],'balanceamento.json: '+_c+'.'+_id+'.'+_q+' precisa de {v, t}'
 for _k in ('hp','mp','pf','pc','spd','mpr','crit','esq','prec','red','cdr'):assert _k in BAL['personagem']['atributos'],'balanceamento.json: atributo '+_k
 def rep(a,b,n=1):
     global s
@@ -125,9 +133,9 @@ rep("for(const e of E)if(!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.
 rep("const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0}});","const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0},prof:{k:null,xp:0},mgk:null,v:SAVE_V});")
 rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(BAL.personagem.atributoMax,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null;CH.v=Math.max(SAVE_V,+j.v||1)}}catch(e){}}")
 rep("const mpOf=(i,s)=>{const a=i==0?atkItem():null;return a?(+a.atk.mp||0):s.mp};","const mpOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.round((a?(+a.atk.mp||0):Math.max(+s.mp||0,(+s.mpPct||0)*(p&&p.mpMax||0)/100))*profMp(i))};")
-rep("const cdOf=(i,s)=>{const a=i==0?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM())};","const cdOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM()*profCd(i))};")
+rep("const cdOf=(i,s)=>{const a=i==0?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM())};","const cdOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM()*profCd(i)*juCdMul(a?null:s))};")
 rep("col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin})","col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin,tp:HTP})")
-rep("{hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);return 0}","{HTP=b.tp||null;HCC={pj:1};hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);HTP=null;HCC=null;if(b.fire)fireBoom(b);return 0}")
+rep("{hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);return 0}","{HTP=b.tp||null;HCC=b.cc?Object.assign({pj:1},b.cc):{pj:1};HMUL=b.hm||1;try{hitE(e,b.dmg,0,b.vx*.03,b.vy*.03)}finally{HTP=null;HCC=null;HMUL=1}if(b.fire)fireBoom(b);return 0}")
 # Kagemane com aviso (tel): a sombra cresce no chão antes de prender
 rep("if(s.t=='line'){const x2=p.x+ax*s.len,y2=p.y+ay*s.len;","if(s.t=='line'&&s.tel){castLine(s,ax,ay)}else if(s.t=='line'){const x2=p.x+ax*s.len,y2=p.y+ay*s.len;")
 rep("p.dash={sx:p.x,sy:p.y,tx,ty,t:0,dur:Math.max(.1,Math.min(.28,dist/650)),dmg,area};","p.dash={sx:p.x,sy:p.y,tx,ty,t:0,dur:Math.max(.1,Math.min(.28,dist/650)),dmg,area,tp:HTP||'@ninjutsu'};")
@@ -168,7 +176,7 @@ rep("  E.forEach(e=>{if(e.dead)return;const dx=e.x-hx,dy=e.y-hy,dd=","  E.concat
 rep("if(p.dash){dashStep(dt)}else if(m>.15){","if(p.dash){dashStep(dt)}else if(PST>0){PST-=dt;p.mv=0}else if(PRT>0||actRoot()){p.mv=0}else if(m>.15){if(ACT&&!ACT.root)ACT=null;")
 # golpes em área passam por castAoe (os Hyuga usam a folha de efeitos do Kaiten)
 rep(" if(s.t=='aoe'){const cx=p.x+ax*(s.off||0),cy=p.y+ay*(s.off||0);\n  fx.push({k:'ring',x:cx,y:cy-8,r:s.r,col:s.col,life:.45,max:.45,sp:s.fx});\n  E.concat(PVT()).forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hitE(e,s.dmg,s.stun,ax*(s.kb||0),ay*(s.kb||0))});\n  if(s.fx)flash={col:s.col,a:.3}}",
-    " if(s.t=='aoe')castAoe(s,ax,ay);")
+    " if(s.t=='aoe')castAoe(s,ax,ay);else if(JCAST[s.t])JCAST[s.t](s,ax,ay);")
 # desenho dos efeitos da folha
 rep(" fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='ring'){"," fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'){shadowFxDraw(f);return}if(f.k=='act')return;\n  if(f.k=='ring'){")
 # Hyuga de branco: quadros novos entram no sprite (o jogo carrega e pinta pele/cabelo igual aos outros; a roupa branca não recebe cor)
@@ -187,6 +195,9 @@ rep("{'1':0,'2':1,'3':2,j:0,k:1,l:2}","{'1':0,'2':1,'3':2,'4':3,j:0,k:1,l:2,u:3}
 rep(" P=[];EP=[];fx=[];FT=[];cd=[0,0,0];"," P=[];EP=[];fx=[];FT=[];cd=[0,0,0,0];")
 rep("for(let i=0;i<3;i++)cd[i]=Math.max(0,cd[i]-dt);","for(let i=0;i<4;i++)cd[i]=Math.max(0,cd[i]-dt);")
 rep("b.classList.toggle('off',p.mp<mpOf(i,s))});","b.classList.toggle('off',p.mp<mpOf(i,s))});itemBtnTick();jtBtnTick();")
+rep(" if(gsHit(e,d,st,kx,ky))return;d=calcDmg(d);e.hp-=d;e.hit=.15;e.hurt=.28;if(st)e.stun=Math.max(e.stun,st);",
+    " if(gsHit(e,d,st,kx,ky))return;d=calcDmg(d);e.hp-=d;e.hit=.15;e.hurt=.28;{const cm=ccPveMul();if(st)e.stun=Math.max(e.stun,st*cm);if(HCC&&HCC.lento&&+HCC.lento.t>0){e.slw=Math.max(e.slw||0,HCC.lento.t*cm);e.slp=+HCC.lento.v||0}}")
+rep("go(e,vx,vy,e.boss?72:70,dt)});","if(e.slw>0)e.slw=Math.max(0,e.slw-dt);go(e,vx,vy,(e.boss?72:70)*(e.slw>0?1-Math.min(60,e.slp||0)/100:1),dt)});")
 rep("function useBtn(i){if(CLANS[clan].sk[i].auto)","function useBtn(i){if(i===3&&!CLANS[clan].sk[3])return castItem();if(!CLANS[clan].sk[i])return;if(CLANS[clan].sk[i].auto)")
 # o item não ocupa mais o golpe inicial: tem botão próprio
 rep("if(cd[i]>0||p.mp<mpOf(i,s)){if(i==0&&atkItem()&&cd[0]<=0&&p.mp<mpOf(0,s))FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}",
@@ -196,8 +207,8 @@ rep("function refreshAtk(){const it=atkItem(),b=$('#b0');if(!b)return;b.innerHTM
 # Bola de Fogo: pose de selo, bola com rastro de chamas e explosão
 rep("  if(s.t=='proj'){const n=s.fan||1;","  if(s.t=='proj'&&s.fire)castFire(s,ax,ay);else if(s.t=='proj'){const n=s.fan||1;")
 rep(" P=P.filter(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.life<=0||sol(b.x,b.y+16))return 0;",
-    " P=P.filter(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.life<=0||sol(b.x,b.y+16)||(b.rm&&b.fire&&fireRmHit(b))){if(b.fire)fireBoom(b);return 0}")
-rep("P.forEach(b=>{if(b.spin){","P.forEach(b=>{if(b.fire){fireDraw(b,ts);return}if(b.spin){")
+    " P=P.filter(b=>{if(b.seek&&!b.rm)nuiSeek(b,dt);b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.life<=0||sol(b.x,b.y+16)||(b.rm&&b.fire&&fireRmHit(b))){if(b.fire)fireBoom(b);return 0}")
+rep("P.forEach(b=>{if(b.spin){","P.forEach(b=>{if(b.fire){fireDraw(b,ts);return}if(b.sh){nuiDraw(b);return}if(b.spin){")
 # reforços ativos (Sharingan, Mangekyō, Susanoo) aparecem embaixo das barras
 rep('<div id="phud"></div>','<div id="phud"></div><div id="bufs"></div>')
 # ---- aba Jutsus (árvore do clã) + olho liga/desliga ----

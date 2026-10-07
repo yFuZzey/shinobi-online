@@ -41,6 +41,9 @@ const CFG = {
   pvpRootMax: 2,           // preso no lugar (não anda) máximo em jogador (s)
   pvpSeloMax: 4,           // chakra selado máximo em jogador (s)
   pvpQueimaMax: 5,         // % do chakra máximo que um golpe pode queimar
+  pvpLentoMax: 2, pvpLentoPctMax: 40, // lentidão máxima em jogador: duração (s) e quanto fica mais lento (%)
+  pvpSilencioMax: 2,       // silêncio máximo em jogador (s): só o golpe básico funciona
+  lentoMaxMonstro: 4, lentoPctMaxMonstro: 50, // lentidão máxima que um golpe de jogador põe num monstro (s, %)
   stunMaxMonstro: 8,       // atordoamento máximo que um golpe de jogador põe num monstro (s)
   kaitenMax: 1.2,          // Kaiten girando: bloqueia golpes de jogadores por até isso (s)
   empurraoPvpMax: .6,      // empurrão máximo por golpe no PvP (o celular de quem apanha anda ~40× isso em px)
@@ -161,9 +164,10 @@ function newMob(r, d, A, id) { const [x, y] = spreadPoint(r, A, null), sc = clam
 function rectDist(A, x, y) { const x0 = A.x * T, y0 = A.y * T, x1 = (A.x + A.w) * T, y1 = (A.y + A.h) * T; return hyp(Math.max(x0 - x, 0, x - x1), Math.max(y0 - y, 0, y - y1)); }
 function mobTickG(r, e, dt) {
   const d = e.def;
-  if (e.dead) { e.dt += dt; if ((e.rt -= dt) <= 0) { const [x, y] = spreadPoint(r, e.A, e); Object.assign(e, { x, y, hx: x, hy: y, hp: e.max, dead: 0, dt: 0, tg: null, back: 0, dmg: {}, stun: 0, root: 0, hurt: 0, lunge: 0 }); } return; }
+  if (e.dead) { e.dt += dt; if ((e.rt -= dt) <= 0) { const [x, y] = spreadPoint(r, e.A, e); Object.assign(e, { x, y, hx: x, hy: y, hp: e.max, dead: 0, dt: 0, tg: null, back: 0, dmg: {}, stun: 0, root: 0, lento: 0, hurt: 0, lunge: 0 }); } return; }
   e.hurt = Math.max(0, e.hurt - dt); e.lunge = Math.max(0, e.lunge - dt); e.atkT -= dt;
   if (e.root > 0) e.root = Math.max(0, e.root - dt);
+  if (e.lento > 0) e.lento = Math.max(0, e.lento - dt);
   if (e.stun > 0) { e.stun -= dt; e.mv = 0; return; }
   const vel = clamp(num(d.vel, 70), 10, 300), leash = clamp(num(d.persegue, 8), 1, 40) * T, vis = clamp(num(d.visao, 6), 0, 20) * T;
   // ninguém por perto por um tempo: volta inteira para a área
@@ -188,10 +192,10 @@ function mobTickG(r, e, dt) {
     let px = 0, py = 0; for (const o of r.mobs) { if (o === e || o.dead || o.kind !== 'mob') continue; const dx = e.x - o.x, dy = e.y - o.y, dd = hyp(dx, dy), mn = (e.rad + o.rad) * .9; if (dd > 0.01 && dd < mn) { px += dx / dd * (mn - dd) / mn; py += dy / dd * (mn - dd) / mn; } }
     if (px || py) { vx += px * 1.2; vy += py * 1.2; const l = hyp(vx, vy); if (l > 1) { vx /= l; vy /= l; } } }
   if (!tg && Math.abs(vx) > .05) e.fl = vx < 0 ? 1 : 0;
-  const ox = e.x, oy = e.y; if (e.root > 0) e.mv = 0; else go(r.map, e, vx, vy, sp, dt);
+  const ox = e.x, oy = e.y; if (e.root > 0) e.mv = 0; else go(r.map, e, vx, vy, sp * lentoMul(e), dt);
   if (e.mv && e.x === ox && e.y === oy) { e.wt = 0; if (e.back) { e.x = e.hx; e.y = e.hy; } } // preso numa parede
 }
-const MK = ['x', 'y', 'hp', 'max', 'dead', 'dt', 'mv', 'fl', 'ch', 'lunge', 'ja', 'jz', 'jc', 'jx', 'jy', 'stun', 'hurt', 'rt', 'root']; // 'root' no fim: app antigo ignora
+const MK = ['x', 'y', 'hp', 'max', 'dead', 'dt', 'mv', 'fl', 'ch', 'lunge', 'ja', 'jz', 'jc', 'jx', 'jy', 'stun', 'hurt', 'rt', 'root', 'lento']; // 'root' e 'lento' no fim: app antigo ignora
 const mobState = e => MK.map(k => { const v = e[k]; return typeof v === 'number' ? Math.round(v * 100) / 100 : (v ? 1 : 0); });
 
 function toRoom(r, o, except) { const s = JSON.stringify(o), fr = wsFrame(1, s); for (const p of r.players) if (p !== except && p.conn.open) { try { p.conn.sock.write(fr); } catch (e) {} } }
@@ -517,6 +521,7 @@ function onHit(p, m) {
   if (Math.random() * 100 < dodgeChance(esq, pr, COMBATE.esquivaMaxMonstro)) { e.alone = 0; toRoom(r, { t: 'mh', m: e.id, d: 0, miss: 1, by: p.id }); return; }
   e.hp -= d; e.hurt = .28; e.alone = 0;
   const rt = clamp(num(m.rt, 0), 0, CFG.stunMaxMonstro); if (rt) e.root = Math.max(e.root || 0, rt); // preso pela sombra: não anda
+  const lt = clamp(num(m.lt, 0), 0, CFG.lentoMaxMonstro); if (lt) { e.lento = Math.max(e.lento || 0, lt); e.lentoP = clamp(num(m.lp, 0), 0, CFG.lentoPctMaxMonstro); } // lento (Kage Nui…)
   const st = clamp(num(m.st, 0), 0, CFG.stunMaxMonstro); if (st) e.stun = Math.max(e.stun, st); // até 8 s (Genjutsu rank alto alonga o atordoamento)
   const kx = clamp(num(m.kx, 0), -30, 30), ky = clamp(num(m.ky, 0), -30, 30);
   if (!e.ja && (kx || ky) && !blk(r.map, e.x + kx, e.y + ky)) { e.x += kx; e.y += ky; }
@@ -525,7 +530,7 @@ function onHit(p, m) {
   if (e.hp <= 0) killMob(r, e);
 }
 function killMob(r, e) {
-  e.hp = 0; e.dead = 1; e.dt = 0; e.rt = e.kind === 'mob' ? clamp(num(e.def.renasce, 15), 2, 3600) * (.8 + Math.random() * .4) : clamp(num(FOXDEF().renasce, CFG.respawn), 2, 36000); e.ch = e.lunge = e.ja = e.jc = e.jz = e.stun = e.root = 0; e.tg = null; if (e.kind !== 'mob') r.eps = [];
+  e.hp = 0; e.dead = 1; e.dt = 0; e.rt = e.kind === 'mob' ? clamp(num(e.def.renasce, 15), 2, 3600) * (.8 + Math.random() * .4) : clamp(num(FOXDEF().renasce, CFG.respawn), 2, 36000); e.ch = e.lunge = e.ja = e.jc = e.jz = e.stun = e.root = e.lento = 0; e.tg = null; if (e.kind !== 'mob') r.eps = [];
   const tot = {}; for (const uid in e.dmg) { const k = groupKey(uid); tot[k] = (tot[k] || 0) + e.dmg[uid]; }
   let best = null; for (const k in tot) if (!best || tot[k] > tot[best]) best = k;
   e.dmg = {};
@@ -575,8 +580,13 @@ function ccPvp(c) {
   if (k === 'root') { const t = clamp(num(c.t, 0), 0, CFG.pvpRootMax); return t > 0 ? { k, t: Math.round(t * 100) / 100 } : undefined; }
   if (k === 'selo') { const t = clamp(num(c.t, 0), 0, CFG.pvpSeloMax); return t > 0 ? { k, t: Math.round(t * 100) / 100 } : undefined; }
   if (k === 'queima') { const v = clamp(num(c.v, 0), 0, CFG.pvpQueimaMax); return v > 0 ? { k, v: Math.round(v * 100) / 100 } : undefined; }
+  if (k === 'lento') { const t = clamp(num(c.t, 0), 0, CFG.pvpLentoMax), v = clamp(num(c.v, 0), 0, CFG.pvpLentoPctMax); return t > 0 && v > 0 ? { k, t: Math.round(t * 100) / 100, v: Math.round(v) } : undefined; }
+  if (k === 'silencio') { const t = clamp(num(c.t, 0), 0, CFG.pvpSilencioMax); return t > 0 ? { k, t: Math.round(t * 100) / 100 } : undefined; }
   return undefined;
 }
+// um efeito ({k…}) ou até 2 juntos ([{k…},{k…}], ex.: prender + silenciar); app antigo ignora a lista
+function ccPvpList(c) { if (!Array.isArray(c)) return ccPvp(c); const L = c.slice(0, 2).map(ccPvp).filter(Boolean); return L.length > 1 ? L : L[0]; }
+const ccPreso = cc => { let t = 0; for (const c of (Array.isArray(cc) ? cc : cc ? [cc] : [])) if (c.k === 'root' || c.k === 'silencio') t = Math.max(t, num(c.t, 0)); return t; };
 function onPvp(p, m) {
   const q = players.get(str(m.to, 64)); const why = pvpWhy(p, q);
   if (why === 'seguro') return p.conn.send({ t: 'ph', to: q.id, by: p.id, safe: 1 });
@@ -595,9 +605,9 @@ function onPvp(p, m) {
   const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(p.id) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(p.id, o);
   toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c }, q);
   const pst = Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, CFG.stunMaxMonstro));
-  const cc = ccPvp(m.cc);
+  const cc = ccPvpList(m.cc);
   q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c, cc });
-  lutaGolpe(q, p, dd, pst);
+  lutaGolpe(q, p, dd, Math.max(pst, ccPreso(cc))); // "preso" no registro da luta: atordoado, preso pela sombra ou silenciado
 }
 // ---------------------------------------------------------------- olhar do Sharingan / Mangekyō (genjutsu)
 // paralisa sem dano; quanto mais esquiva o alvo tem, menos tempo fica preso (mín. 30%); chefe, metade; jogador, até pvpStun
@@ -653,12 +663,13 @@ function cdMinimo(p, sl, id) {
   const j = BALJ, G = j && j.golpes; if (!G || !G.jutsus || !p.clan) return 0;
   let base = 0;
   if (!id && sl < 3) id = ((G.barra || {})[p.clan] || [])[sl];
-  if (id && id !== 'item') { const g = (G.jutsus[p.clan] || {})[id]; if (!g) return 0; base = num(g.cd, num((G.ranks[g.r] || {}).cd, 0)); }
+  let g = null; if (id && id !== 'item') { g = (G.jutsus[p.clan] || {})[id]; if (!g) return 0; base = num(g.cd, num((G.ranks[g.r] || {}).cd, 0)); }
   else { for (const iid of p.eq || []) { const it = ITEMS[iid]; if (it && num(it.cd, 0) > 0) base = num(it.cd, 0); } }
   if (!(base > 0)) return 0;
   const at = (j.personagem && j.personagem.atributos) || {}, cdr = num((at.cdr || {}).max, 40);
   const tai = ((j.proficiencia || {}).tipos || {}).taijutsu || {}, perk = num(tai.pv, 0) * (((j.proficiencia || {}).ranks || []).length || 0);
-  return Math.max(.2, base * (1 - cdr / 100) * (1 - perk / 100));
+  const nint = ((G.jutsus || {}).nara || {}).intelecto, nar = p.clan === 'nara' && g && g.sombra && nint ? num(nint.cdSombra, 0) : 0;
+  return Math.max(.2, base * (1 - cdr / 100) * (1 - perk / 100) * (1 - nar / 100));
 }
 function onCast(p, m) {
   try {
@@ -677,7 +688,7 @@ function onPvpResult(q, m) { // q = quem apanhou, avisando que foi derrotado por
     log('PvP:', a ? a.nome : by, 'derrotou', q.nome, 'em', q.map); lutaFecha(q, 1); }
 }
 function resetMob(r, e, announce) {
-  Object.assign(e, { x: e.hx, y: e.hy, hp: e.max, dead: 0, dt: 0, rt: 0, mv: 0, ch: 0, fired: 0, lunge: 0, dmgp: 0, ja: 0, jc: 0, jz: 0, stun: 0, root: 0, hurt: 0, dmg: {}, alone: 0, jcd: 3, bc: 2, atk: 0, aim: null, jt: null });
+  Object.assign(e, { x: e.hx, y: e.hy, hp: e.max, dead: 0, dt: 0, rt: 0, mv: 0, ch: 0, fired: 0, lunge: 0, dmgp: 0, ja: 0, jc: 0, jz: 0, stun: 0, root: 0, hurt: 0, dmg: {}, alone: 0, jcd: 3, bc: 2, atk: 0, aim: null, jt: null, lento: 0 });
   r.eps = [];
   if (announce) toRoom(r, { t: 'mev', k: 'reset', m: e.id, x: e.x, y: e.y });
 }
@@ -697,6 +708,7 @@ function mobTick(r, e, dt) {
   if (e.dmgp && e.lunge < .26) { e.dmgp = 0; areaHurt(r, e.x, e.y, 100, num(FOXDEF().dano, 12), 0, 'mordida', num(FOXDEF().precisao, 0)); }
   if (e.ja > 0) { e.mv = 0; foxAir(r, e, dt); return; }
   if (e.root > 0) e.root = Math.max(0, e.root - dt);
+  if (e.lento > 0) e.lento = Math.max(0, e.lento - dt);
   if (e.stun > 0) { e.stun -= dt; e.mv = 0; e.jc = 0; e.ch = 0; return; }
   const tg = near && nd <= CFG.aggro * T ? near : null;
   if (e.jc > 0) { e.mv = 0; foxCrouch(r, e, dt); return; }
@@ -720,8 +732,9 @@ function mobTick(r, e, dt) {
     else { if ((e.wt -= dt) <= 0) { e.wt = 1 + Math.random() * 2; e.wa = Math.random() * 6.3; e.wm = Math.random() < .5; } if (e.wm) { vx = Math.cos(e.wa) * .5; vy = Math.sin(e.wa) * .5; } }
     if (Math.abs(vx) > .05) e.fl = vx < 0 ? 1 : 0;
   }
-  if (e.root > 0) e.mv = 0; else go(r.map, e, vx, vy, 72, dt);
+  if (e.root > 0) e.mv = 0; else go(r.map, e, vx, vy, 72 * lentoMul(e), dt);
 }
+function lentoMul(e) { return e.lento > 0 ? 1 - clamp(num(e.lentoP, 0), 0, CFG.lentoPctMaxMonstro) / 100 : 1; }
 function foxJump(e, tg) { e.jc = JC; e.jcd = 5 + Math.random() * 1.5; e.bc = Math.max(e.bc, 1.6); e.jx = tg.x; e.jy = tg.y; e.fl = tg.x < e.x ? 1 : 0; e.jt = tg; }
 function foxCrouch(r, e, dt) {
   e.jc -= dt; const t = e.jt; if (e.jc > .15 && t && r.players.has(t) && !t.sc) { e.jx = t.x; e.jy = t.y; e.fl = t.x < e.x ? 1 : 0; }

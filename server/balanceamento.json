@@ -1,6 +1,6 @@
 {
  "_leia": "Números de balanceamento do Shinobi Online. O servidor lê este arquivo ao iniciar (o Render reinicia sozinho quando ele muda no GitHub) e o jogo leva uma cópia na montagem (src/build.sh). Se algum valor faltar ou vier errado, o servidor usa o valor padrão do código e avisa no log. Tempos em segundos, distâncias em pixels (1 tile = 32 px), chances em %.",
- "versao": 6,
+ "versao": 7,
  "flags": {
   "_leia": "Liga (true) ou desliga (false) cada sistema.",
   "pvp": true
@@ -27,6 +27,11 @@
   "pvpRootMax": 2,
   "pvpSeloMax": 4,
   "pvpQueimaMax": 5,
+  "pvpLentoMax": 2,
+  "pvpLentoPctMax": 40,
+  "pvpSilencioMax": 2,
+  "lentoMaxMonstro": 4,
+  "lentoPctMaxMonstro": 50,
   "stunMaxMonstro": 8,
   "kaitenMax": 1.2,
   "empurraoPvpMax": 0.6,
@@ -313,7 +318,7 @@
   "multMax": 1.3
  },
  "golpes": {
-  "_leia": "ranks: dano base, chakra e recarga de cada rank. jutsus: catálogo de cada clã (por id). barra: o que vai nos botões no começo (0 inicial, 1 do meio, 2 grande); o jogador troca na aba Jutsus.",
+  "_leia": "ranks: dano base, chakra e recarga de cada rank. jutsus: catálogo de cada clã (por id). barra: o que vai nos botões no começo (0 inicial, 1 do meio, 2 grande); o jogador troca na aba Jutsus. Campos dos jutsus novos: pot = força do golpe inteiro (dano + poder; 1 = normal; golpes de vários toques dividem), lento = {v: % mais lento, t: s}, silencio = s em que o alvo só usa o golpe básico, dot = {n toques, int s entre eles, pot de cada}, puxa = tiles que puxa o alvo, raio = área em tiles, dur = s que a área fica no chão, red = % a menos de dano recebido (você) enquanto a área dura, exige = sombra (só em quem está preso na sua sombra), sombra = jutsu de sombra (a passiva Intelecto Nara tira cdSombra% da recarga e deixa os controles ccPve% mais longos em monstros).",
   "ranks": {
    "E": {
     "dmg": 9,
@@ -440,7 +445,8 @@
      "tel": 0.5,
      "tipo": "ninjutsu",
      "papel": "ativo",
-     "lv": 1
+     "lv": 1,
+     "sombra": 1
     },
     "poss": {
      "r": "S",
@@ -454,7 +460,105 @@
      "tel": 0.6,
      "tipo": "ninjutsu",
      "papel": "ult",
-     "lv": 30
+     "lv": 30,
+     "sombra": 1
+    },
+    "nui": {
+     "r": "B",
+     "f": 0.9,
+     "pot": 1.3,
+     "mp": 0,
+     "mpPct": 12,
+     "cd": 9,
+     "tel": 0.4,
+     "lento": {
+      "v": 25,
+      "t": 1.5
+     },
+     "sombra": 1,
+     "tipo": "ninjutsu",
+     "papel": "ativo",
+     "lv": 15
+    },
+    "kubi": {
+     "r": "C",
+     "f": 0.4,
+     "pot": 0.5,
+     "mp": 0,
+     "mpPct": 14,
+     "cd": 16,
+     "tel": 0.5,
+     "silencio": 1.5,
+     "dot": {
+      "n": 4,
+      "int": 0.5,
+      "pot": 0.1
+     },
+     "exige": "sombra",
+     "sombra": 1,
+     "tipo": "ninjutsu",
+     "papel": "ativo",
+     "lv": 20
+    },
+    "yose": {
+     "r": "B",
+     "f": 0.6,
+     "pot": 0.8,
+     "mp": 0,
+     "mpPct": 12,
+     "cd": 14,
+     "tel": 0.4,
+     "puxa": 3,
+     "sombra": 1,
+     "tipo": "ninjutsu",
+     "papel": "ativo",
+     "lv": 40
+    },
+    "campo": {
+     "r": "C",
+     "f": 0,
+     "pot": 0.05,
+     "mp": 0,
+     "mpPct": 20,
+     "cd": 25,
+     "tel": 0.6,
+     "raio": 3.5,
+     "dur": 6,
+     "lento": {
+      "v": 20,
+      "t": 1.2
+     },
+     "red": 10,
+     "sombra": 1,
+     "tipo": "ninjutsu",
+     "papel": "ativo",
+     "lv": 45
+    },
+    "intelecto": {
+     "r": "E",
+     "f": 0,
+     "cd": 0,
+     "mp": 0,
+     "cdSombra": 10,
+     "ccPve": 15,
+     "papel": "passiva",
+     "lv": 50
+    },
+    "dominio": {
+     "r": "S",
+     "f": 0.55,
+     "pot": 1.5,
+     "mp": 0,
+     "mpPct": 35,
+     "cd": 80,
+     "tel": 0.8,
+     "raio": 3.5,
+     "root": 1.5,
+     "silencio": 1,
+     "sombra": 1,
+     "tipo": "ninjutsu",
+     "papel": "ult",
+     "lv": 60
     }
    }
   },
