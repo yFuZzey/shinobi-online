@@ -40,9 +40,10 @@ const LOG=require('path').join(__dirname,'..','servidor.log'),fs=require('fs');
  for(let k=0;k<4&&pux<50;k++){const x0=await B.evaluate(()=>p.x);await solta(0,1);await W(1300);pux=x0-await B.evaluate(()=>p.x);if(pux<50)await lugar(200)}
  ok(pux>=50,'Kageyose puxa B na direção do Nara ('+Math.round(pux)+' px)');
  // monstro: o servidor deixa lento e conta para todo mundo
+ await B.evaluate(()=>{p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;gsPos(true)}); // B longe: o jutsu tem que ir no monstro
  for(const pg of [A,B])await pg.evaluate(()=>gsJoin());await A.waitForFunction(()=>ONL.joined&&E.some(e=>!e.dead&&!e.boss),null,{timeout:10000}).catch(()=>{});await W(600);
  const alvo=await A.evaluate(()=>{const e=E.filter(e=>!e.dead&&!e.boss).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];if(!e)return null;p.x=e.x-90;p.y=e.y;gsPos(true);return e.sid});
- let lm=0;if(alvo!=null){for(let k=0;k<4&&!(lm>0);k++){await A.evaluate(id=>{const e=E.find(x=>x.sid===id);E=e?[e]:[];cd[3]=0;p.mp=p.mpMax;cast(3)},alvo);await W(1100);lm=await B.evaluate(id=>{const e=E.find(x=>x.sid===id);return e?e.lento||0:-1},alvo);if(process.env.DBG)console.log('dbg',lm,JSON.stringify(await A.evaluate(id=>{const e=E.find(x=>x.sid===id);return e&&{sn:e.sn,hp:e.hp,max:e.max,d:Math.hypot(e.x-p.x,e.y-p.y)}},alvo)))}}
+ let lm=0;if(alvo!=null){for(let k=0;k<4&&!(lm>0);k++){await A.evaluate(id=>{const e=E.find(x=>x.sid===id&&!x.dead);E=e?[e]:[];if(e){p.x=e.x-80;p.y=e.y;gsPos(true)}cd[3]=0;p.mp=p.mpMax;cast(3)},alvo);await W(1100);lm=await B.evaluate(id=>{const e=E.find(x=>x.sid===id);return e?e.lento||0:-1},alvo);if(process.env.DBG)console.log('dbg',lm,JSON.stringify(await A.evaluate(id=>{const e=E.find(x=>x.sid===id);return e&&{sn:e.sn,hp:e.hp,max:e.max,d:Math.hypot(e.x-p.x,e.y-p.y)}},alvo)))}}
  ok(lm>0,'Kage Nui num monstro: o servidor deixa ele lento e os outros jogadores veem ('+(+lm).toFixed(1)+' s)');
  const lg=fs.readFileSync(LOG,'utf8').slice(n0);ok(!/erro ignorado/.test(lg),'servidor sem erros');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();

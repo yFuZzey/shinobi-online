@@ -32,4 +32,9 @@ const logDesde=n=>fs.readFileSync(LOG,'utf8').slice(n);
  await say(B,'/lutas');ok(/Comando desconhecido/.test(await reg(B)),'/lutas sem admin: comando desconhecido');
  await fetch(MOCK+'/__admin?nome='+nA,{headers:{apikey:'x'}});await A.evaluate(()=>ONL.ws.close());await A.waitForFunction(()=>ONL.adm&&ONL.joined,null,{timeout:15000});
  await say(A,'/lutas');const ra=await reg(A);ok(new RegExp('Últimas lutas PvP.*'+nA+' x '+nB+'.*maior dano em 2 s \\d+% da vida.*derrotado').test(ra),'admin vê as últimas lutas com /lutas');
+ // dano falso (app adulterado): o servidor anota "DANO?" no log (modo sombra: não bloqueia)
+ ok(!/DANO\?/.test(logDesde(n0)),'golpes normais: o servidor não anota suspeita de dano');
+ await A.evaluate(s=>{p.x=s[0];p.y=s[1];gsPos(true)},spot);await B.evaluate(s=>{p.x=s[0]+40;p.y=s[1];p.hp=p.max;gsPos(true)},spot);await W(700);
+ await A.evaluate(id=>gsSend({t:'pvp',to:id,j:'palma',d:1400,pr:999}),await B.evaluate(()=>ONL.uid));await W(600);
+ ok(new RegExp('DANO\\? '+nA+' \\(hyuga, Nv \\d+\\) mandou 1400 com palma no PvP').test(logDesde(n0)),'dano impossível para o nível: o servidor anota a suspeita no log');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();

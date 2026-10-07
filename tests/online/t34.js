@@ -36,10 +36,11 @@ const LOG=require('path').join(__dirname,'..','servidor.log'),fs=require('fs');
  for(let k=0;k<3;k++){await solta(3);await W(250);av=av||await B.evaluate(()=>fx.some(f=>f.k==='aviso'&&f.rm));await W(700);if(await B.evaluate(h=>_hb>h,h3))break}
  ok(av,'B vê o aviso no chão antes do Gōryūka cair');ok(await B.evaluate(h=>_hb>h,h3),'Gōryūka acerta B');
  // monstro: confusão pelo servidor
+ await B.evaluate(()=>{p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;gsPos(true)}); // B longe: o jutsu tem que ir no monstro
  for(const pg of [A,B])await pg.evaluate(()=>gsJoin());await A.waitForFunction(()=>ONL.joined&&E.some(e=>!e.dead&&!e.boss),null,{timeout:10000}).catch(()=>{});await W(600);
  await A.evaluate(()=>barSet(0,'genj'));
  const alvo=await A.evaluate(()=>{const e=E.filter(e=>!e.dead&&!e.boss).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];if(!e)return null;p.x=e.x-90;p.y=e.y;gsPos(true);return e.sid});
- let cm=0;if(alvo!=null){for(let k=0;k<6&&!(cm>0);k++){await A.evaluate(id=>{const e=E.find(x=>x.sid===id);E=e?[e]:[];cd[0]=0;p.mp=p.mpMax;cast(0)},alvo);await W(900);cm=await B.evaluate(id=>{const e=E.find(x=>x.sid===id);return e?e.conf||0:-1},alvo);if(process.env.DBG)console.log('dbg',cm,JSON.stringify(await A.evaluate(id=>{const e=E.find(x=>x.sid===id);return e&&{sn:e.sn,d:Math.hypot(e.x-p.x,e.y-p.y),cd:cd[0],bar:BAR,reg:ONL.reg.slice(-3).map(r=>r.t)}},alvo)))}}
+ let cm=0;if(alvo!=null){for(let k=0;k<6&&!(cm>0);k++){await A.evaluate(id=>{const e=E.find(x=>x.sid===id&&!x.dead);E=e?[e]:[];if(e){p.x=e.x-80;p.y=e.y;gsPos(true)}cd[0]=0;p.mp=p.mpMax;cast(0)},alvo);await W(900);cm=await B.evaluate(id=>{const e=E.find(x=>x.sid===id);return e?e.conf||0:-1},alvo);if(process.env.DBG)console.log('dbg',cm,JSON.stringify(await A.evaluate(id=>{const e=E.find(x=>x.sid===id);return e&&{sn:e.sn,d:Math.hypot(e.x-p.x,e.y-p.y),cd:cd[0],bar:BAR,reg:ONL.reg.slice(-3).map(r=>r.t)}},alvo)))}}
  ok(cm>0,'Genjutsu num monstro: o servidor deixa ele confuso e os outros veem ('+(+cm).toFixed(1)+' s)');
  const lg=fs.readFileSync(LOG,'utf8').slice(n0);ok(!/erro ignorado/.test(lg),'servidor sem erros');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();

@@ -525,7 +525,7 @@ function onHit(p, m) {
   if (!p.map || p.sc) return; const r = room(p.map); const e = r.mobs.find(x => x.id === m.m); if (!e || e.dead) return;
   const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
   if (hyp(p.x - e.x, p.y - e.y) > CFG.hitRange) return;
-  let d = Math.round(clamp(num(m.d, 0), 0, CFG.maxHit)); if (!d) return;
+  let d = Math.round(clamp(num(m.d, 0), 0, CFG.maxHit)); if (!d) return; danoConfere(p, m, false);
   if (e.back) return; if (e.kind === 'mob' && !e.tg) e.tg = p;
   const pr = clamp(num(m.pr, 0), 0, 5000), esq = num((e.def || {}).esquiva, 0);
   if (Math.random() * 100 < dodgeChance(esq, pr, COMBATE.esquivaMaxMonstro)) { e.alone = 0; toRoom(r, { t: 'mh', m: e.id, d: 0, miss: 1, by: p.id }); return; }
@@ -648,7 +648,7 @@ function onPvp(p, m) {
   if (why === 'seguro') return p.conn.send({ t: 'ph', to: q.id, by: p.id, safe: 1 });
   if (why) return;
   const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
-  const j = str(m.j, 24), an = natDe(p, j), nmul = natMul(an, natCla(q));
+  const j = str(m.j, 24), an = natDe(p, j), nmul = natMul(an, natCla(q)); danoConfere(p, m, true);
   const d = Math.max(1, Math.round(clamp(num(m.d, 0), 0, CFG.pvpMaxHit) * CFG.pvpMul * nmul * nivelMul(p, q))); if (!num(m.d, 0)) return;
   // empurrão proporcional ao golpe (o celular de quem apanha anda ~40× esse valor em px; máx. 24 px por golpe)
   let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); let kk = 0; if (kl > .01) { kk = Math.min(CFG.empurraoPvpMax, kl / 40); kx = kx / kl * kk; ky = ky / kl * kk; } else { kx = ky = 0; }
@@ -727,6 +727,15 @@ function cmdLutas(p, me) {
 // O app avisa cada golpe usado ({t:'cast', sl, id}: botão e id do jutsu; id 'item' = golpe do item da mão). Com o catálogo do
 // balanceamento.json (golpes.jutsus), o servidor calcula o menor intervalo possível (recarga com o máximo de Destreza e de
 // especialidade, com folga para a rede). App antigo, sem id: vale o jutsu da barra padrão daquele botão.
+// dano conferido pelo servidor (modo sombra, planilha 15 T-09): teto bem folgado para um golpe do jutsu "j" no nível de quem bate
+// (dano do rank × força + o maior poder possível no nível, × especialidade, reforços, itens e crítico). Passou do teto: anota "DANO?" no log
+function danoMax(p, j, pvp) { try { const G = BALJ && BALJ.golpes; if (!G || !j || j === 'item') return 0; const g = ((G.jutsus || {})[p.clan] || {})[j]; if (!g) return 0;
+  const P = BALJ.personagem || {}, R = (G.ranks || {})[g.r] || {}, base = num(R.dmg, 80) * num(g.f, 1);
+  const pts = Math.min(num(P.statusMax, 300), 30 + num(p.lv, 1) * num(P.pontosPorNivel, 5)) + 120; // + itens (folga)
+  const forca = Math.max(1, num(g.pot, 1), num(g.total, 1)), crit = pvp ? num(COMBATE.critMultPvp, 1.3) : num(COMBATE.critMultPve, 1.5);
+  return (base + pts) * forca * num((BALJ.proficiencia || {}).multMax, 1.3) * 1.6 * (pvp ? 1.2 : 2.2) * crit * 1.25; } catch (e) { return 0; } }
+function danoConfere(p, m, pvp) { const mx = danoMax(p, str(m.j, 24), pvp), d = num(m.d, 0); if (!(mx > 0) || d <= mx) return;
+  p.dmgSusp = (p.dmgSusp || 0) + 1; const t = now(); if (t - (p.dmgSuspT || 0) > 30) { p.dmgSuspT = t; log('DANO? ' + p.nome + ' (' + p.clan + ', Nv ' + p.lv + ') mandou ' + Math.round(d) + ' com ' + str(m.j, 24) + (pvp ? ' no PvP' : ' em monstro') + ' (teto ' + Math.round(mx) + '); suspeitas: ' + p.dmgSusp); } }
 function cdMinimo(p, sl, id) {
   const j = BALJ, G = j && j.golpes; if (!G || !G.jutsus || !p.clan) return 0;
   let base = 0;

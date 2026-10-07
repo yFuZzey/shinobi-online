@@ -6,7 +6,7 @@
 // Abre a versão mais nova do jogo já baixada no celular; se não tiver, abre a que veio no APK (game.html).
 // O próprio jogo baixa as versões novas. Se uma versão baixada não abrir 2 vezes seguidas, volta para a do APK.
 (function () {
-  var EMB = 202610071345, LOADER = 1;
+  var EMB = 202610071414, LOADER = 1;
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, String(v)); } catch (e) {} return null; }
   function idb() { return new Promise(function (res, rej) { var r = indexedDB.open('shinobi-ota', 1);
     r.onupgradeneeded = function () { r.result.createObjectStore('f'); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }
