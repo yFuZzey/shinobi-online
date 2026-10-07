@@ -407,6 +407,7 @@ body:not(.adm) .admo{display:none!important}body:not(.adm) #paneBag .ivf{display
 .jst{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}.jst.ok{color:#3aa35a;border-color:#3aa35a}.jst.pick{color:#e0533b;border-color:#e0533b}
 .pfi.jey{width:46px;height:46px}.pfi.jey img{width:100%;height:100%;object-fit:contain}
 .jadm{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--mute)}.jadm button{margin:0;padding:5px 11px;font-size:12px}
+.acla{margin:8px 0;padding:8px 10px;border:1px dashed rgba(192,57,43,.55);border-radius:10px}.acla button.conf{background:#c0392b;color:#fff}.jdet+.acla{margin-top:10px}
 #inv .tabs button{padding-left:10px;padding-right:10px}
 /* botões de golpe: travado, olho ligado */
 .sb.lock img,.sb.lock>span{filter:grayscale(1);opacity:.6}.sb .lk{position:absolute;top:3px;left:0;right:0;text-align:center;font:800 9px/1 system-ui,sans-serif;color:#ffd27a;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none}

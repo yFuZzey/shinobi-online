@@ -329,6 +329,7 @@ body:not(.adm) .admo{display:none!important}body:not(.adm) #paneBag .ivf{display
 .jst{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}.jst.ok{color:#3aa35a;border-color:#3aa35a}.jst.pick{color:#e0533b;border-color:#e0533b}
 .pfi.jey{width:46px;height:46px}.pfi.jey img{width:100%;height:100%;object-fit:contain}
 .jadm{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--mute)}.jadm button{margin:0;padding:5px 11px;font-size:12px}
+.acla{margin:8px 0;padding:8px 10px;border:1px dashed rgba(192,57,43,.55);border-radius:10px}.acla button.conf{background:#c0392b;color:#fff}.jdet+.acla{margin-top:10px}
 #inv .tabs button{padding-left:10px;padding-right:10px}
 /* botões de golpe: travado, olho ligado */
 .sb.lock img,.sb.lock>span{filter:grayscale(1);opacity:.6}.sb .lk{position:absolute;top:3px;left:0;right:0;text-align:center;font:800 9px/1 system-ui,sans-serif;color:#ffd27a;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none}
@@ -1835,8 +1836,8 @@ function juDraw(){const el=$('#paneJu');if(!el||el.hidden||!clan||!CH)return;con
     +'<div class="pfq">Susanoo: '+A.dmg+' de dano em área'+(A.hits>1?' ('+A.hits+'×)':'')+(A.stun?', atordoa '+nf(A.stun)+' s':'')+' · '+A.t+' s de pé · escudo de '+(+A.escudo||0)+'% da vida'+(A.dmgb?' · +'+A.dmgb+'% de dano':'')+'</div>'
     +'<button data-eye="'+k+'"'+(can&&!cur?'':' disabled')+(conf?' class="conf"':'')+'>'+(cur?'Atual':!can?'Nv '+TOM[4].lv:conf?'Confirmar troca':'Escolher')+'</button></div>'}
   h+='</div>'+(CH.mgk?'<p class="chnote">Por enquanto dá para trocar aqui; depois a escolha vai ser feita numa missão.</p>':'')}
- h+='</div></div><div class="jadm admo">[ADM] Ir para o nível: '+[5,10,15,25,40,60].map(v=>'<button data-lv="'+v+'"'+(CH.lv>=v?' disabled':'')+'>'+v+'</button>').join('')+'</div>';
- el.innerHTML=h;
+ h+='</div></div><div class="jadm admo">[ADM] Ir para o nível: '+[5,10,15,25,40,60].map(v=>'<button data-lv="'+v+'"'+(CH.lv>=v?' disabled':'')+'>'+v+'</button>').join('')+'</div>'+admClaHtml();
+ el.innerHTML=h;admClaBind(el,juDraw);
  el.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>{juSel=b.dataset.j;juPick=null;juDraw()});
  el.querySelectorAll('[data-eye]').forEach(b=>b.onclick=()=>juEye(b.dataset.eye));
  el.querySelectorAll('[data-bar]').forEach(b=>b.onclick=()=>{const [i,id]=b.dataset.bar.split(':');if(!barSet(+i,id))toast('Não dá para pôr aí: '+(id==='item'?'o item fica no botão 3':'tire esse jutsu do outro botão primeiro')+'.');juDraw()});
@@ -1955,7 +1956,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610071145'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0};
+const OTA={v:+'202610071156'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2040,19 +2041,40 @@ function chDraw(){const el=$('#paneCh');if(!el||el.hidden||!CH||!clan)return;
   +(P&&P.k?'<span class="chp">'+PROF[P.k].ic+' '+PROF[P.k].n+' <b>rank '+PRK[r][0]+'</b></span>':'<span class="chp z">Sem especialidade (escolha na aba Status)</span>')
   +'<div class="chbar cbh"><i style="width:'+Math.max(0,Math.min(100,p.hp/p.max*100))+'%"></i><b>Vida '+Math.round(p.hp)+' / '+p.max+'</b></div>'
   +'<div class="chbar cbm"><i style="width:'+Math.max(0,Math.min(100,p.mp/p.mpMax*100))+'%"></i><b>Chakra '+Math.round(p.mp)+' / '+p.mpMax+'</b></div></div></div>'
-  +'<div class="chord"><b>Como é calculado</b><ol><li><b>Status:</b> pontos + itens = base → base × (1 + soma das %) = final (máx. '+STMAX+'; acima de '+BAL.personagem.retornoDecrescente.inicio.str+' pontos — VIT '+BAL.personagem.retornoDecrescente.inicio.vit+' — cada ponto vale '+Math.round(BAL.personagem.retornoDecrescente.eficacia*100)+'%)</li><li><b>Atributos:</b> valor dos status finais + bônus fixos → × (1 + soma das %) = final. Poder físico vem da Força; Poder de chakra, da Inteligência</li><li><b>Golpe:</b> (dano da habilidade + Poder) × bônus da especialidade × crítico. Taijutsu e Bukijutsu usam o Poder físico; Ninjutsu e Genjutsu, o Poder de chakra</li><li><b>Esquiva:</b> Esquiva = Velocidade acima de 100% + nível; Precisão = Destreza + nível. Chance de esquivar = '+BAL.combate.esquivaBase+'% + sua Esquiva − Precisão de quem ataca (de '+BAL.combate.esquivaMin+'% a '+BAL.combate.esquivaMax+'%)</li></ol></div>';
+  +admClaHtml()+'<div class="chord"><b>Como é calculado</b><ol><li><b>Status:</b> pontos + itens = base → base × (1 + soma das %) = final (máx. '+STMAX+'; acima de '+BAL.personagem.retornoDecrescente.inicio.str+' pontos — VIT '+BAL.personagem.retornoDecrescente.inicio.vit+' — cada ponto vale '+Math.round(BAL.personagem.retornoDecrescente.eficacia*100)+'%)</li><li><b>Atributos:</b> valor dos status finais + bônus fixos → × (1 + soma das %) = final. Poder físico vem da Força; Poder de chakra, da Inteligência</li><li><b>Golpe:</b> (dano da habilidade + Poder) × bônus da especialidade × crítico. Taijutsu e Bukijutsu usam o Poder físico; Ninjutsu e Genjutsu, o Poder de chakra</li><li><b>Esquiva:</b> Esquiva = Velocidade acima de 100% + nível; Precisão = Destreza + nível. Chance de esquivar = '+BAL.combate.esquivaBase+'% + sua Esquiva − Precisão de quem ataca (de '+BAL.combate.esquivaMin+'% a '+BAL.combate.esquivaMax+'%)</li></ol></div>';
  h+='<div class="ivt">1 · Status</div><div class="tw"><table class="cht"><thead><tr><th>Status</th><th>Pontos</th><th>Itens</th><th>Base</th><th>% total</th><th>Final</th></tr></thead><tbody>'
   +AT.map(([k,ab,nm])=>{const x=c.st[k];return '<tr><td><b class="ab">'+ab+'</b> '+nm+'</td><td>'+x.pts+'</td><td>'+(x.it?'<span class="g">'+sgn(x.it)+'</span>':'<span class="z">—</span>')+'</td><td>'+x.base+'</td><td>'+pcTxt(x.pct,x.pi,x.pp,'itens','esp.')+'</td><td><b>'+nf(x.fin)+'</b>'+(x.dr?' <small class="z" title="acima de '+BAL.personagem.retornoDecrescente.inicio[k]+' cada ponto vale metade">de '+nf(x.bruto)+'</small>':'')+'</td></tr>'}).join('')+'</tbody></table></div>';
  h+='<div class="ivt">2 · Atributos</div><div class="tw"><table class="cht"><thead><tr><th>Atributo</th><th>Dos status</th><th>+ Fixos</th><th>% total</th><th>Final</th></tr></thead><tbody>'
   +ATR.map(([k,nm])=>{const x=c.at[k];return '<tr><td>'+nm+'</td><td>'+atrTxt(k,x.fromSt)+'</td><td>'+flTxt(k,x.fl,x.fi,x.fp)+'</td><td>'+pcTxt(x.pct,x.pi,x.pp,'itens','esp.')+'</td><td><b>'+atrTxt(k,x.fin)+'</b></td></tr>'}).join('')+'</tbody></table></div>'
   +'<p class="chnote">Velocidade e Regeneração: 100% = normal. Crítico, Redução e Recarga já são porcentagens; nelas (e na Esquiva) a especialidade soma pontos.</p>';
  h+='<div class="ivt">3 · Golpes</div><div class="tw"><table class="cht"><thead><tr><th>Golpe</th><th>Tipo</th><th>Dano</th><th>Recarga</th><th>Chakra</th></tr></thead><tbody>'
-  +C.sk.concat(atkItem()?[{_it:1}]:[]).map((s,i)=>{const a=s._it?atkItem():null,tp=skType(i),bd=a?+a.atk.dmg||16:s.dmg,bc=a?+a.atk.cd||s.cd:s.cd,bm=a?+a.atk.mp||0:s.mp,tm=profTypeMul(tp),
+  +C.sk.concat(atkItem()&&!C.sk[3]?[{_it:1}]:[]).map((s,i)=>{const a=s._it?atkItem():null,tp=skType(i),bd=a?+a.atk.dmg||16:s.dmg,bc=a?+a.atk.cd||s.cd:s.cd,bm=a?+a.atk.mp||0:s.mp,tm=profTypeMul(tp),
     pw=skPow(tp),fd=Math.max(1,Math.round(hitRaw(bd,tp))),fc=cdOf(i,s),fm=mpOf(i,s),cls=(x,y,lowGood)=>Math.abs(x-y)<.01?'':((lowGood?x<y:x>y)?'g':'r');
     return '<tr><td>'+(a?a.name+' <small>(item · rank A)</small>':s.n+(s.rk?' <small class="rkb">rank '+s.rk+'</small>':''))+'</td><td>'+(tp?PROF[tp].ic+' '+PROF[tp].n+(profOn(tp)?' <small class="g">especialidade</small>':profOth(tp)?' <small class="r">penalidade</small>':''):'—')+'</td>'
      +'<td>'+(Math.abs(tm-1)>.001?'(':'')+bd+' + '+nf(pw)+(Math.abs(tm-1)>.001?') × '+nf(tm):'')+' = <b class="'+cls(fd,bd,0)+'">'+fd+'</b><small class="cbk">'+(isChakra(tp)?'poder de chakra':'poder físico')+'</small></td><td>'+nf(bc)+'s → <b class="'+cls(fc,bc,1)+'">'+nf(fc)+'s</b></td><td>'+bm+' → <b class="'+cls(fm,bm,1)+'">'+fm+'</b></td></tr>'}).join('')+'</tbody></table></div>'
   +'<p class="chnote">Dano por acerto sem crítico: (dano da habilidade + poder) × bônus da especialidade. Crítico dobra.</p>';
- el.innerHTML=h;portraitStart()}
+ el.innerHTML=h;admClaBind(el,chDraw);portraitStart()}
+// ---------- [ADM] trocar de clã para testar: começa do zero (nível 1, sem pontos, atributos, especialidade, Mangekyō, barra nem mochila) ----------
+let admClaPick=null;
+function admClaHtml(){if(!ONL.on||!ONL.adm||!clan)return '';const k=admClaPick&&CLANS[admClaPick]?admClaPick:null;
+ if(k)return '<div class="jadm admo acla"><span>[ADM] Virar <b>'+CLANS[k].n+'</b>? Zera tudo: nível, XP, pontos, atributos, especialidade, Mangekyō, barra e mochila.</span><button class="conf" data-acla="ok">Confirmar e zerar</button><button class="sec" data-acla="no">Cancelar</button></div>';
+ return '<div class="jadm admo acla"><span>[ADM] Trocar de clã (começa do zero):</span>'+Object.keys(CLANS).map(c=>'<button data-acla="'+c+'"'+(c===clan||ONL.claBusy?' disabled':'')+'>'+CLANS[c].n+'</button>').join('')+'</div>'}
+function admClaBind(el,redraw){el.querySelectorAll('[data-acla]').forEach(b=>b.onclick=()=>{const v=b.dataset.acla;
+ if(v==='no'){admClaPick=null;return redraw()}if(v==='ok'){const k=admClaPick;admClaPick=null;return admClasse(k)}admClaPick=v;redraw()})}
+async function admClasse(k){if(!ONL.on||!ONL.adm||!CLANS[k]||k===clan||ONL.claBusy)return;
+ if(ONL.trade){toast('Termine ou cancele a troca antes de trocar de clã.');return}
+ ONL.claBusy=1;const de=CLANS[clan]?CLANS[clan].n:clan;
+ try{if(EYE.on)eyeOff();
+  for(let g=0;ONL.saving&&g<80;g++)await new Promise(r=>setTimeout(r,100)); // espera um salvamento que já estava em andamento
+  CH=chNew();for(const j in JCD)delete JCD[j];
+  try{localStorage.setItem(chKey(),JSON.stringify(CH));localStorage.setItem(invKey(),JSON.stringify({inv:[],eq:{}}));localStorage.removeItem(barKey())}catch(_){}
+  try{ACT=null;KDEL=[];PRT=0;PSL=0;SHD=null}catch(_){}
+  if(ONL.inv)gsSend({t:'admreset'}); // mochila no banco: quem apaga é o servidor
+  ONL.loading=true;try{start(k)}finally{ONL.loading=false}
+  await onlSave();
+  const t='🛡️ [ADM] Clã trocado: '+de+' → '+CLANS[k].n+'. Tudo zerado (Nv 1).';onlReg(t+(ONL.dirty?' ⚠️ O banco não respondeu agora; o jogo tenta salvar de novo sozinho.':''));toast(t)}
+ catch(e){onlReg('⚠️ [ADM] Erro ao trocar de clã: '+(e&&e.message||e))}
+ ONL.claBusy=0}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // ---------- Mochila nova: boneco com os equipamentos, grade maior, comparação e organizar ----------
 const SLOT_IC={cabeca:'🪖',capa:'🧥',arma:'🗡️',mao:'✋',acessorio:'💍'},RAR_ORD={lendario:0,epico:1,raro:2,comum:3};

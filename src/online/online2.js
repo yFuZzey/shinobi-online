@@ -781,8 +781,8 @@ function juDraw(){const el=$('#paneJu');if(!el||el.hidden||!clan||!CH)return;con
     +'<div class="pfq">Susanoo: '+A.dmg+' de dano em área'+(A.hits>1?' ('+A.hits+'×)':'')+(A.stun?', atordoa '+nf(A.stun)+' s':'')+' · '+A.t+' s de pé · escudo de '+(+A.escudo||0)+'% da vida'+(A.dmgb?' · +'+A.dmgb+'% de dano':'')+'</div>'
     +'<button data-eye="'+k+'"'+(can&&!cur?'':' disabled')+(conf?' class="conf"':'')+'>'+(cur?'Atual':!can?'Nv '+TOM[4].lv:conf?'Confirmar troca':'Escolher')+'</button></div>'}
   h+='</div>'+(CH.mgk?'<p class="chnote">Por enquanto dá para trocar aqui; depois a escolha vai ser feita numa missão.</p>':'')}
- h+='</div></div><div class="jadm admo">[ADM] Ir para o nível: '+[5,10,15,25,40,60].map(v=>'<button data-lv="'+v+'"'+(CH.lv>=v?' disabled':'')+'>'+v+'</button>').join('')+'</div>';
- el.innerHTML=h;
+ h+='</div></div><div class="jadm admo">[ADM] Ir para o nível: '+[5,10,15,25,40,60].map(v=>'<button data-lv="'+v+'"'+(CH.lv>=v?' disabled':'')+'>'+v+'</button>').join('')+'</div>'+admClaHtml();
+ el.innerHTML=h;admClaBind(el,juDraw);
  el.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>{juSel=b.dataset.j;juPick=null;juDraw()});
  el.querySelectorAll('[data-eye]').forEach(b=>b.onclick=()=>juEye(b.dataset.eye));
  el.querySelectorAll('[data-bar]').forEach(b=>b.onclick=()=>{const [i,id]=b.dataset.bar.split(':');if(!barSet(+i,id))toast('Não dá para pôr aí: '+(id==='item'?'o item fica no botão 3':'tire esse jutsu do outro botão primeiro')+'.');juDraw()});
@@ -986,19 +986,40 @@ function chDraw(){const el=$('#paneCh');if(!el||el.hidden||!CH||!clan)return;
   +(P&&P.k?'<span class="chp">'+PROF[P.k].ic+' '+PROF[P.k].n+' <b>rank '+PRK[r][0]+'</b></span>':'<span class="chp z">Sem especialidade (escolha na aba Status)</span>')
   +'<div class="chbar cbh"><i style="width:'+Math.max(0,Math.min(100,p.hp/p.max*100))+'%"></i><b>Vida '+Math.round(p.hp)+' / '+p.max+'</b></div>'
   +'<div class="chbar cbm"><i style="width:'+Math.max(0,Math.min(100,p.mp/p.mpMax*100))+'%"></i><b>Chakra '+Math.round(p.mp)+' / '+p.mpMax+'</b></div></div></div>'
-  +'<div class="chord"><b>Como é calculado</b><ol><li><b>Status:</b> pontos + itens = base → base × (1 + soma das %) = final (máx. '+STMAX+'; acima de '+BAL.personagem.retornoDecrescente.inicio.str+' pontos — VIT '+BAL.personagem.retornoDecrescente.inicio.vit+' — cada ponto vale '+Math.round(BAL.personagem.retornoDecrescente.eficacia*100)+'%)</li><li><b>Atributos:</b> valor dos status finais + bônus fixos → × (1 + soma das %) = final. Poder físico vem da Força; Poder de chakra, da Inteligência</li><li><b>Golpe:</b> (dano da habilidade + Poder) × bônus da especialidade × crítico. Taijutsu e Bukijutsu usam o Poder físico; Ninjutsu e Genjutsu, o Poder de chakra</li><li><b>Esquiva:</b> Esquiva = Velocidade acima de 100% + nível; Precisão = Destreza + nível. Chance de esquivar = '+BAL.combate.esquivaBase+'% + sua Esquiva − Precisão de quem ataca (de '+BAL.combate.esquivaMin+'% a '+BAL.combate.esquivaMax+'%)</li></ol></div>';
+  +admClaHtml()+'<div class="chord"><b>Como é calculado</b><ol><li><b>Status:</b> pontos + itens = base → base × (1 + soma das %) = final (máx. '+STMAX+'; acima de '+BAL.personagem.retornoDecrescente.inicio.str+' pontos — VIT '+BAL.personagem.retornoDecrescente.inicio.vit+' — cada ponto vale '+Math.round(BAL.personagem.retornoDecrescente.eficacia*100)+'%)</li><li><b>Atributos:</b> valor dos status finais + bônus fixos → × (1 + soma das %) = final. Poder físico vem da Força; Poder de chakra, da Inteligência</li><li><b>Golpe:</b> (dano da habilidade + Poder) × bônus da especialidade × crítico. Taijutsu e Bukijutsu usam o Poder físico; Ninjutsu e Genjutsu, o Poder de chakra</li><li><b>Esquiva:</b> Esquiva = Velocidade acima de 100% + nível; Precisão = Destreza + nível. Chance de esquivar = '+BAL.combate.esquivaBase+'% + sua Esquiva − Precisão de quem ataca (de '+BAL.combate.esquivaMin+'% a '+BAL.combate.esquivaMax+'%)</li></ol></div>';
  h+='<div class="ivt">1 · Status</div><div class="tw"><table class="cht"><thead><tr><th>Status</th><th>Pontos</th><th>Itens</th><th>Base</th><th>% total</th><th>Final</th></tr></thead><tbody>'
   +AT.map(([k,ab,nm])=>{const x=c.st[k];return '<tr><td><b class="ab">'+ab+'</b> '+nm+'</td><td>'+x.pts+'</td><td>'+(x.it?'<span class="g">'+sgn(x.it)+'</span>':'<span class="z">—</span>')+'</td><td>'+x.base+'</td><td>'+pcTxt(x.pct,x.pi,x.pp,'itens','esp.')+'</td><td><b>'+nf(x.fin)+'</b>'+(x.dr?' <small class="z" title="acima de '+BAL.personagem.retornoDecrescente.inicio[k]+' cada ponto vale metade">de '+nf(x.bruto)+'</small>':'')+'</td></tr>'}).join('')+'</tbody></table></div>';
  h+='<div class="ivt">2 · Atributos</div><div class="tw"><table class="cht"><thead><tr><th>Atributo</th><th>Dos status</th><th>+ Fixos</th><th>% total</th><th>Final</th></tr></thead><tbody>'
   +ATR.map(([k,nm])=>{const x=c.at[k];return '<tr><td>'+nm+'</td><td>'+atrTxt(k,x.fromSt)+'</td><td>'+flTxt(k,x.fl,x.fi,x.fp)+'</td><td>'+pcTxt(x.pct,x.pi,x.pp,'itens','esp.')+'</td><td><b>'+atrTxt(k,x.fin)+'</b></td></tr>'}).join('')+'</tbody></table></div>'
   +'<p class="chnote">Velocidade e Regeneração: 100% = normal. Crítico, Redução e Recarga já são porcentagens; nelas (e na Esquiva) a especialidade soma pontos.</p>';
  h+='<div class="ivt">3 · Golpes</div><div class="tw"><table class="cht"><thead><tr><th>Golpe</th><th>Tipo</th><th>Dano</th><th>Recarga</th><th>Chakra</th></tr></thead><tbody>'
-  +C.sk.concat(atkItem()?[{_it:1}]:[]).map((s,i)=>{const a=s._it?atkItem():null,tp=skType(i),bd=a?+a.atk.dmg||16:s.dmg,bc=a?+a.atk.cd||s.cd:s.cd,bm=a?+a.atk.mp||0:s.mp,tm=profTypeMul(tp),
+  +C.sk.concat(atkItem()&&!C.sk[3]?[{_it:1}]:[]).map((s,i)=>{const a=s._it?atkItem():null,tp=skType(i),bd=a?+a.atk.dmg||16:s.dmg,bc=a?+a.atk.cd||s.cd:s.cd,bm=a?+a.atk.mp||0:s.mp,tm=profTypeMul(tp),
     pw=skPow(tp),fd=Math.max(1,Math.round(hitRaw(bd,tp))),fc=cdOf(i,s),fm=mpOf(i,s),cls=(x,y,lowGood)=>Math.abs(x-y)<.01?'':((lowGood?x<y:x>y)?'g':'r');
     return '<tr><td>'+(a?a.name+' <small>(item · rank A)</small>':s.n+(s.rk?' <small class="rkb">rank '+s.rk+'</small>':''))+'</td><td>'+(tp?PROF[tp].ic+' '+PROF[tp].n+(profOn(tp)?' <small class="g">especialidade</small>':profOth(tp)?' <small class="r">penalidade</small>':''):'—')+'</td>'
      +'<td>'+(Math.abs(tm-1)>.001?'(':'')+bd+' + '+nf(pw)+(Math.abs(tm-1)>.001?') × '+nf(tm):'')+' = <b class="'+cls(fd,bd,0)+'">'+fd+'</b><small class="cbk">'+(isChakra(tp)?'poder de chakra':'poder físico')+'</small></td><td>'+nf(bc)+'s → <b class="'+cls(fc,bc,1)+'">'+nf(fc)+'s</b></td><td>'+bm+' → <b class="'+cls(fm,bm,1)+'">'+fm+'</b></td></tr>'}).join('')+'</tbody></table></div>'
   +'<p class="chnote">Dano por acerto sem crítico: (dano da habilidade + poder) × bônus da especialidade. Crítico dobra.</p>';
- el.innerHTML=h;portraitStart()}
+ el.innerHTML=h;admClaBind(el,chDraw);portraitStart()}
+// ---------- [ADM] trocar de clã para testar: começa do zero (nível 1, sem pontos, atributos, especialidade, Mangekyō, barra nem mochila) ----------
+let admClaPick=null;
+function admClaHtml(){if(!ONL.on||!ONL.adm||!clan)return '';const k=admClaPick&&CLANS[admClaPick]?admClaPick:null;
+ if(k)return '<div class="jadm admo acla"><span>[ADM] Virar <b>'+CLANS[k].n+'</b>? Zera tudo: nível, XP, pontos, atributos, especialidade, Mangekyō, barra e mochila.</span><button class="conf" data-acla="ok">Confirmar e zerar</button><button class="sec" data-acla="no">Cancelar</button></div>';
+ return '<div class="jadm admo acla"><span>[ADM] Trocar de clã (começa do zero):</span>'+Object.keys(CLANS).map(c=>'<button data-acla="'+c+'"'+(c===clan||ONL.claBusy?' disabled':'')+'>'+CLANS[c].n+'</button>').join('')+'</div>'}
+function admClaBind(el,redraw){el.querySelectorAll('[data-acla]').forEach(b=>b.onclick=()=>{const v=b.dataset.acla;
+ if(v==='no'){admClaPick=null;return redraw()}if(v==='ok'){const k=admClaPick;admClaPick=null;return admClasse(k)}admClaPick=v;redraw()})}
+async function admClasse(k){if(!ONL.on||!ONL.adm||!CLANS[k]||k===clan||ONL.claBusy)return;
+ if(ONL.trade){toast('Termine ou cancele a troca antes de trocar de clã.');return}
+ ONL.claBusy=1;const de=CLANS[clan]?CLANS[clan].n:clan;
+ try{if(EYE.on)eyeOff();
+  for(let g=0;ONL.saving&&g<80;g++)await new Promise(r=>setTimeout(r,100)); // espera um salvamento que já estava em andamento
+  CH=chNew();for(const j in JCD)delete JCD[j];
+  try{localStorage.setItem(chKey(),JSON.stringify(CH));localStorage.setItem(invKey(),JSON.stringify({inv:[],eq:{}}));localStorage.removeItem(barKey())}catch(_){}
+  try{ACT=null;KDEL=[];PRT=0;PSL=0;SHD=null}catch(_){}
+  if(ONL.inv)gsSend({t:'admreset'}); // mochila no banco: quem apaga é o servidor
+  ONL.loading=true;try{start(k)}finally{ONL.loading=false}
+  await onlSave();
+  const t='🛡️ [ADM] Clã trocado: '+de+' → '+CLANS[k].n+'. Tudo zerado (Nv 1).';onlReg(t+(ONL.dirty?' ⚠️ O banco não respondeu agora; o jogo tenta salvar de novo sozinho.':''));toast(t)}
+ catch(e){onlReg('⚠️ [ADM] Erro ao trocar de clã: '+(e&&e.message||e))}
+ ONL.claBusy=0}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // ---------- Mochila nova: boneco com os equipamentos, grade maior, comparação e organizar ----------
 const SLOT_IC={cabeca:'🪖',capa:'🧥',arma:'🗡️',mao:'✋',acessorio:'💍'},RAR_ORD={lendario:0,epico:1,raro:2,comum:3};
