@@ -1,6 +1,6 @@
 {
  "_leia": "Números de balanceamento do Shinobi Online. O servidor lê este arquivo ao iniciar (o Render reinicia sozinho quando ele muda no GitHub) e o jogo leva uma cópia na montagem (src/build.sh). Se algum valor faltar ou vier errado, o servidor usa o valor padrão do código e avisa no log. Tempos em segundos, distâncias em pixels (1 tile = 32 px), chances em %.",
- "versao": 8,
+ "versao": 9,
  "flags": {
   "_leia": "Liga (true) ou desliga (false) cada sistema.",
   "pvp": true
@@ -320,7 +320,7 @@
   "multMax": 1.3
  },
  "golpes": {
-  "_leia": "ranks: dano base, chakra e recarga de cada rank. jutsus: catálogo de cada clã (por id). barra: o que vai nos botões no começo (0 inicial, 1 do meio, 2 grande); o jogador troca na aba Jutsus. Campos dos jutsus novos: pot = força do golpe inteiro (dano + poder; 1 = normal; golpes de vários toques dividem), lento = {v: % mais lento, t: s}, silencio = s em que o alvo só usa o golpe básico, dot = {n toques, int s entre eles, pot de cada}, puxa = tiles que puxa o alvo, raio = área em tiles, dur = s que a área fica no chão, red = % a menos de dano recebido (você) enquanto a área dura, exige = sombra (só em quem está preso na sua sombra), sombra = jutsu de sombra (a passiva Intelecto Nara tira cdSombra% da recarga e deixa os controles ccPve% mais longos em monstros). Uchiha: tiros = bolas de fogo de uma vez (dividem a força), alcance = tiles até o alvo, confusao = s com o controle invertido (passa ao levar dano), mgk = só com a Mangekyō ligada, costas = não pega quem está de costas para você.",
+  "_leia": "ranks: dano base, chakra e recarga de cada rank. jutsus: catálogo de cada clã (por id). barra: o que vai nos botões no começo (0 inicial, 1 do meio, 2 grande); o jogador troca na aba Jutsus. Campos dos jutsus novos: pot = força do golpe inteiro (dano + poder; 1 = normal; golpes de vários toques dividem), lento = {v: % mais lento, t: s}, silencio = s em que o alvo só usa o golpe básico, dot = {n toques, int s entre eles, pot de cada}, puxa = tiles que puxa o alvo, raio = área em tiles, dur = s que a área fica no chão, red = % a menos de dano recebido (você) enquanto a área dura, exige = sombra (só em quem está preso na sua sombra), sombra = jutsu de sombra (a passiva Intelecto Nara tira cdSombra% da recarga e deixa os controles ccPve% mais longos em monstros). Uchiha: tiros = bolas de fogo de uma vez (dividem a força), alcance = tiles até o alvo, confusao = s com o controle invertido (passa ao levar dano), mgk = só com a Mangekyō ligada, costas = não pega quem está de costas para você. Hyuga: prec/dreno/resGen = Byakugan ligado (+precisão, % do chakra por segundo, % a menos de genjutsu em você), empurra = tiles que empurra, toques/total = golpes da sequência e quanto valem juntos (64 Palmas usa hakkeTotal), evolui = no nível dele toma o lugar desse jutsu na barra, divide = a força é dividida entre os alvos, imune = bloqueia projéteis de jogadores enquanto gira.",
   "ranks": {
    "E": {
     "dmg": 9,
@@ -512,6 +512,87 @@
      "tipo": "taijutsu",
      "papel": "ult",
      "lv": 20
+    },
+    "byak": {
+     "r": "B",
+     "f": 0,
+     "mp": 0,
+     "mpPct": 5,
+     "cd": 20,
+     "prec": 10,
+     "dreno": 2,
+     "resGen": 15,
+     "tipo": "genjutsu",
+     "papel": "ativo",
+     "lv": 5
+    },
+    "kusho": {
+     "r": "B",
+     "f": 0.7,
+     "pot": 1.1,
+     "mp": 0,
+     "mpPct": 10,
+     "cd": 9,
+     "tel": 0.3,
+     "empurra": 3,
+     "alcance": 5,
+     "tipo": "taijutsu",
+     "papel": "ativo",
+     "lv": 15
+    },
+    "h128": {
+     "r": "S",
+     "f": 0.8,
+     "mp": 0,
+     "mpPct": 22,
+     "cd": 24,
+     "tel": 0.5,
+     "toques": 12,
+     "total": 1.6,
+     "ccPvp": {
+      "k": "selo",
+      "t": 4
+     },
+     "evolui": "hakke",
+     "tipo": "taijutsu",
+     "papel": "ult",
+     "lv": 45
+    },
+    "sojishi": {
+     "r": "A",
+     "f": 0.6,
+     "pot": 1.5,
+     "mp": 0,
+     "mpPct": 18,
+     "cd": 16,
+     "tel": 0.6,
+     "lento": {
+      "v": 30,
+      "t": 2
+     },
+     "raio": 3,
+     "tipo": "taijutsu",
+     "papel": "ativo",
+     "lv": 55
+    },
+    "kperf": {
+     "r": "S",
+     "f": 0.8,
+     "pot": 2.5,
+     "mp": 0,
+     "mpPct": 35,
+     "cd": 75,
+     "tel": 1.0,
+     "raio": 2.5,
+     "divide": 1,
+     "ccPvp": {
+      "k": "selo",
+      "t": 4
+     },
+     "imune": 1,
+     "tipo": "taijutsu",
+     "papel": "ult",
+     "lv": 60
     }
    },
    "nara": {

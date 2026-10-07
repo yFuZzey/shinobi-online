@@ -114,7 +114,7 @@ const JRK=BAL.golpes.ranks; // balanceamento.json → golpes.ranks
 // JU[clã][id] = o jutsu (no formato que o jogo usa para soltar). Os 3 de hoje vêm de CLANS; os novos são definidos mais abaixo.
 const JU={};
 function juApply(s,b){const R=JRK[b.r]||{dmg:0,mp:0,cd:1};s.rk=b.r;s.dmg=Math.round((R.dmg||0)*(+b.f||0));s.mp=b.mp!=null?+b.mp:R.mp;s.cd=b.cd!=null?+b.cd:R.cd;s.mpPct=+b.mpPct||0;
- if(b.tel!=null)s.tel=+b.tel;if(b.stun!=null)s.stun=+b.stun;['queima','root','canal','alvos','ccPvp','tipo','papel','lv','pot','lento','silencio','dot','puxa','dur','red','exige','sombra','cdSombra','ccPve','raio','tiros','alcance','confusao','mgk','costas'].forEach(k=>{if(b[k]!=null)s[k]=b[k]});
+ if(b.tel!=null)s.tel=+b.tel;if(b.stun!=null)s.stun=+b.stun;['queima','root','canal','alvos','ccPvp','tipo','papel','lv','pot','lento','silencio','dot','puxa','dur','red','exige','sombra','cdSombra','ccPve','raio','tiros','alcance','confusao','mgk','costas','prec','dreno','resGen','empurra','toques','total','evolui','divide','imune'].forEach(k=>{if(b[k]!=null)s[k]=b[k]});
  if(b.raio!=null)s.r=+b.raio*T;return s}
 for(const c in BAL.golpes.barra){JU[c]={};BAL.golpes.barra[c].forEach((id,i)=>{const s=CLANS[c]&&CLANS[c].sk[i];if(s){s.id=id;JU[c][id]=s}})}
 function juLoad(c,id,def){const b=(BAL.golpes.jutsus[c]||{})[id];if(!b)return null;const s=JU[c][id]||(JU[c][id]=Object.assign({id},def||{}));return juApply(s,b)}
@@ -132,6 +132,11 @@ juLoad('uchiha','hosenka',{n:'Hōsenka',i:'🎇',t:'hosenka',col:'#ff7a1a',sp:33
 juLoad('uchiha','goryuka',{n:'Gōryūka',i:'🐉',t:'goryuka',col:'#ff5a1a',fx:1});
 juLoad('uchiha','amat',{n:'Amaterasu',i:'🖤',t:'amat',col:'#1a0610'});
 juLoad('uchiha','tsuku',{n:'Tsukuyomi',i:'🌕',t:'tsuku',col:'#c4143c'});
+juLoad('hyuga','byak',{n:'Byakugan',i:'👁️',t:'byak',col:'#9db7ff'});
+juLoad('hyuga','kusho',{n:'Hakke Kūshō',i:'💨',t:'kusho',col:'#cfe0ff'});
+juLoad('hyuga','h128',{n:'128 Palmas',i:'☯️',t:'aoe',r:150,kq:'hakke',col:'#e3e9ff',fx:1,stun:3});
+juLoad('hyuga','sojishi',{n:'Sōjishi',i:'🌬️',t:'sojishi',col:'#9db7ff'});
+juLoad('hyuga','kperf',{n:'Kaiten Perfeito',i:'🌀',t:'kperf',col:'#cfe0ff'});
 const juLv=s=>s&&s.lv?+s.lv:1;
 // passiva do Nara (Intelecto): ligada a partir do nível dela
 const naraInt=()=>{const s=clan==='nara'&&JU.nara&&JU.nara.intelecto;return s&&CH&&(CH.lv|0)>=juLv(s)?s:null};
@@ -292,7 +297,7 @@ function seloAviso(){if(!seloAviso._t||performance.now()-seloAviso._t>700){seloA
 // efeito recebido no PvP (o servidor confere e repassa)
 function ccRecebe(cc,src){if(Array.isArray(cc)){cc.forEach(c=>ccRecebe(c,src));return}if(!cc||!cc.k)return;const t=+cc.t||0;
  if(cc.k==='lento'&&t>0){const v=Math.max(0,Math.min(60,+cc.v||0));bufStart('lento',{spd:-v,t,nm:'Lento: '+v+'% mais devagar'});FT.push({x:p.x,y:p.y-70,t:'lento',txt:1,life:.8});onlReg('🪡 '+(src||'?')+' deixou você lento ('+v+'%, '+nf(t)+' s).');return}
- if(cc.k==='confusao'&&t>0){PCF=Math.max(PCF,t);FT.push({x:p.x,y:p.y-84,t:'confuso',txt:1,life:1});onlReg('🌀 '+(src||'?')+' prendeu você num genjutsu ('+nf(t)+' s): os controles ficam invertidos até você levar dano.');return}
+ if(cc.k==='confusao'&&t>0){const t2=t*byakRes();PCF=Math.max(PCF,t2);FT.push({x:p.x,y:p.y-84,t:'confuso',txt:1,life:1});onlReg('🌀 '+(src||'?')+' prendeu você num genjutsu ('+nf(t2)+' s'+(t2<t?', o Byakugan encurtou':'')+'): os controles ficam invertidos até você levar dano.');return}
  if(cc.k==='silencio'&&t>0){PSI=Math.max(PSI,t);FT.push({x:p.x,y:p.y-84,t:'silenciado',txt:1,life:1});onlReg('🤐 '+(src||'?')+' silenciou você ('+nf(t)+' s): só o golpe básico.');return}
  if(cc.k==='root'&&t>0){PRT=Math.max(PRT,t);FT.push({x:p.x,y:p.y-70,t:'preso pela sombra',txt:1,life:1});onlReg('🌑 '+(src||'?')+' prendeu você no lugar ('+nf(t)+' s).')}
  else if(cc.k==='selo'&&t>0){PSL=Math.max(PSL,t);FT.push({x:p.x,y:p.y-70,t:'chakra selado',txt:1,life:1});onlReg('✋ '+(src||'?')+' selou o seu chakra ('+nf(t)+' s): só jutsus baratos.')}
@@ -386,7 +391,7 @@ function gsPos(force){const now=performance.now();if(!ONL.joined)return;
  const s=[p.x|0,p.y|0,p.fl?1:0,p.mv?1:0,p.run?1:0,scene|0,Math.round(p.hp),p.au>=0?1:0,p.th>=0?1:0].join(',');
  if(!force&&(now-ONL.lastPos<50||(s===ONL.lastSig&&now-ONL.lastPos<2000)))return;ONL.lastPos=now;ONL.lastSig=s;
  gsSend({t:'pos',c:Math.round(now),x:p.x|0,y:p.y|0,fl:p.fl?1:0,mv:p.mv?1:0,run:p.run?1:0,au:p.au>=0?+p.au.toFixed(2):-1,th:p.th>=0?+p.th.toFixed(2):-1,sc:scene|0,hp:Math.round(p.hp),max:p.max})}
-const FXOK={ring:1,rimp:1,bolt:1,line:1,kfx:1,act:1,cone:1,sline:1,sarea:1,aviso:1,chama:1,genj:1,amat:1,tsuku:1};
+const FXOK={ring:1,rimp:1,bolt:1,line:1,kfx:1,act:1,cone:1,sline:1,sarea:1,aviso:1,chama:1,genj:1,amat:1,tsuku:1,kusho:1};
 // qualidade automática: se o aparelho não segura ~50 quadros por segundo, desenha com menos pixels (até 1,5x)
 const PQ={acc:0,n:0,skip:2};
 function perfTick(dt){if(document.hidden)return;PQ.acc+=dt;PQ.n++;if(PQ.acc<3)return;const avg=PQ.acc/PQ.n;PQ.acc=0;PQ.n=0;if(PQ.skip>0){PQ.skip--;return}
@@ -592,7 +597,7 @@ const KFX=__KFX__,KIMG=new Image();let KFX_OK=false;KIMG.onload=()=>{KFX_OK=true
 const SFX=__SFX__,SIMG=new Image();let SFX_OK=false;SIMG.onload=()=>{SFX_OK=true};SIMG.src=SFX.img;
 const PHF=ph=>KFX.f[ph]||SFX.f[ph]||[];
 // botões Hyuga com os ícones da folha
-{const H=JU.hyuga;if(H){['palma','kaiten','hakke'].forEach(q=>{if(H[q]){H[q].kq=q;H[q].im=KFX.ic[q]}});if(H.kaiten)H.kaiten.stun=BAL.golpes.kaitenAtordoa}}
+{const H=JU.hyuga;if(H){['palma','kaiten','hakke'].forEach(q=>{if(H[q]){H[q].kq=q;H[q].im=KFX.ic[q]}});if(H.kaiten)H.kaiten.stun=BAL.golpes.kaitenAtordoa;if(H.h128)H.h128.im=KFX.ic.hakke;if(H.kperf)H.kperf.im=KFX.ic.kaiten}}
 // linha do tempo de cada efeito: [fase, segundos por quadro, (quais quadros)]
 const KSEQ={
  kaiten:f=>[['p1',.025],['p2',.03],['p3',.05],[f.hit?'p4':'p3',.05],['p5',.05],['frag',.14]], // acúmulo → domo → giro → (impacto) → dissipa
@@ -646,7 +651,9 @@ const JT={
  uchiha:[{b:'Katon (fogo)',n:[{id:'katon',j:'katon'},{id:'goka',j:'goka'},{id:'hosenka',j:'hosenka'},{id:'goryuka',j:'goryuka'}]},
   {b:'Sharingan → Mangekyō',n:[{id:'tm1',j:'olho',tm:1},{id:'tm2',j:'olho',tm:2},{id:'genj',j:'genj'},{id:'tm3',j:'olho',tm:3},{id:'mgk',j:'olho',tm:4}]},
   {b:'Técnicas da Mangekyō (só com ela ligada)',n:[{id:'amat',j:'amat'},{id:'tsuku',j:'tsuku'},{id:'sus',j:'sus'}]}],
- hyuga:[{b:'Punho Gentil (Jūken)',n:[{id:'palma',j:'palma'},{id:'kaiten',j:'kaiten'},{id:'hakke',j:'hakke'}]}],
+ hyuga:[{b:'Punho Gentil (Jūken)',n:[{id:'palma',j:'palma'},{id:'hakke',j:'hakke'},{id:'h128',j:'h128'}]},
+  {b:'Defesa (Kaiten)',n:[{id:'kaiten',j:'kaiten'},{id:'kperf',j:'kperf'}]},
+  {b:'Byakugan e Kūshō',n:[{id:'byak',j:'byak'},{id:'kusho',j:'kusho'},{id:'sojishi',j:'sojishi'}]}],
  nara:[{b:'Ferramentas ninja',n:[{id:'shuri',j:'shuri'}]},
   {b:'Kagemane (prender)',n:[{id:'sombra',j:'sombra'},{id:'kubi',j:'kubi'},{id:'poss',j:'poss'},{id:'dominio',j:'dominio'}]},
   {b:'Kage Nui (atacar com a sombra)',n:[{id:'nui',j:'nui'},{id:'yose',j:'yose'}]},
@@ -669,6 +676,11 @@ const JTD={
  palma:'Jūken: golpe de palma que atinge os pontos de chakra.',
  kaiten:'Hakkeshō Kaiten: gira soltando chakra pelo corpo todo; empurra quem está perto e bloqueia golpes enquanto gira.',
  hakke:'Hakke Rokujūyon Shō: 64 golpes seguidos nos pontos de chakra; quem está perto fica preso, toma dano contínuo e é empurrado.',
+ byak:'Byakugan: liga e desliga. Ligado, enxerga os pontos de chakra: mais precisão e o genjutsu dura menos em você. Gasta um pouco do chakra por segundo.',
+ kusho:'Hakke Kūshō: palma de vácuo à distância. Acerta o primeiro inimigo na linha e empurra longe.',
+ h128:'Hakke Hyakunijūhachi Shō: a evolução das 64 Palmas, com mais golpes e o chakra selado por mais tempo. No nível dela toma o lugar das 64 no botão (dá para voltar).',
+ sojishi:'Hakke Kūshō: Sōjishi: duas palmas de vácuo ao mesmo tempo, para a frente e para trás. Quem está dentro é empurrado e fica lento.',
+ kperf:'Kaiten Perfeito: o Kaiten maior. Bloqueia projéteis enquanto gira e no fim solta o golpe em toda a volta (a força é dividida entre os alvos) e sela o chakra.',
  shuri:'Arremesso de shuriken.',
  sombra:'Kagemane no Jutsu: a sombra estica em linha e prende quem tocar.',
  poss:'A sombra se espalha em área e prende vários inimigos ao mesmo tempo.',
@@ -703,8 +715,10 @@ function jtBtnTick(){if(!clan||!CH)return;const key=CH.lv+'|'+CH.mgk+'|'+eyeLv()
  for(const i of barSlots()){const b=$('#b'+i),s=CLANS[clan].sk[i];if(!b||!s)continue;if(b.classList.contains('lock'))b.classList.add('off');
   if(s.t==='eye'){b.classList.toggle('eyeon',!!EYE.on);if(EYE.on)b.classList.remove('off')}
   else if(s.t==='sus'){b.classList.toggle('eyeon',susOn());if(EYE.on!=='mgk')b.classList.add('off')}
+  else if(s.t==='byak'){b.classList.toggle('eyeon',!!BYK.on);if(BYK.on)b.classList.remove('off')}
   else if(s.mgk&&EYE.on!=='mgk')b.classList.add('off')}}
-function jtLvUp(a,b){const L=jtNodes().filter(n=>!n.soon&&n.lv>a&&n.lv<=b);L.forEach(n=>{const nm=jtInfo(n).nm;toast('🌀 Novo jutsu: '+nm+'!');onlReg('🌀 Jutsu liberado no Nv '+n.lv+': '+nm+'. Veja na aba Jutsus.')});
+function jtLvUp(a,b){const L=jtNodes().filter(n=>!n.soon&&n.lv>a&&n.lv<=b);
+ for(const id in JU[clan]||{}){const s=JU[clan][id];if(!s.evolui||!BAR)continue;const L2=juLv(s),k=BAR.indexOf(s.evolui);if(a<L2&&b>=L2&&k>=0&&barSet(k,id))setTimeout(()=>{toast('⬆️ '+JU[clan][s.evolui].n+' evoluiu: '+s.n+'!');onlReg('⬆️ '+JU[clan][s.evolui].n+' evoluiu para '+s.n+' no mesmo botão (dá para voltar na aba Jutsus).')},1200)}L.forEach(n=>{const nm=jtInfo(n).nm;toast('🌀 Novo jutsu: '+nm+'!');onlReg('🌀 Jutsu liberado no Nv '+n.lv+': '+nm+'. Veja na aba Jutsus.')});
  if(clan==='uchiha'&&a<TOM[4].lv&&b>=TOM[4].lv&&!CH.mgk)setTimeout(()=>{if(CH.mgk)return; // já escolheu nesse meio-tempo
  toast('👁️ A Mangekyō liberou: escolha o seu olho na aba Jutsus.');onlReg('👁️ Mangekyō liberada: escolha Itachi, Sasuke ou Madara na aba Jutsus. Cada uma tem o seu Susanoo (libera no Nv '+juLv(JU.uchiha.sus)+').')},L.length?2600:0)}
 // travado: explica; Uchiha: botão do meio liga/desliga o olho, botão grande invoca o Susanoo
@@ -712,11 +726,12 @@ function jtLvUp(a,b){const L=jtNodes().filter(n=>!n.soon&&n.lv>a&&n.lv<=b);L.for
   if(o.eye){toast('👁️ Escolha o seu Mangekyō na aba Jutsus para liberar o Susanoo.');juSel='mgk';juPick=null;toggleBag(true,'ju');return}
   if(o.lk){toast('🔒 '+o.nm+' libera no Nv '+o.lk+'. A árvore está na aba Jutsus.');return}
   if((s.t==='eye'&&!EYE.on||s.t==='sus')&&silBloqueia(s))return silAviso(); // silenciado: não liga o olho nem invoca (desligar pode)
+  if(s.t==='byak'&&!BYK.on&&silBloqueia(s))return silAviso();if(s.t==='byak')return byakToggle(i);
   if(s.t==='eye')return eyeToggle(i);if(s.t==='sus')return susPress(i)}
  return _u(i)}}
 // ---------- Sharingan / Mangekyō: liga e desliga, gasta chakra por segundo (o chakra não volta enquanto estiver ligado) ----------
 const EYE={on:null,lv:0};
-const eyeOnAny=()=>!!EYE.on;
+const eyeOnAny=()=>!!EYE.on||!!(typeof BYK!=='undefined'&&BYK.on); // olho ligado (Sharingan, Mangekyō ou Byakugan): o chakra não se recupera
 const sevMul=esq=>Math.max(BAL.combate.olharMinimo,Math.min(1,1-(+esq||0)/100)); // quanto mais esquiva o alvo tem, menos tempo fica preso
 function eyeToggle(i){i=i==null?barSlots().find(k=>CLANS[clan].sk[k]&&CLANS[clan].sk[k].t==='eye'):i;if(EYE.on)return eyeOff();const l=eyeLv();if(i==null||!l||cd[i]>0||actRoot())return;
  if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}
@@ -787,7 +802,7 @@ function gsCast(sl){if(ONL.on&&ONL.joined){const s=CLANS[clan].sk[sl];gsSend({t:
 // derrotado: olho, reforços e Susanoo acabam
 {const _h=hurt;hurt=function(n){_h(n);if(HRES&&HRES.dead){eyeOff();susEnd();bufClear()}}}
 // começo de cada partida
-function jtStart(){EYE.on=null;SUS=null;BUFS={};jtBtnTick.l=null;jtBtnTick.lv=CH?CH.lv:null;barLoad();skBtns();bufHud(1)}
+function jtStart(){EYE.on=null;SUS=null;BUFS={};BYK.on=0;BYK.slot=null;jtBtnTick.l=null;jtBtnTick.lv=CH?CH.lv:null;barLoad();skBtns();bufHud(1)}
 // ---------- barra de jutsus: botões 0 e 1 e o 3 (no lugar do item) escolhidos pelo jogador; o grande (2) só para ultimate ----------
 let BAR=null;const barKey=()=>'shinobi-barra-'+String(name).toLowerCase();
 const barDefault=()=>(BAL.golpes.barra[clan]||[]).concat(['item']);
@@ -824,7 +839,8 @@ function juStats(n){const L=[],J=JU[clan]||{},bi=id=>BAR?BAR.indexOf(id):-1,sl=i
  if(s.papel==='passiva'){L.push('Jutsus de sombra (Kagemane, Kage Nui, Kubishibari, Possessão, Kageyose, Campo e Domínio): −'+(+s.cdSombra||0)+'% de recarga.');L.push('Em monstros, prender, atordoar e deixar lento duram +'+(+s.ccPve||0)+'%.');return L}
  L.push((s.dmg?'Dano base '+s.dmg+' · ':'')+'Chakra '+mpOf(k,s)+' · Recarga '+nf(cdOf(k,s))+' s'+(s.tel?' · Aviso '+nf(s.tel)+' s':'')+(s.stun?' · Atordoa '+nf(s.stun)+' s':'')+(s.root?' · Prende '+nf(s.root)+' s'+(s.alvos?' (até '+s.alvos+' alvos)':''):'')+(s.ccPvp&&s.ccPvp.k==='selo'?' · Sela o chakra '+nf(s.ccPvp.t)+' s (PvP)':'')+(s.queima?' · Queima '+s.queima+'% do chakra (PvP)':'')+(s.r?' · Área '+nf(s.r/T)+' tiles':''));
  const X=[];if(s.pot&&+s.pot!==1)X.push('Força '+Math.round(s.pot*100)+'%'+(s.t==='nui'?' (3 agulhas)':s.t==='yose'?' (4 puxões)':s.tiros?' ('+s.tiros+' bolas de fogo)':''));if(s.alcance)X.push('Alcance '+s.alcance+' tiles');
- if(s.confusao)X.push('Confunde '+nf(s.confusao)+' s (controles invertidos; passa ao levar dano)');if(s.mgk)X.push('Só com a Mangekyō ligada');if(s.costas)X.push('Não pega quem está de costas para você');if(s.lento)X.push('Deixa lento '+s.lento.v+'% por '+nf(s.lento.t)+' s');if(s.silencio)X.push('Silencia '+nf(s.silencio)+' s');
+ if(s.confusao)X.push('Confunde '+nf(s.confusao)+' s (controles invertidos; passa ao levar dano)');if(s.prec)X.push('Ligado: +'+s.prec+' de precisão, genjutsu −'+(+s.resGen||0)+'% em você, gasta '+(+s.dreno||0)+'% do chakra por segundo (sem recuperar)');
+ if(s.empurra)X.push('Empurra '+s.empurra+' tiles');if(s.toques)X.push(s.toques+' golpes que valem '+Math.round((+s.total||1)*100)+'% juntos');if(s.divide)X.push('Força dividida entre os alvos');if(s.imune)X.push('Bloqueia projéteis enquanto gira');if(s.evolui&&JU[clan][s.evolui])X.push('Evolução de '+JU[clan][s.evolui].n);if(s.mgk)X.push('Só com a Mangekyō ligada');if(s.costas)X.push('Não pega quem está de costas para você');if(s.lento)X.push('Deixa lento '+s.lento.v+'% por '+nf(s.lento.t)+' s');if(s.silencio)X.push('Silencia '+nf(s.silencio)+' s');
  if(s.dot&&s.dot.n)X.push('Mais '+s.dot.n+(s.t==='kubi'?' apertos':' queimas')+' ('+Math.round((+s.dot.pot||0)*100)+'% cada'+(s.t==='kubi'?'':', 1 por segundo')+')');if(s.puxa)X.push('Puxa até '+s.puxa+' tiles');if(s.dur)X.push('Fica '+nf(s.dur)+' s no chão');if(s.red)X.push('Você: −'+s.red+'% de dano recebido');
  if(s.exige==='sombra')X.push('Só em quem está preso na sua sombra');if(s.sombra&&naraInt())X.push('Intelecto Nara: −'+(+naraInt().cdSombra||0)+'% de recarga (já contado)');if(X.length)L.push(X.join(' · '));return L}
 function juDraw(){const el=$('#paneJu');if(!el||el.hidden||!clan||!CH)return;const all=jtNodes();if(!juSel||!all.some(n=>n.id===juSel))juSel=(all.find(n=>jtInfo(n).cur)||all[0]).id;
@@ -991,6 +1007,44 @@ function uchFxDraw(f){const k=1-f.life/f.max,a=Math.min(1,f.life/.25),ts=perform
  else if(f.k==='tsuku'){ctx.translate(f.x,f.y-78);ctx.globalAlpha=a*.9;const r=12+4*k;ctx.fillStyle='#c4143c';ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.fill();ctx.fillStyle='#14000a';ctx.beginPath();ctx.arc(r*.35,-r*.15,r*.85,0,7);ctx.fill();
   ctx.globalAlpha=a*.35;ctx.strokeStyle='#c4143c';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,78,22+10*k,9+4*k,0,0,7);ctx.stroke()}
  ctx.restore()}
+// ---------- Entrega 7d: jutsus novos do Hyuga (números no balanceamento.json → golpes.jutsus.hyuga) ----------
+// Byakugan: liga/desliga; ligado dá precisão, gasta um pouco do chakra por segundo e deixa o genjutsu (confusão) mais curto em você
+const BYK={on:0,slot:null};
+const byakSlot=()=>barSlots().find(k=>CLANS[clan].sk[k]&&CLANS[clan].sk[k].t==='byak');
+function byakToggle(i){const s=CLANS[clan].sk[i];if(!s)return;if(BYK.on)return byakOff();if(cd[i]>0||actRoot())return;
+ if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}const mp=mpOf(i,s);if(seloBloqueia(mp))return seloAviso();if(p.mp<mp){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
+ p.mp-=mp;BYK.on=1;BYK.slot=i;BUFS.byak={prec:+s.prec||0,until:Infinity,nm:'Byakugan: +'+(+s.prec||0)+' de precisão'};stats();bufHud(1);flash={col:'#9db7ff',a:.18};p.au=0;p.aud=.6;
+ FT.push({x:p.x,y:p.y-80,t:'Byakugan!',txt:1,gold:1,life:1});onlReg('👁️ Byakugan ligado: +'+(+s.prec||0)+' de precisão; genjutsu dura '+(+s.resGen||0)+'% menos em você. Gasta '+(+s.dreno||0)+'% do chakra por segundo e o chakra não se recupera enquanto estiver ligado; toque de novo para desligar.');skBtns()}
+function byakOff(why){if(!BYK.on)return;BYK.on=0;delete BUFS.byak;const k=BYK.slot!=null&&CLANS[clan].sk[BYK.slot]&&CLANS[clan].sk[BYK.slot].t==='byak'?BYK.slot:byakSlot();
+ if(k!=null)cd[k]=Math.max(cd[k],cdOf(k,CLANS[clan].sk[k]));stats();bufHud(1);skBtns();if(why){FT.push({x:p.x,y:p.y-70,t:why,txt:1,life:1});onlReg('👁️ Byakugan desligou: '+why+'.')}}
+function byakTick(dt){if(!BYK.on)return;const s=JU.hyuga&&JU.hyuga.byak;if(clan!=='hyuga'||!s){byakOff();return}p.mp-=(+s.dreno||0)/100*p.mpMax*dt;if(p.mp<=0){p.mp=0;byakOff('sem chakra')}}
+const byakRes=()=>BYK.on&&JU.hyuga&&JU.hyuga.byak?1-(+JU.hyuga.byak.resGen||0)/100:1;
+// alvo na linha (o primeiro que a linha encosta)
+function alvoNaLinha(x0,y0,ax,ay,len){let tg=null,bp=1e9;E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-x0,dy=e.y-y0,pr=dx*ax+dy*ay;if(pr<0||pr>len)return;if(Math.hypot(dx-ax*pr,dy-ay*pr)<22+(e.rad||0)*.5&&pr<bp){bp=pr;tg=e}});return tg}
+// Hakke Kūshō: palma de vácuo à distância: acerta o primeiro da linha e empurra (4 empurrões)
+function castKusho(s,ax,ay){actStart('palma');const tp=HTP,t=+s.tel||.3,x0=p.x,y0=p.y,len=(+s.alcance||5)*T;
+ fx.push({k:'kusho',x:x0,y:y0-16,ax,ay,len,life:t+.3,max:t+.3,tel:t});
+ KDEL.push({t,fn:()=>{const tg=alvoNaLinha(x0,y0,ax,ay,len);if(!tg)return;const N=4,step=(+s.empurra||3)*T/N;
+  for(let j=0;j<N;j++)KDEL.push({t:j*.08,fn:()=>{if(tg.dead)return;const dx=tg.x-p.x,dy=tg.y-p.y,d=Math.hypot(dx,dy)||1;HTP=tp;try{hitCom(tg,s,(+s.pot||1)/N,null,0,dx/d*step,dy/d*step)}finally{HTP=null}}});
+  fx.push({k:'ring',x:tg.x,y:tg.y-16,r:22,col:'#cfe0ff',life:.3,max:.3})}})}
+// Hakke Kūshō: Sōjishi: duas palmas de vácuo, para a frente e para trás (cones); quem está dentro leva o golpe, é empurrado e fica lento
+function castSojishi(s,ax,ay){actStart('palma');const tp=HTP,t=+s.tel||.5,R=s.r||3*T,h=.7,a0=Math.atan2(ay,ax);
+ [a0,a0+Math.PI].forEach(a=>fx.push({k:'cone',x:p.x,y:p.y-18,a,r:R,h,col:'#9db7ff',life:t+.3,max:t+.3}));
+ KDEL.push({t,fn:()=>{const x0=p.x,y0=p.y;HTP=tp;try{E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-x0,dy=e.y-y0,d=Math.hypot(dx,dy);if(d>R+(e.rad||0)*.6)return;
+   let da=Math.atan2(dy,dx)-a0;da=Math.atan2(Math.sin(da),Math.cos(da));if(d>16&&Math.abs(da)>h&&Math.abs(da)<Math.PI-h)return;const u=d||1;hitCom(e,s,+s.pot||1,s.lento?{lento:s.lento}:null,0,dx/u*16,dy/u*16)})}finally{HTP=null}
+  flash={col:'#cfe0ff',a:.18}}})}
+// Kaiten Perfeito (ultimate): gira maior; bloqueia projéteis enquanto gira e no fim solta o golpe em área (a força é dividida entre os alvos) e sela o chakra
+function castKperf(s,ax,ay){actStart('kaiten');const tp=HTP,t=+s.tel||.8,R=s.r||2.5*T;if(s.imune)gsSend({t:'guard',d:Math.max(1,t)});
+ const f=KFX_OK?kfxAdd({q:'kaiten',x:p.x,y:p.y,fol:1,dy:6,sc:R*1.4/101}):null;fx.push({k:'aviso',x:p.x,y:p.y,r:R,col:'#9db7ff',life:t,max:t});
+ KDEL.push({t,fn:()=>{const L=alvosEm(p.x,p.y,R),n=Math.max(1,L.length),mul=(+s.pot||1)/(s.divide?n:1),cc=s.ccPvp&&s.ccPvp.k==='selo'?{selo:+s.ccPvp.t,semStunPvp:1}:null;
+  HTP=tp;try{L.forEach(e=>{const d=Math.hypot(e.x-p.x,e.y-p.y)||1;hitCom(e,s,mul,cc,0,(e.x-p.x)/d*22,(e.y-p.y)/d*22)})}finally{HTP=null}
+  if(f)f.hit=1;fx.push({k:'ring',x:p.x,y:p.y-10,r:R,col:'#cfe0ff',life:.5,max:.5,sp:1});flash={col:'#e3e9ff',a:.35};shk=Math.max(shk,.35);
+  if(L.length)onlReg('🌀 Kaiten Perfeito em '+L.length+' alvo'+(L.length>1?'s':'')+(s.divide&&L.length>1?' (força dividida)':'')+'.')}})}
+Object.assign(JCAST,{kusho:castKusho,sojishi:castSojishi,kperf:castKperf});
+function hyuFxDraw(f){const k=1-f.life/f.max,a=Math.min(1,f.life/.2);ctx.save();
+ if(f.k==='kusho'){const g=f.tel>0?Math.min(1,(f.max-f.life)/f.tel):1,L=f.len*g,x=f.x+f.ax*L,y=f.y+f.ay*L,an=Math.atan2(f.ay,f.ax);ctx.globalAlpha=.55*a;ctx.strokeStyle='#e3efff';ctx.lineWidth=3;
+  for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(x-f.ax*i*10,y-f.ay*i*10,10+i*5,an-1,an+1);ctx.stroke()}ctx.globalAlpha=.18*a;ctx.lineWidth=14;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(x,y);ctx.stroke()}
+ ctx.restore()}
 // Bola de Fogo (Uchiha): selo com as mãos, depois a bola sai da boca e explode ao acertar
 function castFire(s,ax,ay){actStart('fogo');const tp=HTP;
  KDEL.push({t:s.tel||.16,fn:()=>{const l=Math.hypot(ax,ay)||1,ux=ax/l,uy=ay/l;P.push({x:p.x+ux*14,y:p.y-24,vx:ux*(s.sp||300),vy:uy*(s.sp||300),col:s.col,dmg:s.dmg,life:1.1,big:1,fire:1,tp})}})}
@@ -1021,7 +1075,7 @@ function castItem(){const it=atkItem();if(!it){toast('Equipe um item que dá hab
 // golpes em área: os Hyuga usam a folha; os outros continuam com o círculo
 let KDEL=[];
 // o que um efeito agenda de dentro de outro (ex.: os puxões do Kageyose) entra na fila nova e não se perde
-function kfxStep(dt){bufTick();eyeTick(dt);ccTick(dt);if(!KDEL.length)return;const cur=KDEL;KDEL=[];const keep=cur.filter(d=>{if((d.t-=dt)>0)return true;try{d.fn()}catch(e){console.error(e)}return false});KDEL=keep.concat(KDEL)}
+function kfxStep(dt){bufTick();eyeTick(dt);byakTick(dt);ccTick(dt);if(!KDEL.length)return;const cur=KDEL;KDEL=[];const keep=cur.filter(d=>{if((d.t-=dt)>0)return true;try{d.fn()}catch(e){console.error(e)}return false});KDEL=keep.concat(KDEL)}
 function castAoe(s,ax,ay){
  const hitAll=(cx,cy,radial,onHit)=>{let n=0;E.concat(PVT()).forEach(e=>{if(e.dead||Math.hypot(e.x-cx,e.y-cy)>=s.r+(e.rad||0)*.6)return;n++;
    let kx=ax*(s.kb||0),ky=ay*(s.kb||0);if(radial){const d=Math.hypot(e.x-cx,e.y-cy)||1;kx=(e.x-cx)/d*(s.kb||0);ky=(e.y-cy)/d*(s.kb||0)}
@@ -1037,8 +1091,8 @@ function castAoe(s,ax,ay){
  if(q==='hakke'){ // Oito Trigramas 64 Palmas: quem estiver a 1 tile do Hyuga fica preso na sequência de golpes,
   // toma dano contínuo e é empurrado até a animação acabar (uns 2 tiles no total), atordoado
   actStart('hakke');kfxAdd({q,x:p.x,y:p.y,sc:1.3,al:.95});
-  const d0=Math.max(0,(s.tel||.26)-.26),caught=new Set(),TK=[.26,.35,.44,.53,.62,.71,.8,.89,.98].map(t=>t+d0),N=TK.length,PUSH=2*T/N;
-  TK.forEach((t,j)=>later(t,()=>{HMUL=BAL.golpes.hakkeTotal/N; // os 9 toques juntos valem hakkeTotal golpes (1,4)
+  const d0=Math.max(0,(s.tel||.26)-.26),caught=new Set(),N=Math.max(2,(s.toques|0)||9),TK=[...Array(N)].map((_,j)=>.26+j*.72/(N-1)+d0),PUSH=2*T/N,TOT=+s.total||BAL.golpes.hakkeTotal;
+  TK.forEach((t,j)=>later(t,()=>{HMUL=TOT/N; // os toques juntos valem TOT golpes (64 Palmas: 9 toques = hakkeTotal 1,4; 128 Palmas: 12 toques)
    try{E.concat(PVT()).forEach(e=>{if(e.dead)return;const id=e.pvp||e.sid||e.id,d=Math.hypot(e.x-p.x,e.y-p.y);
     if(!caught.has(id)){if(d>=T+(e.rad||0)*.6)return;caught.add(id);kfxAdd({q:'icon',i:[0,4,5][Math.random()*3|0],x:e.x,y:e.y-(e.boss?70:30),sc:.55,d:.7})}
     const u=d||1;hitE(e,s.dmg,s.stun,(e.x-p.x)/u*PUSH,(e.y-p.y)/u*PUSH);
