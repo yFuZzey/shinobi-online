@@ -25,6 +25,11 @@ MMORPG 2D no universo Naruto (protótipo).
 - `versao` (`sql/07_versao.sql`): versão do formato do personagem. Quando o formato mudar, o jogo converte os saves antigos (função `chMigra` em `src/online/online2.js`); sem a coluna o jogo funciona e guarda a versão no aparelho.
 - `contrato`, `contrato_em` (`sql/08_contrato.sql`): contrato de invocação escolhido (Sapos/Gamabunta, Lesmas/Katsuyu, Cobras/Manda) e quando foi escolhido (troca só a cada 24 h). Sem as colunas o jogo funciona e guarda no aparelho.
 
+## Atualização do jogo (APK)
+- Ao abrir o jogo no APK, Entrar e Criar conta ficam travados com "Verificando atualização…". Se tem versão nova: "Jogo atualizando… N%", o jogo reinicia sozinho e só libera o botão quando já é a versão mais nova.
+- Sem internet/GitHub: continua travado, avisa e tenta de novo a cada 10 s (tem o botão "Tentar de novo"). Versão que precisa de APK novo: continua travado e explica. Versão marcada como ruim no aparelho não prende em loop.
+- Código: `otaGate`/`otaRun` em `src/online/online2.js`. Teste: `tests/online/t40.js`. Fora do APK (navegador/testes) nada é travado.
+
 ## Invocações (Entrega 11)
 - Nv 11: o jogador escolhe 1 contrato na aba Jutsus (ramo "Contrato de invocação"); o botão Kuchiyose passa a invocar a família escolhida. Valores em `server/balanceamento.json` → `invocacoes` (flag `flags.invocacoes`).
 - Sapo: escudo de 15% da vida; Lesma: cura 12% em 6 s (60% no PvP); Cobra: bote + veneno. Corvos, falcões, cães e cervos aparecem como "em breve" (sem arte).

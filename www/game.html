@@ -2318,25 +2318,49 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610071802'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0};
+const OTA={v:+'202610071829'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 async function otaPut(o){const db=await otaDb();await new Promise((res,rej)=>{const t=db.transaction('f','readwrite');t.objectStore('f').put(o,'game');t.oncomplete=res;t.onerror=()=>rej(t.error)})}
 async function otaSha(txt){const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('')}
-async function otaCheck(){if(!OTA.app||OTA.busy||OTA.ready||!OTA.v)return 0;OTA.busy=1;
+/* baixa um arquivo com limite de tempo; com prog, mostra o andamento (bytes lidos / size) */
+async function otaGet(u,ms,o){o=o||{};const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
+ try{const r=await fetch(u,{cache:'no-store',headers:o.h,signal:c.signal});if(!r.ok)throw new Error('http '+r.status);
+  if(!o.prog||!r.body||!r.body.getReader)return await r.text();
+  const rd=r.body.getReader(),ps=[];let n=0;for(;;){const x=await rd.read();if(x.done)break;ps.push(x.value);n+=x.value.length;o.prog(o.size?Math.min(99,Math.round(n/o.size*100)):0)}
+  const all=new Uint8Array(n);let q=0;ps.forEach(a=>{all.set(a,q);q+=a.length});return new TextDecoder().decode(all)}
+ finally{clearTimeout(t)}}
+/* resultado: 'ok' (já é a mais nova), 'nova' (baixou e guardou), 'apk' (precisa do APK novo) ou 'falhou' (sem rede/GitHub) */
+async function otaRun(o){o=o||{};if(!OTA.app||!OTA.v)return 'ok';if(OTA.ready)return 'nova';if(OTA.busy)return 'falhou';OTA.busy=1;
  try{let ref='main';
-  try{const r=await fetch(OTA.api,{headers:{Accept:'application/vnd.github.sha'},cache:'no-store'});if(r.ok){const t=(await r.text()).trim();if(/^[0-9a-f]{40}$/.test(t))ref=t}}catch(_){}
+  try{const t=(await otaGet(OTA.api,8000,{h:{Accept:'application/vnd.github.sha'}})).trim();if(/^[0-9a-f]{40}$/.test(t))ref=t}catch(_){}
   const q=ref==='main'?'?t='+Date.now():'';
-  const vj=await (await fetch(OTA.base+ref+'/www/version.json'+q,{cache:'no-store'})).json();
-  if(!(+vj.v>OTA.v))return 0;
-  let bad=0;try{bad=+localStorage.getItem('so-ota-bad')||0}catch(_){}if(+vj.v===bad)return 0;
-  if((+vj.loader||1)>OTA.loader){if(!OTA.told){OTA.told=1;onlReg('📦 Saiu uma versão que precisa do APK novo: baixe em GitHub → Releases.')}return 0}
-  const html=await (await fetch(OTA.base+ref+'/www/game.html'+q,{cache:'no-store'})).text();
+  const vj=JSON.parse(await otaGet(OTA.base+ref+'/www/version.json'+q,15000));
+  if(!(+vj.v>OTA.v))return 'ok';
+  let bad=0;try{bad=+localStorage.getItem('so-ota-bad')||0}catch(_){}if(+vj.v===bad)return 'ok';
+  if((+vj.loader||1)>OTA.loader)return 'apk';
+  if(o.fase)o.fase();
+  const html=await otaGet(OTA.base+ref+'/www/game.html'+q,120000,{size:+vj.size||0,prog:o.prog});
   if(vj.sha256&&await otaSha(html)!==vj.sha256)throw new Error('arquivo baixado não confere');
   const m=html.match(/'(\d{12})'\|\|0,base:/);if(!m||+m[1]!==+vj.v)throw new Error('versão do arquivo não confere');
-  await otaPut({v:+vj.v,html});OTA.ready=+vj.v;otaShow();return 1}
- catch(e){console.warn('atualização:',e&&e.message);return 0}finally{OTA.busy=0}}
+  await otaPut({v:+vj.v,html});OTA.ready=+vj.v;if(!o.gate)otaShow();return 'nova'}
+ catch(e){console.warn('atualização:',e&&e.message);return 'falhou'}finally{OTA.busy=0}}
+async function otaCheck(){if(!OTA.app||OTA.busy||OTA.ready||!OTA.v)return 0;const r=await otaRun();
+ if(r==='apk'&&!OTA.told){OTA.told=1;onlReg('📦 Saiu uma versão que precisa do APK novo: baixe em GitHub → Releases.')}return r==='nova'?1:0}
+function otaReload(){location.reload()}
+/* porteiro: ao abrir o jogo, Entrar e Criar conta ficam travados até confirmar que a versão é a mais nova */
+let otaRetryTk=0;
+async function otaGate(){if(!OTA.app||!OTA.v)return 'ok';OTA.gate=1;onlBusy(false);clearTimeout(otaRetryTk);
+ const er=$('#err');let bt=$('#otaretry');
+ if(!bt){bt=document.createElement('button');bt.id='otaretry';bt.type='button';bt.textContent='Tentar de novo';bt.hidden=true;bt.onclick=()=>otaGate();er.parentNode.insertBefore(bt,er.nextSibling)}
+ bt.hidden=true;er.textContent='🔎 Verificando atualização…';
+ const r=await otaRun({gate:1,fase:()=>{er.textContent='⬇️ Jogo atualizando… 0%'},prog:n=>{er.textContent='⬇️ Jogo atualizando… '+n+'%'}});
+ if(r==='ok'){OTA.gate=0;er.textContent='';onlBusy(false)}
+ else if(r==='nova'){er.textContent='✅ Atualizado! Reiniciando o jogo…';setTimeout(otaReload,500)}
+ else if(r==='apk')er.textContent='📦 Esta versão precisa do APK novo. Baixe em GitHub → Releases e instale para entrar.';
+ else{er.textContent='⚠️ Não consegui verificar a atualização. Confira a internet. Tentando de novo…';bt.hidden=false;otaRetryTk=setTimeout(otaGate,10000)}
+ return r}
 function otaShow(){const b=$('#otabar');if(!b)return;b.querySelector('span').textContent='🔄 Versão nova do jogo baixada ('+otaVerTxt(OTA.ready)+').';b.hidden=false;
  if(ONL.adm)onlReg('🔄 [ADM] Versão '+otaVerTxt(OTA.ready)+' baixada. Ela abre ao tocar em Atualizar ou na próxima vez que abrir o jogo.')}
 async function otaApply(){const b=$('#otabar');if(b)b.querySelector('button').disabled=true;try{if(ONL.on)await onlSave(true)}catch(_){}location.reload()}
@@ -2348,13 +2372,13 @@ function gsReady(){return new Promise((res,rej)=>{if(ONL.authed)return res();ONL
  const er=$('#err'),t0=performance.now();const tk=setInterval(()=>{if(ONL.authed||!ONL.welcomeCb){clearInterval(tk);return}const s=Math.round((performance.now()-t0)/1000);
   er.textContent=s<4?'Conectando ao servidor do jogo…':'Acordando o servidor do jogo… '+s+'s (no plano grátis ele dorme quando ninguém joga; pode levar até 1 minuto)';
   if(s>120){clearInterval(tk);ONL.welcomeCb=null;rej(new Error('O servidor do jogo não respondeu. Tente de novo em instantes.'))}},500)})}
-async function onlEnter(){const n=$('#u').value.trim(),s=$('#p').value,er=$('#err');
+async function onlEnter(){if(OTA.gate)return;const n=$('#u').value.trim(),s=$('#p').value,er=$('#err');
  if(!n||!s){er.textContent='Digite seu nome de usuário e sua senha.';return}
  if(!/^[A-Za-z0-9_]{3,14}$/.test(n)){er.textContent='Usuário ou senha incorretos.';return}
  er.textContent='Entrando…';onlBusy(true);
  try{await onlLogin(n,s,false);keepSet($('#keep').checked?n:'',s);await onlAfterLogin()}catch(e){onlFail(e)}onlBusy(false)}
 const okUser=n=>/^[A-Za-z0-9_]{3,14}$/.test(n),okMail=m=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m);
-async function onlCreate(){const n=$('#nu').value.trim(),s=$('#np').value,em=$('#ne').value.trim(),er=$('#err');
+async function onlCreate(){if(OTA.gate)return;const n=$('#nu').value.trim(),s=$('#np').value,em=$('#ne').value.trim(),er=$('#err');
  if(!okUser(n)){er.textContent='Nome de usuário: de 3 a 14 letras, números ou _ (sem espaços nem acentos).';return}
  if(s.length<8){er.textContent='A senha precisa ter pelo menos 8 caracteres.';return}
  if(!okMail(em)){er.textContent='Digite um e-mail de recuperação válido.';return}
@@ -2380,7 +2404,7 @@ async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;
   if(typeof mark==='function')mark();er.textContent='';goFull();ONL.loading=true;start(row.cla);ONL.loading=false;
   ONL.last={cols:onlCols(),inv:JSON.stringify(onlInv())};setTimeout(rs,350)}
  else{ONL.hasChar=false;onlStartMap();try{localStorage.removeItem(chKey());localStorage.removeItem(invKey())}catch(_){}er.textContent='';show('cust')}}
-function onlBusy(b){['#go1','#goNew','#tabIn','#tabNew'].forEach(s=>{const e=$(s);if(e)e.disabled=b})}
+function onlBusy(b){['#go1','#goNew','#tabIn','#tabNew'].forEach(s=>{const e=$(s);if(e)e.disabled=b||!!OTA.gate})}
 function onlLogout(){ONL.closing=true;const fin=()=>{try{localStorage.removeItem(ONL_SESS)}catch(_){}location.reload()};
  const pr=ONL.on?onlSave():Promise.resolve();Promise.resolve(pr).finally(()=>{try{ONL.ws&&ONL.ws.close()}catch(_){}if(ONL.tok)onlFetch('/auth/v1/logout',{method:'POST'}).catch(()=>{}).finally(fin);else fin()})}
 // ---------- Retrato do personagem (mochila e aba Personagem), animado enquanto a janela está aberta ----------
@@ -2509,7 +2533,7 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
  try{if(OTA.v){localStorage.setItem('so-ota-ok',String(OTA.v));localStorage.setItem('so-ota-fail','0')}}catch(_){}
  {const lv=$('#lgVer');if(lv)lv.textContent='Versão '+otaVerTxt(OTA.v)+(OTA.app?' · atualiza sozinho':'')}
  {const ob=$('#otabar');document.body.appendChild(ob);ob.querySelector('button').onclick=otaApply} // aparece em qualquer tela
- if(OTA.app){setTimeout(otaCheck,2500);setInterval(otaCheck,20*60*1000)}})();
+ if(OTA.app){otaGate();setInterval(otaCheck,20*60*1000)}})();
 //ONLINE-END
 
 </script></body></html>
