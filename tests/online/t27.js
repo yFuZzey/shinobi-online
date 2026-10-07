@@ -11,7 +11,9 @@ let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
  await A.evaluate(s=>{p.x=s[0];p.y=s[1];E=[];gsPos(true)},spot);await B.evaluate(s=>{p.x=s[0]+130;p.y=s[1];p.hp=p.max;E=[];gsPos(true)},spot);await W(800);
  await B.evaluate(()=>{window._fb=0;const f0=fireBoom;fireBoom=function(b){_fb++;return f0(b)};window._seen={act:0,ball:0};const f=()=>{for(const id in ONL.peers){const q=ONL.peers[id];if(q.act&&q.act.a==='fogo')_seen.act=1}if(P.some(b=>b.rm&&b.fire))_seen.ball=1;if(!window._stop)requestAnimationFrame(f)};requestAnimationFrame(f)});
  const hp0=await B.evaluate(()=>p.hp);await A.evaluate(()=>{E=[];cd[0]=0;p.mp=p.mpMax;cast(0)});await W(250);await B.screenshot({path:__dirname+'/fogo_b.png'});await W(900);
- const r=await B.evaluate(()=>({...window._seen,fb:_fb,hp:p.hp,left:P.filter(b=>b.rm&&b.fire).length}));
+ let r=await B.evaluate(()=>({...window._seen,fb:_fb,hp:p.hp,left:P.filter(b=>b.rm&&b.fire).length}));
+ // esquiva base de 5%: se B esquivou, tenta de novo (até 4x) — o que se testa é o dano chegar, não a sorte
+ for(let k=0;k<4&&r.hp>=hp0&&await B.evaluate(()=>ONL.reg.some(x=>/Você esquivou/.test(x.t)));k++){await A.evaluate(()=>{cd[0]=0;p.mp=p.mpMax;cast(0)});await W(1200);r={...r,hp:await B.evaluate(()=>p.hp)}}
  ok(r.act,'B vê A fazendo a pose do selo');ok(r.ball,'B vê a bola de fogo voando');ok(r.fb>=1&&!r.left,'a bola explode na tela de B quando chega nele');
  ok(r.hp<hp0&&/Você recebeu \d+ de dano \(Itachi/.test(await B.evaluate(()=>ONL.reg.map(x=>x.t).join('|'))),'PvP: a Bola de Fogo tira vida de B ('+hp0+' → '+r.hp+')');
  // item da mão online: equipa Chidori e usa pelo 4º botão

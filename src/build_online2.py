@@ -20,11 +20,13 @@ def _need(path,kind=(int,float)):
 for _p in ['combate.esquivaBase','combate.esquivaMin','combate.esquivaMax','combate.critMult','combate.reducaoMax','combate.olharMinimo','combate.olharChefe',
   'personagem.nivelMax','personagem.pontosPorNivel','personagem.xpBase','personagem.xpExpoente','personagem.atributoMax','personagem.statusMax','personagem.regenChakra','personagem.regenVida',
   'golpes.kaitenAtordoa','golpes.hakkeTotal','olhos.susanooDreno','olhos.mangekyoRecarga']:_need(_p)
-for _p in ['personagem.atributos','personagem.retornoDecrescente','personagem.retornoDecrescente.inicio','proficiencia.tipos','golpes.ranks','golpes.clas','golpes.tipos','olhos.susanoo','jutsus']:_need(_p,dict)
+for _p in ['personagem.atributos','personagem.retornoDecrescente','personagem.retornoDecrescente.inicio','proficiencia.tipos','golpes.ranks','golpes.jutsus','golpes.barra','olhos.susanoo']:_need(_p,dict)
 _need('personagem.retornoDecrescente.eficacia');_need('proficiencia.multMin');_need('proficiencia.multMax');_need('combate.esquivaMaxMonstro')
 for _p in ['proficiencia.ranks','olhos.tomoe']:_need(_p,list)
 assert len(BAL['olhos']['tomoe'])==4,'balanceamento.json: olhos.tomoe precisa de 4 estágios'
-for _c in ('uchiha','hyuga','nara'):assert len(BAL['golpes']['clas'][_c])==3 and len(BAL['golpes']['tipos'][_c])==3,'balanceamento.json: golpes de '+_c
+for _c in ('uchiha','hyuga','nara'):
+    _b=BAL['golpes']['barra'][_c];assert len(_b)==3 and all(x in BAL['golpes']['jutsus'][_c] for x in _b),'balanceamento.json: barra de '+_c
+    assert BAL['golpes']['jutsus'][_c][_b[2]].get('papel')=='ult','balanceamento.json: o botão grande de '+_c+' precisa de um jutsu com papel ult'
 for _k in ('itachi','sasuke','madara'):assert _k in BAL['olhos']['susanoo'],'balanceamento.json: Susanoo '+_k
 for _k in ('hp','mp','pf','pc','spd','mpr','crit','esq','prec','red','cdr'):assert _k in BAL['personagem']['atributos'],'balanceamento.json: atributo '+_k
 def rep(a,b,n=1):
@@ -122,8 +124,8 @@ rep("for(const e of E)if(!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.
 # ---- proficiência ----
 rep("const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0}});","const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0},prof:{k:null,xp:0},mgk:null,v:SAVE_V});")
 rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(BAL.personagem.atributoMax,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null;CH.v=Math.max(SAVE_V,+j.v||1)}}catch(e){}}")
-rep("const mpOf=(i,s)=>{const a=i==0?atkItem():null;return a?(+a.atk.mp||0):s.mp};","const mpOf=(i,s)=>{const a=i==3?atkItem():null;return Math.round((a?(+a.atk.mp||0):Math.max(+s.mp||0,(+s.mpPct||0)*(p&&p.mpMax||0)/100))*profMp(i))};")
-rep("const cdOf=(i,s)=>{const a=i==0?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM())};","const cdOf=(i,s)=>{const a=i==3?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM()*profCd(i))};")
+rep("const mpOf=(i,s)=>{const a=i==0?atkItem():null;return a?(+a.atk.mp||0):s.mp};","const mpOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.round((a?(+a.atk.mp||0):Math.max(+s.mp||0,(+s.mpPct||0)*(p&&p.mpMax||0)/100))*profMp(i))};")
+rep("const cdOf=(i,s)=>{const a=i==0?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM())};","const cdOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM()*profCd(i))};")
 rep("col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin})","col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin,tp:HTP})")
 rep("{hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);return 0}","{HTP=b.tp||null;HCC={pj:1};hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);HTP=null;HCC=null;if(b.fire)fireBoom(b);return 0}")
 # Kagemane com aviso (tel): a sombra cresce no chão antes de prender
@@ -185,7 +187,7 @@ rep("{'1':0,'2':1,'3':2,j:0,k:1,l:2}","{'1':0,'2':1,'3':2,'4':3,j:0,k:1,l:2,u:3}
 rep(" P=[];EP=[];fx=[];FT=[];cd=[0,0,0];"," P=[];EP=[];fx=[];FT=[];cd=[0,0,0,0];")
 rep("for(let i=0;i<3;i++)cd[i]=Math.max(0,cd[i]-dt);","for(let i=0;i<4;i++)cd[i]=Math.max(0,cd[i]-dt);")
 rep("b.classList.toggle('off',p.mp<mpOf(i,s))});","b.classList.toggle('off',p.mp<mpOf(i,s))});itemBtnTick();jtBtnTick();")
-rep("function useBtn(i){if(CLANS[clan].sk[i].auto)","function useBtn(i){if(i===3)return castItem();if(CLANS[clan].sk[i].auto)")
+rep("function useBtn(i){if(CLANS[clan].sk[i].auto)","function useBtn(i){if(i===3&&!CLANS[clan].sk[3])return castItem();if(!CLANS[clan].sk[i])return;if(CLANS[clan].sk[i].auto)")
 # o item não ocupa mais o golpe inicial: tem botão próprio
 rep("if(cd[i]>0||p.mp<mpOf(i,s)){if(i==0&&atkItem()&&cd[0]<=0&&p.mp<mpOf(0,s))FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}",
     "if(cd[i]>0||p.mp<mpOf(i,s)){if(cd[i]<=0&&!(performance.now()-(window._smp||0)<700)){window._smp=performance.now();FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1})}return}")
@@ -395,6 +397,12 @@ body:not(.adm) .admo{display:none!important}body:not(.adm) #paneBag .ivf{display
 .jn.ok small{color:#3aa35a}.jn.lock{opacity:.55}.jn.lock .ji{filter:grayscale(1)}.jn.soon{opacity:.42;border-style:dashed}.jn.pick{border-color:#e0533b}.jn.pick small{color:#e0533b}
 .jn.cur{border-color:#ffc94a;background:rgba(255,201,74,.1)}.jn.sel{outline:2px solid #e0533b;outline-offset:1px}
 .jdet{border:1.5px solid var(--line);border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;gap:6px}
+.jbar{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;padding:6px 8px;border:1.5px dashed var(--line);border-radius:12px}
+.jbl{align-self:center;font:800 11px/1.2 system-ui,sans-serif;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;margin-right:2px}
+.jbs{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:6px;align-items:center;text-align:left;min-width:0;flex:1 1 110px;padding:4px 8px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel);color:var(--ink)}
+.jbs .ji{grid-row:1/3;width:30px;height:30px;display:grid;place-items:center}.jbs .ji img{width:30px;height:30px;object-fit:contain}
+.jbs small{font-size:10px;color:var(--mute)}.jbs b{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jbs.big{border-color:var(--acc)}
+.jbb{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.jbb>span{font-size:12px;color:var(--mute)}.jbb button{padding:5px 10px;font-size:12px}
 .jdh{display:flex;gap:10px;align-items:center}.jdh>div{flex:1;min-width:0}.jdh b{font-size:16px}.jdh small{display:block;font-size:11.5px;color:var(--mute);line-height:1.3}
 .jst{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}.jst.ok{color:#3aa35a;border-color:#3aa35a}.jst.pick{color:#e0533b;border-color:#e0533b}
 .pfi.jey{width:46px;height:46px}.pfi.jey img{width:100%;height:100%;object-fit:contain}

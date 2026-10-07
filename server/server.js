@@ -646,13 +646,15 @@ function cmdLutas(p, me) {
   me('Últimas lutas PvP (' + LUTAS.length + ' guardadas): ' + L.map(r => r.por.join('+') + ' x ' + r.quem + ': ' + r.seg + ' s, maior dano em 2 s ' + r.burst2s + '% da vida, preso ' + r.preso + ' s (seguido ' + r.presoSeguido + ' s)' + (r.morreu ? ', derrotado' : '')).join(' · '));
 }
 // ---------------------------------------------------------------- recarga conferida pelo servidor (modo sombra: só anota suspeitas)
-// O app avisa cada golpe usado ({t:'cast', sl}: 0 inicial, 1 meio, 2 grande, 3 item). Com a tabela de golpes do balanceamento.json,
-// o servidor calcula o menor intervalo possível (recarga com o máximo de Destreza e de especialidade, com folga para a rede).
-function cdMinimo(p, sl) {
-  const j = BALJ, G = j && j.golpes; if (!G || !G.clas || !p.clan) return 0;
+// O app avisa cada golpe usado ({t:'cast', sl, id}: botão e id do jutsu; id 'item' = golpe do item da mão). Com o catálogo do
+// balanceamento.json (golpes.jutsus), o servidor calcula o menor intervalo possível (recarga com o máximo de Destreza e de
+// especialidade, com folga para a rede). App antigo, sem id: vale o jutsu da barra padrão daquele botão.
+function cdMinimo(p, sl, id) {
+  const j = BALJ, G = j && j.golpes; if (!G || !G.jutsus || !p.clan) return 0;
   let base = 0;
-  if (sl < 3) { const g = (G.clas[p.clan] || [])[sl]; if (!g) return 0; base = num(g.cd, num((G.ranks[g.r] || {}).cd, 0)); }
-  else { for (const id of p.eq || []) { const it = ITEMS[id]; if (it && num(it.cd, 0) > 0) base = num(it.cd, 0); } }
+  if (!id && sl < 3) id = ((G.barra || {})[p.clan] || [])[sl];
+  if (id && id !== 'item') { const g = (G.jutsus[p.clan] || {})[id]; if (!g) return 0; base = num(g.cd, num((G.ranks[g.r] || {}).cd, 0)); }
+  else { for (const iid of p.eq || []) { const it = ITEMS[iid]; if (it && num(it.cd, 0) > 0) base = num(it.cd, 0); } }
   if (!(base > 0)) return 0;
   const at = (j.personagem && j.personagem.atributos) || {}, cdr = num((at.cdr || {}).max, 40);
   const tai = ((j.proficiencia || {}).tipos || {}).taijutsu || {}, perk = num(tai.pv, 0) * (((j.proficiencia || {}).ranks || []).length || 0);
@@ -660,11 +662,11 @@ function cdMinimo(p, sl) {
 }
 function onCast(p, m) {
   try {
-    if (!p.map) return; const sl = num(m.sl, -1) | 0; if (sl < 0 || sl > 3) return;
-    const t = now(); p.casts = p.casts || [0, 0, 0, 0]; const last = p.casts[sl]; p.casts[sl] = t; if (!last) return;
-    const min = cdMinimo(p, sl), dt = t - last; if (!(min > 0) || dt >= min * .8 - .2) return;
+    if (!p.map) return; const sl = num(m.sl, -1) | 0; if (sl < 0 || sl > 3) return; const id = str(m.id, 24);
+    const t = now(), k = id || 'b' + sl; p.casts = p.casts || {}; const last = p.casts[k]; p.casts[k] = t; if (!last) return;
+    const min = cdMinimo(p, sl, id), dt = t - last; if (!(min > 0) || dt >= min * .8 - .2) return;
     p.cdSusp = (p.cdSusp || 0) + 1;
-    if (t - (p.cdSuspT || 0) > 30) { p.cdSuspT = t; log('RECARGA? ' + p.nome + ' (' + p.clan + ') usou o botão ' + sl + ' de novo em ' + Math.round(dt * 100) / 100 + ' s (mínimo ' + Math.round(min * 100) / 100 + ' s); suspeitas: ' + p.cdSusp); }
+    if (t - (p.cdSuspT || 0) > 30) { p.cdSuspT = t; log('RECARGA? ' + p.nome + ' (' + p.clan + ') usou o botão ' + sl + (id ? ' (' + id + ')' : '') + ' de novo em ' + Math.round(dt * 100) / 100 + ' s (mínimo ' + Math.round(min * 100) / 100 + ' s); suspeitas: ' + p.cdSusp); }
   } catch (e) { log('cast (erro ignorado):', e.message); }
 }
 function onPvpResult(q, m) { // q = quem apanhou, avisando que foi derrotado por "by"
