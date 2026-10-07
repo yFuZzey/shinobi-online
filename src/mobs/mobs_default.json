@@ -1,0 +1,94 @@
+[
+ {
+  "id": "ninja_renegado",
+  "name": "Ninja Renegado",
+  "ap": {
+   "tipo": "sprite",
+   "sprite": "ninja_renegado",
+   "olha": "dir"
+  },
+  "escala": 90,
+  "vida": 600,
+  "dano": 24,
+  "vel": 85,
+  "atkInt": 1.1,
+  "alcance": 1,
+  "visao": 6,
+  "persegue": 8,
+  "xp": 180,
+  "renasce": 30,
+  "drops": [],
+  "rev": 3,
+  "nivel": 12,
+  "esquiva": 26,
+  "precisao": 26
+ },
+ {
+  "id": "lobo_cinzento",
+  "name": "Lobo Cinzento",
+  "ap": {
+   "tipo": "sprite",
+   "sprite": "lobo",
+   "olha": "dir"
+  },
+  "escala": 100,
+  "vida": 90,
+  "dano": 8,
+  "vel": 105,
+  "atkInt": 0.9,
+  "alcance": 1,
+  "visao": 5,
+  "persegue": 7,
+  "xp": 25,
+  "renasce": 15,
+  "drops": [],
+  "rev": 3,
+  "nivel": 3,
+  "esquiva": 12,
+  "precisao": 8
+ },
+ {
+  "id": "lobo_cinzento_alfa",
+  "name": "Lobo Cinzento Alfa",
+  "ap": {
+   "tipo": "sprite",
+   "sprite": "lobo_alfa",
+   "olha": "dir"
+  },
+  "escala": 125,
+  "vida": 380,
+  "dano": 16,
+  "vel": 115,
+  "atkInt": 1.0,
+  "alcance": 1.2,
+  "visao": 7,
+  "persegue": 10,
+  "xp": 90,
+  "renasce": 60,
+  "drops": [],
+  "rev": 3,
+  "nivel": 8,
+  "esquiva": 20,
+  "precisao": 16
+ },
+ {
+  "id": "raposa",
+  "name": "Raposa de Nove Caudas",
+  "chefe": 1,
+  "ap": {
+   "tipo": "raposa"
+  },
+  "escala": 100,
+  "nivel": 90,
+  "vida": 120000,
+  "dano": 160,
+  "pulo": 260,
+  "esfera": 420,
+  "esquiva": 110,
+  "precisao": 160,
+  "xp": 25000,
+  "renasce": 300,
+  "drops": [],
+  "rev": 3
+ }
+]

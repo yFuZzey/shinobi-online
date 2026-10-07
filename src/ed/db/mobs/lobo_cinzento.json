@@ -1,0 +1,30 @@
+{
+ "alcance": 1,
+ "ap": {
+  "band": "#8b1e1e",
+  "cloth": "#6a3030",
+  "hair": "#222222",
+  "olha": "dir",
+  "skin": "#d9a97f",
+  "sprite": "lobo",
+  "tipo": "sprite"
+ },
+ "atkInt": 0.9,
+ "dano": 8,
+ "drops": [],
+ "escala": 100,
+ "id": "lobo_cinzento",
+ "locked": true,
+ "name": "Lobo Cinzento",
+ "persegue": 7,
+ "renasce": 15,
+ "rev": 3,
+ "savedAt": 1791284443980,
+ "vel": 105,
+ "vida": 90,
+ "visao": 5,
+ "xp": 25,
+ "nivel": 3,
+ "esquiva": 12,
+ "precisao": 8
+}

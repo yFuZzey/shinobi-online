@@ -1,0 +1,30 @@
+{
+ "alcance": 1.2,
+ "ap": {
+  "band": "#8b1e1e",
+  "cloth": "#6a3030",
+  "hair": "#222222",
+  "olha": "dir",
+  "skin": "#d9a97f",
+  "sprite": "lobo_alfa",
+  "tipo": "sprite"
+ },
+ "atkInt": 1.0,
+ "dano": 16,
+ "drops": [],
+ "escala": 125,
+ "id": "lobo_cinzento_alfa",
+ "locked": true,
+ "name": "Lobo Cinzento Alfa",
+ "persegue": 10,
+ "renasce": 60,
+ "rev": 3,
+ "savedAt": 1791284444278,
+ "vel": 115,
+ "vida": 380,
+ "visao": 7,
+ "xp": 90,
+ "nivel": 8,
+ "esquiva": 20,
+ "precisao": 16
+}

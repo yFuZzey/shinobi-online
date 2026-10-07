@@ -1,3 +1,11 @@
 node_modules/
 android/
 *.apk
+
+# gerados pela montagem (src/build.sh)
+src/gerado/
+src/mobs/mobs_client.json
+src/mobs/sprites_used.json
+tests/paginas/
+tests/*.log
+tests/**/*.png

@@ -1,0 +1,30 @@
+{
+ "alcance": 1,
+ "ap": {
+  "band": "#8b1e1e",
+  "cloth": "#6a3030",
+  "hair": "#222222",
+  "olha": "dir",
+  "skin": "#d9a97f",
+  "sprite": "ninja_renegado",
+  "tipo": "sprite"
+ },
+ "atkInt": 1.1,
+ "dano": 24,
+ "drops": [],
+ "escala": 90,
+ "id": "ninja_renegado",
+ "locked": true,
+ "name": "Ninja Renegado",
+ "persegue": 8,
+ "renasce": 30,
+ "rev": 3,
+ "savedAt": 1791284443606,
+ "vel": 85,
+ "vida": 600,
+ "visao": 6,
+ "xp": 180,
+ "nivel": 12,
+ "esquiva": 26,
+ "precisao": 26
+}

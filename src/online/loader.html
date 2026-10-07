@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Shinobi Online</title>
+<style>html,body{margin:0;height:100%;background:#110d22;color:#bfb2a8;font:14px system-ui,sans-serif}body{display:flex;align-items:center;justify-content:center}</style></head>
+<body><div id="ld">Carregando…</div>
+<script>
+// Carregador do Shinobi Online (vem dentro do APK).
+// Abre a versão mais nova do jogo já baixada no celular; se não tiver, abre a que veio no APK (game.html).
+// O próprio jogo baixa as versões novas. Se uma versão baixada não abrir 2 vezes seguidas, volta para a do APK.
+(function () {
+  var EMB = __EMB_V__, LOADER = 1;
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, String(v)); } catch (e) {} return null; }
+  function idb() { return new Promise(function (res, rej) { var r = indexedDB.open('shinobi-ota', 1);
+    r.onupgradeneeded = function () { r.result.createObjectStore('f'); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }
+  function get(db, k) { return new Promise(function (res) { try { var q = db.transaction('f', 'readonly').objectStore('f').get(k);
+    q.onsuccess = function () { res(q.result || null); }; q.onerror = function () { res(null); }; } catch (e) { res(null); } }); }
+  function run(html) { document.open(); document.write(html); document.close(); }
+  function pick() {
+    return idb().then(function (db) { return get(db, 'game'); }).then(function (c) {
+      if (!c || !(c.v > EMB) || !c.html) return null;
+      var bad = +ls('so-ota-bad') || 0, fails = +ls('so-ota-fail') || 0;
+      if (c.v === bad) return null;
+      // a última vez que tentou abrir esta versão ela não chegou na tela de entrada
+      if (+ls('so-ota-boot') === c.v && ls('so-ota-ok') !== String(c.v)) { fails++; ls('so-ota-fail', fails); }
+      if (fails >= 2) { ls('so-ota-bad', c.v); ls('so-ota-fail', 0); return null; }
+      return c;
+    }).catch(function () { return null; });
+  }
+  ls('so-ota-loader', LOADER);
+  pick().then(function (c) {
+    if (c) { ls('so-ota-boot', c.v); run(c.html); return; }
+    return fetch('game.html').then(function (r) { return r.text(); }).then(function (h) { ls('so-ota-boot', EMB); run(h); });
+  }).catch(function () { location.replace('game.html'); });
+})();
+</script></body></html>
