@@ -2,12 +2,13 @@
 # Uso: python3 tests/ferramentas/simular.py medida.json saida.json [teto_de_esquiva]
 # medida.json vem de tests/ferramentas/medir.js (dano bruto de cada golpe já com o poder do status).
 # Regras atuais copiadas do código: PvP = 60% (CFG.pvpMul), redução do alvo (D().red), esquiva 5+Esq-Prec (0..60%),
-# crítico dobra (chance D().crit). Sem itens, sem especialidade.
+# crítico ×1,3 no PvP (chance D().crit). Sem itens, sem especialidade.
 import json, sys
 d = json.load(open(sys.argv[1]))
 L = {c: d[c]['lv60'] for c in d}
 sk = {c: {s['n']: s for s in L[c]['sk']} for c in d}
 PVP = .6
+CRITPVP = 1.3  # planilha 12: crítico ×1,3 no PvP (×1,5 em monstro)
 def hit(raw, dfn): return raw * PVP * (1 - L[dfn]['D']['red'] / 100)
 CAP = float(sys.argv[3]) if len(sys.argv) > 3 else 60
 def dodge(att, dfn): return min(CAP, max(0, 5 + L[dfn]['D']['esq'] - L[att]['D']['prec'])) / 100
@@ -50,7 +51,7 @@ for a, raw in dps_raw.items():
   att = a.split('+')[0]
   for dfn in d:
     if dfn == att: continue
-    eff = hit(raw, dfn) * (1 - dodge(att, dfn)) * (1 + L[att]['D']['crit'] / 100)
+    eff = hit(raw, dfn) * (1 - dodge(att, dfn)) * (1 + L[att]['D']['crit'] / 100 * (CRITPVP - 1))
     out['ttk'].append((a, dfn, round(eff, 1), round(L[dfn]['hp'] / eff, 1)))
 json.dump(out, open(sys.argv[2], 'w'), ensure_ascii=False, indent=1)
 for r in out['burst']: print('BURST', r)

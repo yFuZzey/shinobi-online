@@ -35,6 +35,7 @@ const CFG = {
   // PvP: quem não está no mesmo grupo pode se atacar
   pvp: 1,           // 0 = desligado
   pvpMul: .6,       // golpes em jogadores causam 60% do dano normal (as lutas não acabam em 2 golpes)
+  pvpNivelBonusMax: .1, pvpNivelCurva: .075, // PvP aberto: nível maior bate no máximo 10% a mais do que alguém do nível do alvo (curva de poder por nível; 0 desliga)
   pvpSafe: 4,       // em volta do ponto de início (tiles) ninguém ataca nem é atacado (protege quem acabou de renascer)
   pvpStun: 1.5,     // atordoamento máximo em jogador (s)
   pvpMaxHit: 1500,
@@ -53,7 +54,7 @@ const CFG = {
   lutaFecha: 12,           // registro de lutas PvP: a luta fecha depois de tantos segundos sem golpe
 };
 // Valem no jogo e no servidor (o app leva uma cópia na montagem)
-const COMBATE = { esquivaBase: 5, esquivaMin: 0, esquivaMax: 35, esquivaMaxMonstro: 60, critMult: 2, reducaoMax: 80, olharMinimo: .3, olharChefe: .5 };
+const COMBATE = { esquivaBase: 5, esquivaMin: 0, esquivaMax: 35, esquivaMaxMonstro: 60, critMult: 2, critMultPve: 1.5, critMultPvp: 1.3, reducaoMax: 80, olharMinimo: .3, olharChefe: .5 };
 // controle (CC) no PvP — planilha 09: o mesmo tipo repetido dentro da janela dura menos (fatores) e depois do último fica imune;
 // tenacidade (VIT) encurta tudo; uma cadeia de atordoamento nunca passa de cadeiaMax s; vários toques do mesmo golpe contam uma vez (agrupa)
 const CCX = { janela: 15, imune: 3, agrupa: 1.1, cadeiaMax: 4, tenacidadeVit: .2, tenacidadeMax: 30, resGenMax: 50, deslocamentoMin: .5, jukenPen: 15, mangekyoPen: 10, penetracaoMax: 20, fatores: [1, .75, .5, .25] }; // tenacidadeVit, jukenPen e mangekyoPen são calculados no app
@@ -403,7 +404,7 @@ function onMessage(c, m) {
       if (old && old.conn.open) { old.conn.send({ t: 'kicked', msg: 'Sua conta entrou em outro aparelho.' }); old.kicked = true; old.conn.close(4001, 'duplicado'); }
       const p = { id: u.id, nome: u.nome, adm: u.adm, conn: c, map: null, x: 0, y: 0, fl: 0, mv: 0, run: 0, au: -1, th: -1, sc: 0, hp: 100, max: 100, lv: 1, clan: 'uchiha', eq: [], look: null, hitT: now(), hitN: 0 };
       c.player = p; players.set(u.id, p); offlineInfo.delete(u.id);
-      c.send({ t: 'welcome', id: u.id, nome: u.nome, adm: u.adm ? 1 : 0, inv: INV_OK ? 1 : 0, invWhy: u.adm ? INV_WHY : '', cfg: { aggro: CFG.aggro, resetNear: CFG.resetNear, resetHome: CFG.resetHome, partyMax: CFG.partyMax, pvp: CFG.pvp, pvpSafe: CFG.pvpSafe } });
+      c.send({ t: 'welcome', id: u.id, nome: u.nome, adm: u.adm ? 1 : 0, inv: INV_OK ? 1 : 0, invWhy: u.adm ? INV_WHY : '', cfg: { aggro: CFG.aggro, resetNear: CFG.resetNear, resetHome: CFG.resetHome, partyMax: CFG.partyMax, pvp: CFG.pvp, pvpMul: CFG.pvpMul, pvpSafe: CFG.pvpSafe } });
       const pid = memberParty.get(u.id); if (pid) partySync(parties.get(pid));
       log('entrou', u.nome + (u.adm ? ' [ADM]' : ''), '(' + players.size + ' online)');
     }).catch(e => { c.send({ t: 'authfail', msg: String(e.message || e) }); c.close(4002, 'auth'); });
@@ -639,13 +640,16 @@ function queimaTick() { const t = now(); for (const q of players.values()) { con
     const a = players.get(b.by); if (a) { lutaGolpe(q, a, d, 0); if (q.map) toRoom(room(q.map), { t: 'ph', to: q.id, by: b.by, d, c: 0, qm: 1 }, q); } } catch (e) {}
   if (b.n <= 0) q.queima = null; } }
 setInterval(queimaTick, 250);
+// diferença de nível no PvP aberto (planilha 12/03): quem está acima bate no máximo pvpNivelBonusMax a mais do que alguém do nível do alvo
+function nivelMul(p, q) { const c = num(CFG.pvpNivelCurva, 0), a = num(p.lv, 1), b = num(q.lv, 1); if (!(c > 0) || a <= b) return 1;
+  return Math.min(1, (1 + num(CFG.pvpNivelBonusMax, .1)) * (1 + c * b) / (1 + c * a)); }
 function onPvp(p, m) {
   const q = players.get(str(m.to, 64)); const why = pvpWhy(p, q);
   if (why === 'seguro') return p.conn.send({ t: 'ph', to: q.id, by: p.id, safe: 1 });
   if (why) return;
   const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
   const j = str(m.j, 24), an = natDe(p, j), nmul = natMul(an, natCla(q));
-  const d = Math.max(1, Math.round(clamp(num(m.d, 0), 0, CFG.pvpMaxHit) * CFG.pvpMul * nmul)); if (!num(m.d, 0)) return;
+  const d = Math.max(1, Math.round(clamp(num(m.d, 0), 0, CFG.pvpMaxHit) * CFG.pvpMul * nmul * nivelMul(p, q))); if (!num(m.d, 0)) return;
   // empurrão proporcional ao golpe (o celular de quem apanha anda ~40× esse valor em px; máx. 24 px por golpe)
   let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); let kk = 0; if (kl > .01) { kk = Math.min(CFG.empurraoPvpMax, kl / 40); kx = kx / kl * kk; ky = ky / kl * kk; } else { kx = ky = 0; }
   const r = room(p.map), pr = clamp(num(m.pr, 0), 0, 5000), c = m.c ? 1 : 0;

@@ -186,6 +186,10 @@ let HMUL=1; // golpes contínuos (64 Palmas) dividem o dano entre os toques
 const tpN=t=>{if(typeof t!=='string')return t;const s=t[0]==='@'?t.slice(1):t,i=s.indexOf('#');return i<0?s:s.slice(0,i)}; // tipo do golpe (sem o @ do item e sem o #jutsu)
 const tpJ=t=>typeof t==='string'&&t.indexOf('#')>=0?t.slice(t.indexOf('#')+1):undefined; // jutsu que está acertando (o servidor tira a natureza dele)
 const htpDe=(tipo,id)=>tipo?(id?tipo+'#'+id:tipo):null;
+// planilha 12: crítico ×1,5 em monstros e ×1,3 em jogadores; no PvP o bônus de % de dano dos itens vale no máximo pvp.itemDanoMax
+const critPve=()=>+BAL.combate.critMultPve||BAL.combate.critMult,critPvp=()=>+BAL.combate.critMultPvp||BAL.combate.critMult;
+function powPvp(t){const cap=+(BAL.pvp&&BAL.pvp.itemDanoMax),o=+AG.dmg_pct||0;if(!(cap>=0)||o<=cap)return skPow(t);AG.dmg_pct=cap;try{const a=calcChar(1,1).at;return isChakra(t)?a.pc.fin:a.pf.fin}finally{AG.dmg_pct=o}}
+function hitRawPvp(base,tp){const it=typeof tp==='string'&&tp[0]==='@',t=tpN(tp),b=bufSum();return (base+powPvp(t))*profTypeMul(t)*HMUL*(1+b.dmg/100)*(it?1:1+b.cdmg/100)}
 function hitRaw(base,tp){const it=typeof tp==='string'&&tp[0]==='@',t=tpN(tp),b=bufSum();return (base+skPow(t))*profTypeMul(t)*HMUL*(1+b.dmg/100)*(it?1:1+b.cdmg/100)}
 // reforços temporários (Sharingan +esquiva, Mangekyō +dano, Susanoo −dano recebido…): cada um tem seu tempo e eles somam
 let BUFS={};
@@ -277,7 +281,7 @@ function gsMobFollow(dt){const rt=performance.now()-IP.dm;
 // golpes do jogador vão para o servidor (ele decide a vida da raposa)
 function gsHit(e,d,st,kx,ky){if(!ONL.on)return false;if(e.pvp)return pvpHit(e,d,st,kx,ky);if(!e.sid||e.dead||!ONL.joined)return true;
  const tp=tpN(HTP),pf=profOn(tp),base=d,x=hitRaw(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
- lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());d=Math.max(1,Math.round(lastCrit?x*BAL.combate.critMult:x));if(pf)profGain(base*HMUL);
+ lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());d=Math.max(1,Math.round(lastCrit?x*critPve():x));if(pf)profGain(base*HMUL);
  const cm=ccPveMul(),H=HCC||{};if(H.lento&&+H.lento.t>0)FT.push({x:e.x,y:e.y-(e.boss?110:46),t:'lento',txt:1,life:.6});
  gsSend({t:'hit',m:e.sid,j:tpJ(HTP),d,st:(st||0)*cm,rt:(H.root||0)*cm,lt:H.lento?(+H.lento.t||0)*cm:0,lp:H.lento?+H.lento.v||0:0,cf:(+H.confusao||0)*cm,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec)});return true}
 // ---------- PvP: quem não está no seu grupo pode ser atacado (menos na zona segura em volta do ponto de início) ----------
@@ -331,11 +335,11 @@ function PVT(){if(!ONL.on||!ONL.joined||!PVP.on||(scene|0))return [];const L=[];
 function pvpSafeMsg(pe){if(pe)FT.push({x:pe.x,y:pe.y-60,t:'zona segura',txt:1,life:.8});const now=performance.now();if(!pvpSafeMsg.t||now-pvpSafeMsg.t>6000){pvpSafeMsg.t=now;onlReg('🛡️ Zona segura: perto do ponto de início ninguém ataca nem é atacado.')}}
 function pvpHit(e,d,st,kx,ky){const pe=ONL.peers[e.pvp];if(!pe||!ONL.joined)return true;
  if(pvpSafeAt(pe.x,pe.y)||pvpSafeAt(p.x,p.y)){pvpSafeMsg(pe);return true}
- const tp=tpN(HTP),pf=profOn(tp),x=hitRaw(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
+ const tp=tpN(HTP),pf=profOn(tp),x=hitRawPvp(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
  lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());
  const H=HCC||{},cc=ccDeHCC(H);if(H.semStunPvp)st=0;
  const pen=tp==='taijutsu'&&clan==='hyuga'?+BAL.cc.jukenPen||0:tp==='genjutsu'&&EYE.on==='mgk'?+BAL.cc.mangekyoPen||0:0;
- gsSend({t:'pvp',to:e.pvp,j:tpJ(HTP),d:Math.max(1,Math.round(lastCrit?x*BAL.combate.critMult:x)),st:st||0,g:st&&tp==='genjutsu'?1:undefined,pen:pen||undefined,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec),pj:H.pj?1:0,cc:cc||undefined});pe.hitT=.12;return true}
+ gsSend({t:'pvp',to:e.pvp,j:tpJ(HTP),d:Math.max(1,Math.round(lastCrit?x*critPvp():x)),st:st||0,g:st&&tp==='genjutsu'?1:undefined,pen:pen||undefined,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec),pj:H.pj?1:0,cc:cc||undefined});pe.hitT=.12;return true}
 function pvpShow(m){const pe=ONL.peers[m.to];if(m.safe){pvpSafeMsg(pe);return}
  if(m.to===ONL.uid||!pe||pe.sc!==(scene|0))return; // quem apanhou já viu o próprio número
  const me=m.by===ONL.uid,y=pe.y-60;
@@ -345,7 +349,7 @@ function pvpShow(m){const pe=ONL.peers[m.to];if(m.safe){pvpSafeMsg(pe);return}
  pe.hitT=.18;FT.push({x:pe.x+(me?0:Math.random()*20-10),y,t:m.c?m.d+'!':m.d,life:me?.8:.7,crit:m.c,oth:me?0:1});if(me)regDmg('pout',m.d,m.c,pe.nome)}
 function gsMsg(m){
  switch(m.t){
- case 'welcome':ONL.authed=true;ONL.uid=m.id;ONL.adm=!!m.adm;ONL.inv=!!m.inv;if(m.cfg){PVP.on=!!m.cfg.pvp;PVP.safe=+m.cfg.pvpSafe||0}document.body.classList.toggle('adm',ONL.adm);if(ONL.adm&&!m.inv&&m.invWhy&&!ONL.invWarn){ONL.invWarn=1;onlReg('⚠️ [ADM] Trocas desligadas: '+m.invWhy+'.')}if(ONL.welcomeCb){const f=ONL.welcomeCb;ONL.welcomeCb=null;f()}else if(cur==='game')gsJoin();onlStatus();break;
+ case 'welcome':ONL.authed=true;ONL.uid=m.id;ONL.adm=!!m.adm;ONL.inv=!!m.inv;if(m.cfg){PVP.on=!!m.cfg.pvp;PVP.safe=+m.cfg.pvpSafe||0;if(+m.cfg.pvpMul>0)ONL.pvpMul=+m.cfg.pvpMul}document.body.classList.toggle('adm',ONL.adm);if(ONL.adm&&!m.inv&&m.invWhy&&!ONL.invWarn){ONL.invWarn=1;onlReg('⚠️ [ADM] Trocas desligadas: '+m.invWhy+'.')}if(ONL.welcomeCb){const f=ONL.welcomeCb;ONL.welcomeCb=null;f()}else if(cur==='game')gsJoin();onlStatus();break;
  case 'authfail':onlReg('⚠️ Falha ao entrar no servidor: '+m.msg);if(ONL.rtok)onlRefresh();break;
  case 'old':ONL.closing=true;
   if(m.v&&m.v<GS_PROTO){gsWait();break} // o servidor é que ainda está atualizando
@@ -1220,7 +1224,7 @@ function chDraw(){const el=$('#paneCh');if(!el||el.hidden||!CH||!clan)return;
     pw=skPow(tp),fd=Math.max(1,Math.round(hitRaw(bd,tp))),fc=cdOf(i,s),fm=mpOf(i,s),cls=(x,y,lowGood)=>Math.abs(x-y)<.01?'':((lowGood?x<y:x>y)?'g':'r');
     return '<tr><td>'+(a?a.name+' <small>(item · rank A)</small>':s.n+(s.rk?' <small class="rkb">rank '+s.rk+'</small>':''))+'</td><td>'+(tp?PROF[tp].ic+' '+PROF[tp].n+(profOn(tp)?' <small class="g">especialidade</small>':profOth(tp)?' <small class="r">penalidade</small>':''):'—')+'</td>'
      +'<td>'+(Math.abs(tm-1)>.001?'(':'')+bd+' + '+nf(pw)+(Math.abs(tm-1)>.001?') × '+nf(tm):'')+' = <b class="'+cls(fd,bd,0)+'">'+fd+'</b><small class="cbk">'+(isChakra(tp)?'poder de chakra':'poder físico')+'</small></td><td>'+nf(bc)+'s → <b class="'+cls(fc,bc,1)+'">'+nf(fc)+'s</b></td><td>'+bm+' → <b class="'+cls(fm,bm,1)+'">'+fm+'</b></td></tr>'}).join('')+'</tbody></table></div>'
-  +'<p class="chnote">Dano por acerto sem crítico: (dano da habilidade + poder) × bônus da especialidade. Crítico dobra.</p>';
+  +'<p class="chnote">Dano por acerto sem crítico: (dano da habilidade + poder) × bônus da especialidade. Crítico: ×'+nf(critPve())+' em monstros e ×'+nf(critPvp())+' em jogadores. No PvP o dano é '+Math.round((ONL.pvpMul||.6)*100)+'% e o bônus de % de dano dos itens vale no máximo '+(BAL.pvp?BAL.pvp.itemDanoMax:20)+'%.</p>';
  el.innerHTML=h;admClaBind(el,chDraw);portraitStart()}
 // ---------- [ADM] trocar de clã para testar: começa do zero (nível 1, sem pontos, atributos, especialidade, Mangekyō, barra nem mochila) ----------
 let admClaPick=null;

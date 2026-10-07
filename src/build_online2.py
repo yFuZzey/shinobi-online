@@ -25,6 +25,7 @@ _need('personagem.retornoDecrescente.eficacia');_need('proficiencia.multMin');_n
 for _p in ['proficiencia.ranks','olhos.tomoe']:_need(_p,list)
 for _p in ['cc.janela','cc.imune','cc.agrupa','cc.cadeiaMax','cc.tenacidadeVit','cc.tenacidadeMax','cc.jukenPen','cc.mangekyoPen']:_need(_p)
 _need('cc.fatores',list)
+_need('combate.critMultPve');_need('combate.critMultPvp');_need('pvp.itemDanoMax')
 for _p in ['naturezas.forte','naturezas.fraco','naturezas.efeitoCd']:_need(_p)
 for _p in ['naturezas.tipos','naturezas.cla','naturezas.itens']:_need(_p,dict)
 for _c,_J in BAL['golpes']['jutsus'].items():
@@ -163,7 +164,7 @@ rep("function setPanel(w){panel=w;$('#paneBag').hidden=w!=='bag';$('#paneSt').hi
 rep("<span class=\"sv\">'+CH.st[k]+'</span>","<span class=\"sv\">'+CH.st[k]+stFinTxt(k)+'</span>")
 # golpe = (dano da habilidade + Poder do tipo) × especialidade × crítico (o jogo online calcula em gsHit; aqui fica igual)
 rep("function calcDmg(d){const x=(d+AG.dmg_flat)*(1+D().dmg/100);lastCrit=Math.random()*100<D().crit;return Math.max(1,Math.round(lastCrit?x*2:x))}",
-    "function calcDmg(d){const x=hitRaw(d,HTP);lastCrit=Math.random()*100<D().crit;return Math.max(1,Math.round(lastCrit?x*BAL.combate.critMult:x))}")
+    "function calcDmg(d){const x=hitRaw(d,HTP);lastCrit=Math.random()*100<D().crit;return Math.max(1,Math.round(lastCrit?x*critPve():x))}")
 rep("['Dano',(d.dmg>=0?'+':'')+f(d.dmg)+'%']","['Poder físico',f(d.pf)],['Poder de chakra',f(d.pc)]")
 rep("['str','STR','Força','+3% de dano por ponto']","['str','STR','Força','+1 de poder físico por ponto (golpes de Taijutsu e Bukijutsu)']")
 rep("['int','INT','Inteligência','+6 de chakra máximo e +2% de regeneração de chakra por ponto']","['int','INT','Inteligência','+1 de poder de chakra (Ninjutsu e Genjutsu), +6 de chakra máximo e +2% de regeneração por ponto']")

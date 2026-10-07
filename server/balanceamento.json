@@ -1,6 +1,6 @@
 {
  "_leia": "Números de balanceamento do Shinobi Online. O servidor lê este arquivo ao iniciar (o Render reinicia sozinho quando ele muda no GitHub) e o jogo leva uma cópia na montagem (src/build.sh). Se algum valor faltar ou vier errado, o servidor usa o valor padrão do código e avisa no log. Tempos em segundos, distâncias em pixels (1 tile = 32 px), chances em %.",
- "versao": 11,
+ "versao": 12,
  "flags": {
   "_leia": "Liga (true) ou desliga (false) cada sistema.",
   "pvp": true
@@ -21,6 +21,8 @@
   "localChat": 15,
   "safe": 0,
   "pvpMul": 0.6,
+  "pvpNivelBonusMax": 0.1,
+  "pvpNivelCurva": 0.075,
   "pvpSafe": 4,
   "pvpStun": 1.5,
   "pvpMaxHit": 1500,
@@ -45,12 +47,14 @@
   "olharMax": 4
  },
  "combate": {
-  "_leia": "Valem no jogo e no servidor. Chance de esquivar = esquivaBase + Esquiva de quem defende − Precisão de quem ataca, entre esquivaMin e esquivaMax (jogador; planilha: 35%) ou esquivaMaxMonstro (monstro). O olhar do Sharingan dura menos quanto mais esquiva o alvo tem (no mínimo olharMinimo da duração); em chefe, olharChefe. reducaoMax = teto da redução de dano somando tudo (planilha 10: 60%).",
+  "_leia": "Valem no jogo e no servidor. Chance de esquivar = esquivaBase + Esquiva de quem defende − Precisão de quem ataca, entre esquivaMin e esquivaMax (jogador; planilha: 35%) ou esquivaMaxMonstro (monstro). O olhar do Sharingan dura menos quanto mais esquiva o alvo tem (no mínimo olharMinimo da duração); em chefe, olharChefe. reducaoMax = teto da redução de dano somando tudo (planilha 10: 60%). Crítico: critMultPve em monstros, critMultPvp em jogadores (planilha 12); critMult fica só para app antigo.",
   "esquivaBase": 5,
   "esquivaMin": 0,
   "esquivaMax": 35,
   "esquivaMaxMonstro": 60,
   "critMult": 2,
+  "critMultPve": 1.5,
+  "critMultPvp": 1.3,
   "reducaoMax": 60,
   "olharMinimo": 0.3,
   "olharChefe": 0.5
@@ -151,6 +155,10 @@
   "itens": {
    "chidori": "raiton"
   }
+ },
+ "pvp": {
+  "_leia": "Planilha 12 (PvP × PvE). itemDanoMax = no PvP, o bônus de % de dano dos itens vale no máximo isso (o Manto da Raposa dá +100% no PvE). Dano no PvP = servidor.pvpMul; diferença de nível no PvP aberto = servidor.pvpNivelBonusMax (quem tem nível maior bate no máximo isso a mais do que alguém do nível do alvo; pvpNivelCurva = quanto o poder cresce por nível, 0 desliga).",
+  "itemDanoMax": 20
  },
  "personagem": {
   "_leia": "Nível, pontos e atributos. XP para passar do nível N = xpBase × N^xpExpoente.",
