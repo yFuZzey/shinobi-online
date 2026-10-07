@@ -1,6 +1,6 @@
 {
  "_leia": "Números de balanceamento do Shinobi Online. O servidor lê este arquivo ao iniciar (o Render reinicia sozinho quando ele muda no GitHub) e o jogo leva uma cópia na montagem (src/build.sh). Se algum valor faltar ou vier errado, o servidor usa o valor padrão do código e avisa no log. Tempos em segundos, distâncias em pixels (1 tile = 32 px), chances em %.",
- "versao": 1,
+ "versao": 2,
  "flags": {
   "_leia": "Liga (true) ou desliga (false) cada sistema.",
   "pvp": true
@@ -35,10 +35,11 @@
   "olharMax": 4
  },
  "combate": {
-  "_leia": "Valem no jogo e no servidor. Chance de esquivar = esquivaBase + Esquiva de quem defende − Precisão de quem ataca, entre esquivaMin e esquivaMax. O olhar do Sharingan dura menos quanto mais esquiva o alvo tem (no mínimo olharMinimo da duração); em chefe, olharChefe.",
+  "_leia": "Valem no jogo e no servidor. Chance de esquivar = esquivaBase + Esquiva de quem defende − Precisão de quem ataca, entre esquivaMin e esquivaMax (jogador; planilha: 35%) ou esquivaMaxMonstro (monstro). O olhar do Sharingan dura menos quanto mais esquiva o alvo tem (no mínimo olharMinimo da duração); em chefe, olharChefe.",
   "esquivaBase": 5,
   "esquivaMin": 0,
-  "esquivaMax": 60,
+  "esquivaMax": 35,
+  "esquivaMaxMonstro": 60,
   "critMult": 2,
   "reducaoMax": 80,
   "olharMinimo": 0.3,
@@ -54,6 +55,7 @@
   "statusMax": 300,
   "regenChakra": 5,
   "regenVida": 1.2,
+  "retornoDecrescente": {"_leia": "Acima de inicio, cada ponto do status (já com itens e %) vale só eficacia (planilha: 50% depois de 80; VIT depois de 90).", "inicio": {"str": 80, "agi": 80, "vit": 90, "int": 80, "dex": 80, "luk": 80}, "eficacia": 0.5},
   "atributos": {
    "_leia": "valor = base + soma(status × por) (+ velocidade acima de 100% × velocidade) (+ nível × nivel); depois fixos e % dos itens; limitado entre min e max.",
    "hp":   {"base": 100, "por": {"vit": 8},   "fixo": "hp_max",   "pct": "hp_pct",    "min": 20},
@@ -62,11 +64,11 @@
    "pc":   {"base": 0,   "por": {"int": 1},   "fixo": "dmg_flat", "pct": "dmg_pct",   "min": 0},
    "spd":  {"base": 100, "por": {"agi": 1},                       "pct": "speed_pct", "min": 30},
    "mpr":  {"base": 100, "por": {"int": 2},                       "pct": "regen_pct", "min": 20},
-   "crit": {"base": 0,   "por": {"luk": 0.7}, "min": 0, "max": 50},
+   "crit": {"base": 0,   "por": {"luk": 0.7}, "min": 0, "max": 40},
    "esq":  {"base": 0,   "por": {}, "velocidade": 1, "nivel": 1, "min": 0},
    "prec": {"base": 0,   "por": {"dex": 1}, "nivel": 1, "min": 0},
    "red":  {"base": 0,   "por": {"vit": 0.5}, "min": -20, "max": 40},
-   "cdr":  {"base": 0,   "por": {"dex": 1},   "min": -50, "max": 40}
+   "cdr":  {"base": 0,   "por": {"dex": 1},   "min": -50, "max": 35}
   }
  },
  "proficiencia": {

@@ -20,7 +20,8 @@ def _need(path,kind=(int,float)):
 for _p in ['combate.esquivaBase','combate.esquivaMin','combate.esquivaMax','combate.critMult','combate.reducaoMax','combate.olharMinimo','combate.olharChefe',
   'personagem.nivelMax','personagem.pontosPorNivel','personagem.xpBase','personagem.xpExpoente','personagem.atributoMax','personagem.statusMax','personagem.regenChakra','personagem.regenVida',
   'golpes.kaitenAtordoa','golpes.hakkeTotal','olhos.susanooDreno','olhos.mangekyoRecarga']:_need(_p)
-for _p in ['personagem.atributos','proficiencia.tipos','golpes.ranks','golpes.clas','golpes.tipos','olhos.susanoo','jutsus']:_need(_p,dict)
+for _p in ['personagem.atributos','personagem.retornoDecrescente','personagem.retornoDecrescente.inicio','proficiencia.tipos','golpes.ranks','golpes.clas','golpes.tipos','olhos.susanoo','jutsus']:_need(_p,dict)
+_need('personagem.retornoDecrescente.eficacia');_need('combate.esquivaMaxMonstro')
 for _p in ['proficiencia.ranks','olhos.tomoe']:_need(_p,list)
 assert len(BAL['olhos']['tomoe'])==4,'balanceamento.json: olhos.tomoe precisa de 4 estágios'
 for _c in ('uchiha','hyuga','nara'):assert len(BAL['golpes']['clas'][_c])==3 and len(BAL['golpes']['tipos'][_c])==3,'balanceamento.json: golpes de '+_c
@@ -208,7 +209,8 @@ rep("autoOn=true;C.sk.forEach((s,i)=>$('#b'+i).classList.toggle('ao',!!s.auto));
 rep("function giveItems(ids){const got=ids.filter(i=>ITEMS[i]&&!hasItem(i));","function giveItems(ids){const got=ids.filter(i=>ITEMS[i]);")
 rep("(Array.isArray(j.inv)?j.inv:[]).forEach(i=>{if(ITEMS[i]&&!INV.includes(i)&&!Object.values(EQ).includes(i))INV.push(i)})","(Array.isArray(j.inv)?j.inv:[]).slice(0,600).forEach(i=>{if(ITEMS[i])INV.push(i)})")
 rep("['agi','AGI','Agilidade','+1% de velocidade e +0,5% de esquiva por ponto']","['agi','AGI','Agilidade','+1% de velocidade por ponto; a velocidade acima de 100% vira Esquiva']")
-rep("['dex','DEX','Destreza','−1% de recarga das habilidades por ponto (máx. 40%)']","['dex','DEX','Destreza','+1 de Precisão e −1% de recarga por ponto (máx. 40%)']")
+rep("['dex','DEX','Destreza','−1% de recarga das habilidades por ponto (máx. 40%)']","['dex','DEX','Destreza','+1 de Precisão e −1% de recarga por ponto (máx. "+str(BAL['personagem']['atributos']['cdr']['max'])+"%)']")
+rep("['luk','LUK','Sorte','+0,7% de chance de golpe crítico (dano dobrado)']","['luk','LUK','Sorte','+0,7% de chance de golpe crítico (máx. "+str(BAL['personagem']['atributos']['crit']['max'])+"%)']")
 # chefe com nível e cor de perigo no nome
 rep("ctx.fillStyle='#ffe9a8';ctx.strokeText(e.nome,e.x,e.y-130-bz);ctx.fillText(e.nome,e.x,e.y-130-bz)","{const lb=mobName(e);ctx.fillStyle=lvColor(e,'#ffe9a8');ctx.strokeText(lb,e.x,e.y-130-bz);ctx.fillText(lb,e.x,e.y-130-bz)}")
 # janela de troca e convite de troca

@@ -46,10 +46,10 @@ const CFG = {
   lutaFecha: 12,           // registro de lutas PvP: a luta fecha depois de tantos segundos sem golpe
 };
 // Valem no jogo e no servidor (o app leva uma cópia na montagem)
-const COMBATE = { esquivaBase: 5, esquivaMin: 0, esquivaMax: 60, critMult: 2, reducaoMax: 80, olharMinimo: .3, olharChefe: .5 };
+const COMBATE = { esquivaBase: 5, esquivaMin: 0, esquivaMax: 35, esquivaMaxMonstro: 60, critMult: 2, reducaoMax: 80, olharMinimo: .3, olharChefe: .5 };
 
-// chance de esquivar: 5% + (Esquiva de quem defende − Precisão de quem ataca), entre 0% e 60%
-const dodgeChance = (esq, prec) => clamp(COMBATE.esquivaBase + num(esq, 0) - num(prec, 0), COMBATE.esquivaMin, COMBATE.esquivaMax);
+// chance de esquivar: 5% + (Esquiva de quem defende − Precisão de quem ataca), entre 0% e 35% (jogador) ou 60% (monstro)
+const dodgeChance = (esq, prec, max = COMBATE.esquivaMax) => clamp(COMBATE.esquivaBase + num(esq, 0) - num(prec, 0), COMBATE.esquivaMin, max);
 const FOXDEF = () => MOBDEFS.raposa || {};
 
 const MAPS = JSON.parse(fs.readFileSync(path.join(__dirname, 'maps.json'), 'utf8'));
@@ -510,7 +510,7 @@ function onHit(p, m) {
   let d = Math.round(clamp(num(m.d, 0), 0, CFG.maxHit)); if (!d) return;
   if (e.back) return; if (e.kind === 'mob' && !e.tg) e.tg = p;
   const pr = clamp(num(m.pr, 0), 0, 5000), esq = num((e.def || {}).esquiva, 0);
-  if (Math.random() * 100 < dodgeChance(esq, pr)) { e.alone = 0; toRoom(r, { t: 'mh', m: e.id, d: 0, miss: 1, by: p.id }); return; }
+  if (Math.random() * 100 < dodgeChance(esq, pr, COMBATE.esquivaMaxMonstro)) { e.alone = 0; toRoom(r, { t: 'mh', m: e.id, d: 0, miss: 1, by: p.id }); return; }
   e.hp -= d; e.hurt = .28; e.alone = 0;
   const st = clamp(num(m.st, 0), 0, CFG.stunMaxMonstro); if (st) e.stun = Math.max(e.stun, st); // até 8 s (Genjutsu rank alto alonga o atordoamento)
   const kx = clamp(num(m.kx, 0), -30, 30), ky = clamp(num(m.ky, 0), -30, 30);

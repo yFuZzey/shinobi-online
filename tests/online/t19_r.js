@@ -14,13 +14,14 @@ let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};c
   o.s2=calcChar(1,1).st.str;                                       // (20+10)×(1+0,20+0,15) = 40,5
   o.v2=calcChar(1,1).st.vit.fin;                                   // (10+5)×1,10 = 16,5
   o.at=calcChar(1,1).at;o.D=D();
-  CH.st.str=99;ITEMS.faixa.stats.str=200;ITEMS.faixa.stats.str_pct=200;stats();o.cap=calcChar(1,1).st.str.fin;ITEMS.faixa.stats.str=10;ITEMS.faixa.stats.str_pct=20;CH.st.str=20;stats();
+  CH.st.str=99;ITEMS.faixa.stats.str=200;ITEMS.faixa.stats.str_pct=200;stats();{const x=calcChar(1,1).st.str;o.cap=x.bruto;o.efe=x.fin;o.rd=BAL.personagem.retornoDecrescente}ITEMS.faixa.stats.str=10;ITEMS.faixa.stats.str_pct=20;CH.st.str=20;stats();
   return o});
  ok(R.s0===20,'só pontos: Força 20');
  ok(R.s1.base===30&&near(R.s1.pct,20)&&near(R.s1.fin,36),'itens: (20 pontos + 10) × (1 + 20%) = 36');
  ok(near(R.s2.pct,35)&&near(R.s2.fin,40.5),'itens + especialidade: (20 + 10) × (1 + 20% + 15%) = 40,5 (soma as % e aplica uma vez)');
  ok(near(R.v2,16.5),'Vitalidade: (10 + 5) × (1 + 10% do Taijutsu) = 16,5');
  ok(R.cap===300,'limite de 300 no status final');
+ const efe=R.rd.inicio.str+(300-R.rd.inicio.str)*R.rd.eficacia;ok(Math.abs(R.efe-efe)<.01,'retorno decrescente: acima de '+R.rd.inicio.str+' cada ponto vale '+R.rd.eficacia*100+'% (300 → '+R.efe+')');
  const pfv=R.at.pf;ok(near(pfv.fromSt,40.5)&&near(pfv.pct,100)&&near(pfv.fin,81),'Poder físico: Força final 40,5 × (1 + 100% do Manto) = '+pfv.fin);
  const hp=R.at.hp;ok(near(hp.fromSt,100+16.5*8)&&hp.fl===80&&near(hp.pct,10)&&near(hp.fin,(100+16.5*8+80)*1.1),'Vida: (100 + 16,5×8 + 80 fixos) × (1 + 10%) = '+hp.fin.toFixed(1));
  const mp=R.at.mp;ok(near(mp.fin,(100+0)*0.8),'Chakra: 100 × (1 − 20% do Taijutsu) = '+mp.fin);
