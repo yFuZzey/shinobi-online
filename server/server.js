@@ -390,6 +390,7 @@ function onMessage(c, m) {
     case 'hit': return onHit(p, m);
     case 'cmd': return onCmd(p, m);
     case 'pvp': return onPvp(p, m);
+    case 'guard': p.guard = now() + clamp(num(m.d, 0), 0, 1.2); return; // Kaiten girando: bloqueia golpes de jogadores
     case 'phr': return onPvpResult(p, m);
     case 'tinv': return tradeInvite(p, str(m.to, 64));
     case 'tacc': return tradeAccept(p, str(m.from, 64));
@@ -542,8 +543,10 @@ function onPvp(p, m) {
   if (why) return;
   const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
   const d = Math.max(1, Math.round(clamp(num(m.d, 0), 0, CFG.pvpMaxHit) * CFG.pvpMul)); if (!num(m.d, 0)) return;
-  let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); if (kl > .01) { kx = kx / kl * .6; ky = ky / kl * .6; } else { kx = ky = 0; }
+  // empurrão proporcional ao golpe (o celular de quem apanha anda ~40× esse valor em px; máx. 24 px por golpe)
+  let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); if (kl > .01) { const k = Math.min(.6, kl / 40); kx = kx / kl * k; ky = ky / kl * k; } else { kx = ky = 0; }
   const r = room(p.map), pr = clamp(num(m.pr, 0), 0, 5000), c = m.c ? 1 : 0;
+  if (q.guard && q.guard > t) { toRoom(r, { t: 'ph', to: q.id, by: p.id, blk: 1 }, q); q.conn.send({ t: 'hurt', fin: 1, blk: 1, d: 0, src: p.nome, by: p.id }); return; }
   // o servidor sorteia a esquiva (Esquiva de quem apanha x Precisão de quem bate) e aplica a redução de dano:
   // assim o número aparece para todo mundo com uma ida e volta só (antes eram duas)
   if (Math.random() * 100 < dodgeChance(q.esq || 0, pr)) { toRoom(r, { t: 'ph', to: q.id, by: p.id, miss: 1 }, q); q.conn.send({ t: 'hurt', fin: 1, miss: 1, d: 0, src: p.nome, by: p.id }); return; }
