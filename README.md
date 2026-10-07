@@ -45,7 +45,10 @@ MMORPG 2D no universo Naruto (protótipo).
 - Os jutsus do clã liberam com o nível (aba **Jutsus**, na mochila). Travado, o botão mostra 🔒 e o nível.
 - Uchiha: Bola de Fogo (Nv 1) · Sharingan no botão do meio, liga/desliga, gasta chakra por segundo (1 tomoe Nv 5, 2 tomoe Nv 15, 3 tomoe Nv 25). Ao ligar, o olhar paralisa quem está no cone à frente (menos tempo quanto mais esquiva o alvo tem; no PvP no máx. 1,5 s).
 - Nv 40: o jogador escolhe a Mangekyō (Itachi, Sasuke ou Madara), que toma o lugar do Sharingan. Nv 60: Susanoo no botão grande, só com a Mangekyō ligada (cada olho tem o seu). Desligar a Mangekyō desfaz o Susanoo. Arte em `arte/susanoo/`.
-- Hyuga: Palma (Nv 1) · Kaiten (Nv 10) · 64 Palmas (Nv 25). Nara: Shuriken (Nv 1) · Sombra (Nv 10) · Possessão (Nv 25).
+- Hyuga: Palma (Nv 1, queima 2% do chakra do alvo no PvP) · Kaiten (Nv 10, reflete projéteis de jogadores e empurra) · 64 Palmas (Nv 20, sela o chakra de jogadores por 3 s: só jutsus de até 10% do chakra).
+- Nara: Shuriken (Nv 1) · Sombra/Kagemane (Nv 1: a sombra cresce no chão e prende no lugar por 2 s; o Nara fica parado junto) · Possessão/Kagemane múltiplo (Nv 30: prende até 3 alvos por 1,5 s; no PvP o tempo é dividido entre os jogadores presos).
+- Susanoo: escudo de 25–35% da vida (Itachi o maior) por 8 s, mais lento e sem recuperar vida; quebrou o escudo, ele se desfaz.
+- Números de golpes, recargas, custos e efeitos: `server/balanceamento.json`.
 - 4º botão: habilidade do item equipado (Chidori…). Sem item que dê habilidade, ele aparece vazio.
 - Reforços somam entre si e aparecem embaixo das barras com o tempo que falta.
 - A escolha da Mangekyō fica na coluna `mangekyo` (`sql/06_mangekyo.sql`). Sem esse SQL o jogo funciona, mas a escolha fica salva só no celular.

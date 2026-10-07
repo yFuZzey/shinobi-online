@@ -125,7 +125,9 @@ rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}
 rep("const mpOf=(i,s)=>{const a=i==0?atkItem():null;return a?(+a.atk.mp||0):s.mp};","const mpOf=(i,s)=>{const a=i==3?atkItem():null;return Math.round((a?(+a.atk.mp||0):Math.max(+s.mp||0,(+s.mpPct||0)*(p&&p.mpMax||0)/100))*profMp(i))};")
 rep("const cdOf=(i,s)=>{const a=i==0?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM())};","const cdOf=(i,s)=>{const a=i==3?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM()*profCd(i))};")
 rep("col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin})","col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin,tp:HTP})")
-rep("{hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);return 0}","{HTP=b.tp||null;hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);HTP=null;if(b.fire)fireBoom(b);return 0}")
+rep("{hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);return 0}","{HTP=b.tp||null;HCC={pj:1};hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);HTP=null;HCC=null;if(b.fire)fireBoom(b);return 0}")
+# Kagemane com aviso (tel): a sombra cresce no chão antes de prender
+rep("if(s.t=='line'){const x2=p.x+ax*s.len,y2=p.y+ay*s.len;","if(s.t=='line'&&s.tel){castLine(s,ax,ay)}else if(s.t=='line'){const x2=p.x+ax*s.len,y2=p.y+ay*s.len;")
 rep("p.dash={sx:p.x,sy:p.y,tx,ty,t:0,dur:Math.max(.1,Math.min(.28,dist/650)),dmg,area};","p.dash={sx:p.x,sy:p.y,tx,ty,t:0,dur:Math.max(.1,Math.min(.28,dist/650)),dmg,area,tp:HTP||'@ninjutsu'};")
 rep("if(dd<d.area+(e.rad||0)*.65){const u=dd||1;hitE(e,d.dmg,.7,dx/u*9,dy/u*9)}","if(dd<d.area+(e.rad||0)*.65){const u=dd||1;HTP=d.tp;hitE(e,d.dmg,.7,dx/u*9,dy/u*9);HTP=null}")
 rep('<div class="ivt">Atributos derivados</div><div id="stDer"></div>','<div class="ivt">Atributos derivados</div><div id="stDer"></div><div class="ivt">Proficiência</div><div id="stProf"></div>')
@@ -152,7 +154,7 @@ rep("function hurt(n){if(Math.random()*100<D().dodge)","function hurt(n){if(Math
 rep("['Esquiva',f(d.dodge)+'%']","['Esquiva',f(d.esq)],['Precisão',f(d.prec)]")
 # PvP: o golpe recebido conta o resultado (esquivou / dano / derrotado) para devolver ao servidor
 rep("function hurt(n){if(Math.random()*100<dodgeChance(HPREC)){FT.push({x:p.x,y:p.y-56,t:'esquivou',txt:1,life:.8});return}n=Math.max(1,Math.round(n*(1-D().red/100)));p.hp-=n;",
-    "function hurt(n){HRES={miss:0,d:0,dead:0};if(kaitenGuard()){HRES.miss=1;FT.push({x:p.x,y:p.y-62,t:'defendeu',txt:1,life:.8});return}if(Math.random()*100<dodgeChance(HPREC)){HRES.miss=1;FT.push({x:p.x,y:p.y-56,t:'esquivou',txt:1,life:.8});return}n=Math.max(1,Math.round(n*(1-D().red/100)));p.hp-=n;HRES.d=n;")
+    "function hurt(n){HRES={miss:0,d:0,dead:0};if(kaitenGuard()){HRES.miss=1;FT.push({x:p.x,y:p.y-62,t:'defendeu',txt:1,life:.8});return}if(Math.random()*100<dodgeChance(HPREC)){HRES.miss=1;FT.push({x:p.x,y:p.y-56,t:'esquivou',txt:1,life:.8});return}n=Math.max(1,Math.round(n*(1-D().red/100)));n=shieldAbsorb(n);p.hp-=n;HRES.d=n;")
 rep(" if(p.hp<=0){p.hp=p.max;scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:.6}}}"," if(p.hp<=0){HRES.dead=1;p.hp=p.max;scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:.6}}}")
 # PvP: jogadores fora do grupo entram nas mesmas contas de mira e acerto dos golpes
 rep(" E.forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});\n if(tg){const d=best||1;ax="," E.concat(PVT()).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});\n if(tg){const d=best||1;ax=")
@@ -161,12 +163,12 @@ rep("  E.forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hit
 rep("  E.forEach(e=>{if(e.dead)return;const dx=e.x-p.x,dy=e.y-p.y,pr=","  E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-p.x,dy=e.y-p.y,pr=")
 rep("  E.forEach(e=>{if(e.dead)return;const dx=e.x-hx,dy=e.y-hy,dd=","  E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-hx,dy=e.y-hy,dd=")
 # atordoado (PvP): não anda
-rep("if(p.dash){dashStep(dt)}else if(m>.15){","if(p.dash){dashStep(dt)}else if(PST>0){PST-=dt;p.mv=0}else if(actRoot()){p.mv=0}else if(m>.15){if(ACT&&!ACT.root)ACT=null;")
+rep("if(p.dash){dashStep(dt)}else if(m>.15){","if(p.dash){dashStep(dt)}else if(PST>0){PST-=dt;p.mv=0}else if(PRT>0||actRoot()){p.mv=0}else if(m>.15){if(ACT&&!ACT.root)ACT=null;")
 # golpes em área passam por castAoe (os Hyuga usam a folha de efeitos do Kaiten)
 rep(" if(s.t=='aoe'){const cx=p.x+ax*(s.off||0),cy=p.y+ay*(s.off||0);\n  fx.push({k:'ring',x:cx,y:cy-8,r:s.r,col:s.col,life:.45,max:.45,sp:s.fx});\n  E.concat(PVT()).forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hitE(e,s.dmg,s.stun,ax*(s.kb||0),ay*(s.kb||0))});\n  if(s.fx)flash={col:s.col,a:.3}}",
     " if(s.t=='aoe')castAoe(s,ax,ay);")
 # desenho dos efeitos da folha
-rep(" fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='ring'){"," fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='act')return;\n  if(f.k=='ring'){")
+rep(" fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='ring'){"," fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'){shadowFxDraw(f);return}if(f.k=='act')return;\n  if(f.k=='ring'){")
 # Hyuga de branco: quadros novos entram no sprite (o jogo carrega e pinta pele/cabelo igual aos outros; a roupa branca não recebe cor)
 HYS=json.load(open('hyuga/spr_hyuga.json'));UCS=json.load(open('hyuga/spr_uchiha.json'))
 J=lambda o:json.dumps(o,separators=(',',':'))
@@ -202,7 +204,7 @@ rep('<div id="paneCh" hidden></div>','<div id="paneCh" hidden></div><div id="pan
 rep("if(w==='ch')chDraw();","if(w==='ch')chDraw();$('#paneJu').hidden=w!=='ju';$('#tbJu').classList.toggle('on',w==='ju');if(w==='ju')juDraw();")
 # com o Sharingan/Mangekyō ligado o chakra não se recupera (o olho consome)
 rep("p.mp=Math.min(p.mpMax,p.mp+5*dt*MG())","p.mp=Math.min(p.mpMax,p.mp+(eyeOnAny()?0:BAL.personagem.regenChakra*dt*MG()))")
-rep("p.hp=Math.min(p.max,p.hp+1.2*dt*RG())","p.hp=Math.min(p.max,p.hp+BAL.personagem.regenVida*dt*RG())")
+rep("p.hp=Math.min(p.max,p.hp+1.2*dt*RG())","p.hp=Math.min(p.max,p.hp+(susOn()?0:BAL.personagem.regenVida*dt*RG()))") # Susanoo de pé: sem recuperar vida
 # começo da partida: botões conforme o nível
 rep("autoOn=true;C.sk.forEach((s,i)=>$('#b'+i).classList.toggle('ao',!!s.auto));","autoOn=true;C.sk.forEach((s,i)=>$('#b'+i).classList.toggle('ao',!!s.auto));jtStart();")
 # vários do mesmo item (cada drop é uma unidade nova; a mochila mostra pilhas)

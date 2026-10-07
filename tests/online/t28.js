@@ -1,4 +1,4 @@
-// online: Mangekyō (botão do meio) e Susanoo (Nv 60) vistos pelo outro jogador; olhar prende no PvP; Susanoo reduz dano no PvP;
+// online: Mangekyō (botão do meio) e Susanoo (Nv 60) vistos pelo outro jogador; olhar prende no PvP; escudo do Susanoo no PvP;
 // desligar a Mangekyō desfaz o Susanoo também na tela dos outros
 const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/playwright');const W=ms=>new Promise(r=>setTimeout(r,ms));const suf=String(Date.now()%100000);
 let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
@@ -29,8 +29,9 @@ let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
  ok(await B.evaluate(()=>susOn()),'B invoca o Susanoo (Nv 60 com a Mangekyō ligada)');
  ok(seen.f&&seen.q==='sus_itachi'&&seen.L>=1,'A vê o Susanoo de Itachi de B');
  await A.screenshot({path:__dirname+'/sus_peer.png'});
- let d1=null;for(let i=0;i<6&&!(d1&&!d1.miss);i++)d1=await hit();
- ok(d0&&d1&&d1.d<=Math.ceil(d0.d*.5)+1,'PvP: com o Susanoo de Itachi o golpe de A tira bem menos de B ('+(d0&&d0.d)+' → '+(d1&&d1.d)+')');
+ const b0=await B.evaluate(()=>({hp:p.hp,shd:SHD&&SHD.v}));let d1=null;for(let i=0;i<6&&!(d1&&!d1.miss);i++){await A.evaluate(id=>gsSend({t:'pvp',to:id,d:40,pr:999}),idb);d1=await B.waitForFunction(()=>window._lh,null,{timeout:4000}).then(h=>h.jsonValue()).catch(()=>null);await B.evaluate(()=>{window._lh=null})}
+ const b1=await B.evaluate(()=>({hp:p.hp,shd:SHD&&SHD.v}));
+ ok(d1&&!d1.miss&&b1.hp===b0.hp&&b0.shd-b1.shd===d1.d,'PvP: o golpe de A sai do escudo do Susanoo de B, não da vida (escudo '+b0.shd+' → '+b1.shd+', dano '+(d1&&d1.d)+')');
  // B desliga a Mangekyō: o Susanoo some também na tela de A
  await B.evaluate(()=>useBtn(1));await W(900);
  const gone=await A.evaluate(id=>{const L=[];susL(L);return{ey:ONL.peers[id].ey,L:L.length,f:fx.some(f=>f.sus&&f.pid===id&&!f.dead)}},idb);

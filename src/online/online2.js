@@ -112,7 +112,7 @@ const SKT=BAL.golpes.tipos; // tipo de cada botão (balanceamento.json → golpe
 // cada rank tem dano base, chakra e recarga; o papel ajusta o dano: f = 1 (dano), 0,8 (área), 0,3–0,4 (controle/atordoar)
 const JRK=BAL.golpes.ranks; // balanceamento.json → golpes.ranks
 const SKB=BAL.golpes.clas; // balanceamento.json → golpes.clas
-for(const c in SKB)SKB[c].forEach((b,i)=>{const s=CLANS[c]&&CLANS[c].sk[i],R=JRK[b.r];if(!s)return;s.rk=b.r;s.dmg=Math.round(R.dmg*b.f);s.mp=b.mp!=null?b.mp:R.mp;s.cd=b.cd!=null?b.cd:R.cd;s.mpPct=+b.mpPct||0;if(b.tel!=null)s.tel=+b.tel;if(b.stun!=null)s.stun=+b.stun});
+for(const c in SKB)SKB[c].forEach((b,i)=>{const s=CLANS[c]&&CLANS[c].sk[i],R=JRK[b.r];if(!s)return;s.rk=b.r;s.dmg=Math.round(R.dmg*b.f);s.mp=b.mp!=null?b.mp:R.mp;s.cd=b.cd!=null?b.cd:R.cd;s.mpPct=+b.mpPct||0;if(b.tel!=null)s.tel=+b.tel;if(b.stun!=null)s.stun=+b.stun;['queima','root','canal','alvos','ccPvp'].forEach(k=>{if(b[k]!=null)s[k]=b[k]})});
 let HTP=null,profPick=null; // HTP = tipo do golpe que está acertando agora
 const nf=x=>String(Math.round(x*10)/10).replace('.',','),sgn=x=>(x>0?'+':x<0?'−':'')+nf(Math.abs(x)),clv=(v,a,b)=>Math.max(a,Math.min(b,v));
 function profNorm(o){const k=o&&PROF[o.k]?o.k:null;return{k,xp:k?Math.max(0,Math.min(1e7,o.xp|0)):0}}
@@ -157,16 +157,16 @@ const tpN=t=>typeof t==='string'&&t[0]==='@'?t.slice(1):t;
 function hitRaw(base,tp){const it=typeof tp==='string'&&tp[0]==='@',t=it?tp.slice(1):tp,b=bufSum();return (base+skPow(t))*profTypeMul(t)*HMUL*(1+b.dmg/100)*(it?1:1+b.cdmg/100)}
 // reforços temporários (Sharingan +esquiva, Mangekyō +dano, Susanoo −dano recebido…): cada um tem seu tempo e eles somam
 let BUFS={};
-function bufSum(){const n=performance.now(),o={red:0,esq:0,dmg:0,cdmg:0,prec:0};for(const k in BUFS){const b=BUFS[k];if(b.until>n)for(const q in o)o[q]+=b[q]||0}return o}
+function bufSum(){const n=performance.now(),o={red:0,esq:0,dmg:0,cdmg:0,prec:0,spd:0};for(const k in BUFS){const b=BUFS[k];if(b.until>n)for(const q in o)o[q]+=b[q]||0}return o}
 function bufOn(k){const n=performance.now();if(k)return !!(BUFS[k]&&BUFS[k].until>n);for(const q in BUFS)if(BUFS[q].until>n)return true;return false}
-function DX(items,prof){const a=calcChar(items,prof).at,b=bufSum();return{hp:Math.round(a.hp.fin),mp:Math.round(a.mp.fin),pf:a.pf.fin,pc:a.pc.fin,dmg:b.dmg,spd:a.spd.fin-100,mpr:a.mpr.fin-100,esq:a.esq.fin+b.esq,prec:a.prec.fin+b.prec,red:Math.min(BAL.combate.reducaoMax,a.red.fin+b.red),crit:a.crit.fin,cdr:a.cdr.fin}}
-function bufStart(key,B,aura){BUFS[key]={red:B.red||0,esq:B.esq||0,dmg:B.dmg||0,until:performance.now()+B.t*1000,t:B.t,nm:B.nm||key};if(aura){p.au=0;p.aud=B.t}stats();bufHud(1);
+function DX(items,prof){const a=calcChar(items,prof).at,b=bufSum();return{hp:Math.round(a.hp.fin),mp:Math.round(a.mp.fin),pf:a.pf.fin,pc:a.pc.fin,dmg:b.dmg,spd:a.spd.fin-100+b.spd,mpr:a.mpr.fin-100,esq:a.esq.fin+b.esq,prec:a.prec.fin+b.prec,red:Math.min(BAL.combate.reducaoMax,a.red.fin+b.red),crit:a.crit.fin,cdr:a.cdr.fin}}
+function bufStart(key,B,aura){BUFS[key]={red:B.red||0,esq:B.esq||0,dmg:B.dmg||0,spd:B.spd||0,until:performance.now()+B.t*1000,t:B.t,nm:B.nm||key};if(aura){p.au=0;p.aud=B.t}stats();bufHud(1);
  FT.push({x:p.x,y:p.y-66-Object.keys(BUFS).length*14,t:String(B.nm||key).split(':')[0]+'!',txt:1,gold:1,life:1.2});onlReg('✨ '+B.nm+' por '+B.t+' s.')}
 function bufTick(){const n=performance.now();let ch=0;for(const k in BUFS)if(BUFS[k].until<=n){delete BUFS[k];ch=1}if(ch)stats();bufHud(ch)}
 function bufClear(){if(!Object.keys(BUFS).length)return;BUFS={};stats();bufHud(1)}
 // chips no canto com os reforços ativos e quantos segundos faltam
 function bufHud(force){const el=document.getElementById('bufs');if(!el)return;const n=performance.now();if(!force&&n-(bufHud.t||0)<250)return;bufHud.t=n;
- const h=Object.values(BUFS).filter(b=>b.until>n).map(b=>'<span'+(b.until===Infinity?' class="on"':'')+'>'+String(b.nm).split(':')[0].replace(/[<>&]/g,'')+' <b>'+(b.until===Infinity?'ligado':Math.ceil((b.until-n)/1000)+'s')+'</b></span>').join('');if(el._h!==h){el._h=h;el.innerHTML=h}}
+ const h=Object.entries(BUFS).filter(([k,b])=>b.until>n).map(([k,b])=>'<span'+(b.until===Infinity?' class="on"':'')+'>'+String(b.nm).split(':')[0].replace(/[<>&]/g,'')+(k==='sus'&&SHD?' 🛡'+Math.ceil(SHD.v):'')+' <b>'+(b.until===Infinity?'ligado':Math.ceil((b.until-n)/1000)+'s')+'</b></span>').join('')+ccChips();if(el._h!==h){el._h=h;el.innerHTML=h}}
 function effSt(prof){const c=calcChar(1,prof),o={};for(const k of STK)o[k]=c.st[k].fin;return o}
 const profReqOk=k=>Object.entries(PROF[k].req).every(([s,v])=>CH.st[s]>=v);
 function profSkills(k){if(!clan)return[];return CLANS[clan].sk.map((s,i)=>skType(i)===k?s.n:null).filter(Boolean).concat(k==='ninjutsu'&&atkItem()?[atkItem().name]:[])}
@@ -207,10 +207,10 @@ function profDraw(){const el=$('#stProf');if(!el||!CH)return;CH.prof=profNorm(CH
  const tr=el.querySelector('[data-trocar]');if(tr)tr.onclick=()=>{profPick='?';profDraw()};
  const vt=el.querySelector('[data-voltar]');if(vt)vt.onclick=()=>{profPick=null;profDraw()}}
 // golpes usados agora: marca o tipo para o bônus/treino
-{const _c=cast;cast=function(i){if(actRoot())return;if(PST>0){if(!cast._t||performance.now()-cast._t>600){cast._t=performance.now();FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7})}return}
+{const _c=cast;cast=function(i){if(actRoot())return;{const s=CLANS[clan]&&CLANS[clan].sk[i];if(s&&seloBloqueia(mpOf(i,s)))return seloAviso()}if(PST>0){if(!cast._t||performance.now()-cast._t>600){cast._t=performance.now();FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7})}return}
  const sk=CLANS[clan]&&CLANS[clan].sk[i],c0=cd[i];HTP=skType(i);try{_c(i)}finally{HTP=null}
  if(sk&&sk.buf&&cd[i]>c0)bufStart('sk'+i,sk.buf,sk.aura)}} // só se o golpe saiu de verdade (entrou em recarga)
-const GMK=['x','y','hp','max','dead','dt','mv','fl','ch','lunge','ja','jz','jc','jx','jy','stun','hurt','rt'];
+const GMK=['x','y','hp','max','dead','dt','mv','fl','ch','lunge','ja','jz','jc','jx','jy','stun','hurt','rt','root'];
 // ---------- interpolação: cada um é desenhado um pouquinho "no passado", entre duas fotos do servidor.
 // Assim o movimento fica contínuo (sem o acelera-e-freia de correr atrás da última posição).
 const IP={dm:110,dp:120,ext:120};
@@ -232,9 +232,9 @@ function gsMobState(e,a,t){const s={};GMK.forEach((k,j)=>s[k]=a[j]);const wasDea
  if(e.sn){const dx=s.x-e.sn.x,dy=s.y-e.sn.y;if(Math.abs(dx)+Math.abs(dy)>.5)e.dir=Math.abs(dx)>Math.abs(dy)?(dx<0?2:3):(dy<0?1:0)}
  if(!e.sn||Math.hypot(s.x-e.x,s.y-e.y)>260||wasDead!==!!s.dead){e.x=s.x;e.y=s.y;e.jz=s.jz;e.buf=null;e.fl=!!s.fl;e.mv=s.mv}
  ipPush(e,t,{x:s.x,y:s.y,jz:s.jz||0,fl:s.fl,mv:s.mv});
- e.sn=s;['hp','max','ch','lunge','ja','jc','jx','jy','stun','rt'].forEach(k=>e[k]=s[k]);if(s.hurt>(e.hurt||0))e.hurt=s.hurt;
+ e.sn=s;['hp','max','ch','lunge','ja','jc','jx','jy','stun','rt','root'].forEach(k=>e[k]=s[k]);if(s.hurt>(e.hurt||0))e.hurt=s.hurt;
  if(s.dead&&!wasDead){e.dead=1;e.dt=s.dt}else if(!s.dead&&wasDead){e.dead=0;e.dt=0}}
-const MTIM=['lunge','ch','jc','ja','stun','hurt'];
+const MTIM=['lunge','ch','jc','ja','stun','hurt','root'];
 function gsMobFollow(dt){const rt=performance.now()-IP.dm;
  for(const e of E){e.hit=Math.max(0,(e.hit||0)-dt);if(!e.sn)continue;if(e.dead){e.dt=(e.dt||0)+dt;continue}
   const r=ipAt(e,rt);if(r){e.x=r.x;e.y=r.y;e.jz=r.jz;e.fl=!!r.s.fl;e.mv=r.s.mv}
@@ -242,15 +242,31 @@ function gsMobFollow(dt){const rt=performance.now()-IP.dm;
 // golpes do jogador vão para o servidor (ele decide a vida da raposa)
 function gsHit(e,d,st,kx,ky){if(!ONL.on)return false;if(e.pvp)return pvpHit(e,d,st,kx,ky);if(!e.sid||e.dead||!ONL.joined)return true;
  const tp=tpN(HTP),pf=profOn(tp),base=d,x=hitRaw(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
- lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());d=Math.max(1,Math.round(lastCrit?x*2:x));if(pf)profGain(base*HMUL);
- gsSend({t:'hit',m:e.sid,d,st:st||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec)});return true}
+ lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());d=Math.max(1,Math.round(lastCrit?x*BAL.combate.critMult:x));if(pf)profGain(base*HMUL);
+ gsSend({t:'hit',m:e.sid,d,st:st||0,rt:HCC&&HCC.root||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec)});return true}
 // ---------- PvP: quem não está no seu grupo pode ser atacado (menos na zona segura em volta do ponto de início) ----------
 // quem bate calcula o golpe igual ao dos monstros; o servidor confere (mapa, distância, grupo, zona segura) e repassa;
 // o alvo sorteia a esquiva (Esquiva dele x sua Precisão), aplica a redução e conta o resultado para todo mundo ver.
 const PVP={on:1,safe:4};let PST=0,HRES={miss:0,d:0,dead:0},pvpTold=0;
+// PRT = preso no lugar (não anda, mas usa golpes) · PSL = chakra selado (só jutsu que custa até seloLimite% do chakra) · SHD = escudo do Susanoo
+let PRT=0,PSL=0,SHD=null,HCC=null; // HCC = efeito do golpe que está acertando agora (como HTP): {root, selo, queima, pj (projétil), semStunPvp}
+function ccTick(dt){if(PRT>0)PRT=Math.max(0,PRT-dt);if(PSL>0)PSL=Math.max(0,PSL-dt);if(SHD&&SHD.until<=performance.now())SHD=null}
+function ccChips(){const L=[];if(PRT>0)L.push('<span class="cc">Preso <b>'+Math.ceil(PRT)+'s</b></span>');if(PSL>0)L.push('<span class="cc">Chakra selado <b>'+Math.ceil(PSL)+'s</b></span>');return L.join('')}
+function seloBloqueia(mp){return PSL>0&&mp>BAL.golpes.seloLimite/100*p.mpMax}
+function seloAviso(){if(!seloAviso._t||performance.now()-seloAviso._t>700){seloAviso._t=performance.now();FT.push({x:p.x,y:p.y-70,t:'chakra selado',txt:1,life:.8})}}
+// efeito recebido no PvP (o servidor confere e repassa)
+function ccRecebe(cc,src){if(!cc||!cc.k)return;const t=+cc.t||0;
+ if(cc.k==='root'&&t>0){PRT=Math.max(PRT,t);FT.push({x:p.x,y:p.y-70,t:'preso pela sombra',txt:1,life:1});onlReg('🌑 '+(src||'?')+' prendeu você no lugar ('+nf(t)+' s).')}
+ else if(cc.k==='selo'&&t>0){PSL=Math.max(PSL,t);FT.push({x:p.x,y:p.y-70,t:'chakra selado',txt:1,life:1});onlReg('✋ '+(src||'?')+' selou o seu chakra ('+nf(t)+' s): só jutsus baratos.')}
+ else if(cc.k==='queima'){const v=Math.min(p.mp,(+cc.v||0)/100*p.mpMax);if(v>0){p.mp-=v;FT.push({x:p.x+14,y:p.y-60,t:'−'+Math.round(v)+' chakra',txt:1,life:.8})}}}
+// escudo: absorve dano antes da vida; quando quebra, o Susanoo se desfaz
+function shieldAbsorb(n){if(!SHD||SHD.until<=performance.now()||SHD.v<=0)return n;const a=Math.min(n,SHD.v);SHD.v-=a;
+ if(a>0)FT.push({x:p.x-16,y:p.y-64,t:'🛡'+Math.round(a),txt:1,life:.7});
+ if(SHD.v<=0){SHD=null;FT.push({x:p.x,y:p.y-84,t:'escudo quebrou',txt:1,life:1});onlReg('🛡️ O escudo do Susanoo quebrou.');setTimeout(()=>{if(typeof susEnd==='function')susEnd()},0)}
+ bufHud(1);return n-a}
 // dano já decidido pelo servidor (PvP): aplica direto, sem sortear de novo
 function hurtFix(n,miss,crit){HRES={miss:0,d:0,dead:0};if(miss){HRES.miss=1;FT.push({x:p.x,y:p.y-56,t:'esquivou',txt:1,life:.8});return}
- n=Math.max(1,Math.round(n));p.hp-=n;HRES.d=n;flash={col:'#e0483a',a:.25};FT.push({x:p.x,y:p.y-52,t:crit?n+'!':n,life:.8,r:1,crit:crit});
+ n=Math.max(1,Math.round(n));n=shieldAbsorb(n);p.hp-=n;HRES.d=n;flash={col:'#e0483a',a:.25};if(n>0)FT.push({x:p.x,y:p.y-52,t:crit?n+'!':n,life:.8,r:1,crit:crit});
  if(p.hp<=0){HRES.dead=1;p.hp=p.max;scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:.6}}}
 const pvpSafeAt=(x,y)=>!!(PVP.safe>0&&SPAWN&&Math.hypot(x-SPAWN[0]*T,y-SPAWN[1]*T)<PVP.safe*T);
 // jogadores que podem ser atingidos agora (entram nas mesmas contas de acerto dos monstros)
@@ -262,7 +278,8 @@ function pvpHit(e,d,st,kx,ky){const pe=ONL.peers[e.pvp];if(!pe||!ONL.joined)retu
  if(pvpSafeAt(pe.x,pe.y)||pvpSafeAt(p.x,p.y)){pvpSafeMsg(pe);return true}
  const tp=tpN(HTP),pf=profOn(tp),x=hitRaw(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
  lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());
- gsSend({t:'pvp',to:e.pvp,d:Math.max(1,Math.round(lastCrit?x*2:x)),st:st||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec)});pe.hitT=.12;return true}
+ const H=HCC||{},cc=H.root?{k:'root',t:+H.root}:H.selo?{k:'selo',t:+H.selo}:H.queima?{k:'queima',v:+H.queima}:null;if(H.semStunPvp)st=0;
+ gsSend({t:'pvp',to:e.pvp,d:Math.max(1,Math.round(lastCrit?x*BAL.combate.critMult:x)),st:st||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec),pj:H.pj?1:0,cc:cc||undefined});pe.hitT=.12;return true}
 function pvpShow(m){const pe=ONL.peers[m.to];if(m.safe){pvpSafeMsg(pe);return}
  if(m.to===ONL.uid||!pe||pe.sc!==(scene|0))return; // quem apanhou já viu o próprio número
  const me=m.by===ONL.uid,y=pe.y-60;
@@ -294,12 +311,13 @@ function gsMsg(m){
   e.hit=me?.15:.12;if(me)e.hurt=.28;FT.push({x:e.x+(me?0:Math.random()*30-15),y,t:m.c?m.d+'!':m.d,life:me?.8:.7,crit:m.c,oth:me?0:1});if(me)regDmg('out',m.d,m.c,e.nome);break}
  case 'mev':gsMev(m);break;
  case 'hurt':{const pv=m.by||null;if(scene|0){if(pv)gsSend({t:'phr',by:pv,miss:1});break}
-  if(m.blk||kaitenGuard()){FT.push({x:p.x,y:p.y-62,t:'defendeu',txt:1,life:.8});onlReg('🌀 Kaiten bloqueou um golpe'+(m.src?' ('+m.src+')':''));break}
+  if(m.blk||(!pv&&kaitenGuard())){FT.push({x:p.x,y:p.y-62,t:pv?'refletiu':'defendeu',txt:1,life:.8});onlReg('🌀 Kaiten '+(pv?'refletiu um projétil':'bloqueou um golpe')+(m.src?' ('+m.src+')':''));break}
   if(m.fin)hurtFix(m.d,m.miss,m.c);else{HPREC=m.pr||0;hurt(m.d);HPREC=0}const R=HRES,src=m.src?' ('+m.src+')':'';
   if(pv&&R.dead)gsSend({t:'phr',by:pv,dead:1});
   if(R.dead){PST=0;onlReg('☠️ Você foi derrotado'+src+' e voltou para o início do mapa.');toast('☠️ Você foi derrotado'+(pv?' por '+m.src:'')+' e voltou para o início.');gsPos(true);break}
   if(R.miss)onlReg('💨 Você esquivou'+src);else regDmg('in',R.d,0,m.src);
   if(pv&&!R.miss&&m.st>0){PST=Math.max(PST,m.st);FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.9})}
+  if(pv&&!R.miss&&m.cc)ccRecebe(m.cc,m.src);
   if(!R.miss&&(m.kx||m.ky)){for(let i=0;i<8;i++){const nx=p.x+m.kx*5,ny=p.y+m.ky*5;if(!sol(nx,ny)){p.x=nx;p.y=ny}}}shk=Math.max(shk,pv?.4:.6);gsPos(true);break}
  case 'ph':pvpShow(m);break;
  case 'pk':{const me=m.by===ONL.uid,vt=m.to===ONL.uid,t=me?'⚔️ Você derrotou '+m.toN+'!':vt?'☠️ '+m.byN+' derrotou você.':'⚔️ '+m.byN+' derrotou '+m.toN+'.';
@@ -330,7 +348,7 @@ function gsPos(force){const now=performance.now();if(!ONL.joined)return;
  const s=[p.x|0,p.y|0,p.fl?1:0,p.mv?1:0,p.run?1:0,scene|0,Math.round(p.hp),p.au>=0?1:0,p.th>=0?1:0].join(',');
  if(!force&&(now-ONL.lastPos<50||(s===ONL.lastSig&&now-ONL.lastPos<2000)))return;ONL.lastPos=now;ONL.lastSig=s;
  gsSend({t:'pos',c:Math.round(now),x:p.x|0,y:p.y|0,fl:p.fl?1:0,mv:p.mv?1:0,run:p.run?1:0,au:p.au>=0?+p.au.toFixed(2):-1,th:p.th>=0?+p.th.toFixed(2):-1,sc:scene|0,hp:Math.round(p.hp),max:p.max})}
-const FXOK={ring:1,rimp:1,bolt:1,line:1,kfx:1,act:1,cone:1};
+const FXOK={ring:1,rimp:1,bolt:1,line:1,kfx:1,act:1,cone:1,sline:1,sarea:1};
 // qualidade automática: se o aparelho não segura ~50 quadros por segundo, desenha com menos pixels (até 1,5x)
 const PQ={acc:0,n:0,skip:2};
 function perfTick(dt){if(document.hidden)return;PQ.acc+=dt;PQ.n++;if(PQ.acc<3)return;const avg=PQ.acc/PQ.n;PQ.acc=0;PQ.n=0;if(PQ.skip>0){PQ.skip--;return}
@@ -360,6 +378,10 @@ function onlDraw(L,ts){if(!ONL.on)return;
    if(pe.max>0&&pe.hp<pe.max){ctx.fillStyle='#000a';ctx.fillRect(pe.x-13,pe.y-58,26,4);ctx.fillStyle='#4fd06a';ctx.fillRect(pe.x-12,pe.y-57,24*Math.max(0,pe.hp)/pe.max,2)}
    if(pe.sayT>0)onlBubble(pe.x,pe.y-74,pe.say,pe.sayT)}})}
  if(myT>0)L.push({y:p.y+.1,d:()=>onlBubble(p.x,p.y-74,mySay,myT)});
+ const rootDraw=(x,y)=>{ctx.save();ctx.globalAlpha=.7;ctx.fillStyle='#120a22';ctx.beginPath();ctx.ellipse(x,y+1,15,6,0,0,7);ctx.fill();ctx.globalAlpha=.9;ctx.strokeStyle='#2b1a4a';ctx.lineWidth=2;
+  for(let i=0;i<4;i++){const a=i*1.57+ts/900;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*14,y+Math.sin(a)*5);ctx.lineTo(x+Math.cos(a)*5,y-10-i%2*4);ctx.stroke()}ctx.restore()};
+ if(PRT>0&&!(scene|0))L.push({y:p.y-.3,d:()=>rootDraw(p.x,p.y)});
+ if(!(scene|0))for(const e of E)if(!e.dead&&e.root>0)L.push({y:e.y-.3,d:()=>rootDraw(e.x,e.y)});
  if(PST>0)L.push({y:p.y+.2,d:()=>{ctx.fillStyle='#d9b3ff';for(let i=0;i<3;i++){const a=ts/200+i*2.1;ctx.beginPath();ctx.arc(p.x+Math.cos(a)*9,p.y-56+Math.sin(a)*3,2.4,0,7);ctx.fill()}}});
  if(!(scene|0)&&PVP.on&&PVP.safe>0&&SPAWN)L.push({y:-1e9,d:()=>{const x=SPAWN[0]*T,y=SPAWN[1]*T,r=PVP.safe*T;ctx.save();ctx.fillStyle='rgba(120,200,255,.07)';ctx.strokeStyle='rgba(150,220,255,.45)';ctx.lineWidth=2;ctx.setLineDash([8,6]);
   ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.stroke();ctx.setLineDash([]);ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#bfe8ff';ctx.strokeText('🛡 Zona segura (sem PvP)',x,y-r-4);ctx.fillText('🛡 Zona segura (sem PvP)',x,y-r-4);ctx.restore()}})}
@@ -637,7 +659,7 @@ const eyeOnAny=()=>!!EYE.on;
 const sevMul=esq=>Math.max(BAL.combate.olharMinimo,Math.min(1,1-(+esq||0)/100)); // quanto mais esquiva o alvo tem, menos tempo fica preso
 function eyeToggle(){if(EYE.on)return eyeOff();const l=eyeLv();if(!l||cd[1]>0||actRoot())return;
  if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}
- const D=TOM[l],mp=Math.round(D.mp*profMp(1));if(p.mp<mp){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
+ const D=TOM[l],mp=Math.round(D.mp*profMp(1));if(seloBloqueia(mp))return seloAviso();if(p.mp<mp){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
  p.mp-=mp;EYE.on=D.k;EYE.lv=l;EYE.t0=performance.now();const nm=D.k==='mgk'?'Mangekyō':'Sharingan';
  BUFS.eye={prec:D.prec,esq:D.esq,cdmg:D.cdmg,until:Infinity,nm};stats();bufHud(1);p.au=0;p.aud=.7;
  if(D.k==='mgk'){flash={col:'#4a000c',a:.45};shk=Math.max(shk,.4);kfxAdd({q:'mgk',x:p.x,y:p.y,fol:1,sc:1.2})}else flash={col:'#8a0010',a:.2};
@@ -680,9 +702,9 @@ function eyeDraw(o,lv){const t=performance.now()/1000,hx=o.x+(o.fl?-3:3),hy=o.y-
 let SUS=null;const susOn=()=>!!(SUS&&SUS.until>performance.now());
 function susPress(){if(eyeLv()<4||(CH.lv|0)<jtSlotLv(2))return;if(EYE.on!=='mgk'){toast('O Susanoo só pode ser invocado com a Mangekyō ligada (botão do meio).');return}
  if(susOn()||cd[2]>0||actRoot())return;if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}
- const sk=CLANS.uchiha.sk[2],mp=mpOf(2,sk);if(p.mp<mp){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
+ const sk=CLANS.uchiha.sk[2],mp=mpOf(2,sk);if(seloBloqueia(mp))return seloAviso();if(p.mp<mp){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
  cd[2]=cdOf(2,sk);p.mp-=mp;HTP='ninjutsu';try{castSus(EYES[CH.mgk].sus)}finally{HTP=null}}
-function susEnd(){if(!SUS&&!BUFS.sus)return;SUS=null;fx=fx.filter(f=>!(f.sus&&!f.rm));if(BUFS.sus){delete BUFS.sus;stats();bufHud(1)}}
+function susEnd(){if(!SUS&&!BUFS.sus)return;SUS=null;SHD=null;fx=fx.filter(f=>!(f.sus&&!f.rm));if(BUFS.sus){delete BUFS.sus;stats();bufHud(1)}}
 const SUSS={sasuke:{q:'sus_sasuke',a:'sk_sasuke',at:.3,fl:'#2a1070'},itachi:{q:'sus_itachi',a:'sk_itachi',at:.26,fl:'#5a0010'},madara:{q:'sus_madara',a:'sk_madara',at:.34,fl:'#3a0008'}};
 function susRing(q){const ph=KSEQ[q]({})[0][0],fr=SFX.f[ph]&&SFX.f[ph][0];return fr?fr[2]*(SFX.s[ph]||1)/2:50}
 function castSus(A){const S=SUSS[A.sty]||SUSS.sasuke,T=+A.t||8,tp=HTP,r=+A.r||110,hits=Math.max(1,A.hits|0);
@@ -692,7 +714,8 @@ function castSus(A){const S=SUSS[A.sty]||SUSS.sasuke,T=+A.t||8,tp=HTP,r=+A.r||11
  KDEL.push({t:S.at,fn:()=>{if(SUS)kfxAdd({q:S.a,x:p.x,y:p.y,fol:1,sc:r*.72/susRing(S.a),al:.85,sus:1})}});
  const t0=Math.max(S.at+.05,+(CLANS.uchiha.sk[2].tel)||0); // aviso antes do Susanoo bater (balanceamento.json → golpes.clas.uchiha[2].tel)
  for(let j=0;j<hits;j++)KDEL.push({t:t0+j*.24,fn:()=>{if(!SUS)return;HTP=tp;try{aoeHit(p.x,p.y-8,r,+A.dmg||30,+A.stun||0,+A.kb||0)}finally{HTP=null}}});
- bufStart('sus',{red:+A.red||0,dmg:+A.dmgb||0,t:T,nm:'Susanoo: −'+(+A.red||0)+'% de dano recebido'+(+A.dmgb?' e +'+A.dmgb+'% de dano':'')})}
+ SHD={v:Math.round((+A.escudo||0)/100*p.max),max:Math.round((+A.escudo||0)/100*p.max),until:performance.now()+T*1000};
+ bufStart('sus',{red:+A.red||0,dmg:+A.dmgb||0,spd:-(+BAL.olhos.susanooLento||0),t:T,nm:'Susanoo: escudo de '+SHD.v+' ('+(+A.escudo||0)+'% da vida)'+(+A.dmgb?' e +'+A.dmgb+'% de dano':'')})}
 // avisa o servidor de cada golpe usado (0 inicial, 1 meio, 2 grande, 3 item): ele confere a recarga (por enquanto só anota)
 function gsCast(sl){if(ONL.on&&ONL.joined)gsSend({t:'cast',sl})}
 {const _c=cast;cast=function(i){const b=cd[i];const r=_c(i);if(!(b>0)&&cd[i]>0)gsCast(i);return r}}
@@ -769,6 +792,22 @@ function actFrame(A){const D=A&&ACTS[A.a];if(!D)return null;const t=actEl(A);if(
  c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,0,10,4,0,0,7);c.fill();
  if((o.fl?1:0)^flip)c.scale(-1,1);c.drawImage(im,-an[0]*sc,-an[1]*sc+bob,im.width*sc,im.height*sc);c.restore()}}
 
+// Kagemane: a sombra cresce no chão por "tel" s (todo mundo vê) e prende quem estiver na linha; canal: o Nara fica parado junto
+function castLine(s,ax,ay){const tp=HTP,x0=p.x,y0=p.y,t=+s.tel||0,root=+s.root||0;
+ fx.push({k:'sline',x:x0,y:y0-4,ax,ay,len:s.len,col:'#120a22',life:t+.6,max:t+.6,tel:t});if(s.canal&&root)PRT=Math.max(PRT,t+root);
+ KDEL.push({t,fn:()=>{HTP=tp;HCC=root?{root}:null;let n=0;try{E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-x0,dy=e.y-y0,pr=Math.max(0,Math.min(s.len,dx*ax+dy*ay));
+   if(Math.hypot(dx-ax*pr,dy-ay*pr)<20+(e.rad||0)*.5){n++;hitE(e,s.dmg,ONL.on?+s.stun||0:Math.max(+s.stun||0,root),0,0)}})}finally{HTP=null;HCC=null}
+  if(!n&&s.canal)PRT=0;else if(n)onlReg('🌑 Kagemane prendeu '+n+' alvo'+(n>1?'s':'')+' ('+nf(root)+' s).')}})}
+// Kagemane múltiplo: a sombra se espalha em área por "tel" s e prende os "alvos" mais perto (no PvP o tempo é dividido entre os jogadores presos)
+function castPoss(s,ax,ay){const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,root=+s.root||0;
+ fx.push({k:'sarea',x:x0,y:y0-4,r:s.r,col:'#120a22',life:t+.6,max:t+.6,tel:t});
+ KDEL.push({t,fn:()=>{HTP=tp;try{const all=E.concat(PVT()).filter(e=>!e.dead&&Math.hypot(e.x-x0,e.y-y0)<s.r+(e.rad||0)*.6).sort((a,b)=>Math.hypot(a.x-x0,a.y-y0)-Math.hypot(b.x-x0,b.y-y0)).slice(0,+s.alvos||3);
+   const np=all.filter(e=>e.pvp).length;all.forEach(e=>{const r=e.pvp?root/Math.max(1,np):root;HCC=r?{root:r}:null;hitE(e,s.dmg,ONL.on?+s.stun||0:Math.max(+s.stun||0,r),0,0);HCC=null});
+   if(all.length){flash={col:s.col,a:.3};onlReg('🌑 Kagemane múltiplo prendeu '+all.length+' alvo'+(all.length>1?'s':'')+'.')}}finally{HTP=null;HCC=null}}})}
+function shadowFxDraw(f){const el=f.max-f.life,g=f.tel>0?Math.min(1,el/f.tel):1,a=Math.min(1,f.life/.3);ctx.save();ctx.globalAlpha=.75*a;ctx.fillStyle=f.col;ctx.strokeStyle=f.col;
+ if(f.k==='sline'){const L=f.len*g;ctx.lineCap='round';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+f.ax*L,f.y+f.ay*L);ctx.stroke();
+  ctx.globalAlpha=.35*a;ctx.lineWidth=18;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+f.ax*L,f.y+f.ay*L);ctx.stroke()}
+ else{const r=f.r*g;ctx.globalAlpha=.28*a;ctx.beginPath();ctx.ellipse(f.x,f.y,r,r*.55,0,0,7);ctx.fill();ctx.globalAlpha=.7*a;ctx.lineWidth=3;ctx.setLineDash([10,6]);ctx.stroke()}ctx.restore()}
 // Bola de Fogo (Uchiha): selo com as mãos, depois a bola sai da boca e explode ao acertar
 function castFire(s,ax,ay){actStart('fogo');const tp=HTP;
  KDEL.push({t:s.tel||.16,fn:()=>{const l=Math.hypot(ax,ay)||1,ux=ax/l,uy=ay/l;P.push({x:p.x+ux*14,y:p.y-24,vx:ux*(s.sp||300),vy:uy*(s.sp||300),col:s.col,dmg:s.dmg,life:1.1,big:1,fire:1,tp})}})}
@@ -790,7 +829,7 @@ function itemBtnTick(){const b=$('#b3'),it=atkItem();if(!b)return;if(!!it===b.cl
  if(c)c.style.height=Math.min(100,cd[3]/Math.max(.01,cdOf(3))*100)+'%';b.classList.toggle('off',p.mp<mpOf(3))}
 function castItem(){const it=atkItem();if(!it){toast('Equipe um item que dá habilidade (como o Chidori) para usar este botão.');return}
  if(actRoot()||cd[3]>0)return;if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}
- if(p.mp<mpOf(3)){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
+ if(seloBloqueia(mpOf(3)))return seloAviso();if(p.mp<mpOf(3)){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
  cd[3]=cdOf(3);p.mp-=mpOf(3);let ax=p.ax,ay=p.ay,best=300,tg=null;
  E.concat(PVT()).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});
  if(tg){const d=best||1;ax=(tg.x-p.x)/d;ay=(tg.y-p.y)/d;p.ax=ax;p.ay=ay}
@@ -798,7 +837,7 @@ function castItem(){const it=atkItem();if(!it){toast('Equipe um item que dá hab
 
 // golpes em área: os Hyuga usam a folha; os outros continuam com o círculo
 let KDEL=[];
-function kfxStep(dt){bufTick();eyeTick(dt);if(!KDEL.length)return;KDEL=KDEL.filter(d=>{if((d.t-=dt)>0)return true;try{d.fn()}catch(e){console.error(e)}return false})}
+function kfxStep(dt){bufTick();eyeTick(dt);ccTick(dt);if(!KDEL.length)return;KDEL=KDEL.filter(d=>{if((d.t-=dt)>0)return true;try{d.fn()}catch(e){console.error(e)}return false})}
 function castAoe(s,ax,ay){
  const hitAll=(cx,cy,radial,onHit)=>{let n=0;E.concat(PVT()).forEach(e=>{if(e.dead||Math.hypot(e.x-cx,e.y-cy)>=s.r+(e.rad||0)*.6)return;n++;
    let kx=ax*(s.kb||0),ky=ay*(s.kb||0);if(radial){const d=Math.hypot(e.x-cx,e.y-cy)||1;kx=(e.x-cx)/d*(s.kb||0);ky=(e.y-cy)/d*(s.kb||0)}
@@ -808,8 +847,9 @@ function castAoe(s,ax,ay){
   actStart('kaiten');gsSend({t:'guard',d:BAL.golpes.kaitenBloqueio});const f=kfxAdd({q,x:p.x,y:p.y,fol:1,dy:6,sc:s.r*1.4/101});const tp=HTP;
   KDEL.push({t:.33,fn:()=>{HTP=tp;try{if(hitAll(p.x,p.y-10,true))f.hit=1}finally{HTP=null}}});return}
  const cx=p.x+ax*(s.off||0),cy=p.y+ay*(s.off||0);
- const later=(t,fn)=>{const tp=HTP;KDEL.push({t,fn:()=>{HTP=tp;try{fn()}finally{HTP=null}}})};
- if(q==='palma'){actStart('palma');later(s.tel||.06,()=>{const x=p.x+ax*(s.off||0),y=p.y+ay*(s.off||0);kfxAdd({q,x,y:y-6,sc:s.r*1.8/87});hitAll(x,y,false)});return}
+ const later=(t,fn,cc)=>{const tp=HTP;KDEL.push({t,fn:()=>{HTP=tp;HCC=cc||null;try{fn()}finally{HTP=null;HCC=null}}})};
+ if(s.alvos)return castPoss(s,ax,ay);
+ if(q==='palma'){actStart('palma');later(s.tel||.06,()=>{const x=p.x+ax*(s.off||0),y=p.y+ay*(s.off||0);kfxAdd({q,x,y:y-6,sc:s.r*1.8/87});hitAll(x,y,false)},s.queima?{queima:+s.queima}:null);return}
  if(q==='hakke'){ // Oito Trigramas 64 Palmas: quem estiver a 1 tile do Hyuga fica preso na sequência de golpes,
   // toma dano contínuo e é empurrado até a animação acabar (uns 2 tiles no total), atordoado
   actStart('hakke');kfxAdd({q,x:p.x,y:p.y,sc:1.3,al:.95});
@@ -819,7 +859,7 @@ function castAoe(s,ax,ay){
     if(!caught.has(id)){if(d>=T+(e.rad||0)*.6)return;caught.add(id);kfxAdd({q:'icon',i:[0,4,5][Math.random()*3|0],x:e.x,y:e.y-(e.boss?70:30),sc:.55,d:.7})}
     const u=d||1;hitE(e,s.dmg,s.stun,(e.x-p.x)/u*PUSH,(e.y-p.y)/u*PUSH);
     if(j%2)kfxAdd({q:'icon',i:Math.random()<.5?3:7,x:e.x+(Math.random()*20-10),y:e.y-(e.boss?60:24),sc:.45,d:.3})})}finally{HMUL=1}
-   if(j===0||j===N-1)flash={col:s.col,a:j?.3:.15}}));return}
+   if(j===0||j===N-1)flash={col:s.col,a:j?.3:.15}},s.ccPvp&&s.ccPvp.k==='selo'?{selo:+s.ccPvp.t,semStunPvp:1}:null));return}
  fx.push({k:'ring',x:cx,y:cy-8,r:s.r,col:s.col,life:.45,max:.45,sp:s.fx});hitAll(cx,cy,false);if(s.fx)flash={col:s.col,a:.3}}
 
 // ---------- Atualização automática (sem reinstalar o APK) ----------

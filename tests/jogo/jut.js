@@ -1,5 +1,5 @@
 // aba Jutsus: árvore por clã, travas por nível, Sharingan liga/desliga (olhar em cone, gasto por segundo), evolução para a Mangekyō, Susanoo só com ela ligada
-const TOM_DR=x=>Math.round(x*10)/10;const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/playwright');const W=ms=>new Promise(r=>setTimeout(r,ms));let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
+const TOM_DR=x=>Math.round(x*10)/10,EYES_ESC=35;const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/playwright');const W=ms=>new Promise(r=>setTimeout(r,ms));let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});
  const open=async(ci,nome)=>{const pg=await (await b.newContext({viewport:{width:844,height:390}})).newPage();pg._e=[];pg.on('pageerror',e=>{pg._e.push(e.message);console.log('ERRO',e.message)});
   await pg.goto('file://'+require('path').join(__dirname,'..','paginas','off.html'));await pg.fill('#u',nome);await pg.fill('#p','x');await pg.click('#go1');
@@ -66,8 +66,9 @@ const TOM_DR=x=>Math.round(x*10)/10;const {chromium}=require(process.env.PLAYWRI
  await U.evaluate(()=>{cd[1]=0;cd[2]=0;p.mp=p.mpMax;useBtn(2)});await W(150);ok(await U.evaluate(()=>!SUS&&/Mangekyō ligada/.test($('#toast').textContent)),'Susanoo sem a Mangekyō ligada: não sai e explica');
  await mobs(U,[[70,0,0],[0,70,0]]);await U.evaluate(()=>{cd[1]=0;p.mp=p.mpMax;useBtn(1)});await W(200);
  await U.evaluate(()=>{p.mp=p.mpMax;useBtn(2)});await W(1150);
- const su=await U.evaluate(()=>({on:susOn(),red:D().red,au:fx.some(f=>f.sus&&f.bh),hp:E[0].hp,b2:$('#b2').classList.contains('eyeon')}));
- ok(su.on&&su.au&&su.red>=50&&su.hp<5000&&su.b2,'Susanoo de Itachi invocado: ataca, fica de pé e −50% de dano recebido');
+ const su=await U.evaluate(()=>({on:susOn(),red:D().red,au:fx.some(f=>f.sus&&f.bh),hp:E[0].hp,b2:$('#b2').classList.contains('eyeon'),shd:SHD&&SHD.v,esp:Math.round(EYES.itachi.sus.escudo/100*p.max),spd:bufSum().spd,lento:BAL.olhos.susanooLento}));
+ ok(su.on&&su.au&&su.hp<5000&&su.b2&&su.shd===su.esp&&su.spd===-su.lento,'Susanoo de Itachi invocado: ataca, fica de pé com escudo de '+su.shd+' ('+EYES_ESC+'% da vida) e −'+su.lento+'% de velocidade');
+ {const r=await U.evaluate(()=>{const h=p.hp,v=SHD.v;HPREC=-999;const rn=Math.random;Math.random=()=>.99;hurt(10);Math.random=rn;HPREC=0;return{dh:h-p.hp,dv:v-SHD.v}});ok(r.dh===0&&r.dv>0,'golpe recebido sai do escudo, não da vida (escudo −'+r.dv+')')}
  await U.screenshot({path:__dirname+'/ju_sus.png'});
  const dr4=await U.evaluate(()=>eyeDr(TOM[4])+SUSDR);const d1=await U.evaluate(()=>p.mp);await W(1000);const d2=await U.evaluate(()=>p.mp);ok(Math.abs((d1-d2)-dr4)<dr4*.35+.3,'Mangekyō + Susanoo gastam ~'+TOM_DR(dr4)+' de chakra por segundo ('+(d1-d2).toFixed(1)+')');
  await U.evaluate(()=>useBtn(1));await W(100);const of2=await U.evaluate(()=>({sus:susOn(),fx:fx.some(f=>f.sus),red:BUFS.sus,cd:cd[1]}));

@@ -38,6 +38,9 @@ const CFG = {
   pvpSafe: 4,       // em volta do ponto de início (tiles) ninguém ataca nem é atacado (protege quem acabou de renascer)
   pvpStun: 1.5,     // atordoamento máximo em jogador (s)
   pvpMaxHit: 1500,
+  pvpRootMax: 2,           // preso no lugar (não anda) máximo em jogador (s)
+  pvpSeloMax: 4,           // chakra selado máximo em jogador (s)
+  pvpQueimaMax: 5,         // % do chakra máximo que um golpe pode queimar
   stunMaxMonstro: 8,       // atordoamento máximo que um golpe de jogador põe num monstro (s)
   kaitenMax: 1.2,          // Kaiten girando: bloqueia golpes de jogadores por até isso (s)
   empurraoPvpMax: .6,      // empurrão máximo por golpe no PvP (o celular de quem apanha anda ~40× isso em px)
@@ -132,7 +135,7 @@ function newFox(map, b) { const x = b[0] * T, y = b[1] * T;
   const d = FOXDEF(), vida = Math.max(1, num(d.vida, 300) | 0);
   return { id: map + ':raposa', kind: 'raposa', t: 'raposa', def: d, nome: d.name || 'Raposa de Nove Caudas', boss: 1, rad: 56, max: vida, hp: vida, hx: x, hy: y, x, y,
     dead: 0, dt: 0, rt: 0, mv: 0, fl: 0, ch: 0, fired: 0, bc: 0, lunge: 0, dmgp: 0, atk: 0, jc: 0, ja: 0, jz: 0, jx: 0, jy: 0, sx: 0, sy: 0, jcd: 3,
-    stun: 0, hurt: 0, wt: 0, wa: 0, wm: 0, dmg: {}, alone: 0, aim: null, jt: null }; }
+    stun: 0, root: 0, hurt: 0, wt: 0, wa: 0, wm: 0, dmg: {}, alone: 0, aim: null, jt: null }; }
 function mobDef(e) { return { id: e.id, kind: e.kind, nome: e.nome, boss: e.boss, rad: e.rad, max: e.max, t: e.t || '', lv: num((e.def || {}).nivel, 1) | 0 }; }
 
 // ---------------------------------------------------------------- mobs comuns (criados no editor, nas áreas do mapa)
@@ -154,12 +157,13 @@ function wanderPoint(r, e) { const A = e.A, rad = clamp(areaGap(A) * .45, 1.5, 6
 function areaPoint(map, A) { for (let i = 0; i < 60; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y) && !inSafe(map, x, y, 1)) return [x, y]; } for (let i = 0; i < 40; i++) { const x = (A.x + .5 + Math.random() * Math.max(0, A.w - 1)) * T, y = (A.y + .5 + Math.random() * Math.max(0, A.h - 1)) * T; if (!blk(map, x, y)) return [x, y]; } return [(A.x + A.w / 2) * T, (A.y + A.h / 2) * T]; }
 function newMob(r, d, A, id) { const [x, y] = spreadPoint(r, A, null), sc = clamp(num(d.escala, 100), 30, 400) / 100;
   return { id, kind: 'mob', t: d.id, def: d, A, nome: d.name || d.id, boss: 0, rad: Math.round(18 * sc), max: Math.max(1, d.vida | 0), hp: Math.max(1, d.vida | 0), hx: x, hy: y, x, y,
-    dead: 0, dt: 0, rt: 0, mv: 0, fl: 0, ch: 0, lunge: 0, ja: 0, jz: 0, jc: 0, jx: 0, jy: 0, stun: 0, hurt: 0, atkT: 0, tg: null, back: 0, wt: 0, wx: x, wy: y, dmg: {}, alone: 0 }; }
+    dead: 0, dt: 0, rt: 0, mv: 0, fl: 0, ch: 0, lunge: 0, ja: 0, jz: 0, jc: 0, jx: 0, jy: 0, stun: 0, root: 0, hurt: 0, atkT: 0, tg: null, back: 0, wt: 0, wx: x, wy: y, dmg: {}, alone: 0 }; }
 function rectDist(A, x, y) { const x0 = A.x * T, y0 = A.y * T, x1 = (A.x + A.w) * T, y1 = (A.y + A.h) * T; return hyp(Math.max(x0 - x, 0, x - x1), Math.max(y0 - y, 0, y - y1)); }
 function mobTickG(r, e, dt) {
   const d = e.def;
-  if (e.dead) { e.dt += dt; if ((e.rt -= dt) <= 0) { const [x, y] = spreadPoint(r, e.A, e); Object.assign(e, { x, y, hx: x, hy: y, hp: e.max, dead: 0, dt: 0, tg: null, back: 0, dmg: {}, stun: 0, hurt: 0, lunge: 0 }); } return; }
+  if (e.dead) { e.dt += dt; if ((e.rt -= dt) <= 0) { const [x, y] = spreadPoint(r, e.A, e); Object.assign(e, { x, y, hx: x, hy: y, hp: e.max, dead: 0, dt: 0, tg: null, back: 0, dmg: {}, stun: 0, root: 0, hurt: 0, lunge: 0 }); } return; }
   e.hurt = Math.max(0, e.hurt - dt); e.lunge = Math.max(0, e.lunge - dt); e.atkT -= dt;
+  if (e.root > 0) e.root = Math.max(0, e.root - dt);
   if (e.stun > 0) { e.stun -= dt; e.mv = 0; return; }
   const vel = clamp(num(d.vel, 70), 10, 300), leash = clamp(num(d.persegue, 8), 1, 40) * T, vis = clamp(num(d.visao, 6), 0, 20) * T;
   // ninguém por perto por um tempo: volta inteira para a área
@@ -184,10 +188,10 @@ function mobTickG(r, e, dt) {
     let px = 0, py = 0; for (const o of r.mobs) { if (o === e || o.dead || o.kind !== 'mob') continue; const dx = e.x - o.x, dy = e.y - o.y, dd = hyp(dx, dy), mn = (e.rad + o.rad) * .9; if (dd > 0.01 && dd < mn) { px += dx / dd * (mn - dd) / mn; py += dy / dd * (mn - dd) / mn; } }
     if (px || py) { vx += px * 1.2; vy += py * 1.2; const l = hyp(vx, vy); if (l > 1) { vx /= l; vy /= l; } } }
   if (!tg && Math.abs(vx) > .05) e.fl = vx < 0 ? 1 : 0;
-  const ox = e.x, oy = e.y; go(r.map, e, vx, vy, sp, dt);
+  const ox = e.x, oy = e.y; if (e.root > 0) e.mv = 0; else go(r.map, e, vx, vy, sp, dt);
   if (e.mv && e.x === ox && e.y === oy) { e.wt = 0; if (e.back) { e.x = e.hx; e.y = e.hy; } } // preso numa parede
 }
-const MK = ['x', 'y', 'hp', 'max', 'dead', 'dt', 'mv', 'fl', 'ch', 'lunge', 'ja', 'jz', 'jc', 'jx', 'jy', 'stun', 'hurt', 'rt'];
+const MK = ['x', 'y', 'hp', 'max', 'dead', 'dt', 'mv', 'fl', 'ch', 'lunge', 'ja', 'jz', 'jc', 'jx', 'jy', 'stun', 'hurt', 'rt', 'root']; // 'root' no fim: app antigo ignora
 const mobState = e => MK.map(k => { const v = e[k]; return typeof v === 'number' ? Math.round(v * 100) / 100 : (v ? 1 : 0); });
 
 function toRoom(r, o, except) { const s = JSON.stringify(o), fr = wsFrame(1, s); for (const p of r.players) if (p !== except && p.conn.open) { try { p.conn.sock.write(fr); } catch (e) {} } }
@@ -512,6 +516,7 @@ function onHit(p, m) {
   const pr = clamp(num(m.pr, 0), 0, 5000), esq = num((e.def || {}).esquiva, 0);
   if (Math.random() * 100 < dodgeChance(esq, pr, COMBATE.esquivaMaxMonstro)) { e.alone = 0; toRoom(r, { t: 'mh', m: e.id, d: 0, miss: 1, by: p.id }); return; }
   e.hp -= d; e.hurt = .28; e.alone = 0;
+  const rt = clamp(num(m.rt, 0), 0, CFG.stunMaxMonstro); if (rt) e.root = Math.max(e.root || 0, rt); // preso pela sombra: não anda
   const st = clamp(num(m.st, 0), 0, CFG.stunMaxMonstro); if (st) e.stun = Math.max(e.stun, st); // até 8 s (Genjutsu rank alto alonga o atordoamento)
   const kx = clamp(num(m.kx, 0), -30, 30), ky = clamp(num(m.ky, 0), -30, 30);
   if (!e.ja && (kx || ky) && !blk(r.map, e.x + kx, e.y + ky)) { e.x += kx; e.y += ky; }
@@ -520,7 +525,7 @@ function onHit(p, m) {
   if (e.hp <= 0) killMob(r, e);
 }
 function killMob(r, e) {
-  e.hp = 0; e.dead = 1; e.dt = 0; e.rt = e.kind === 'mob' ? clamp(num(e.def.renasce, 15), 2, 3600) * (.8 + Math.random() * .4) : clamp(num(FOXDEF().renasce, CFG.respawn), 2, 36000); e.ch = e.lunge = e.ja = e.jc = e.jz = e.stun = 0; e.tg = null; if (e.kind !== 'mob') r.eps = [];
+  e.hp = 0; e.dead = 1; e.dt = 0; e.rt = e.kind === 'mob' ? clamp(num(e.def.renasce, 15), 2, 3600) * (.8 + Math.random() * .4) : clamp(num(FOXDEF().renasce, CFG.respawn), 2, 36000); e.ch = e.lunge = e.ja = e.jc = e.jz = e.stun = e.root = 0; e.tg = null; if (e.kind !== 'mob') r.eps = [];
   const tot = {}; for (const uid in e.dmg) { const k = groupKey(uid); tot[k] = (tot[k] || 0) + e.dmg[uid]; }
   let best = null; for (const k in tot) if (!best || tot[k] > tot[best]) best = k;
   e.dmg = {};
@@ -564,6 +569,14 @@ function pvpWhy(a, b) {
   if (hyp(a.x - b.x, a.y - b.y) > CFG.hitRange) return 'longe';
   if (pvpSafeAt(a.map, a.x, a.y) || pvpSafeAt(b.map, b.x, b.y)) return 'seguro';
   return ''; }
+// efeito de controle de um golpe PvP: preso no lugar (root), chakra selado (selo) ou chakra queimado (queima); o resto é ignorado
+function ccPvp(c) {
+  if (!c || typeof c !== 'object') return undefined; const k = str(c.k, 10);
+  if (k === 'root') { const t = clamp(num(c.t, 0), 0, CFG.pvpRootMax); return t > 0 ? { k, t: Math.round(t * 100) / 100 } : undefined; }
+  if (k === 'selo') { const t = clamp(num(c.t, 0), 0, CFG.pvpSeloMax); return t > 0 ? { k, t: Math.round(t * 100) / 100 } : undefined; }
+  if (k === 'queima') { const v = clamp(num(c.v, 0), 0, CFG.pvpQueimaMax); return v > 0 ? { k, v: Math.round(v * 100) / 100 } : undefined; }
+  return undefined;
+}
 function onPvp(p, m) {
   const q = players.get(str(m.to, 64)); const why = pvpWhy(p, q);
   if (why === 'seguro') return p.conn.send({ t: 'ph', to: q.id, by: p.id, safe: 1 });
@@ -573,7 +586,8 @@ function onPvp(p, m) {
   // empurrão proporcional ao golpe (o celular de quem apanha anda ~40× esse valor em px; máx. 24 px por golpe)
   let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); if (kl > .01) { const k = Math.min(CFG.empurraoPvpMax, kl / 40); kx = kx / kl * k; ky = ky / kl * k; } else { kx = ky = 0; }
   const r = room(p.map), pr = clamp(num(m.pr, 0), 0, 5000), c = m.c ? 1 : 0;
-  if (q.guard && q.guard > t) { toRoom(r, { t: 'ph', to: q.id, by: p.id, blk: 1 }, q); q.conn.send({ t: 'hurt', fin: 1, blk: 1, d: 0, src: p.nome, by: p.id }); return; }
+  if (q.guard && q.guard > t && m.pj) { toRoom(r, { t: 'ph', to: q.id, by: p.id, blk: 1 }, q); // Kaiten girando reflete projéteis (corpo a corpo passa)
+    q.conn.send({ t: 'hurt', fin: 1, blk: 1, d: 0, src: p.nome, by: p.id }); return; }
   // o servidor sorteia a esquiva (Esquiva de quem apanha x Precisão de quem bate) e aplica a redução de dano:
   // assim o número aparece para todo mundo com uma ida e volta só (antes eram duas)
   if (Math.random() * 100 < dodgeChance(q.esq || 0, pr)) { toRoom(r, { t: 'ph', to: q.id, by: p.id, miss: 1 }, q); q.conn.send({ t: 'hurt', fin: 1, miss: 1, d: 0, src: p.nome, by: p.id }); return; }
@@ -581,7 +595,8 @@ function onPvp(p, m) {
   const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(p.id) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(p.id, o);
   toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c }, q);
   const pst = Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, CFG.stunMaxMonstro));
-  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c });
+  const cc = ccPvp(m.cc);
+  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c, cc });
   lutaGolpe(q, p, dd, pst);
 }
 // ---------------------------------------------------------------- olhar do Sharingan / Mangekyō (genjutsu)
@@ -660,7 +675,7 @@ function onPvpResult(q, m) { // q = quem apanhou, avisando que foi derrotado por
     log('PvP:', a ? a.nome : by, 'derrotou', q.nome, 'em', q.map); lutaFecha(q, 1); }
 }
 function resetMob(r, e, announce) {
-  Object.assign(e, { x: e.hx, y: e.hy, hp: e.max, dead: 0, dt: 0, rt: 0, mv: 0, ch: 0, fired: 0, lunge: 0, dmgp: 0, ja: 0, jc: 0, jz: 0, stun: 0, hurt: 0, dmg: {}, alone: 0, jcd: 3, bc: 2, atk: 0, aim: null, jt: null });
+  Object.assign(e, { x: e.hx, y: e.hy, hp: e.max, dead: 0, dt: 0, rt: 0, mv: 0, ch: 0, fired: 0, lunge: 0, dmgp: 0, ja: 0, jc: 0, jz: 0, stun: 0, root: 0, hurt: 0, dmg: {}, alone: 0, jcd: 3, bc: 2, atk: 0, aim: null, jt: null });
   r.eps = [];
   if (announce) toRoom(r, { t: 'mev', k: 'reset', m: e.id, x: e.x, y: e.y });
 }
@@ -679,6 +694,7 @@ function mobTick(r, e, dt) {
   }
   if (e.dmgp && e.lunge < .26) { e.dmgp = 0; areaHurt(r, e.x, e.y, 100, num(FOXDEF().dano, 12), 0, 'mordida', num(FOXDEF().precisao, 0)); }
   if (e.ja > 0) { e.mv = 0; foxAir(r, e, dt); return; }
+  if (e.root > 0) e.root = Math.max(0, e.root - dt);
   if (e.stun > 0) { e.stun -= dt; e.mv = 0; e.jc = 0; e.ch = 0; return; }
   const tg = near && nd <= CFG.aggro * T ? near : null;
   if (e.jc > 0) { e.mv = 0; foxCrouch(r, e, dt); return; }
@@ -691,7 +707,7 @@ function mobTick(r, e, dt) {
   let vx = 0, vy = 0;
   if (tg) {
     const dx = tg.x - e.x, dy = tg.y - e.y, dist = nd;
-    if (dist > 110 && dist < 320 && e.jcd <= 0 && !(dist > 170 && e.bc <= 0 && Math.random() < .5)) foxJump(e, tg);
+    if (dist > 110 && dist < 320 && e.jcd <= 0 && !(dist > 170 && e.bc <= 0 && Math.random() < .5)) { if (!(e.root > 0)) foxJump(e, tg); }
     else if (dist > 170 && dist < 300 && e.bc <= 0) { e.ch = 1.2; e.fired = 0; e.bc = 5.5; e.jcd = Math.max(e.jcd, 2); e.aim = tg; }
     else if (dist > 84) { vx = dx / dist; vy = dy / dist; }
     else if ((e.atk -= dt) <= 0) { e.atk = 1.6; e.lunge = .5; e.dmgp = 1; }
@@ -702,7 +718,7 @@ function mobTick(r, e, dt) {
     else { if ((e.wt -= dt) <= 0) { e.wt = 1 + Math.random() * 2; e.wa = Math.random() * 6.3; e.wm = Math.random() < .5; } if (e.wm) { vx = Math.cos(e.wa) * .5; vy = Math.sin(e.wa) * .5; } }
     if (Math.abs(vx) > .05) e.fl = vx < 0 ? 1 : 0;
   }
-  go(r.map, e, vx, vy, 72, dt);
+  if (e.root > 0) e.mv = 0; else go(r.map, e, vx, vy, 72, dt);
 }
 function foxJump(e, tg) { e.jc = JC; e.jcd = 5 + Math.random() * 1.5; e.bc = Math.max(e.bc, 1.6); e.jx = tg.x; e.jy = tg.y; e.fl = tg.x < e.x ? 1 : 0; e.jt = tg; }
 function foxCrouch(r, e, dt) {

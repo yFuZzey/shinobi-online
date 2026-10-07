@@ -1,4 +1,4 @@
-// Hyuga online: pose vista pelos outros, Kaiten bloqueia golpe de jogador, 64 Palmas prende e empurra no PvP
+// Hyuga online: pose vista pelos outros, Kaiten reflete projéteis de jogador (corpo a corpo passa), 64 Palmas prende e empurra no PvP
 const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/playwright');const W=ms=>new Promise(r=>setTimeout(r,ms));const suf=String(Date.now()%100000);
 let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});
@@ -14,9 +14,10 @@ let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
  // Kaiten: B tenta bater enquanto A gira
  const hpA=await A.evaluate(()=>p.hp);await A.evaluate(()=>{cd[1]=0;p.mp=p.mpMax;cast(1)});await W(150);
  ok(await B.evaluate(id=>ONL.peers[id].act&&ONL.peers[id].act.a==='kaiten',idA),'B vê a pose do Kaiten de A');
- for(let i=0;i<3;i++){await B.evaluate(id=>gsSend({t:'pvp',to:id,d:30,pr:900}),idA);await W(120)}
- await W(300);ok(await A.evaluate(()=>p.hp)===hpA&&/bloqueou com o Kaiten/.test(await B.evaluate(()=>ONL.reg.map(r=>r.t).join('|'))),'golpes de B durante o giro: "defendeu", A não perde vida');
- await W(900);await B.evaluate(id=>gsSend({t:'pvp',to:id,d:30,pr:900}),idA);await W(500);ok(await A.evaluate(()=>p.hp)<hpA,'depois do giro, A volta a tomar dano');
+ for(let i=0;i<3;i++){await B.evaluate(id=>gsSend({t:'pvp',to:id,d:30,pr:900,pj:1}),idA);await W(100)}
+ await W(120);ok(await A.evaluate(()=>p.hp)===hpA&&/bloqueou com o Kaiten/.test(await B.evaluate(()=>ONL.reg.map(r=>r.t).join('|')))&&/Kaiten refletiu um projétil/.test(await A.evaluate(()=>ONL.reg.map(r=>r.t).join('|'))),'projéteis de B durante o giro: refletidos, A não perde vida');
+ await B.evaluate(id=>gsSend({t:'pvp',to:id,d:30,pr:900}),idA);await W(350);const hpA2=await A.evaluate(()=>p.hp);ok(hpA2<hpA,'golpe corpo a corpo durante o giro passa (planilha: o Kaiten reflete só projéteis) ('+hpA+' → '+hpA2+')');
+ await W(900);await B.evaluate(id=>gsSend({t:'pvp',to:id,d:30,pr:900,pj:1}),idA);await W(500);ok(await A.evaluate(()=>p.hp)<hpA2,'depois do giro, projétil volta a acertar A');
  // 64 Palmas em B colado
  await W(4000);const ap=await A.evaluate(()=>{p.hp=p.max;gsPos(true);return[p.x,p.y]});await B.evaluate(a=>{p.x=a[0]+24;p.y=a[1];p.hp=p.max;PST=0;gsPos(true)},ap);await W(600);
  const ax=await A.evaluate(()=>{const pe=Object.values(ONL.peers)[0];return[p.x,pe.x]});
