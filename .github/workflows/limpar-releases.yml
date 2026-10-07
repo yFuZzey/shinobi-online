@@ -1,0 +1,47 @@
+# Uso único: apaga releases/tags antigos, execuções antigas e artefatos do GitHub Actions.
+# Roda só quando você manda (aba Actions → "Limpar releases antigos" → Run workflow). Depois pode ser removido.
+name: Limpar releases antigos
+on:
+  workflow_dispatch:
+    inputs:
+      manter:
+        description: 'Quantos releases mais novos manter'
+        default: '3'
+      manter_execucoes:
+        description: 'Quantas execuções concluídas mais novas manter'
+        default: '10'
+permissions:
+  contents: write
+  actions: write
+jobs:
+  limpar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apagar releases e tags antigos
+        env:
+          GH_TOKEN: ${{ secrets.LIMPAR_TOKEN || github.token }}
+          MANTER: ${{ inputs.manter }}
+        run: |
+          R=${{ github.repository }}
+          gh api "repos/$R/releases?per_page=100" --paginate \
+            --jq '.[] | select(.tag_name|test("^v[0-9]+$")) | "\(.tag_name|ltrimstr("v")|tonumber) \(.id) \(.tag_name)"' \
+            | sort -n -r > todos.txt
+          echo "releases encontrados: $(wc -l < todos.txt)"
+          tail -n +$((MANTER+1)) todos.txt > apagar.txt
+          echo "mantendo: $(head -n $MANTER todos.txt | cut -d' ' -f3 | tr '\n' ' ')"
+          echo "apagando: $(wc -l < apagar.txt)"
+          while read -r n id tag; do
+            gh api -X DELETE "repos/$R/releases/$id" >/dev/null && gh api -X DELETE "repos/$R/git/refs/tags/$tag" >/dev/null && echo "apagado $tag" || echo "FALHOU $tag"
+          done < apagar.txt
+      - name: Apagar execuções antigas e artefatos
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MANTER_EX: ${{ inputs.manter_execucoes }}
+        run: |
+          R=${{ github.repository }}
+          gh api "repos/$R/actions/runs?per_page=100&status=completed" --paginate --jq '.workflow_runs[].id' | tail -n +$((MANTER_EX+1)) > runs.txt
+          echo "execuções para apagar: $(wc -l < runs.txt)"
+          while read -r id; do gh api -X DELETE "repos/$R/actions/runs/$id" >/dev/null 2>&1 && echo "execução $id apagada" || echo "FALHOU execução $id"; done < runs.txt
+          gh api "repos/$R/actions/artifacts?per_page=100" --paginate --jq '.artifacts[].id' > art.txt
+          echo "artefatos: $(wc -l < art.txt)"
+          while read -r id; do gh api -X DELETE "repos/$R/actions/artifacts/$id" >/dev/null 2>&1 && echo "artefato $id apagado" || echo "FALHOU artefato $id"; done < art.txt
