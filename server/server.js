@@ -44,6 +44,7 @@ const CFG = {
   pvpLentoMax: 2, pvpLentoPctMax: 40, // lentidão máxima em jogador: duração (s) e quanto fica mais lento (%)
   pvpSilencioMax: 2,       // silêncio máximo em jogador (s): só o golpe básico funciona
   lentoMaxMonstro: 4, lentoPctMaxMonstro: 50, // lentidão máxima que um golpe de jogador põe num monstro (s, %)
+  pvpConfusaoMax: 1.5, confusaoMaxMonstro: 3, // confusão (Genjutsu: Sharingan): jogador com o controle invertido / monstro perdido, até levar dano (s)
   stunMaxMonstro: 8,       // atordoamento máximo que um golpe de jogador põe num monstro (s)
   kaitenMax: 1.2,          // Kaiten girando: bloqueia golpes de jogadores por até isso (s)
   empurraoPvpMax: .6,      // empurrão máximo por golpe no PvP (o celular de quem apanha anda ~40× isso em px)
@@ -164,19 +165,20 @@ function newMob(r, d, A, id) { const [x, y] = spreadPoint(r, A, null), sc = clam
 function rectDist(A, x, y) { const x0 = A.x * T, y0 = A.y * T, x1 = (A.x + A.w) * T, y1 = (A.y + A.h) * T; return hyp(Math.max(x0 - x, 0, x - x1), Math.max(y0 - y, 0, y - y1)); }
 function mobTickG(r, e, dt) {
   const d = e.def;
-  if (e.dead) { e.dt += dt; if ((e.rt -= dt) <= 0) { const [x, y] = spreadPoint(r, e.A, e); Object.assign(e, { x, y, hx: x, hy: y, hp: e.max, dead: 0, dt: 0, tg: null, back: 0, dmg: {}, stun: 0, root: 0, lento: 0, hurt: 0, lunge: 0 }); } return; }
+  if (e.dead) { e.dt += dt; if ((e.rt -= dt) <= 0) { const [x, y] = spreadPoint(r, e.A, e); Object.assign(e, { x, y, hx: x, hy: y, hp: e.max, dead: 0, dt: 0, tg: null, back: 0, dmg: {}, stun: 0, root: 0, lento: 0, conf: 0, hurt: 0, lunge: 0 }); } return; }
   e.hurt = Math.max(0, e.hurt - dt); e.lunge = Math.max(0, e.lunge - dt); e.atkT -= dt;
   if (e.root > 0) e.root = Math.max(0, e.root - dt);
   if (e.lento > 0) e.lento = Math.max(0, e.lento - dt);
+  if (e.conf > 0) e.conf = Math.max(0, e.conf - dt);
   if (e.stun > 0) { e.stun -= dt; e.mv = 0; return; }
   const vel = clamp(num(d.vel, 70), 10, 300), leash = clamp(num(d.persegue, 8), 1, 40) * T, vis = clamp(num(d.visao, 6), 0, 20) * T;
   // ninguém por perto por um tempo: volta inteira para a área
   let nd = 1e9; for (const q of r.players) if (!q.sc && q.hp > 0) nd = Math.min(nd, hyp(q.x - e.x, q.y - e.y));
   if (nd > CFG.resetNear * T) { e.alone += dt; if (e.alone >= CFG.resetWait && (e.hp < e.max || Object.keys(e.dmg).length)) { e.hp = e.max; e.dmg = {}; e.tg = null; e.back = 1; const p = spreadPoint(r, e.A, e); e.hx = p[0]; e.hy = p[1]; } } else e.alone = 0;
   // alvo: continua com o atual enquanto ele estiver dentro do limite de perseguição
-  let tg = e.tg;
+  let tg = e.conf > 0 ? null : e.tg; // confuso: esquece o alvo e anda à toa
   if (tg && (!r.players.has(tg) || tg.sc || tg.hp <= 0 || rectDist(e.A, tg.x, tg.y) > leash || inSafe(r.map, tg.x, tg.y))) { tg = null; e.tg = null; e.back = 1; const p = spreadPoint(r, e.A, e); e.hx = p[0]; e.hy = p[1]; }
-  if (!tg && !e.back && vis > 0) { let best = null, bd = vis; for (const q of r.players) { if (q.sc || q.hp <= 0 || rectDist(e.A, q.x, q.y) > leash || inSafe(r.map, q.x, q.y)) continue; const dd = hyp(q.x - e.x, q.y - e.y); if (dd <= bd) { bd = dd; best = q; } } if (best) { tg = e.tg = best; } }
+  if (!tg && !e.back && vis > 0 && !(e.conf > 0)) { let best = null, bd = vis; for (const q of r.players) { if (q.sc || q.hp <= 0 || rectDist(e.A, q.x, q.y) > leash || inSafe(r.map, q.x, q.y)) continue; const dd = hyp(q.x - e.x, q.y - e.y); if (dd <= bd) { bd = dd; best = q; } } if (best) { tg = e.tg = best; } }
   let vx = 0, vy = 0, sp = vel;
   if (e.back) { // voltando para casa: não aceita alvo e recupera a vida ao chegar
     const hd = hyp(e.hx - e.x, e.hy - e.y); if (hd < T * .8 || rectDist(e.A, e.x, e.y) === 0 && hd < 3 * T) { e.back = 0; e.hp = e.max; e.dmg = {}; } else { vx = (e.hx - e.x) / hd; vy = (e.hy - e.y) / hd; sp = vel * 1.6; } }
@@ -195,7 +197,7 @@ function mobTickG(r, e, dt) {
   const ox = e.x, oy = e.y; if (e.root > 0) e.mv = 0; else go(r.map, e, vx, vy, sp * lentoMul(e), dt);
   if (e.mv && e.x === ox && e.y === oy) { e.wt = 0; if (e.back) { e.x = e.hx; e.y = e.hy; } } // preso numa parede
 }
-const MK = ['x', 'y', 'hp', 'max', 'dead', 'dt', 'mv', 'fl', 'ch', 'lunge', 'ja', 'jz', 'jc', 'jx', 'jy', 'stun', 'hurt', 'rt', 'root', 'lento']; // 'root' e 'lento' no fim: app antigo ignora
+const MK = ['x', 'y', 'hp', 'max', 'dead', 'dt', 'mv', 'fl', 'ch', 'lunge', 'ja', 'jz', 'jc', 'jx', 'jy', 'stun', 'hurt', 'rt', 'root', 'lento', 'conf']; // 'root', 'lento' e 'conf' no fim: app antigo ignora
 const mobState = e => MK.map(k => { const v = e[k]; return typeof v === 'number' ? Math.round(v * 100) / 100 : (v ? 1 : 0); });
 
 function toRoom(r, o, except) { const s = JSON.stringify(o), fr = wsFrame(1, s); for (const p of r.players) if (p !== except && p.conn.open) { try { p.conn.sock.write(fr); } catch (e) {} } }
@@ -519,7 +521,8 @@ function onHit(p, m) {
   if (e.back) return; if (e.kind === 'mob' && !e.tg) e.tg = p;
   const pr = clamp(num(m.pr, 0), 0, 5000), esq = num((e.def || {}).esquiva, 0);
   if (Math.random() * 100 < dodgeChance(esq, pr, COMBATE.esquivaMaxMonstro)) { e.alone = 0; toRoom(r, { t: 'mh', m: e.id, d: 0, miss: 1, by: p.id }); return; }
-  e.hp -= d; e.hurt = .28; e.alone = 0;
+  const cf = e.kind === 'mob' ? clamp(num(m.cf, 0), 0, CFG.confusaoMaxMonstro) : 0; if (e.conf > 0 && !cf) e.conf = 0; // confuso: passa ao levar dano
+  e.hp -= d; e.hurt = .28; e.alone = 0; if (cf) { e.conf = Math.max(e.conf || 0, cf); e.tg = null; }
   const rt = clamp(num(m.rt, 0), 0, CFG.stunMaxMonstro); if (rt) e.root = Math.max(e.root || 0, rt); // preso pela sombra: não anda
   const lt = clamp(num(m.lt, 0), 0, CFG.lentoMaxMonstro); if (lt) { e.lento = Math.max(e.lento || 0, lt); e.lentoP = clamp(num(m.lp, 0), 0, CFG.lentoPctMaxMonstro); } // lento (Kage Nui…)
   const st = clamp(num(m.st, 0), 0, CFG.stunMaxMonstro); if (st) e.stun = Math.max(e.stun, st); // até 8 s (Genjutsu rank alto alonga o atordoamento)
@@ -582,6 +585,7 @@ function ccPvp(c) {
   if (k === 'queima') { const v = clamp(num(c.v, 0), 0, CFG.pvpQueimaMax); return v > 0 ? { k, v: Math.round(v * 100) / 100 } : undefined; }
   if (k === 'lento') { const t = clamp(num(c.t, 0), 0, CFG.pvpLentoMax), v = clamp(num(c.v, 0), 0, CFG.pvpLentoPctMax); return t > 0 && v > 0 ? { k, t: Math.round(t * 100) / 100, v: Math.round(v) } : undefined; }
   if (k === 'silencio') { const t = clamp(num(c.t, 0), 0, CFG.pvpSilencioMax); return t > 0 ? { k, t: Math.round(t * 100) / 100 } : undefined; }
+  if (k === 'confusao') { const t = clamp(num(c.t, 0), 0, CFG.pvpConfusaoMax); return t > 0 ? { k, t: Math.round(t * 100) / 100 } : undefined; }
   return undefined;
 }
 // um efeito ({k…}) ou até 2 juntos ([{k…},{k…}], ex.: prender + silenciar); app antigo ignora a lista

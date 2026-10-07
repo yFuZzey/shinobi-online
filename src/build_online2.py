@@ -135,7 +135,7 @@ rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}
 rep("const mpOf=(i,s)=>{const a=i==0?atkItem():null;return a?(+a.atk.mp||0):s.mp};","const mpOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.round((a?(+a.atk.mp||0):Math.max(+s.mp||0,(+s.mpPct||0)*(p&&p.mpMax||0)/100))*profMp(i))};")
 rep("const cdOf=(i,s)=>{const a=i==0?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM())};","const cdOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM()*profCd(i)*juCdMul(a?null:s))};")
 rep("col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin})","col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin,tp:HTP})")
-rep("{hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);return 0}","{HTP=b.tp||null;HCC=b.cc?Object.assign({pj:1},b.cc):{pj:1};HMUL=b.hm||1;try{hitE(e,b.dmg,0,b.vx*.03,b.vy*.03)}finally{HTP=null;HCC=null;HMUL=1}if(b.fire)fireBoom(b);return 0}")
+rep("{hitE(e,b.dmg,0,b.vx*.03,b.vy*.03);return 0}","{HTP=b.tp||null;HCC=b.cc?Object.assign({pj:1},b.cc):{pj:1};HMUL=b.hm||1;try{if(b.area)projArea(b,e);else hitE(e,b.dmg,0,b.vx*.03,b.vy*.03)}finally{HTP=null;HCC=null;HMUL=1}if(b.fire)fireBoom(b);return 0}")
 # Kagemane com aviso (tel): a sombra cresce no chão antes de prender
 rep("if(s.t=='line'){const x2=p.x+ax*s.len,y2=p.y+ay*s.len;","if(s.t=='line'&&s.tel){castLine(s,ax,ay)}else if(s.t=='line'){const x2=p.x+ax*s.len,y2=p.y+ay*s.len;")
 rep("p.dash={sx:p.x,sy:p.y,tx,ty,t:0,dur:Math.max(.1,Math.min(.28,dist/650)),dmg,area};","p.dash={sx:p.x,sy:p.y,tx,ty,t:0,dur:Math.max(.1,Math.min(.28,dist/650)),dmg,area,tp:HTP||'@ninjutsu'};")
@@ -178,7 +178,7 @@ rep("if(p.dash){dashStep(dt)}else if(m>.15){","if(p.dash){dashStep(dt)}else if(P
 rep(" if(s.t=='aoe'){const cx=p.x+ax*(s.off||0),cy=p.y+ay*(s.off||0);\n  fx.push({k:'ring',x:cx,y:cy-8,r:s.r,col:s.col,life:.45,max:.45,sp:s.fx});\n  E.concat(PVT()).forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hitE(e,s.dmg,s.stun,ax*(s.kb||0),ay*(s.kb||0))});\n  if(s.fx)flash={col:s.col,a:.3}}",
     " if(s.t=='aoe')castAoe(s,ax,ay);else if(JCAST[s.t])JCAST[s.t](s,ax,ay);")
 # desenho dos efeitos da folha
-rep(" fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='ring'){"," fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'){shadowFxDraw(f);return}if(f.k=='act')return;\n  if(f.k=='ring'){")
+rep(" fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='ring'){"," fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'){shadowFxDraw(f);return}if(f.k=='aviso'||f.k=='chama'||f.k=='genj'||f.k=='amat'||f.k=='tsuku'){uchFxDraw(f);return}if(f.k=='act')return;\n  if(f.k=='ring'){")
 # Hyuga de branco: quadros novos entram no sprite (o jogo carrega e pinta pele/cabelo igual aos outros; a roupa branca não recebe cor)
 HYS=json.load(open('hyuga/spr_hyuga.json'));UCS=json.load(open('hyuga/spr_uchiha.json'))
 J=lambda o:json.dumps(o,separators=(',',':'))
@@ -196,7 +196,9 @@ rep(" P=[];EP=[];fx=[];FT=[];cd=[0,0,0];"," P=[];EP=[];fx=[];FT=[];cd=[0,0,0,0];
 rep("for(let i=0;i<3;i++)cd[i]=Math.max(0,cd[i]-dt);","for(let i=0;i<4;i++)cd[i]=Math.max(0,cd[i]-dt);")
 rep("b.classList.toggle('off',p.mp<mpOf(i,s))});","b.classList.toggle('off',p.mp<mpOf(i,s))});itemBtnTick();jtBtnTick();")
 rep(" if(gsHit(e,d,st,kx,ky))return;d=calcDmg(d);e.hp-=d;e.hit=.15;e.hurt=.28;if(st)e.stun=Math.max(e.stun,st);",
-    " if(gsHit(e,d,st,kx,ky))return;d=calcDmg(d);e.hp-=d;e.hit=.15;e.hurt=.28;{const cm=ccPveMul();if(st)e.stun=Math.max(e.stun,st*cm);if(HCC&&HCC.lento&&+HCC.lento.t>0){e.slw=Math.max(e.slw||0,HCC.lento.t*cm);e.slp=+HCC.lento.v||0}}")
+    " if(gsHit(e,d,st,kx,ky))return;d=calcDmg(d);e.hp-=d;e.hit=.15;e.hurt=.28;{const cm=ccPveMul();if(st)e.stun=Math.max(e.stun,st*cm);if(HCC&&HCC.lento&&+HCC.lento.t>0){e.slw=Math.max(e.slw||0,HCC.lento.t*cm);e.slp=+HCC.lento.v||0}if(HCC&&HCC.confusao)e.conf=Math.max(e.conf||0,HCC.confusao*cm);else e.conf=0}")
+rep("  if(e.stun>0){e.stun-=dt;e.mv=0;e.jc=0;return}","  if(e.conf>0){e.conf-=dt;e.mv=0;return}\n  if(e.stun>0){e.stun-=dt;e.mv=0;e.jc=0;return}")
+rep("const ix=jx||kx,iy=jy||ky,m=Math.hypot(ix,iy);","const _cf=PCF>0?-1:1,ix=(jx||kx)*_cf,iy=(jy||ky)*_cf,m=Math.hypot(ix,iy);") # confuso: anda ao contrário
 rep("go(e,vx,vy,e.boss?72:70,dt)});","if(e.slw>0)e.slw=Math.max(0,e.slw-dt);go(e,vx,vy,(e.boss?72:70)*(e.slw>0?1-Math.min(60,e.slp||0)/100:1),dt)});")
 rep("function useBtn(i){if(CLANS[clan].sk[i].auto)","function useBtn(i){if(i===3&&!CLANS[clan].sk[3])return castItem();if(!CLANS[clan].sk[i])return;if(CLANS[clan].sk[i].auto)")
 # o item não ocupa mais o golpe inicial: tem botão próprio
