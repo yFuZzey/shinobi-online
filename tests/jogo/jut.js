@@ -62,6 +62,7 @@ const TOM_DR=x=>Math.round(x*10)/10;const {chromium}=require(process.env.PLAYWRI
  await U.evaluate(()=>useBtn(1));await W(100);
  // Nv 60: Susanoo libera (só com a Mangekyō ligada)
  await lvTo(U,60);await W(250);b2=await btn(U,2);const rg60=await U.evaluate(()=>ONL.reg.map(r=>r.t).join('|'));console.log('   b2:',JSON.stringify(b2),'| registro:',rg60.slice(-160));ok(!b2.lock&&/Susanoo/.test(b2.t)&&b2.off&&/Jutsu liberado no Nv 60: Susanoo/.test(rg60),'Nv 60: Susanoo libera (apagado até ligar a Mangekyō) e avisa');
+ await U.waitForFunction(()=>jtBtnTick.lv===CH.lv,null,{timeout:5000});await W(100); // o aviso de jutsu novo já saiu
  await U.evaluate(()=>{cd[1]=0;cd[2]=0;p.mp=p.mpMax;useBtn(2)});await W(150);ok(await U.evaluate(()=>!SUS&&/Mangekyō ligada/.test($('#toast').textContent)),'Susanoo sem a Mangekyō ligada: não sai e explica');
  await mobs(U,[[70,0,0],[0,70,0]]);await U.evaluate(()=>{cd[1]=0;p.mp=p.mpMax;useBtn(1)});await W(200);
  await U.evaluate(()=>{p.mp=p.mpMax;useBtn(2)});await W(1150);
