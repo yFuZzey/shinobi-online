@@ -43,6 +43,7 @@ const CFG = {
   empurraoPvpMax: .6,      // empurrão máximo por golpe no PvP (o celular de quem apanha anda ~40× isso em px)
   esquivaInformadaMax: 500, reducaoInformadaMin: -50, reducaoInformadaMax: 90, // limites do que o app informa
   olharRaio: 260, olharIntervalo: .8, olharMax: 4, // olhar do Sharingan/Mangekyō
+  lutaFecha: 12,           // registro de lutas PvP: a luta fecha depois de tantos segundos sem golpe
 };
 // Valem no jogo e no servidor (o app leva uma cópia na montagem)
 const COMBATE = { esquivaBase: 5, esquivaMin: 0, esquivaMax: 60, critMult: 2, reducaoMax: 80, olharMinimo: .3, olharChefe: .5 };
@@ -60,6 +61,7 @@ const num = (v, d = 0) => (typeof v === 'number' && isFinite(v) ? v : d);
 const str = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, '').slice(0, n);
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 // ---- números de balanceamento: server/balanceamento.json (sem ele, ou com valor errado, fica o padrão acima e avisa no log)
+let BALJ = null; // conteúdo do balanceamento.json (golpes, atributos…) para as conferências
 const BAL_INFO = (() => {
   const avisos = []; let j = null;
   try { j = JSON.parse(fs.readFileSync(path.join(__dirname, 'balanceamento.json'), 'utf8')); } catch (e) { return { ok: 0, v: 0, avisos: ['balanceamento.json não carregou: ' + e.message] }; }
@@ -67,7 +69,7 @@ const BAL_INFO = (() => {
     if (!(k in dst)) { avisos.push(nome + '.' + k + ' não existe (ignorado)'); continue; }
     const v = src[k]; if (typeof v === 'number' && isFinite(v)) dst[k] = v; else avisos.push(nome + '.' + k + ' não é número (ficou ' + dst[k] + ')'); } };
   if (!j || typeof j !== 'object') return { ok: 0, v: 0, avisos: ['balanceamento.json não é um objeto JSON'] };
-  aplica(CFG, j.servidor, 'servidor'); aplica(COMBATE, j.combate, 'combate');
+  aplica(CFG, j.servidor, 'servidor'); aplica(COMBATE, j.combate, 'combate'); BALJ = j;
   if (j.flags && typeof j.flags.pvp === 'boolean') CFG.pvp = j.flags.pvp ? 1 : 0;
   return { ok: 1, v: num(j.versao, 0), avisos };
 })();
@@ -337,10 +339,11 @@ async function onCmd(p, m) {
   const txt = str(m.text, 80).trim(), parts = txt.split(/\s+/), cmd = (parts[0] || '').toLowerCase(), arg = parts.slice(1).join(' ').replace(/^@/, '');
   const me = msg => p.conn.send({ t: 'cmdr', msg });
   if (!p.adm) return me('Comando desconhecido.');
-  if (cmd === '/ajuda' || cmd === '/help') return me('Comandos de admin (ninguém mais vê): /admin nome · /desadmin nome · /ban nome [tempo] [motivo] (tempo: 30m, 2h, 7d; sem tempo = para sempre) · /unban nome · /banidos');
+  if (cmd === '/ajuda' || cmd === '/help') return me('Comandos de admin (ninguém mais vê): /admin nome · /desadmin nome · /ban nome [tempo] [motivo] (tempo: 30m, 2h, 7d; sem tempo = para sempre) · /unban nome · /banidos · /lutas (últimas lutas PvP: dano em 2 s, tempo preso)');
   if (cmd === '/ban') return cmdBan(p, me, parts);
   if (cmd === '/unban' || cmd === '/desbanir') return cmdUnban(p, me, parts);
   if (cmd === '/banidos') return cmdBanList(p, me);
+  if (cmd === '/lutas') return cmdLutas(p, me);
   if (cmd !== '/admin' && cmd !== '/desadmin') return me('Comando desconhecido. Digite /ajuda.');
   const on = cmd === '/admin';
   if (!/^[A-Za-z0-9_]{3,14}$/.test(arg)) return me('Use assim: ' + cmd + ' nomedojogador');
@@ -399,6 +402,7 @@ function onMessage(c, m) {
       p.au = num(m.au, -1); p.th = num(m.th, -1); p.sc = m.sc ? 1 : 0; p.hp = clamp(num(m.hp, p.hp), 0, 1e5); p.max = clamp(num(m.max, p.max), 1, 1e5); p.ct = Number.isFinite(m.c) ? Math.round(m.c) : null; p.dirty = true; return;
     case 'meta': setMeta(p, m); if (p.map) toRoom(room(p.map), { t: 'pm', id: p.id, lv: p.lv, eq: p.eq, look: p.look, clan: p.clan, ey: p.ey || 0 }, p); return;
     case 'gaze': return onGaze(p, m);
+    case 'cast': return onCast(p, m);
     case 'fx': if (!p.map) return; {
       const fx = Array.isArray(m.fx) ? m.fx.slice(0, 8) : [], pr = Array.isArray(m.pr) ? m.pr.slice(0, 8) : [];
       if (fx.length || pr.length) toRoom(room(p.map), { t: 'fx', id: p.id, fx, pr }, p); } return;
@@ -453,6 +457,7 @@ function leaveRoom(p) { { const t = trades.get(inTrade.get(p.id)); if (t && !t.b
   const r = rooms[p.map]; if (!r) return; r.players.delete(p); toRoom(r, { t: 'pl', id: p.id }); p.map = null; }
 function onDisconnect(c) {
   const p = c.player; if (!p) return;
+  lutaFecha(p, 0);
   if (players.get(p.id) === p) players.delete(p.id);
   if (p.map) leaveRoom(p);
   const pid = memberParty.get(p.id);
@@ -575,7 +580,9 @@ function onPvp(p, m) {
   const dd = Math.max(1, Math.round(d * (1 - clamp(q.red || 0, CFG.reducaoInformadaMin, CFG.reducaoInformadaMax) / 100)));
   const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(p.id) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(p.id, o);
   toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c }, q);
-  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, CFG.stunMaxMonstro)), c });
+  const pst = Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, CFG.stunMaxMonstro));
+  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c });
+  lutaGolpe(q, p, dd, pst);
 }
 // ---------------------------------------------------------------- olhar do Sharingan / Mangekyō (genjutsu)
 // paralisa sem dano; quanto mais esquiva o alvo tem, menos tempo fica preso (mín. 30%); chefe, metade; jogador, até pvpStun
@@ -590,15 +597,67 @@ function onGaze(p, m) {
   for (const id of (Array.isArray(m.pl) ? m.pl.slice(0, 10) : [])) {
     const q = players.get(str(id, 64)); const why = pvpWhy(p, q); if (why || hyp(p.x - q.x, p.y - q.y) > CFG.olharRaio) continue;
     const st = Math.round(Math.min(CFG.pvpStun, st0 * sevMul(q.esq)) * 100) / 100;
-    q.conn.send({ t: 'pstun', st, by: p.id, src: p.nome }); pl.push({ id: q.id, st }); }
+    q.conn.send({ t: 'pstun', st, by: p.id, src: p.nome }); pl.push({ id: q.id, st }); lutaCC(q, p, st); }
   if (ms.length || pl.length) toRoom(r, { t: 'gz', by: p.id, ms, pl });
+}
+// ---------------------------------------------------------------- registro de lutas PvP (só anota: nunca muda o resultado)
+// Quem apanha abre uma "luta"; ela fecha quando ele é derrotado, sai do jogo ou passa CFG.lutaFecha s sem apanhar.
+// Anota: golpes, dano, maior dano em 2 s (% da vida), duração, tempo preso (total e maior sequência sem conseguir agir).
+// É o que a planilha mede: burst ≤ 45% em 2 s, TTK 8–15 s, perda de controle ≤ 4 s seguidos.
+const LUTAS = [];
+function lutaDe(q) { const t = now(); let L = q.luta; if (L && t - L.last > CFG.lutaFecha) { lutaFecha(q, 0); L = null; }
+  if (!L) L = q.luta = { ini: t, last: t, quem: q.nome, max: num(q.max, 100), hits: [], cc: [], by: new Set() }; return L; }
+function lutaGolpe(q, p, d, st) { try { const L = lutaDe(q), t = now(); L.last = t; L.max = Math.max(1, num(q.max, L.max)); L.by.add(p.nome);
+  L.hits.push([t, d]); if (L.hits.length > 500) L.hits.shift(); if (st > 0) L.cc.push([t, t + st]); } catch (e) { log('luta (erro ignorado):', e.message); } }
+function lutaCC(q, p, st) { try { if (!(st > 0)) return; const L = lutaDe(q), t = now(); L.last = t; L.by.add(p.nome); L.cc.push([t, t + st]); } catch (e) { log('luta (erro ignorado):', e.message); } }
+function lutaResumo(L, morreu) {
+  let burst = 0; for (let i = 0, j = 0, soma = 0; i < L.hits.length; i++) { soma += L.hits[i][1]; while (L.hits[i][0] - L.hits[j][0] > 2) soma -= L.hits[j++][1]; burst = Math.max(burst, soma); }
+  // tempo preso: junta atordoamentos que se encostam (menos de 0,25 s de folga não dá para reagir)
+  const cc = L.cc.slice().sort((a, b) => a[0] - b[0]); let tot = 0, maior = 0, a = null;
+  for (const c of cc) { if (!a || c[0] > a[1] + .25) { if (a) { tot += a[1] - a[0]; maior = Math.max(maior, a[1] - a[0]); } a = [c[0], c[1]]; } else a[1] = Math.max(a[1], c[1]); }
+  if (a) { tot += a[1] - a[0]; maior = Math.max(maior, a[1] - a[0]); }
+  const r1 = x => Math.round(x * 10) / 10;
+  return { quando: new Date().toISOString(), quem: L.quem, por: [...L.by].slice(0, 4), golpes: L.hits.length, dano: L.hits.reduce((s, h) => s + h[1], 0), vida: L.max,
+    burst2s: Math.round(burst / L.max * 100), seg: r1((morreu ? now() : L.last) - L.ini), morreu: morreu ? 1 : 0, preso: r1(tot), presoSeguido: r1(maior) };
+}
+function lutaFecha(q, morreu) { try { const L = q && q.luta; if (!L) return; q.luta = null; if (!L.hits.length && !L.cc.length) return;
+  const r = lutaResumo(L, morreu); LUTAS.push(r); if (LUTAS.length > 100) LUTAS.shift();
+  log('LUTA:', r.por.join('+'), 'x', r.quem, '·', r.seg + ' s ·', r.golpes, 'golpes ·', r.dano, 'de dano · maior em 2 s:', r.burst2s + '% da vida · preso', r.preso + ' s (seguido ' + r.presoSeguido + ' s)' + (r.morreu ? ' · derrotado' : ''));
+} catch (e) { log('luta (erro ignorado):', e.message); } }
+setInterval(() => { for (const q of players.values()) if (q.luta && now() - q.luta.last > CFG.lutaFecha) lutaFecha(q, 0); }, 5000);
+function cmdLutas(p, me) {
+  if (!LUTAS.length) return me('Nenhuma luta PvP registrada desde que o servidor ligou.');
+  const L = LUTAS.slice(-5).reverse();
+  me('Últimas lutas PvP (' + LUTAS.length + ' guardadas): ' + L.map(r => r.por.join('+') + ' x ' + r.quem + ': ' + r.seg + ' s, maior dano em 2 s ' + r.burst2s + '% da vida, preso ' + r.preso + ' s (seguido ' + r.presoSeguido + ' s)' + (r.morreu ? ', derrotado' : '')).join(' · '));
+}
+// ---------------------------------------------------------------- recarga conferida pelo servidor (modo sombra: só anota suspeitas)
+// O app avisa cada golpe usado ({t:'cast', sl}: 0 inicial, 1 meio, 2 grande, 3 item). Com a tabela de golpes do balanceamento.json,
+// o servidor calcula o menor intervalo possível (recarga com o máximo de Destreza e de especialidade, com folga para a rede).
+function cdMinimo(p, sl) {
+  const j = BALJ, G = j && j.golpes; if (!G || !G.clas || !p.clan) return 0;
+  let base = 0;
+  if (sl < 3) { const g = (G.clas[p.clan] || [])[sl]; if (!g) return 0; base = num(g.cd, num((G.ranks[g.r] || {}).cd, 0)); }
+  else { for (const id of p.eq || []) { const it = ITEMS[id]; if (it && num(it.cd, 0) > 0) base = num(it.cd, 0); } }
+  if (!(base > 0)) return 0;
+  const at = (j.personagem && j.personagem.atributos) || {}, cdr = num((at.cdr || {}).max, 40);
+  const tai = ((j.proficiencia || {}).tipos || {}).taijutsu || {}, perk = num(tai.pv, 0) * (((j.proficiencia || {}).ranks || []).length || 0);
+  return Math.max(.2, base * (1 - cdr / 100) * (1 - perk / 100));
+}
+function onCast(p, m) {
+  try {
+    if (!p.map) return; const sl = num(m.sl, -1) | 0; if (sl < 0 || sl > 3) return;
+    const t = now(); p.casts = p.casts || [0, 0, 0, 0]; const last = p.casts[sl]; p.casts[sl] = t; if (!last) return;
+    const min = cdMinimo(p, sl), dt = t - last; if (!(min > 0) || dt >= min * .8 - .2) return;
+    p.cdSusp = (p.cdSusp || 0) + 1;
+    if (t - (p.cdSuspT || 0) > 30) { p.cdSuspT = t; log('RECARGA? ' + p.nome + ' (' + p.clan + ') usou o botão ' + sl + ' de novo em ' + Math.round(dt * 100) / 100 + ' s (mínimo ' + Math.round(min * 100) / 100 + ' s); suspeitas: ' + p.cdSusp); }
+  } catch (e) { log('cast (erro ignorado):', e.message); }
 }
 function onPvpResult(q, m) { // q = quem apanhou, avisando que foi derrotado por "by"
   const by = str(m.by, 64), pe = q.pvpPend && q.pvpPend.get(by); if (!pe || pe.exp < now() || pe.n <= 0 || !q.map) return;
   pe.n--; const a = players.get(by), r = room(q.map), dead = m.dead ? 1 : 0;
   if (dead) { q.pvpPend.clear(); if (a) a.pvpK = (a.pvpK || 0) + 1; q.pvpD = (q.pvpD || 0) + 1;
     toRoom(r, { t: 'pk', by, byN: a ? a.nome : '?', to: q.id, toN: q.nome, k: a ? a.pvpK : 0 });
-    log('PvP:', a ? a.nome : by, 'derrotou', q.nome, 'em', q.map); }
+    log('PvP:', a ? a.nome : by, 'derrotou', q.nome, 'em', q.map); lutaFecha(q, 1); }
 }
 function resetMob(r, e, announce) {
   Object.assign(e, { x: e.hx, y: e.hy, hp: e.max, dead: 0, dt: 0, rt: 0, mv: 0, ch: 0, fired: 0, lunge: 0, dmgp: 0, ja: 0, jc: 0, jz: 0, stun: 0, hurt: 0, dmg: {}, alone: 0, jcd: 3, bc: 2, atk: 0, aim: null, jt: null });

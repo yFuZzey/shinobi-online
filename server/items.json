@@ -5,7 +5,8 @@
   "drop": {
    "chance": 100,
    "src": "boss"
-  }
+  },
+  "cd": 1
  },
  "manto": {
   "id": "manto",

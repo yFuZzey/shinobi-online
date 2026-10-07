@@ -3,7 +3,7 @@
 #   bash tests/rodar.sh            -> todos
 #   bash tests/rodar.sh jogo       -> só os offline (golpes, aba Jutsus, mecânicas)
 #   bash tests/rodar.sh online     -> só os online (banco simulado + servidor do jogo local)
-#   bash tests/rodar.sh t27 jut    -> só os escolhidos
+#   bash tests/rodar.sh t27 jut    -> só os escolhidos (VERBOSO=1 mostra tudo que o teste imprime)
 # Monta as páginas de teste a partir de src/ (tests/paginas/), sobe o banco simulado (tests/mock.js, porta 54333)
 # e uma cópia do servidor do jogo (porta 8096) com os mapas/mobs/itens recém-montados.
 cd "$(dirname "$0")"; T=$PWD; R=$(cd .. && pwd)
@@ -20,7 +20,7 @@ if [ $ONL = 1 ]; then
 fi
 OK=(); RUIM=()
 for f in jogo/*.js online/*.js; do n=$(basename "$f" .js); g=$(dirname "$f"); quer "$n" "$g" || continue
-  echo "== $n"; out=$(timeout 240 node "$f" 2>&1); echo "$out" | grep -E "FALHA|ERRO|TUDO OK|FALHA\(S\)" | head -20
+  echo "== $n"; out=$(timeout 240 node "$f" 2>&1); if [ -n "${VERBOSO:-}" ]; then echo "$out"; else echo "$out" | grep -E "FALHA|ERRO|TUDO OK|FALHA\(S\)" | head -20; fi
   if echo "$out" | grep -q "TUDO OK"; then OK+=("$n"); else RUIM+=("$n"); echo "$out" | tail -5; fi
 done
 echo; echo "PASSARAM (${#OK[@]}): ${OK[*]}"; echo "FALHARAM (${#RUIM[@]}): ${RUIM[*]}"

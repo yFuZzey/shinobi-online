@@ -684,6 +684,12 @@ function castSus(A){const S=SUSS[A.sty]||SUSS.sasuke,T=+A.t||8,tp=HTP,r=+A.r||11
  KDEL.push({t:S.at,fn:()=>{if(SUS)kfxAdd({q:S.a,x:p.x,y:p.y,fol:1,sc:r*.72/susRing(S.a),al:.85,sus:1})}});
  for(let j=0;j<hits;j++)KDEL.push({t:S.at+.05+j*.24,fn:()=>{if(!SUS)return;HTP=tp;try{aoeHit(p.x,p.y-8,r,+A.dmg||30,+A.stun||0,+A.kb||0)}finally{HTP=null}}});
  bufStart('sus',{red:+A.red||0,dmg:+A.dmgb||0,t:T,nm:'Susanoo: −'+(+A.red||0)+'% de dano recebido'+(+A.dmgb?' e +'+A.dmgb+'% de dano':'')})}
+// avisa o servidor de cada golpe usado (0 inicial, 1 meio, 2 grande, 3 item): ele confere a recarga (por enquanto só anota)
+function gsCast(sl){if(ONL.on&&ONL.joined)gsSend({t:'cast',sl})}
+{const _c=cast;cast=function(i){const b=cd[i];const r=_c(i);if(!(b>0)&&cd[i]>0)gsCast(i);return r}}
+{const _ci=castItem;castItem=function(){const b=cd[3];const r=_ci();if(!(b>0)&&cd[3]>0)gsCast(3);return r}}
+{const _sp=susPress;susPress=function(){const b=cd[2];const r=_sp();if(!(b>0)&&cd[2]>0)gsCast(2);return r}}
+{const _et=eyeToggle;eyeToggle=function(){const w=EYE.on;const r=_et();if(!w&&EYE.on)gsCast(1);return r}}
 // derrotado: olho, reforços e Susanoo acabam
 {const _h=hurt;hurt=function(n){_h(n);if(HRES&&HRES.dead){eyeOff();susEnd();bufClear()}}}
 // começo de cada partida

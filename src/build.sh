@@ -17,6 +17,7 @@ import json,glob,sys
 items={}
 for f in sorted(glob.glob('ed/db/items/*.json')):
     j=json.load(open(f));j=j.get('data',j);items[j['id']]={'id':j['id'],'name':j['name'],'drop':j.get('drop')}
+    if isinstance(j.get('atk'),dict) and j['atk'].get('cd'):items[j['id']]['cd']=j['atk']['cd'] # recarga do golpe do item (o servidor confere)
 json.dump(items,open(sys.argv[1]+'/items.json','w'),ensure_ascii=False,indent=1)
 P
 if [ -n "$TESTE" ]; then
