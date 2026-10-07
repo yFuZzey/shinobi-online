@@ -21,7 +21,7 @@ for _p in ['combate.esquivaBase','combate.esquivaMin','combate.esquivaMax','comb
   'personagem.nivelMax','personagem.pontosPorNivel','personagem.xpBase','personagem.xpExpoente','personagem.atributoMax','personagem.statusMax','personagem.regenChakra','personagem.regenVida',
   'golpes.kaitenAtordoa','golpes.hakkeTotal','olhos.susanooDreno','olhos.mangekyoRecarga']:_need(_p)
 for _p in ['personagem.atributos','personagem.retornoDecrescente','personagem.retornoDecrescente.inicio','proficiencia.tipos','golpes.ranks','golpes.clas','golpes.tipos','olhos.susanoo','jutsus']:_need(_p,dict)
-_need('personagem.retornoDecrescente.eficacia');_need('combate.esquivaMaxMonstro')
+_need('personagem.retornoDecrescente.eficacia');_need('proficiencia.multMin');_need('proficiencia.multMax');_need('combate.esquivaMaxMonstro')
 for _p in ['proficiencia.ranks','olhos.tomoe']:_need(_p,list)
 assert len(BAL['olhos']['tomoe'])==4,'balanceamento.json: olhos.tomoe precisa de 4 estágios'
 for _c in ('uchiha','hyuga','nara'):assert len(BAL['golpes']['clas'][_c])==3 and len(BAL['golpes']['tipos'][_c])==3,'balanceamento.json: golpes de '+_c

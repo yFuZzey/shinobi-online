@@ -122,7 +122,8 @@ const profOn=tp=>!!(tp&&CH.prof&&CH.prof.k===tp),profDmg=()=>{const r=profRank()
 // vantagens crescem com o rank: E 1x … S 2x; desvantagens não mudam
 function profMods(){const P=CH&&CH.prof;if(!P||!P.k||!PROF[P.k])return null;const K=PROF[P.k],m=1+.2*profRank(),sc=o=>{const x={};for(const k in o)x[k]=o[k]>0?o[k]*m:o[k];return x};return{st:sc(K.st),at:sc(K.at)}}
 function profOth(tp){const P=CH&&CH.prof;return P&&P.k&&tp&&PROF[P.k].oth[tp]||null}
-function profTypeMul(tp){if(!tp)return 1;if(profOn(tp))return 1+profDmg()/100;const o=profOth(tp);return o&&o.dmg?1+o.dmg/100:1}
+// multiplicador da especialidade no dano de um tipo de golpe: sempre entre multMin e multMax (balanceamento.json → proficiencia; planilha 0,70–1,30)
+function profTypeMul(tp){if(!tp)return 1;const B=BAL.proficiencia,o=profOth(tp),m=profOn(tp)?1+profDmg()/100:o&&o.dmg?1+o.dmg/100:1;return clv(m,B.multMin,B.multMax)}
 function profMp(i){return profOn(skType(i))&&CH.prof.k==='ninjutsu'?1-profPerk()/100:1}
 function profCd(i){const tp=skType(i);if(profOn(tp)&&CH.prof.k==='taijutsu')return 1-profPerk()/100;const o=profOth(tp);return o&&o.cd?1+o.cd/100:1}
 // ===== Cálculo do personagem — sempre nesta ordem =====
