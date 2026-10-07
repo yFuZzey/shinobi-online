@@ -39,13 +39,19 @@ MMORPG 2D no universo Naruto (protótipo).
 - O servidor confere mapa, distância, grupo e zona segura, sorteia a esquiva e aplica a redução de dano; o número sai para todos na hora.
 - Ajustes em `server/server.js` (`CFG.pvp`, `pvpMul` = 60% do dano, `pvpSafe`, `pvpStun`).
 
-## Golpes (4 botões)
-- Botão grande = ultimate (rank S, recarga maior). Em arco em volta dele: golpe inicial, golpe do meio e o botão do item da mão.
-- Uchiha: Bola de Fogo · Sharingan (atordoa 3 s, +20 de esquiva por 6 s) · Mangekyō Sharingan (ilusão em área que atordoa; +30% de dano e +10 de esquiva por 8 s).
-- Hyuga: Palma · Kaiten · 64 Palmas. Nara: Shuriken · Sombra · Possessão.
-- 4º botão: habilidade do item equipado (Chidori, Rasengan…). Sem item que dê habilidade, ele aparece vazio. Teclado: 1–4.
-- Susanoo é item da mão (por enquanto): Sasuke (−30% de dano recebido, +15% de dano, esferas batem 2×), Itachi (−50% de dano recebido, atordoa), Madara (−40%, +10% de dano, área maior, 10 s). Admin consegue os 3 no botão "dar itens" da mochila. Arte em `arte/susanoo/`.
+## Golpes (4 botões) e aba Jutsus
+- Botão grande = ultimate. Em arco em volta dele: golpe inicial, golpe do meio e o botão do item da mão. Teclado: 1–4.
+- Os jutsus do clã liberam com o nível (aba **Jutsus**, na mochila). Travado, o botão mostra 🔒 e o nível.
+- Uchiha: Bola de Fogo (Nv 1) · Sharingan no botão do meio, liga/desliga, gasta chakra por segundo (1 tomoe Nv 5, 2 tomoe Nv 15, 3 tomoe Nv 25). Ao ligar, o olhar paralisa quem está no cone à frente (menos tempo quanto mais esquiva o alvo tem; no PvP no máx. 1,5 s).
+- Nv 40: o jogador escolhe a Mangekyō (Itachi, Sasuke ou Madara), que toma o lugar do Sharingan. Nv 60: Susanoo no botão grande, só com a Mangekyō ligada (cada olho tem o seu). Desligar a Mangekyō desfaz o Susanoo. Arte em `arte/susanoo/`.
+- Hyuga: Palma (Nv 1) · Kaiten (Nv 10) · 64 Palmas (Nv 25). Nara: Shuriken (Nv 1) · Sombra (Nv 10) · Possessão (Nv 25).
+- 4º botão: habilidade do item equipado (Chidori…). Sem item que dê habilidade, ele aparece vazio.
 - Reforços somam entre si e aparecem embaixo das barras com o tempo que falta.
+- A escolha da Mangekyō fica na coluna `mangekyo` (`sql/06_mangekyo.sql`). Sem esse SQL o jogo funciona, mas a escolha fica salva só no celular.
+
+## Código do jogo e testes
+- O código-fonte está em `src/` (veja `src/LEIA.md`). `bash src/build.sh` monta `www/` e os `server/*.json`.
+- `bash tests/rodar.sh` roda os testes no navegador (offline e online, com banco simulado e servidor local).
 
 ## Mobs
 - Criados no editor (aba Mobs) e colocados nos mapas com a ferramenta Mobs (áreas).

@@ -1,22 +1,4 @@
 {
- "manto": {
-  "id": "manto",
-  "name": "Manto da Raposa",
-  "drop": {
-   "chance": 100,
-   "src": "boss"
-  }
- },
- "susanoo_sasuke": {
-  "id": "susanoo_sasuke",
-  "name": "Susanoo (Sasuke)",
-  "drop": null
- },
- "susanoo_itachi": {
-  "id": "susanoo_itachi",
-  "name": "Susanoo (Itachi)",
-  "drop": null
- },
  "chidori": {
   "id": "chidori",
   "name": "Chidori",
@@ -25,9 +7,12 @@
    "src": "boss"
   }
  },
- "susanoo_madara": {
-  "id": "susanoo_madara",
-  "name": "Susanoo (Madara)",
-  "drop": null
+ "manto": {
+  "id": "manto",
+  "name": "Manto da Raposa",
+  "drop": {
+   "chance": 100,
+   "src": "boss"
+  }
  }
 }
