@@ -620,12 +620,32 @@ function stunPvp(q, by, st, gen, t, imu) { if (!(st > 0)) return 0; const cat = 
 function ccAjusta(q, by, cc, t, imu) { if (!cc) return cc; const L = (Array.isArray(cc) ? cc : [cc]).map(c => { const cat = ccCat(c.k); if (!cat || !(c.t > 0)) return c;
     const f = ccDR(q, cat, by, t); if (!f) { imu.push(cat); return null; } return Object.assign({}, c, { t: Math.round(c.t * f * ccRes(q, cat) * 100) / 100 }); }).filter(c => c && (!(c.t != null) || c.t > 0.05));
   return L.length > 1 ? L : L[0]; }
+// ---------------------------------------------------------------- naturezas (planilha 07): forte ×1,15, fraco ×0,85 e efeito secundário no PvP
+// a natureza vem do catálogo do servidor (golpe "j" do clã de quem bate, ou o item da mão), nunca do que o app diz
+const NATS = () => (BALJ && BALJ.naturezas) || {};
+function natDe(p, j) { if (!j) return null; const N = NATS();
+  if (j === 'item') { for (const id of p.eq || []) { const n = (N.itens || {})[id]; if (n) return n; } return null; }
+  const g = (((BALJ && BALJ.golpes && BALJ.golpes.jutsus) || {})[p.clan] || {})[j]; return g && g.nat || null; }
+const jBasico = (p, j) => { const g = (((BALJ && BALJ.golpes && BALJ.golpes.jutsus) || {})[p.clan] || {})[j]; return !!(g && g.papel === 'basico'); };
+const natCla = q => (NATS().cla || {})[q.clan] || null; // natureza de quem apanha = a do clã
+function natMul(an, dn) { const N = NATS(), a = (N.tipos || {})[an]; if (!a || !dn) return 1; return a.forte === dn ? num(N.forte, 1.15) : a.fraco === dn ? num(N.fraco, .85) : 1; }
+// efeito secundário: só em jutsu (não no golpe básico) e no máximo 1 a cada efeitoCd s de cada atacante em cada alvo
+function natEfeito(q, p, an, j, t) { const N = NATS(), ef = an && ((N.tipos || {})[an] || {}).efeito; if (!ef || jBasico(p, j)) return null;
+  const k = p.id + ':' + an, cd = q.natCd || (q.natCd = {}); if (cd[k] > t) return null; cd[k] = t + num(N.efeitoCd, 4); return ef; }
+// queimadura do Katon: o servidor tira pct% da vida máxima em t s (1 por segundo) e conta para quem queimou
+function queimaTick() { const t = now(); for (const q of players.values()) { const b = q.queima; if (!b) continue; if (!q.map || q.hp <= 0) { q.queima = null; continue; }
+  if (t < b.next) continue; const d = Math.max(1, Math.round(num(q.max, 100) * b.pct / 100)); b.next += 1; b.n--;
+  try { q.conn.send({ t: 'hurt', fin: 1, d, src: b.nome + ' (queimadura)', by: b.by, qm: 1 }); const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(b.by) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(b.by, o);
+    const a = players.get(b.by); if (a) { lutaGolpe(q, a, d, 0); if (q.map) toRoom(room(q.map), { t: 'ph', to: q.id, by: b.by, d, c: 0, qm: 1 }, q); } } catch (e) {}
+  if (b.n <= 0) q.queima = null; } }
+setInterval(queimaTick, 250);
 function onPvp(p, m) {
   const q = players.get(str(m.to, 64)); const why = pvpWhy(p, q);
   if (why === 'seguro') return p.conn.send({ t: 'ph', to: q.id, by: p.id, safe: 1 });
   if (why) return;
   const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
-  const d = Math.max(1, Math.round(clamp(num(m.d, 0), 0, CFG.pvpMaxHit) * CFG.pvpMul)); if (!num(m.d, 0)) return;
+  const j = str(m.j, 24), an = natDe(p, j), nmul = natMul(an, natCla(q));
+  const d = Math.max(1, Math.round(clamp(num(m.d, 0), 0, CFG.pvpMaxHit) * CFG.pvpMul * nmul)); if (!num(m.d, 0)) return;
   // empurrão proporcional ao golpe (o celular de quem apanha anda ~40× esse valor em px; máx. 24 px por golpe)
   let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); let kk = 0; if (kl > .01) { kk = Math.min(CFG.empurraoPvpMax, kl / 40); kx = kx / kl * kk; ky = ky / kl * kk; } else { kx = ky = 0; }
   const r = room(p.map), pr = clamp(num(m.pr, 0), 0, 5000), c = m.c ? 1 : 0;
@@ -635,14 +655,21 @@ function onPvp(p, m) {
   // assim o número aparece para todo mundo com uma ida e volta só (antes eram duas)
   if (Math.random() * 100 < dodgeChance(q.esq || 0, pr)) { toRoom(r, { t: 'ph', to: q.id, by: p.id, miss: 1 }, q); q.conn.send({ t: 'hurt', fin: 1, miss: 1, d: 0, src: p.nome, by: p.id }); return; }
   // redução de quem apanha (teto em reducaoInformadaMax = 60%, planilha 10); penetração (Jūken, Mangekyō) ignora parte dela
-  const red = clamp(q.red || 0, CFG.reducaoInformadaMin, CFG.reducaoInformadaMax), pen = clamp(num(m.pen, 0), 0, CCX.penetracaoMax);
+  const ef = natEfeito(q, p, an, j, t); // efeito secundário da natureza (Fūton atravessa, Raiton paralisa, Suiton deixa lento, Yin controla mais, Katon queima)
+  const red = clamp(q.red || 0, CFG.reducaoInformadaMin, CFG.reducaoInformadaMax), pen = clamp(num(m.pen, 0) + (ef && ef.k === 'pen' ? num(ef.v, 0) : 0), 0, CCX.penetracaoMax);
   const dd = Math.max(1, Math.round(d * (1 - (red > 0 ? red * (1 - pen / 100) : red) / 100)));
   const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(p.id) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(p.id, o);
-  toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c }, q);
-  const imu = []; const pst = stunPvp(q, p.id, Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, CFG.stunMaxMonstro)), !!m.g, t, imu);
-  const cc = ccAjusta(q, p.id, ccPvpList(m.cc), t, imu);
+  toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c, nm: nmul !== 1 ? nmul : undefined }, q);
+  const yin = an === 'yin' ? 1 + num(((NATS().tipos || {}).yin || {}).efeito && NATS().tipos.yin.efeito.pct, 0) / 100 : 1; // Yin: controle dura mais (antes do retorno decrescente)
+  let st0 = clamp(num(m.st, 0), 0, CFG.stunMaxMonstro) * (m.g ? yin : 1); if (ef && ef.k === 'para') st0 = Math.max(st0, num(ef.t, 0));
+  const imu = []; const pst = stunPvp(q, p.id, Math.min(CFG.pvpStun, st0), !!m.g, t, imu);
+  let cc0 = ccPvpList(m.cc); if (yin !== 1 && cc0) cc0 = (Array.isArray(cc0) ? cc0 : [cc0]).map(c => c.t > 0 && c.k !== 'lento' ? Object.assign({}, c, { t: c.t * yin }) : c);
+  if (ef && ef.k === 'lento') { const L = cc0 ? (Array.isArray(cc0) ? cc0 : [cc0]) : []; if (L.length < 2) cc0 = L.concat([{ k: 'lento', t: num(ef.t, 2), v: num(ef.v, 20) }]); }
+  if (Array.isArray(cc0) && cc0.length === 1) cc0 = cc0[0];
+  const cc = ccAjusta(q, p.id, cc0 && ccPvpList(cc0), t, imu);
+  if (ef && ef.k === 'queima') q.queima = { by: p.id, nome: p.nome, pct: num(ef.pct, 3) / Math.max(1, num(ef.t, 3)), n: Math.max(1, Math.round(num(ef.t, 3))), next: t + 1 };
   if (kk >= CCX.deslocamentoMin) { const f = ccDR(q, 'desl', p.id, t); if (!f) imu.push('desl'); kx *= f; ky *= f; } // empurrão/puxão forte também tem retorno decrescente
-  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c, cc, imu: imu.length ? imu : undefined });
+  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c, cc, imu: imu.length ? imu : undefined, nm: nmul !== 1 ? nmul : undefined, ef: ef ? ef.k : undefined });
   lutaGolpe(q, p, dd, Math.max(pst, ccPreso(cc))); // "preso" no registro da luta: atordoado, preso pela sombra ou silenciado
 }
 // ---------------------------------------------------------------- olhar do Sharingan / Mangekyō (genjutsu)
@@ -725,7 +752,7 @@ function onPvpResult(q, m) { // q = quem apanhou, avisando que foi derrotado por
     log('PvP:', a ? a.nome : by, 'derrotou', q.nome, 'em', q.map); lutaFecha(q, 1); }
 }
 function resetMob(r, e, announce) {
-  Object.assign(e, { x: e.hx, y: e.hy, hp: e.max, dead: 0, dt: 0, rt: 0, mv: 0, ch: 0, fired: 0, lunge: 0, dmgp: 0, ja: 0, jc: 0, jz: 0, stun: 0, root: 0, hurt: 0, dmg: {}, alone: 0, jcd: 3, bc: 2, atk: 0, aim: null, jt: null, lento: 0 });
+  Object.assign(e, { x: e.hx, y: e.hy, hp: e.max, dead: 0, dt: 0, rt: 0, mv: 0, ch: 0, fired: 0, lunge: 0, dmgp: 0, ja: 0, jc: 0, jz: 0, stun: 0, root: 0, hurt: 0, dmg: {}, alone: 0, jcd: 3, bc: 2, atk: 0, aim: null, jt: null, lento: 0, conf: 0 });
   r.eps = [];
   if (announce) toRoom(r, { t: 'mev', k: 'reset', m: e.id, x: e.x, y: e.y });
 }

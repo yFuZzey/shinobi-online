@@ -25,6 +25,12 @@ _need('personagem.retornoDecrescente.eficacia');_need('proficiencia.multMin');_n
 for _p in ['proficiencia.ranks','olhos.tomoe']:_need(_p,list)
 for _p in ['cc.janela','cc.imune','cc.agrupa','cc.cadeiaMax','cc.tenacidadeVit','cc.tenacidadeMax','cc.jukenPen','cc.mangekyoPen']:_need(_p)
 _need('cc.fatores',list)
+for _p in ['naturezas.forte','naturezas.fraco','naturezas.efeitoCd']:_need(_p)
+for _p in ['naturezas.tipos','naturezas.cla','naturezas.itens']:_need(_p,dict)
+for _c,_J in BAL['golpes']['jutsus'].items():
+    if _c[0]=='_':continue
+    for _id,_j in _J.items():
+        if _id[0]!='_' and 'nat' in _j:assert _j['nat'] in BAL['naturezas']['tipos'],'balanceamento.json: natureza de '+_c+'.'+_id
 assert len(BAL['olhos']['tomoe'])==4,'balanceamento.json: olhos.tomoe precisa de 4 estágios'
 for _c in ('uchiha','hyuga','nara'):
     _b=BAL['golpes']['barra'][_c];assert len(_b)==3 and all(x in BAL['golpes']['jutsus'][_c] for x in _b),'balanceamento.json: barra de '+_c

@@ -1,6 +1,6 @@
 {
  "_leia": "Números de balanceamento do Shinobi Online. O servidor lê este arquivo ao iniciar (o Render reinicia sozinho quando ele muda no GitHub) e o jogo leva uma cópia na montagem (src/build.sh). Se algum valor faltar ou vier errado, o servidor usa o valor padrão do código e avisa no log. Tempos em segundos, distâncias em pixels (1 tile = 32 px), chances em %.",
- "versao": 10,
+ "versao": 11,
  "flags": {
   "_leia": "Liga (true) ou desliga (false) cada sistema.",
   "pvp": true
@@ -74,6 +74,83 @@
   "jukenPen": 15,
   "mangekyoPen": 10,
   "penetracaoMax": 20
+ },
+ "naturezas": {
+  "_leia": "Planilha 07. Cada jutsu tem 'nat' (golpes.jutsus); o item da mão em 'itens'. Quem apanha tem a natureza do clã ('cla'). Natureza forte contra a do alvo: dano × forte; fraca: × fraco. Efeito secundário (só PvP, só em jutsu — não no golpe básico — e no máximo 1 a cada efeitoCd s de cada atacante no mesmo alvo): queima = pct% da vida máxima em t s; pen = atravessa v% da redução; para = paralisa t s (com retorno decrescente); lento = v% por t s; controle = Yin: prender/silenciar/confundir/genjutsu duram pct% a mais; escudo e cura ainda não têm jutsu.",
+  "forte": 1.15,
+  "fraco": 0.85,
+  "efeitoCd": 4,
+  "tipos": {
+   "katon": {
+    "n": "Katon",
+    "forte": "fuuton",
+    "fraco": "suiton",
+    "efeito": {
+     "k": "queima",
+     "pct": 3,
+     "t": 3
+    }
+   },
+   "fuuton": {
+    "n": "Fūton",
+    "forte": "raiton",
+    "fraco": "katon",
+    "efeito": {
+     "k": "pen",
+     "v": 10
+    }
+   },
+   "raiton": {
+    "n": "Raiton",
+    "forte": "doton",
+    "fraco": "fuuton",
+    "efeito": {
+     "k": "para",
+     "t": 0.3
+    }
+   },
+   "doton": {
+    "n": "Doton",
+    "forte": "suiton",
+    "fraco": "raiton",
+    "efeito": {
+     "k": "escudo",
+     "pct": 8
+    }
+   },
+   "suiton": {
+    "n": "Suiton",
+    "forte": "katon",
+    "fraco": "doton",
+    "efeito": {
+     "k": "lento",
+     "v": 20,
+     "t": 2
+    }
+   },
+   "yin": {
+    "n": "Yin",
+    "efeito": {
+     "k": "controle",
+     "pct": 10
+    }
+   },
+   "yang": {
+    "n": "Yang",
+    "efeito": {
+     "k": "cura",
+     "pct": 8
+    }
+   }
+  },
+  "cla": {
+   "uchiha": "katon",
+   "hyuga": "yang",
+   "nara": "yin"
+  },
+  "itens": {
+   "chidori": "raiton"
+  }
  },
  "personagem": {
   "_leia": "Nível, pontos e atributos. XP para passar do nível N = xpBase × N^xpExpoente.",
@@ -385,7 +462,8 @@
      "tel": 0.3,
      "tipo": "ninjutsu",
      "papel": "basico",
-     "lv": 1
+     "lv": 1,
+     "nat": "katon"
     },
     "olho": {
      "r": "B",
@@ -393,7 +471,8 @@
      "mp": 10,
      "cd": 20,
      "tipo": "genjutsu",
-     "papel": "ativo"
+     "papel": "ativo",
+     "nat": "yin"
     },
     "sus": {
      "r": "S",
@@ -404,7 +483,8 @@
      "tel": 0.8,
      "tipo": "ninjutsu",
      "papel": "ult",
-     "lv": 60
+     "lv": 60,
+     "nat": "yin"
     },
     "goka": {
      "r": "C",
@@ -417,7 +497,8 @@
      "raio": 1.4,
      "tipo": "ninjutsu",
      "papel": "ativo",
-     "lv": 1
+     "lv": 1,
+     "nat": "katon"
     },
     "genj": {
      "r": "B",
@@ -431,7 +512,8 @@
      "alcance": 5,
      "tipo": "genjutsu",
      "papel": "ativo",
-     "lv": 15
+     "lv": 15,
+     "nat": "yin"
     },
     "hosenka": {
      "r": "B",
@@ -444,7 +526,8 @@
      "tiros": 5,
      "tipo": "ninjutsu",
      "papel": "ativo",
-     "lv": 20
+     "lv": 20,
+     "nat": "katon"
     },
     "goryuka": {
      "r": "A",
@@ -458,7 +541,8 @@
      "alcance": 5,
      "tipo": "ninjutsu",
      "papel": "ativo",
-     "lv": 30
+     "lv": 30,
+     "nat": "katon"
     },
     "amat": {
      "r": "A",
@@ -477,7 +561,8 @@
      "alcance": 6,
      "tipo": "ninjutsu",
      "papel": "ativo",
-     "lv": 45
+     "lv": 45,
+     "nat": "katon"
     },
     "tsuku": {
      "r": "S",
@@ -493,7 +578,8 @@
      "alcance": 5,
      "tipo": "genjutsu",
      "papel": "ativo",
-     "lv": 50
+     "lv": 50,
+     "nat": "yin"
     }
    },
    "hyuga": {
@@ -506,7 +592,8 @@
      "queima": 2,
      "tipo": "taijutsu",
      "papel": "basico",
-     "lv": 1
+     "lv": 1,
+     "nat": "yang"
     },
     "kaiten": {
      "r": "B",
@@ -516,7 +603,8 @@
      "cd": 16,
      "tipo": "taijutsu",
      "papel": "ativo",
-     "lv": 10
+     "lv": 10,
+     "nat": "yang"
     },
     "hakke": {
      "r": "S",
@@ -531,7 +619,8 @@
      },
      "tipo": "taijutsu",
      "papel": "ult",
-     "lv": 20
+     "lv": 20,
+     "nat": "yang"
     },
     "byak": {
      "r": "B",
@@ -544,7 +633,8 @@
      "resGen": 15,
      "tipo": "genjutsu",
      "papel": "ativo",
-     "lv": 5
+     "lv": 5,
+     "nat": "yang"
     },
     "kusho": {
      "r": "B",
@@ -558,7 +648,8 @@
      "alcance": 5,
      "tipo": "taijutsu",
      "papel": "ativo",
-     "lv": 15
+     "lv": 15,
+     "nat": "fuuton"
     },
     "h128": {
      "r": "S",
@@ -576,7 +667,8 @@
      "evolui": "hakke",
      "tipo": "taijutsu",
      "papel": "ult",
-     "lv": 45
+     "lv": 45,
+     "nat": "yang"
     },
     "sojishi": {
      "r": "A",
@@ -593,7 +685,8 @@
      "raio": 3,
      "tipo": "taijutsu",
      "papel": "ativo",
-     "lv": 55
+     "lv": 55,
+     "nat": "fuuton"
     },
     "kperf": {
      "r": "S",
@@ -612,7 +705,8 @@
      "imune": 1,
      "tipo": "taijutsu",
      "papel": "ult",
-     "lv": 60
+     "lv": 60,
+     "nat": "yang"
     }
    },
    "nara": {
@@ -638,7 +732,8 @@
      "tipo": "ninjutsu",
      "papel": "ativo",
      "lv": 1,
-     "sombra": 1
+     "sombra": 1,
+     "nat": "yin"
     },
     "poss": {
      "r": "S",
@@ -653,7 +748,8 @@
      "tipo": "ninjutsu",
      "papel": "ult",
      "lv": 30,
-     "sombra": 1
+     "sombra": 1,
+     "nat": "yin"
     },
     "nui": {
      "r": "B",
@@ -670,7 +766,8 @@
      "sombra": 1,
      "tipo": "ninjutsu",
      "papel": "ativo",
-     "lv": 15
+     "lv": 15,
+     "nat": "yin"
     },
     "kubi": {
      "r": "C",
@@ -690,7 +787,8 @@
      "sombra": 1,
      "tipo": "ninjutsu",
      "papel": "ativo",
-     "lv": 20
+     "lv": 20,
+     "nat": "yin"
     },
     "yose": {
      "r": "B",
@@ -704,7 +802,8 @@
      "sombra": 1,
      "tipo": "ninjutsu",
      "papel": "ativo",
-     "lv": 40
+     "lv": 40,
+     "nat": "yin"
     },
     "campo": {
      "r": "C",
@@ -724,7 +823,8 @@
      "sombra": 1,
      "tipo": "ninjutsu",
      "papel": "ativo",
-     "lv": 45
+     "lv": 45,
+     "nat": "yin"
     },
     "intelecto": {
      "r": "E",
@@ -734,7 +834,8 @@
      "cdSombra": 10,
      "ccPve": 15,
      "papel": "passiva",
-     "lv": 50
+     "lv": 50,
+     "nat": "yin"
     },
     "dominio": {
      "r": "S",
@@ -750,7 +851,8 @@
      "sombra": 1,
      "tipo": "ninjutsu",
      "papel": "ult",
-     "lv": 60
+     "lv": 60,
+     "nat": "yin"
     }
    }
   },
