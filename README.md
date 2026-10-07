@@ -39,6 +39,12 @@ MMORPG 2D no universo Naruto (protótipo).
 - O servidor confere mapa, distância, grupo e zona segura, sorteia a esquiva e aplica a redução de dano; o número sai para todos na hora.
 - Ajustes em `server/server.js` (`CFG.pvp`, `pvpMul` = 60% do dano, `pvpSafe`, `pvpStun`).
 
+## Golpes (4 botões)
+- Botão grande = ultimate (rank S, recarga maior). Em arco em volta dele: golpe inicial, golpe do meio e o botão do item da mão.
+- Uchiha: Bola de Fogo · Sharingan (atordoa 3 s, +20 de esquiva por 6 s) · Susanoo (área, −40% de dano recebido por 6 s).
+- Hyuga: Palma · Kaiten · 64 Palmas. Nara: Shuriken · Sombra · Possessão.
+- 4º botão: habilidade do item equipado (Chidori, Rasengan…). Sem item que dê habilidade, ele aparece vazio. Teclado: 1–4.
+
 ## Mobs
 - Criados no editor (aba Mobs) e colocados nos mapas com a ferramenta Mobs (áreas).
 - O servidor controla todos: `server/mobs.json` (atributos) e `server/maps.json` (áreas).
