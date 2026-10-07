@@ -41,9 +41,11 @@ MMORPG 2D no universo Naruto (protótipo).
 
 ## Golpes (4 botões)
 - Botão grande = ultimate (rank S, recarga maior). Em arco em volta dele: golpe inicial, golpe do meio e o botão do item da mão.
-- Uchiha: Bola de Fogo · Sharingan (atordoa 3 s, +20 de esquiva por 6 s) · Susanoo (área, −40% de dano recebido por 6 s).
+- Uchiha: Bola de Fogo · Sharingan (atordoa 3 s, +20 de esquiva por 6 s) · Mangekyō Sharingan (ilusão em área que atordoa; +30% de dano e +10 de esquiva por 8 s).
 - Hyuga: Palma · Kaiten · 64 Palmas. Nara: Shuriken · Sombra · Possessão.
 - 4º botão: habilidade do item equipado (Chidori, Rasengan…). Sem item que dê habilidade, ele aparece vazio. Teclado: 1–4.
+- Susanoo é item da mão (por enquanto): Sasuke (−30% de dano recebido, +15% de dano, esferas batem 2×), Itachi (−50% de dano recebido, atordoa), Madara (−40%, +10% de dano, área maior, 10 s). Admin consegue os 3 no botão "dar itens" da mochila. Arte em `arte/susanoo/`.
+- Reforços somam entre si e aparecem embaixo das barras com o tempo que falta.
 
 ## Mobs
 - Criados no editor (aba Mobs) e colocados nos mapas com a ferramenta Mobs (áreas).
