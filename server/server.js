@@ -170,7 +170,7 @@ const mobState = e => MK.map(k => { const v = e[k]; return typeof v === 'number'
 
 function toRoom(r, o, except) { const s = JSON.stringify(o), fr = wsFrame(1, s); for (const p of r.players) if (p !== except && p.conn.open) { try { p.conn.sock.write(fr); } catch (e) {} } }
 function sys(p, msg) { p.conn.send({ t: 'sys', msg }); }
-const pub = p => ({ id: p.id, nome: p.nome, clan: p.clan, lv: p.lv, eq: p.eq, look: p.look, x: p.x, y: p.y, fl: p.fl, mv: p.mv, run: p.run, au: p.au, th: p.th, sc: p.sc, hp: p.hp, max: p.max, g: memberParty.get(p.id) || 0, adm: p.adm ? 1 : 0 });
+const pub = p => ({ id: p.id, nome: p.nome, clan: p.clan, lv: p.lv, eq: p.eq, look: p.look, x: p.x, y: p.y, fl: p.fl, mv: p.mv, run: p.run, au: p.au, th: p.th, sc: p.sc, hp: p.hp, max: p.max, g: memberParty.get(p.id) || 0, adm: p.adm ? 1 : 0, ey: p.ey || 0 });
 
 // ---------------------------------------------------------------- inventário no banco (anti-duplicação)
 // Com a chave secreta + o SQL 04, só o servidor cria/move itens: drops, trocas e comandos de admin.
@@ -377,7 +377,8 @@ function onMessage(c, m) {
     case 'pos': if (!p.map) return;
       p.x = clamp(num(m.x, p.x), 0, 50 * T); p.y = clamp(num(m.y, p.y), 0, 50 * T); p.fl = m.fl ? 1 : 0; p.mv = m.mv ? 1 : 0; p.run = m.run ? 1 : 0;
       p.au = num(m.au, -1); p.th = num(m.th, -1); p.sc = m.sc ? 1 : 0; p.hp = clamp(num(m.hp, p.hp), 0, 1e5); p.max = clamp(num(m.max, p.max), 1, 1e5); p.ct = Number.isFinite(m.c) ? Math.round(m.c) : null; p.dirty = true; return;
-    case 'meta': setMeta(p, m); if (p.map) toRoom(room(p.map), { t: 'pm', id: p.id, lv: p.lv, eq: p.eq, look: p.look, clan: p.clan }, p); return;
+    case 'meta': setMeta(p, m); if (p.map) toRoom(room(p.map), { t: 'pm', id: p.id, lv: p.lv, eq: p.eq, look: p.look, clan: p.clan, ey: p.ey || 0 }, p); return;
+    case 'gaze': return onGaze(p, m);
     case 'fx': if (!p.map) return; {
       const fx = Array.isArray(m.fx) ? m.fx.slice(0, 8) : [], pr = Array.isArray(m.pr) ? m.pr.slice(0, 8) : [];
       if (fx.length || pr.length) toRoom(room(p.map), { t: 'fx', id: p.id, fx, pr }, p); } return;
@@ -415,6 +416,7 @@ function setMeta(p, m) {
   if (typeof m.clan === 'string' && /^(uchiha|hyuga|nara)$/.test(m.clan)) p.clan = m.clan;
   if (m.esq != null) p.esq = clamp(num(m.esq, 0), 0, 500);
   if (m.red != null) p.red = clamp(num(m.red, 0), -50, 90);
+  if (m.ey != null) p.ey = clamp(num(m.ey, 0) | 0, 0, 2); // olho ligado: 1 Sharingan, 2 Mangekyō (só visual para os outros)
 }
 function onJoin(p, m) {
   const map = str(m.map, 40); if (!MAPS[map]) return sys(p, 'Mapa desconhecido.');
@@ -554,6 +556,22 @@ function onPvp(p, m) {
   const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(p.id) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(p.id, o);
   toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c }, q);
   q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, 8)), c });
+}
+// ---------------------------------------------------------------- olhar do Sharingan / Mangekyō (genjutsu)
+// paralisa sem dano; quanto mais esquiva o alvo tem, menos tempo fica preso (mín. 30%); chefe, metade; jogador, até pvpStun
+const sevMul = esq => clamp(1 - num(esq, 0) / 100, .3, 1);
+function onGaze(p, m) {
+  if (!p.map || p.sc || p.hp <= 0) return; const t = now(); if (t - (p.gzT || 0) < .8) return; p.gzT = t;
+  const st0 = clamp(num(m.st, 0), 0, 4); if (!st0) return; const r = room(p.map), ms = [], pl = [];
+  for (const id of (Array.isArray(m.m) ? m.m.slice(0, 20) : [])) {
+    const e = r.mobs.find(x => x.id === id); if (!e || e.dead || e.back || hyp(p.x - e.x, p.y - e.y) > 260) continue;
+    const st = Math.round(st0 * sevMul((e.def || {}).esquiva) * (e.kind === 'raposa' ? .5 : 1) * 100) / 100;
+    e.stun = Math.max(e.stun || 0, st); e.alone = 0; if (e.kind === 'mob' && !e.tg) e.tg = p; ms.push({ m: e.id, st }); }
+  for (const id of (Array.isArray(m.pl) ? m.pl.slice(0, 10) : [])) {
+    const q = players.get(str(id, 64)); const why = pvpWhy(p, q); if (why || hyp(p.x - q.x, p.y - q.y) > 260) continue;
+    const st = Math.round(Math.min(CFG.pvpStun, st0 * sevMul(q.esq)) * 100) / 100;
+    q.conn.send({ t: 'pstun', st, by: p.id, src: p.nome }); pl.push({ id: q.id, st }); }
+  if (ms.length || pl.length) toRoom(r, { t: 'gz', by: p.id, ms, pl });
 }
 function onPvpResult(q, m) { // q = quem apanhou, avisando que foi derrotado por "by"
   const by = str(m.by, 64), pe = q.pvpPend && q.pvpPend.get(by); if (!pe || pe.exp < now() || pe.n <= 0 || !q.map) return;
