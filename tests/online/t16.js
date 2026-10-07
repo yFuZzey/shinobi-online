@@ -20,7 +20,7 @@ const file=process.argv[2]||'online.html',MOCK=process.argv[3]||'54333';let fail
  await pg.screenshot({path:__dirname+'/pf2.png'});
  await pg.click('#ivX');
  // recarga: Palma 0,8 s com −2%
- ok(Math.abs(await pg.evaluate(()=>cdOf(0,CLANS.hyuga.sk[0]))-.784)<1e-6,'recarga da Palma 0,8 → 0,784 s (−2%)');
+ {const c=await pg.evaluate(()=>[CLANS.hyuga.sk[0].cd,cdOf(0,CLANS.hyuga.sk[0])]);ok(Math.abs(c[1]-c[0]*.98)<1e-6,'recarga da Palma '+c[0]+' → '+c[1]+' s (−2%)')}
  // dano + treino batendo num lobo
  await pg.evaluate(()=>{window._hits=[];const o=gsSend;gsSend=function(m){if(m.t==='hit')_hits.push(m.d);return o(m)}});
  const tryHit=async()=>{for(let k=0;k<12;k++){await pg.evaluate(()=>{const e=E.filter(e=>e.kind==='mob'&&!e.dead).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];p.x=e.x-28;p.y=e.y;p.hp=p.max;p.mp=p.mpMax;cd[0]=0;useBtn(0)});await W(260);if((await pg.evaluate(()=>_hits.length))>=3)break}};
@@ -30,7 +30,7 @@ const file=process.argv[2]||'online.html',MOCK=process.argv[3]||'54333';let fail
  // subir de rank
  await pg.evaluate(()=>{CH.prof.xp=119;_hits=[]});await tryHit();
  const R=await pg.evaluate(()=>({r:profRank(),reg:ONL.reg.map(x=>x.t).join(' | '),cd:cdOf(0,CLANS.hyuga.sk[0])}));
- ok(R.r===1&&/Taijutsu subiu para o rank D/.test(R.reg),'sobe para o rank D e avisa no registro');ok(Math.abs(R.cd-.8*.96)<1e-6,'rank D: recarga −4%');
+ ok(R.r===1&&/Taijutsu subiu para o rank D/.test(R.reg),'sobe para o rank D e avisa no registro');ok(Math.abs(R.cd-(await pg.evaluate(()=>CLANS.hyuga.sk[0].cd))*.96)<1e-6,'rank D: recarga −4%');
  // salvar no banco
  await pg.evaluate(()=>onlSave());await W(400);
  const rows=await (await fetch('http://127.0.0.1:'+MOCK+'/__rows',{headers:{apikey:'x'}})).json();const row=Object.values(rows).find(r=>r.nome===nome);

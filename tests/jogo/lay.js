@@ -24,7 +24,7 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
  // Bola de Fogo
  await setup(U,110);await U.evaluate(()=>{window._fb=0;const f0=fireBoom;fireBoom=function(b){_fb++;return f0(b)};cast(0)});await W(60);
  ok(await U.evaluate(()=>ACT&&ACT.a==='fogo'),'Bola de Fogo: o ninja faz a pose do selo');
- await W(180);const fl=await U.evaluate(()=>P.filter(b=>b.fire).length);ok(fl===1,'a bola de fogo sai depois do selo');
+ await W(Math.round(await U.evaluate(()=>CLANS.uchiha.sk[0].tel||.16)*1000)+60);const fl=await U.evaluate(()=>P.filter(b=>b.fire).length);ok(fl===1,'a bola de fogo sai depois do selo ('+await U.evaluate(()=>CLANS.uchiha.sk[0].tel)+' s)');
  await U.screenshot({path:__dirname+'/lay_fogo1.png'});
  await W(350);const fr=await U.evaluate(()=>({hp:E[0].hp,boom:_fb===1,left:P.filter(b=>b.fire).length}));
  ok(fr.hp<5000&&fr.boom&&!fr.left,'acertou o alvo e explodiu ('+(5000-fr.hp)+' de dano)');

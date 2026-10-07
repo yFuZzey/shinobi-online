@@ -15,12 +15,15 @@ def dodge(att, dfn): return min(CAP, max(0, 5 + L[dfn]['D']['esq'] - L[att]['D']
 U = sk['uchiha']; H = sk['hyuga']; N = sk['nara']
 EY = d['uchiha']['EYES']['sasuke']; mgk = 1 + d['uchiha']['TOM'][4]['cdmg'] / 100; sasb = 1 + EY['dmgb'] / 100
 pc_u = L['uchiha']['D']['pc']
+def n2(sk):  # quantas vezes o golpe acerta numa janela de 2 s (recarga real, com a Destreza)
+  import math
+  return 1 + math.floor(2 / max(.2, sk['cd']) + 1e-9)
 burst_raw = {
-  'uchiha (Mangekyō Sasuke + Susanoo + 4 Bolas de Fogo)': ('uchiha', 4 * U['Bola de Fogo']['raw'] * mgk * sasb + EY['hits'] * (EY['dmg'] + pc_u) * mgk * sasb),
-  'uchiha (sem olho: 4 Bolas de Fogo)': ('uchiha', 4 * U['Bola de Fogo']['raw']),
-  'hyuga (5 Palmas)': ('hyuga', 5 * H['Palma']['raw']),
+  'uchiha (Mangekyō Sasuke + Susanoo + Bolas de Fogo)': ('uchiha', n2(U['Bola de Fogo']) * U['Bola de Fogo']['raw'] * mgk * sasb + EY['hits'] * (EY['dmg'] + pc_u) * mgk * sasb),
+  'uchiha (sem olho: só Bolas de Fogo)': ('uchiha', n2(U['Bola de Fogo']) * U['Bola de Fogo']['raw']),
+  'hyuga (só Palmas)': ('hyuga', n2(H['Palma']) * H['Palma']['raw']),
   'hyuga (Kaiten + 64 Palmas)': ('hyuga', H['Kaiten']['raw'] + H['64 Palmas']['raw'] * 1.4),
-  'nara (Possessão + Sombra + 4 Shuriken)': ('nara', N['Possessão']['raw'] + N['Sombra']['raw'] + 4 * N['Shuriken']['raw']),
+  'nara (Possessão + Sombra + Shuriken)': ('nara', N['Possessão']['raw'] + N['Sombra']['raw'] + n2(N['Shuriken']) * N['Shuriken']['raw']),
 }
 out = {'burst': [], 'ttk': []}
 for k, (att, raw) in burst_raw.items():

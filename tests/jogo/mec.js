@@ -1,4 +1,4 @@
-// mecânica: 64 Palmas (preso, dano contínuo, empurrado ~2 tiles), Kaiten (dano em área, atordoa, bloqueia)
+// mecânica: 64 Palmas (preso, dano contínuo, empurrado ~2 tiles), Kaiten (dano em área, empurra, bloqueia)
 const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/playwright');const W=ms=>new Promise(r=>setTimeout(r,ms));let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await (await b.newContext({viewport:{width:844,height:390}})).newPage();
  const errs=[];pg.on('pageerror',e=>errs.push(e.message));
@@ -22,9 +22,9 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
  console.log('   dano: 64 Palmas (9 toques) =',dmg64,'· 1 Palma =',palma);
  // Kaiten: dano em área + atordoa + empurra; e bloqueia golpe recebido enquanto gira
  await setup();const k=await pg.evaluate(()=>new Promise(res=>{E[1].x=p.x+70;cast(1);const t0=performance.now();let pre=null;const f=()=>{const t=performance.now()-t0;
-  if(t<320)pre=E.map(e=>Math.round(Math.hypot(e.x-p.x,e.y-p.y+10)));if(t<480)requestAnimationFrame(f);else res({pre,hp:E.map(e=>e.hp),st:E.map(e=>+e.stun.toFixed(2)),d:E.map(e=>Math.round(Math.hypot(e.x-p.x,e.y-p.y+10)))})};requestAnimationFrame(f)}));
+  if(t<320)pre=E.map(e=>Math.round(Math.hypot(e.x-p.x,e.y-p.y+10)));else{const d=E.map(e=>Math.round(Math.hypot(e.x-p.x,e.y-p.y+10)));window._kmax=window._kmax?window._kmax.map((v,i)=>Math.max(v,d[i])):d}if(t<480)requestAnimationFrame(f);else{const d=window._kmax;window._kmax=null;res({pre,hp:E.map(e=>e.hp),st:E.map(e=>+e.stun.toFixed(2)),d,ks:BAL.golpes.kaitenAtordoa})}};requestAnimationFrame(f)}));
  ok(k.hp.every(h=>h<5000),'Kaiten: dano nos dois alvos em volta '+JSON.stringify(k.hp));
- ok(k.st.every(s=>s>1&&s<=1.5),'Kaiten: atordoa (até 1,5 s) '+JSON.stringify(k.st));
+ ok(k.ks>0?k.st.every(s=>s>k.ks-.5&&s<=k.ks):k.st.every(s=>s===0),k.ks>0?'Kaiten: atordoa (até '+k.ks+' s) '+JSON.stringify(k.st):'Kaiten: não atordoa (planilha) '+JSON.stringify(k.st));
  ok(k.d[0]>k.pre[0]+10&&k.d[1]>=k.pre[1]+10,'Kaiten: empurra para fora (distância antes '+JSON.stringify(k.pre)+' → depois '+JSON.stringify(k.d)+')');
  const g=await pg.evaluate(()=>{const h0=p.hp;hurt(30);return{perdeu:h0-p.hp,txt:FT[FT.length-1].t}});
  ok(g.perdeu===0&&g.txt==='defendeu','girando o Kaiten: golpe recebido é bloqueado ("defendeu")');

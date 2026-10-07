@@ -7,7 +7,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
  const m0=await pg.evaluate(()=>{const fox=E.find(e=>e.boss),w=E.find(e=>e.t==='lobo_cinzento');return{fox:fox&&[fox.lv,fox.max,mobName(fox),lvColor(fox,'x')],wolf:w&&[w.lv,mobName(w),lvColor(w,'x')],sk:CLANS.uchiha.sk.map(s=>[s.n,s.rk,s.dmg,s.mp,s.cd])}});
  ok(m0.fox&&m0.fox[0]===90&&m0.fox[1]===120000&&/☠/.test(m0.fox[2])&&m0.fox[3]==='#ff5a4a','Raposa: Nv 90, 120.000 de vida, nome vermelho com caveira ('+(m0.fox&&m0.fox[2])+')');
  ok(m0.wolf&&m0.wolf[0]===3&&/Nv 3/.test(m0.wolf[1]),'Lobo: Nv 3 no nome ('+(m0.wolf&&m0.wolf[1])+')');
- ok(JSON.stringify(m0.sk)===JSON.stringify([['Bola de Fogo','D',16,5,.9],['Sharingan','B',0,10,6],['Susanoo','S',40,40,24]]),'golpes Uchiha pelo rank: '+JSON.stringify(m0.sk));
+ ok(JSON.stringify(m0.sk)===JSON.stringify([['Bola de Fogo','D',16,5,1.1],['Sharingan','B',0,10,20],['Susanoo','S',40,40,90]]),'golpes Uchiha pelo rank: '+JSON.stringify(m0.sk));
  // esquiva do jogador (sorteio local contra a precisão que vem do servidor)
  const dj=await pg.evaluate(()=>{const r={};const run=(agi)=>{CH.st.agi=agi;stats();p.max=1e9;p.hp=1e9;let n=0;const N=600;for(let i=0;i<N;i++){const f0=FT.length;HPREC=8;hurt(10);HPREC=0;if(FT.length>f0&&FT[FT.length-1].t==='esquivou')n++}FT.length=0;return{esq:D().esq,ch:dodgeChance(8),taxa:n/N,max:BAL.combate.esquivaMax}};r.a0=run(0);r.a60=run(60);CH.st.agi=0;stats();p.hp=p.max;return r});
  ok(dj.a0.ch===0&&dj.a0.taxa===0,'AGI 0 (Esquiva '+dj.a0.esq+') contra Lobo (Precisão 8): 0% de esquiva');
