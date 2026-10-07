@@ -5,9 +5,9 @@
 # Etapas: 1) jogo base (mapas, itens, manto) em src/gerado/base.html  2) mobs  3) mapas do servidor  4) itens do servidor
 #         5) modo online (online/online2.js + build_online2.py)  6) carregador e versão (atualização automática)
 set -e
+TESTE=""; [ "$1" = "--teste" ] && TESTE=$(mkdir -p "$2" && cd "$2" && pwd)   # pasta das páginas, relativa a quem chamou
 cd "$(dirname "$0")"
 S=$PWD; R=$(cd .. && pwd)
-TESTE=""; [ "$1" = "--teste" ] && TESTE=$(mkdir -p "$2" && cd "$2" && pwd)
 OUTS=${TESTE:-$R}/server; [ -n "$TESTE" ] && mkdir -p "$OUTS"
 bash build_all.sh
 SAIDA_SERVER=$OUTS python3 build_mobs.py

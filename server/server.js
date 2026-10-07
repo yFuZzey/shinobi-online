@@ -38,10 +38,17 @@ const CFG = {
   pvpSafe: 4,       // em volta do ponto de início (tiles) ninguém ataca nem é atacado (protege quem acabou de renascer)
   pvpStun: 1.5,     // atordoamento máximo em jogador (s)
   pvpMaxHit: 1500,
+  stunMaxMonstro: 8,       // atordoamento máximo que um golpe de jogador põe num monstro (s)
+  kaitenMax: 1.2,          // Kaiten girando: bloqueia golpes de jogadores por até isso (s)
+  empurraoPvpMax: .6,      // empurrão máximo por golpe no PvP (o celular de quem apanha anda ~40× isso em px)
+  esquivaInformadaMax: 500, reducaoInformadaMin: -50, reducaoInformadaMax: 90, // limites do que o app informa
+  olharRaio: 260, olharIntervalo: .8, olharMax: 4, // olhar do Sharingan/Mangekyō
 };
+// Valem no jogo e no servidor (o app leva uma cópia na montagem)
+const COMBATE = { esquivaBase: 5, esquivaMin: 0, esquivaMax: 60, critMult: 2, reducaoMax: 80, olharMinimo: .3, olharChefe: .5 };
 
 // chance de esquivar: 5% + (Esquiva de quem defende − Precisão de quem ataca), entre 0% e 60%
-const dodgeChance = (esq, prec) => clamp(5 + num(esq, 0) - num(prec, 0), 0, 60);
+const dodgeChance = (esq, prec) => clamp(COMBATE.esquivaBase + num(esq, 0) - num(prec, 0), COMBATE.esquivaMin, COMBATE.esquivaMax);
 const FOXDEF = () => MOBDEFS.raposa || {};
 
 const MAPS = JSON.parse(fs.readFileSync(path.join(__dirname, 'maps.json'), 'utf8'));
@@ -52,6 +59,19 @@ const hyp = Math.hypot, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const num = (v, d = 0) => (typeof v === 'number' && isFinite(v) ? v : d);
 const str = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, '').slice(0, n);
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
+// ---- números de balanceamento: server/balanceamento.json (sem ele, ou com valor errado, fica o padrão acima e avisa no log)
+const BAL_INFO = (() => {
+  const avisos = []; let j = null;
+  try { j = JSON.parse(fs.readFileSync(path.join(__dirname, 'balanceamento.json'), 'utf8')); } catch (e) { return { ok: 0, v: 0, avisos: ['balanceamento.json não carregou: ' + e.message] }; }
+  const aplica = (dst, src, nome) => { if (!src || typeof src !== 'object') return; for (const k in src) { if (k[0] === '_') continue;
+    if (!(k in dst)) { avisos.push(nome + '.' + k + ' não existe (ignorado)'); continue; }
+    const v = src[k]; if (typeof v === 'number' && isFinite(v)) dst[k] = v; else avisos.push(nome + '.' + k + ' não é número (ficou ' + dst[k] + ')'); } };
+  if (!j || typeof j !== 'object') return { ok: 0, v: 0, avisos: ['balanceamento.json não é um objeto JSON'] };
+  aplica(CFG, j.servidor, 'servidor'); aplica(COMBATE, j.combate, 'combate');
+  if (j.flags && typeof j.flags.pvp === 'boolean') CFG.pvp = j.flags.pvp ? 1 : 0;
+  return { ok: 1, v: num(j.versao, 0), avisos };
+})();
+if (BAL_INFO.ok) log('balanceamento.json versão', BAL_INFO.v, 'carregado'); for (const w of BAL_INFO.avisos) log('AVISO balanceamento:', w);
 
 // ---------------------------------------------------------------- mapa
 function sol(map, x, y) { const m = MAPS[map]; const tx = x / T | 0, ty = y / T | 0; if (x < 0 || y < 0 || tx >= m.N || ty >= m.N) return true; const v = m.M.charCodeAt(ty * m.N + tx) - 48; return v === 1 || v === 2; }
@@ -391,7 +411,7 @@ function onMessage(c, m) {
     case 'hit': return onHit(p, m);
     case 'cmd': return onCmd(p, m);
     case 'pvp': return onPvp(p, m);
-    case 'guard': p.guard = now() + clamp(num(m.d, 0), 0, 1.2); return; // Kaiten girando: bloqueia golpes de jogadores
+    case 'guard': p.guard = now() + clamp(num(m.d, 0), 0, CFG.kaitenMax); return; // Kaiten girando: bloqueia golpes de jogadores
     case 'phr': return onPvpResult(p, m);
     case 'tinv': return tradeInvite(p, str(m.to, 64));
     case 'tacc': return tradeAccept(p, str(m.from, 64));
@@ -414,8 +434,8 @@ function setMeta(p, m) {
   if (Array.isArray(m.eq)) p.eq = m.eq.slice(0, 8).map(x => str(x, 40));
   if (m.look && typeof m.look === 'object') { const ok = c => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c) ? c : undefined; p.look = { skin: ok(m.look.skin), hair: ok(m.look.hair), cloth: ok(m.look.cloth) }; }
   if (typeof m.clan === 'string' && /^(uchiha|hyuga|nara)$/.test(m.clan)) p.clan = m.clan;
-  if (m.esq != null) p.esq = clamp(num(m.esq, 0), 0, 500);
-  if (m.red != null) p.red = clamp(num(m.red, 0), -50, 90);
+  if (m.esq != null) p.esq = clamp(num(m.esq, 0), 0, CFG.esquivaInformadaMax);
+  if (m.red != null) p.red = clamp(num(m.red, 0), CFG.reducaoInformadaMin, CFG.reducaoInformadaMax);
   if (m.ey != null) p.ey = clamp(num(m.ey, 0) | 0, 0, 2); // olho ligado: 1 Sharingan, 2 Mangekyō (só visual para os outros)
 }
 function onJoin(p, m) {
@@ -487,7 +507,7 @@ function onHit(p, m) {
   const pr = clamp(num(m.pr, 0), 0, 5000), esq = num((e.def || {}).esquiva, 0);
   if (Math.random() * 100 < dodgeChance(esq, pr)) { e.alone = 0; toRoom(r, { t: 'mh', m: e.id, d: 0, miss: 1, by: p.id }); return; }
   e.hp -= d; e.hurt = .28; e.alone = 0;
-  const st = clamp(num(m.st, 0), 0, 8); if (st) e.stun = Math.max(e.stun, st); // até 8 s (Genjutsu rank alto alonga o atordoamento)
+  const st = clamp(num(m.st, 0), 0, CFG.stunMaxMonstro); if (st) e.stun = Math.max(e.stun, st); // até 8 s (Genjutsu rank alto alonga o atordoamento)
   const kx = clamp(num(m.kx, 0), -30, 30), ky = clamp(num(m.ky, 0), -30, 30);
   if (!e.ja && (kx || ky) && !blk(r.map, e.x + kx, e.y + ky)) { e.x += kx; e.y += ky; }
   e.dmg[p.id] = (e.dmg[p.id] || 0) + d;
@@ -546,29 +566,29 @@ function onPvp(p, m) {
   const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
   const d = Math.max(1, Math.round(clamp(num(m.d, 0), 0, CFG.pvpMaxHit) * CFG.pvpMul)); if (!num(m.d, 0)) return;
   // empurrão proporcional ao golpe (o celular de quem apanha anda ~40× esse valor em px; máx. 24 px por golpe)
-  let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); if (kl > .01) { const k = Math.min(.6, kl / 40); kx = kx / kl * k; ky = ky / kl * k; } else { kx = ky = 0; }
+  let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); if (kl > .01) { const k = Math.min(CFG.empurraoPvpMax, kl / 40); kx = kx / kl * k; ky = ky / kl * k; } else { kx = ky = 0; }
   const r = room(p.map), pr = clamp(num(m.pr, 0), 0, 5000), c = m.c ? 1 : 0;
   if (q.guard && q.guard > t) { toRoom(r, { t: 'ph', to: q.id, by: p.id, blk: 1 }, q); q.conn.send({ t: 'hurt', fin: 1, blk: 1, d: 0, src: p.nome, by: p.id }); return; }
   // o servidor sorteia a esquiva (Esquiva de quem apanha x Precisão de quem bate) e aplica a redução de dano:
   // assim o número aparece para todo mundo com uma ida e volta só (antes eram duas)
   if (Math.random() * 100 < dodgeChance(q.esq || 0, pr)) { toRoom(r, { t: 'ph', to: q.id, by: p.id, miss: 1 }, q); q.conn.send({ t: 'hurt', fin: 1, miss: 1, d: 0, src: p.nome, by: p.id }); return; }
-  const dd = Math.max(1, Math.round(d * (1 - clamp(q.red || 0, -50, 90) / 100)));
+  const dd = Math.max(1, Math.round(d * (1 - clamp(q.red || 0, CFG.reducaoInformadaMin, CFG.reducaoInformadaMax) / 100)));
   const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(p.id) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(p.id, o);
   toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c }, q);
-  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, 8)), c });
+  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, CFG.stunMaxMonstro)), c });
 }
 // ---------------------------------------------------------------- olhar do Sharingan / Mangekyō (genjutsu)
 // paralisa sem dano; quanto mais esquiva o alvo tem, menos tempo fica preso (mín. 30%); chefe, metade; jogador, até pvpStun
-const sevMul = esq => clamp(1 - num(esq, 0) / 100, .3, 1);
+const sevMul = esq => clamp(1 - num(esq, 0) / 100, COMBATE.olharMinimo, 1);
 function onGaze(p, m) {
-  if (!p.map || p.sc || p.hp <= 0) return; const t = now(); if (t - (p.gzT || 0) < .8) return; p.gzT = t;
-  const st0 = clamp(num(m.st, 0), 0, 4); if (!st0) return; const r = room(p.map), ms = [], pl = [];
+  if (!p.map || p.sc || p.hp <= 0) return; const t = now(); if (t - (p.gzT || 0) < CFG.olharIntervalo) return; p.gzT = t;
+  const st0 = clamp(num(m.st, 0), 0, CFG.olharMax); if (!st0) return; const r = room(p.map), ms = [], pl = [];
   for (const id of (Array.isArray(m.m) ? m.m.slice(0, 20) : [])) {
-    const e = r.mobs.find(x => x.id === id); if (!e || e.dead || e.back || hyp(p.x - e.x, p.y - e.y) > 260) continue;
-    const st = Math.round(st0 * sevMul((e.def || {}).esquiva) * (e.kind === 'raposa' ? .5 : 1) * 100) / 100;
+    const e = r.mobs.find(x => x.id === id); if (!e || e.dead || e.back || hyp(p.x - e.x, p.y - e.y) > CFG.olharRaio) continue;
+    const st = Math.round(st0 * sevMul((e.def || {}).esquiva) * (e.kind === 'raposa' ? COMBATE.olharChefe : 1) * 100) / 100;
     e.stun = Math.max(e.stun || 0, st); e.alone = 0; if (e.kind === 'mob' && !e.tg) e.tg = p; ms.push({ m: e.id, st }); }
   for (const id of (Array.isArray(m.pl) ? m.pl.slice(0, 10) : [])) {
-    const q = players.get(str(id, 64)); const why = pvpWhy(p, q); if (why || hyp(p.x - q.x, p.y - q.y) > 260) continue;
+    const q = players.get(str(id, 64)); const why = pvpWhy(p, q); if (why || hyp(p.x - q.x, p.y - q.y) > CFG.olharRaio) continue;
     const st = Math.round(Math.min(CFG.pvpStun, st0 * sevMul(q.esq)) * 100) / 100;
     q.conn.send({ t: 'pstun', st, by: p.id, src: p.nome }); pl.push({ id: q.id, st }); }
   if (ms.length || pl.length) toRoom(r, { t: 'gz', by: p.id, ms, pl });
@@ -680,7 +700,7 @@ const server = http.createServer((req, res) => {
   const cors = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
   const u = req.url.split('?')[0];
   if (u === '/health' || u === '/') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true, jogo: 'Shinobi Online', v: PROTO, commit: COMMIT, online: players.size, trocas: INV_OK ? 1 : 0, trocasMotivo: INV_OK ? '' : INV_WHY, mapas: Object.fromEntries(Object.entries(rooms).map(([k, r]) => [k, r.players.size])) })); }
+    return res.end(JSON.stringify({ ok: true, jogo: 'Shinobi Online', v: PROTO, commit: COMMIT, online: players.size, balanceamento: BAL_INFO.v, trocas: INV_OK ? 1 : 0, trocasMotivo: INV_OK ? '' : INV_WHY, mapas: Object.fromEntries(Object.entries(rooms).map(([k, r]) => [k, r.players.size])) })); }
   res.writeHead(404, cors); res.end('nada aqui');
 });
 server.on('upgrade', (req, sock) => {

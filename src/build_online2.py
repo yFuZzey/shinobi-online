@@ -6,11 +6,35 @@ key=sys.argv[4] if len(sys.argv)>4 else '__SUPA_KEY__'
 gs=sys.argv[5] if len(sys.argv)>5 else '__GS_URL__'
 s=open(src).read()
 assert '//ONLINE-BEGIN' not in s
+# ---- números de balanceamento: server/balanceamento.json (o servidor lê o mesmo arquivo)
+BALF=os.environ.get('BALANCEAMENTO',os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','server','balanceamento.json'))
+BAL=json.load(open(BALF))
+def _need(path,kind=(int,float)):
+    v=BAL
+    for k in path.split('.'):
+        assert isinstance(v,dict) and k in v,'balanceamento.json: falta '+path
+        v=v[k]
+    ok=isinstance(v,kind) if kind in (dict,list) else (isinstance(v,(int,float)) and not isinstance(v,bool))
+    assert ok,'balanceamento.json: '+path+' com tipo errado'
+    return v
+for _p in ['combate.esquivaBase','combate.esquivaMin','combate.esquivaMax','combate.critMult','combate.reducaoMax','combate.olharMinimo','combate.olharChefe',
+  'personagem.nivelMax','personagem.pontosPorNivel','personagem.xpBase','personagem.xpExpoente','personagem.atributoMax','personagem.statusMax','personagem.regenChakra','personagem.regenVida',
+  'golpes.kaitenAtordoa','golpes.hakkeTotal','olhos.susanooDreno','olhos.mangekyoRecarga']:_need(_p)
+for _p in ['personagem.atributos','proficiencia.tipos','golpes.ranks','golpes.clas','golpes.tipos','olhos.susanoo','jutsus']:_need(_p,dict)
+for _p in ['proficiencia.ranks','olhos.tomoe']:_need(_p,list)
+assert len(BAL['olhos']['tomoe'])==4,'balanceamento.json: olhos.tomoe precisa de 4 estágios'
+for _c in ('uchiha','hyuga','nara'):assert len(BAL['golpes']['clas'][_c])==3 and len(BAL['golpes']['tipos'][_c])==3,'balanceamento.json: golpes de '+_c
+for _k in ('itachi','sasuke','madara'):assert _k in BAL['olhos']['susanoo'],'balanceamento.json: Susanoo '+_k
+for _k in ('hp','mp','pf','pc','spd','mpr','crit','esq','prec','red','cdr'):assert _k in BAL['personagem']['atributos'],'balanceamento.json: atributo '+_k
 def rep(a,b,n=1):
     global s
     c=s.count(a)
     assert c==n,(c,a[:90])
     s=s.replace(a,b)
+rep("<script>\nconst $=s=>document.querySelector(s);","<script>\nconst BAL="+json.dumps(BAL,ensure_ascii=False,separators=(',',':'))+"; // server/balanceamento.json\nconst $=s=>document.querySelector(s);")
+rep("const LVMAX=99,PTS_LV=5,xpNeed=l=>Math.round(80*Math.pow(l,1.4));","const LVMAX=BAL.personagem.nivelMax,PTS_LV=BAL.personagem.pontosPorNivel,xpNeed=l=>Math.round(BAL.personagem.xpBase*Math.pow(l,BAL.personagem.xpExpoente));")
+rep("b.disabled=CH.pts<1||CH.st[k]>=99;","b.disabled=CH.pts<1||CH.st[k]>=BAL.personagem.atributoMax;")
+rep("b.onclick=()=>{if(CH.pts<1||CH.st[k]>=99)return;","b.onclick=()=>{if(CH.pts<1||CH.st[k]>=BAL.personagem.atributoMax)return;")
 
 LOGIN='''<div id="s-login" class="scr on">
 <svg class="lgdune" viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 C120 70 230 80 330 115 S560 150 800 95 V200 H0Z" fill="#7a4a2c"/><path d="M0 155 C150 115 300 125 420 150 S650 170 800 140 V200 H0Z" fill="#a8693a"/><path d="M0 185 C200 160 380 168 520 182 S700 192 800 178 V200 H0Z" fill="#c98b4f"/></svg>
@@ -94,7 +118,7 @@ rep('<button id="stZero">','<button id="stZero" class="admo">')
 rep("for(const e of E)if(!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE","for(const e of (b.rm?E:E.concat(PVT())))if(!b.rm&&!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE")
 # ---- proficiência ----
 rep("const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0}});","const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0},prof:{k:null,xp:0},mgk:null});")
-rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null}}catch(e){}}")
+rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(BAL.personagem.atributoMax,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null}}catch(e){}}")
 rep("const mpOf=(i,s)=>{const a=i==0?atkItem():null;return a?(+a.atk.mp||0):s.mp};","const mpOf=(i,s)=>{const a=i==3?atkItem():null;return Math.round((a?(+a.atk.mp||0):s.mp)*profMp(i))};")
 rep("const cdOf=(i,s)=>{const a=i==0?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM())};","const cdOf=(i,s)=>{const a=i==3?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM()*profCd(i))};")
 rep("col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin})","col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin,tp:HTP})")
@@ -116,7 +140,7 @@ rep("function setPanel(w){panel=w;$('#paneBag').hidden=w!=='bag';$('#paneSt').hi
 rep("<span class=\"sv\">'+CH.st[k]+'</span>","<span class=\"sv\">'+CH.st[k]+stFinTxt(k)+'</span>")
 # golpe = (dano da habilidade + Poder do tipo) × especialidade × crítico (o jogo online calcula em gsHit; aqui fica igual)
 rep("function calcDmg(d){const x=(d+AG.dmg_flat)*(1+D().dmg/100);lastCrit=Math.random()*100<D().crit;return Math.max(1,Math.round(lastCrit?x*2:x))}",
-    "function calcDmg(d){const x=hitRaw(d,HTP);lastCrit=Math.random()*100<D().crit;return Math.max(1,Math.round(lastCrit?x*2:x))}")
+    "function calcDmg(d){const x=hitRaw(d,HTP);lastCrit=Math.random()*100<D().crit;return Math.max(1,Math.round(lastCrit?x*BAL.combate.critMult:x))}")
 rep("['Dano',(d.dmg>=0?'+':'')+f(d.dmg)+'%']","['Poder físico',f(d.pf)],['Poder de chakra',f(d.pc)]")
 rep("['str','STR','Força','+3% de dano por ponto']","['str','STR','Força','+1 de poder físico por ponto (golpes de Taijutsu e Bukijutsu)']")
 rep("['int','INT','Inteligência','+6 de chakra máximo e +2% de regeneração de chakra por ponto']","['int','INT','Inteligência','+1 de poder de chakra (Ninjutsu e Genjutsu), +6 de chakra máximo e +2% de regeneração por ponto']")
@@ -174,7 +198,8 @@ rep('<button id="tbSt">📊 Status</button></div>','<button id="tbSt">📊 Statu
 rep('<div id="paneCh" hidden></div>','<div id="paneCh" hidden></div><div id="paneJu" hidden></div>')
 rep("if(w==='ch')chDraw();","if(w==='ch')chDraw();$('#paneJu').hidden=w!=='ju';$('#tbJu').classList.toggle('on',w==='ju');if(w==='ju')juDraw();")
 # com o Sharingan/Mangekyō ligado o chakra não se recupera (o olho consome)
-rep("p.mp=Math.min(p.mpMax,p.mp+5*dt*MG())","p.mp=Math.min(p.mpMax,p.mp+(eyeOnAny()?0:5*dt*MG()))")
+rep("p.mp=Math.min(p.mpMax,p.mp+5*dt*MG())","p.mp=Math.min(p.mpMax,p.mp+(eyeOnAny()?0:BAL.personagem.regenChakra*dt*MG()))")
+rep("p.hp=Math.min(p.max,p.hp+1.2*dt*RG())","p.hp=Math.min(p.max,p.hp+BAL.personagem.regenVida*dt*RG())")
 # começo da partida: botões conforme o nível
 rep("autoOn=true;C.sk.forEach((s,i)=>$('#b'+i).classList.toggle('ao',!!s.auto));","autoOn=true;C.sk.forEach((s,i)=>$('#b'+i).classList.toggle('ao',!!s.auto));jtStart();")
 # vários do mesmo item (cada drop é uma unidade nova; a mochila mostra pilhas)

@@ -13,7 +13,7 @@ echo "== montando páginas de teste"; bash "$R/src/build.sh" --teste "$T/paginas
 PIDS=(); parar(){ for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null; done; }; trap parar EXIT
 ONL=0; for f in online/*.js; do quer "$(basename "$f" .js)" online && ONL=1; done
 if [ $ONL = 1 ]; then
-  cp "$R/server/server.js" "$T/paginas/server/server.js"
+  cp "$R/server/server.js" "$R/server/balanceamento.json" "$T/paginas/server/"
   SQL04=1 node "$T/mock.js" 54333 >"$T/mock.log" 2>&1 & PIDS+=($!)
   (cd "$T/paginas/server" && PORT=8096 SUPABASE_URL=http://127.0.0.1:54333 SUPABASE_KEY=sb_publishable_testkey1234567890 SUPABASE_SERVICE_KEY=svc-test exec node server.js) >"$T/servidor.log" 2>&1 & PIDS+=($!)
   for i in $(seq 1 40); do curl -s -o /dev/null http://127.0.0.1:8096/health && curl -s -o /dev/null http://127.0.0.1:54333/ && break; sleep .25; done

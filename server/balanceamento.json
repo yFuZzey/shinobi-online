@@ -1,0 +1,117 @@
+{
+ "_leia": "Números de balanceamento do Shinobi Online. O servidor lê este arquivo ao iniciar (o Render reinicia sozinho quando ele muda no GitHub) e o jogo leva uma cópia na montagem (src/build.sh). Se algum valor faltar ou vier errado, o servidor usa o valor padrão do código e avisa no log. Tempos em segundos, distâncias em pixels (1 tile = 32 px), chances em %.",
+ "versao": 1,
+ "flags": {
+  "_leia": "Liga (true) ou desliga (false) cada sistema.",
+  "pvp": true
+ },
+ "servidor": {
+  "_leia": "Regras que só o servidor aplica.",
+  "aggro": 10,
+  "resetNear": 15,
+  "resetWait": 3,
+  "resetHome": 20,
+  "respawn": 20,
+  "xp": 60,
+  "partyMax": 6,
+  "hitRange": 620,
+  "maxHit": 5000,
+  "inviteTtl": 30,
+  "partyGrace": 120,
+  "localChat": 15,
+  "safe": 0,
+  "pvpMul": 0.6,
+  "pvpSafe": 4,
+  "pvpStun": 1.5,
+  "pvpMaxHit": 1500,
+  "stunMaxMonstro": 8,
+  "kaitenMax": 1.2,
+  "empurraoPvpMax": 0.6,
+  "esquivaInformadaMax": 500,
+  "reducaoInformadaMin": -50,
+  "reducaoInformadaMax": 90,
+  "olharRaio": 260,
+  "olharIntervalo": 0.8,
+  "olharMax": 4
+ },
+ "combate": {
+  "_leia": "Valem no jogo e no servidor. Chance de esquivar = esquivaBase + Esquiva de quem defende − Precisão de quem ataca, entre esquivaMin e esquivaMax. O olhar do Sharingan dura menos quanto mais esquiva o alvo tem (no mínimo olharMinimo da duração); em chefe, olharChefe.",
+  "esquivaBase": 5,
+  "esquivaMin": 0,
+  "esquivaMax": 60,
+  "critMult": 2,
+  "reducaoMax": 80,
+  "olharMinimo": 0.3,
+  "olharChefe": 0.5
+ },
+ "personagem": {
+  "_leia": "Nível, pontos e atributos. XP para passar do nível N = xpBase × N^xpExpoente.",
+  "nivelMax": 99,
+  "pontosPorNivel": 5,
+  "xpBase": 80,
+  "xpExpoente": 1.4,
+  "atributoMax": 99,
+  "statusMax": 300,
+  "regenChakra": 5,
+  "regenVida": 1.2,
+  "atributos": {
+   "_leia": "valor = base + soma(status × por) (+ velocidade acima de 100% × velocidade) (+ nível × nivel); depois fixos e % dos itens; limitado entre min e max.",
+   "hp":   {"base": 100, "por": {"vit": 8},   "fixo": "hp_max",   "pct": "hp_pct",    "min": 20},
+   "mp":   {"base": 100, "por": {"int": 6},   "fixo": "mp_max",   "pct": "mp_pct",    "min": 20},
+   "pf":   {"base": 0,   "por": {"str": 1},   "fixo": "dmg_flat", "pct": "dmg_pct",   "min": 0},
+   "pc":   {"base": 0,   "por": {"int": 1},   "fixo": "dmg_flat", "pct": "dmg_pct",   "min": 0},
+   "spd":  {"base": 100, "por": {"agi": 1},                       "pct": "speed_pct", "min": 30},
+   "mpr":  {"base": 100, "por": {"int": 2},                       "pct": "regen_pct", "min": 20},
+   "crit": {"base": 0,   "por": {"luk": 0.7}, "min": 0, "max": 50},
+   "esq":  {"base": 0,   "por": {}, "velocidade": 1, "nivel": 1, "min": 0},
+   "prec": {"base": 0,   "por": {"dex": 1}, "nivel": 1, "min": 0},
+   "red":  {"base": 0,   "por": {"vit": 0.5}, "min": -20, "max": 40},
+   "cdr":  {"base": 0,   "por": {"dex": 1},   "min": -50, "max": 40}
+  }
+ },
+ "proficiencia": {
+  "_leia": "Especialidade: req = status mínimos; pv = vantagem por rank; st = % nos status; at = atributos; oth = efeito nos golpes dos outros tipos. ranks = [letra, XP mínima, % de dano nos golpes do tipo].",
+  "tipos": {
+   "taijutsu":  {"req": {"str": 10}, "pv": 2,   "st": {"str": 15, "agi": 10, "vit": 10, "int": -20}, "at": {"spd": 6, "mp": -20, "mpr": -15}, "oth": {"ninjutsu": {"dmg": -15, "cd": 25}, "genjutsu": {"dmg": -15, "cd": 25}}},
+   "ninjutsu":  {"req": {"int": 10}, "pv": 3,   "st": {"int": 15, "dex": 10, "str": -15, "vit": -10}, "at": {"mp": 15, "mpr": 15, "hp": -10, "spd": -5}, "oth": {"taijutsu": {"dmg": -15, "cd": 15}, "bukijutsu": {"dmg": -10}}},
+   "genjutsu":  {"req": {"int": 6, "luk": 6}, "pv": 6, "st": {"int": 10, "luk": 15, "str": -20}, "at": {"esq": 4, "mp": 10, "red": -8, "dmg": -5}, "oth": {"taijutsu": {"dmg": -20}, "bukijutsu": {"dmg": -10}}},
+   "bukijutsu": {"req": {"dex": 10}, "pv": 1.5, "st": {"dex": 15, "luk": 10, "agi": 5, "vit": -15}, "at": {"crit": 4, "cdr": 5, "hp": -10, "red": -5}, "oth": {"ninjutsu": {"dmg": -10, "cd": 10}, "genjutsu": {"dmg": -10, "cd": 10}}}
+  },
+  "ranks": [["E", 0, 5], ["D", 120, 10], ["C", 400, 16], ["B", 1100, 23], ["A", 2800, 31], ["S", 6500, 40]]
+ },
+ "golpes": {
+  "_leia": "ranks: dano base, chakra e recarga de cada rank. clas: os 3 botões de cada clã (r = rank, f = fração do dano do rank; mp/cd trocam os do rank). tipos: tipo de cada botão (conta para a especialidade).",
+  "ranks": {"E": {"dmg": 9, "mp": 0, "cd": 0.5}, "D": {"dmg": 16, "mp": 5, "cd": 0.8}, "C": {"dmg": 26, "mp": 15, "cd": 4}, "B": {"dmg": 38, "mp": 25, "cd": 7}, "A": {"dmg": 55, "mp": 45, "cd": 12}, "S": {"dmg": 80, "mp": 70, "cd": 16}},
+  "clas": {
+   "uchiha": [{"r": "D", "f": 1, "mp": 5, "cd": 0.9}, {"r": "B", "f": 0, "mp": 10, "cd": 6}, {"r": "S", "f": 0.5, "mp": 40, "cd": 24}],
+   "hyuga":  [{"r": "D", "f": 1}, {"r": "B", "f": 0.8, "cd": 6}, {"r": "S", "f": 0.8, "mp": 60, "cd": 16}],
+   "nara":   [{"r": "D", "f": 1, "mp": 0, "cd": 0.7}, {"r": "C", "f": 0.3, "cd": 6}, {"r": "S", "f": 0.35, "mp": 60, "cd": 16}]
+  },
+  "tipos": {"uchiha": ["ninjutsu", "genjutsu", "ninjutsu"], "hyuga": ["taijutsu", "taijutsu", "taijutsu"], "nara": ["bukijutsu", "ninjutsu", "ninjutsu"]},
+  "kaitenAtordoa": 1.5,
+  "hakkeTotal": 1.4
+ },
+ "olhos": {
+  "_leia": "Sharingan (1, 2, 3 tomoe) e Mangekyō. lv = nível que libera; mp = chakra para ligar; dr = chakra por segundo ligado; cone (tiles) e ang (meia abertura em graus) do olhar; st = paralisia do olhar; prec/esq/cdmg = reforço enquanto ligado. susanooDreno = chakra por segundo a mais com o Susanoo de pé. mangekyoRecarga = quanto a recarga da Mangekyō é maior que a do Sharingan ao desligar.",
+  "tomoe": [
+   {"n": "Sharingan (1 tomoe)", "k": "shar", "lv": 5,  "mp": 10, "dr": 6, "cone": 3,   "ang": 35, "st": 1,    "prec": 10, "esq": 8,  "cdmg": 10},
+   {"n": "Sharingan (2 tomoe)", "k": "shar", "lv": 15, "mp": 10, "dr": 5, "cone": 3.5, "ang": 40, "st": 1.25, "prec": 15, "esq": 12, "cdmg": 15},
+   {"n": "Sharingan (3 tomoe)", "k": "shar", "lv": 25, "mp": 10, "dr": 4, "cone": 4,   "ang": 45, "st": 1.5,  "prec": 20, "esq": 16, "cdmg": 20},
+   {"n": "Mangekyō Sharingan",  "k": "mgk",  "lv": 40, "mp": 30, "dr": 8, "cone": 5,   "ang": 60, "st": 2,    "prec": 25, "esq": 20, "cdmg": 30}
+  ],
+  "susanooDreno": 4,
+  "mangekyoRecarga": 2.5,
+  "susanoo": {
+   "_leia": "Susanoo de cada Mangekyō: dmg = dano ao surgir (hits vezes), r = área, kb = empurrão, stun = atordoamento, t = segundos de pé, red = % a menos de dano recebido, dmgb = % a mais de dano.",
+   "itachi": {"sty": "itachi", "dmg": 32, "r": 85,  "hits": 1, "kb": 26, "stun": 1.5, "t": 8,  "red": 50, "dmgb": 0},
+   "sasuke": {"sty": "sasuke", "dmg": 30, "r": 90,  "hits": 2, "kb": 14, "stun": 0,   "t": 8,  "red": 30, "dmgb": 15},
+   "madara": {"sty": "madara", "dmg": 50, "r": 120, "hits": 1, "kb": 30, "stun": 0.8, "t": 10, "red": 40, "dmgb": 10}
+  }
+ },
+ "jutsus": {
+  "_leia": "Nível em que cada jutsu libera na aba Jutsus (os do olho do Uchiha vêm de olhos.tomoe).",
+  "uchiha": {"katon": 1, "sus": 60},
+  "hyuga": {"palma": 1, "kaiten": 10, "hakke": 25},
+  "nara": {"shuri": 1, "sombra": 10, "poss": 25}
+ }
+}

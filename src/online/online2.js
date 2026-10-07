@@ -85,17 +85,14 @@ function onlPeer(id,o){if(id===ONL.uid)return null;let pe=ONL.peers[id];if(!pe){
 // ---------- Proficiência: uma especialidade principal, liberada pelos status e treinada usando os golpes daquele tipo.
 // Cada uma tem vantagens (crescem com o rank) e desvantagens (fixas). Os textos ficam aqui para o NPC (futuro) usar os mesmos.
 // st = % nos status · at = atributos (hp/mp em %, o resto em pontos de %; cdr positivo = recarga mais rápida) · oth = golpes dos outros tipos
-const PROF={
- taijutsu:{n:'Taijutsu',ic:'👊',req:{str:10},ds:'O corpo é a arma: forte, rápido e resistente, mas com pouco chakra.',perk:'recarga mais rápida',pv:2,
-  st:{str:15,agi:10,vit:10,int:-20},at:{spd:6,mp:-20,mpr:-15},oth:{ninjutsu:{dmg:-15,cd:25},genjutsu:{dmg:-15,cd:25}}},
- ninjutsu:{n:'Ninjutsu',ic:'🌀',req:{int:10},ds:'Mestre do chakra: muito chakra e técnicas fortes, mas o corpo é frágil.',perk:'gastam menos chakra',pv:3,
-  st:{int:15,dex:10,str:-15,vit:-10},at:{mp:15,mpr:15,hp:-10,spd:-5},oth:{taijutsu:{dmg:-15,cd:15},bukijutsu:{dmg:-10}}},
- genjutsu:{n:'Genjutsu',ic:'👁️',req:{int:6,luk:6},ds:'Ilusionista: prende e confunde o inimigo, mas apanha fácil e bate fraco de perto.',perk:'atordoam por mais tempo',pv:6,
-  st:{int:10,luk:15,str:-20},at:{esq:4,mp:10,red:-8,dmg:-5},oth:{taijutsu:{dmg:-20},bukijutsu:{dmg:-10}}},
- bukijutsu:{n:'Bukijutsu',ic:'✴️',req:{dex:10},ds:'Armas e precisão: críticos e golpes rápidos, mas pouca resistência.',perk:'mais chance de crítico',pv:1.5,
-  st:{dex:15,luk:10,agi:5,vit:-15},at:{crit:4,cdr:5,hp:-10,red:-5},oth:{ninjutsu:{dmg:-10,cd:10},genjutsu:{dmg:-10,cd:10}}}};
+const PROF={ // números (req, pv, st, at, oth) e ranks: server/balanceamento.json → proficiencia
+ taijutsu:{n:'Taijutsu',ic:'👊',ds:'O corpo é a arma: forte, rápido e resistente, mas com pouco chakra.',perk:'recarga mais rápida'},
+ ninjutsu:{n:'Ninjutsu',ic:'🌀',ds:'Mestre do chakra: muito chakra e técnicas fortes, mas o corpo é frágil.',perk:'gastam menos chakra'},
+ genjutsu:{n:'Genjutsu',ic:'👁️',ds:'Ilusionista: prende e confunde o inimigo, mas apanha fácil e bate fraco de perto.',perk:'atordoam por mais tempo'},
+ bukijutsu:{n:'Bukijutsu',ic:'✴️',ds:'Armas e precisão: críticos e golpes rápidos, mas pouca resistência.',perk:'mais chance de crítico'}};
+for(const k in PROF)Object.assign(PROF[k],BAL.proficiencia.tipos[k]);
 // ranks como os dos jutsus: XP mínima e bônus de dano (%) nos golpes do tipo
-const PRK=[['E',0,5],['D',120,10],['C',400,16],['B',1100,23],['A',2800,31],['S',6500,40]];
+const PRK=BAL.proficiencia.ranks;
 const STN={str:'Força',agi:'Agilidade',vit:'Vitalidade',int:'Inteligência',dex:'Destreza',luk:'Sorte'};
 const ATN={hp:'Vida máxima',mp:'Chakra máximo',dmg:'Poder (físico e de chakra)',spd:'Velocidade',esq:'Esquiva',prec:'Precisão',red:'Redução de dano',crit:'Crítico',cdr:'Recarga',mpr:'Regeneração de chakra'};
 // cada clã: golpe inicial · habilidade do meio · ultimate (botão grande). O item da mão tem um botão próprio.
@@ -105,13 +102,11 @@ const ATN={hp:'Vida máxima',mp:'Chakra máximo',dmg:'Poder (físico e de chakra
  U[1]={n:'Sharingan',ic:shar.ic,t:'eye',col:'#d01830',cd:6,mp:10};
  // grande: Susanoo — só com a Mangekyō ligada (cada olho tem o seu)
  U[2]={n:'Susanoo',ic:sus.ic,t:'sus',col:'#b3122e',cd:24,mp:40}}}
-const SKT={uchiha:['ninjutsu','genjutsu','ninjutsu'],hyuga:['taijutsu','taijutsu','taijutsu'],nara:['bukijutsu','ninjutsu','ninjutsu']};
+const SKT=BAL.golpes.tipos; // tipo de cada botão (balanceamento.json → golpes.tipos)
 // ===== Equilíbrio dos golpes pelo rank do jutsu (E, D, C, B, A, S — como na obra) =====
 // cada rank tem dano base, chakra e recarga; o papel ajusta o dano: f = 1 (dano), 0,8 (área), 0,3–0,4 (controle/atordoar)
-const JRK={E:{dmg:9,mp:0,cd:.5},D:{dmg:16,mp:5,cd:.8},C:{dmg:26,mp:15,cd:4},B:{dmg:38,mp:25,cd:7},A:{dmg:55,mp:45,cd:12},S:{dmg:80,mp:70,cd:16}};
-const SKB={uchiha:[{r:'D',f:1,mp:5,cd:.9},{r:'B',f:0,mp:10,cd:6},{r:'S',f:.5,mp:40,cd:24}],
- hyuga:[{r:'D',f:1},{r:'B',f:.8,cd:6},{r:'S',f:.8,mp:60,cd:16}],
- nara:[{r:'D',f:1,mp:0,cd:.7},{r:'C',f:.3,cd:6},{r:'S',f:.35,mp:60,cd:16}]};
+const JRK=BAL.golpes.ranks; // balanceamento.json → golpes.ranks
+const SKB=BAL.golpes.clas; // balanceamento.json → golpes.clas
 for(const c in SKB)SKB[c].forEach((b,i)=>{const s=CLANS[c]&&CLANS[c].sk[i],R=JRK[b.r];if(!s)return;s.rk=b.r;s.dmg=Math.round(R.dmg*b.f);s.mp=b.mp!=null?b.mp:R.mp;s.cd=b.cd!=null?b.cd:R.cd});
 let HTP=null,profPick=null; // HTP = tipo do golpe que está acertando agora
 const nf=x=>String(Math.round(x*10)/10).replace('.',','),sgn=x=>(x>0?'+':x<0?'−':'')+nf(Math.abs(x)),clv=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -130,19 +125,11 @@ function profCd(i){const tp=skType(i);if(profOn(tp)&&CH.prof.k==='taijutsu')retu
 // 2) ATRIBUTOS: valor vindo dos status finais + bônus fixos   →  final = isso × (1 + soma de TODAS as % daquele atributo)
 // 3) GOLPE:     (dano da habilidade + Poder do tipo) × bônus da especialidade × 2 se crítico
 //               Taijutsu e Bukijutsu usam o Poder físico (Força); Ninjutsu e Genjutsu, o Poder de chakra (Inteligência)
-const STK=['str','agi','vit','int','dex','luk'],STMAX=300;
-const ATD={ // f = valor que vem dos status finais · fx = chave fixa dos itens · pc = chave % dos itens · limites
- hp:{f:s=>100+s.vit*8,fx:'hp_max',pc:'hp_pct',lo:20},
- mp:{f:s=>100+s.int*6,fx:'mp_max',pc:'mp_pct',lo:20},
- pf:{f:s=>s.str,fx:'dmg_flat',pc:'dmg_pct',lo:0}, // Poder físico = Força final (+ fixos) × (1 + % de poder)
- pc:{f:s=>s.int,fx:'dmg_flat',pc:'dmg_pct',lo:0}, // Poder de chakra = Inteligência final (+ fixos) × (1 + % de poder)
- spd:{f:s=>100+s.agi,pc:'speed_pct',lo:30},
- mpr:{f:s=>100+s.int*2,pc:'regen_pct',lo:20},
- crit:{f:s=>s.luk*.7,lo:0,hi:50},
- esq:{f:(s,a)=>a.spd.fin-100+CH.lv,lo:0},  // Esquiva = o quanto a Velocidade final passa de 100% + nível
- prec:{f:s=>s.dex+CH.lv,lo:0},             // Precisão = Destreza final + nível
- red:{f:s=>s.vit*.5,lo:-20,hi:40},
- cdr:{f:s=>s.dex,lo:-50,hi:40}};
+const STK=['str','agi','vit','int','dex','luk'],STMAX=BAL.personagem.statusMax;
+// cada atributo (balanceamento.json → personagem.atributos): base + soma(status × por) (+ velocidade acima de 100% × velocidade) (+ nível × nivel)
+// fx = chave fixa dos itens · pc = chave % dos itens · lo/hi = limites
+const ATD={};for(const k in BAL.personagem.atributos){if(k[0]==='_')continue;const a=BAL.personagem.atributos[k];
+ ATD[k]={f:(s,at)=>{let v=a.base||0;for(const q in a.por)v+=s[q]*a.por[q];if(a.velocidade)v+=(at.spd.fin-100)*a.velocidade;if(a.nivel)v+=CH.lv*a.nivel;return v},fx:a.fixo,pc:a.pct,lo:a.min,hi:a.max}}
 // na especialidade, estes atributos são % (multiplicam o final); os outros são pontos fixos (somam antes das %)
 const PROF_AT_PCT={hp:1,mp:1,dmg:1,spd:1,mpr:1};const atSrc=k=>k==='pf'||k==='pc'?'dmg':k; // "dmg" da especialidade vale para os dois poderes
 function calcChar(items,prof){const M=prof?profMods():null,A=items?AG:ZERO(),st={},S={},at={};
@@ -153,7 +140,7 @@ function calcChar(items,prof){const M=prof?profMods():null,A=items?AG:ZERO(),st=
 // formato usado pelo jogo: spd/mpr = bônus em % sobre o normal; pf/pc = poder somado aos golpes
 const isChakra=tp=>tp==='ninjutsu'||tp==='genjutsu';
 // esquiva: 5% + (minha Esquiva − Precisão de quem ataca), entre 0% e 60% (o servidor usa a mesma conta para os monstros)
-let HPREC=0;const dodgeChance=prec=>clv(5+D().esq-(+prec||0),0,60);
+let HPREC=0;const dodgeChance=prec=>clv(BAL.combate.esquivaBase+D().esq-(+prec||0),BAL.combate.esquivaMin,BAL.combate.esquivaMax);
 function skPow(tp){const d=D();return isChakra(tp)?d.pc:d.pf}
 // etapa 3: (dano da habilidade + poder do tipo) × bônus da especialidade, depois o crítico
 let HMUL=1; // golpes contínuos (64 Palmas) dividem o dano entre os toques
@@ -164,7 +151,7 @@ function hitRaw(base,tp){const it=typeof tp==='string'&&tp[0]==='@',t=it?tp.slic
 let BUFS={};
 function bufSum(){const n=performance.now(),o={red:0,esq:0,dmg:0,cdmg:0,prec:0};for(const k in BUFS){const b=BUFS[k];if(b.until>n)for(const q in o)o[q]+=b[q]||0}return o}
 function bufOn(k){const n=performance.now();if(k)return !!(BUFS[k]&&BUFS[k].until>n);for(const q in BUFS)if(BUFS[q].until>n)return true;return false}
-function DX(items,prof){const a=calcChar(items,prof).at,b=bufSum();return{hp:Math.round(a.hp.fin),mp:Math.round(a.mp.fin),pf:a.pf.fin,pc:a.pc.fin,dmg:b.dmg,spd:a.spd.fin-100,mpr:a.mpr.fin-100,esq:a.esq.fin+b.esq,prec:a.prec.fin+b.prec,red:Math.min(80,a.red.fin+b.red),crit:a.crit.fin,cdr:a.cdr.fin}}
+function DX(items,prof){const a=calcChar(items,prof).at,b=bufSum();return{hp:Math.round(a.hp.fin),mp:Math.round(a.mp.fin),pf:a.pf.fin,pc:a.pc.fin,dmg:b.dmg,spd:a.spd.fin-100,mpr:a.mpr.fin-100,esq:a.esq.fin+b.esq,prec:a.prec.fin+b.prec,red:Math.min(BAL.combate.reducaoMax,a.red.fin+b.red),crit:a.crit.fin,cdr:a.cdr.fin}}
 function bufStart(key,B,aura){BUFS[key]={red:B.red||0,esq:B.esq||0,dmg:B.dmg||0,until:performance.now()+B.t*1000,t:B.t,nm:B.nm||key};if(aura){p.au=0;p.aud=B.t}stats();bufHud(1);
  FT.push({x:p.x,y:p.y-66-Object.keys(BUFS).length*14,t:String(B.nm||key).split(':')[0]+'!',txt:1,gold:1,life:1.2});onlReg('✨ '+B.nm+' por '+B.t+' s.')}
 function bufTick(){const n=performance.now();let ch=0;for(const k in BUFS)if(BUFS[k].until<=n){delete BUFS[k];ch=1}if(ch)stats();bufHud(ch)}
@@ -531,7 +518,7 @@ const KFX=__KFX__,KIMG=new Image();let KFX_OK=false;KIMG.onload=()=>{KFX_OK=true
 const SFX=__SFX__,SIMG=new Image();let SFX_OK=false;SIMG.onload=()=>{SFX_OK=true};SIMG.src=SFX.img;
 const PHF=ph=>KFX.f[ph]||SFX.f[ph]||[];
 // botões Hyuga com os ícones da folha
-{const H=CLANS.hyuga&&CLANS.hyuga.sk;if(H){[['palma',0],['kaiten',1],['hakke',2]].forEach(([q,i])=>{if(H[i]){H[i].kq=q;H[i].im=KFX.ic[q]}});if(H[1])H[1].stun=1.5}}
+{const H=CLANS.hyuga&&CLANS.hyuga.sk;if(H){[['palma',0],['kaiten',1],['hakke',2]].forEach(([q,i])=>{if(H[i]){H[i].kq=q;H[i].im=KFX.ic[q]}});if(H[1])H[1].stun=BAL.golpes.kaitenAtordoa}}
 // linha do tempo de cada efeito: [fase, segundos por quadro, (quais quadros)]
 const KSEQ={
  kaiten:f=>[['p1',.025],['p2',.03],['p3',.05],[f.hit?'p4':'p3',.05],['p5',.05],['frag',.14]], // acúmulo → domo → giro → (impacto) → dissipa
@@ -572,31 +559,29 @@ function itemSkTxt(it){const A=it.atk||{},mp=+A.mp?', gasta '+A.mp+' de chakra':
 const SFXIC=__SFXIC__;
 // Sharingan por estágio (tomoe) e a evolução para a Mangekyō no Nv 40. cone em tiles; ang = meia abertura (graus)
 // mp = chakra para ligar · dr = chakra por segundo ligado · st = paralisia do olhar (s) · prec/esq/cdmg = reforço enquanto ligado
-const TOM=[null,
- {n:'Sharingan (1 tomoe)',k:'shar',lv:5,mp:10,dr:6,cone:3,ang:35,st:1,prec:10,esq:8,cdmg:10},
- {n:'Sharingan (2 tomoe)',k:'shar',lv:15,mp:10,dr:5,cone:3.5,ang:40,st:1.25,prec:15,esq:12,cdmg:15},
- {n:'Sharingan (3 tomoe)',k:'shar',lv:25,mp:10,dr:4,cone:4,ang:45,st:1.5,prec:20,esq:16,cdmg:20},
- {n:'Mangekyō Sharingan',k:'mgk',lv:40,mp:30,dr:8,cone:5,ang:60,st:2,prec:25,esq:20,cdmg:30}];
-const SUSDR=4; // chakra por segundo a mais enquanto o Susanoo está de pé
+const TOM=[null].concat(BAL.olhos.tomoe); // balanceamento.json → olhos.tomoe
+const SUSDR=BAL.olhos.susanooDreno; // chakra por segundo a mais enquanto o Susanoo está de pé
 // cada Mangekyō tem o seu Susanoo (depois: Amaterasu, Tsukuyomi… também só com a Mangekyō ligada)
 const EYES={
- itachi:{n:'Itachi',d:'Susanoo vermelho com escudo: o mais resistente. Empurra e atordoa quem está perto.',sus:{sty:'itachi',dmg:32,r:85,hits:1,kb:26,stun:1.5,t:8,red:50,dmgb:0}},
- sasuke:{n:'Sasuke',d:'Susanoo roxo: as esferas giram em volta e cortam duas vezes. O mais ofensivo.',sus:{sty:'sasuke',dmg:30,r:90,hits:2,kb:14,stun:0,t:8,red:30,dmgb:15}},
- madara:{n:'Madara',d:'Susanoo com armadura: descarga de chakra em área grande e fica mais tempo de pé.',sus:{sty:'madara',dmg:50,r:120,hits:1,kb:30,stun:.8,t:10,red:40,dmgb:10}}};
+ itachi:{n:'Itachi',d:'Susanoo vermelho com escudo: o mais resistente. Empurra e atordoa quem está perto.',sus:BAL.olhos.susanoo.itachi},
+ sasuke:{n:'Sasuke',d:'Susanoo roxo: as esferas giram em volta e cortam duas vezes. O mais ofensivo.',sus:BAL.olhos.susanoo.sasuke},
+ madara:{n:'Madara',d:'Susanoo com armadura: descarga de chakra em área grande e fica mais tempo de pé.',sus:BAL.olhos.susanoo.madara}};
 // árvore: ramos com nós (sl = botão: 0 inicial, 1 meio, 2 grande). tm = estágio do olho
 const JT={
- uchiha:[{b:'Katon (fogo)',n:[{id:'katon',sl:0,lv:1}]},
-  {b:'Sharingan → Mangekyō (botão do meio)',n:[{id:'tm1',sl:1,lv:5,tm:1},{id:'tm2',sl:1,lv:15,tm:2},{id:'tm3',sl:1,lv:25,tm:3},{id:'mgk',sl:1,lv:40,tm:4}]},
-  {b:'Técnicas da Mangekyō (só com ela ligada)',n:[{id:'sus',sl:2,lv:60},{id:'amat',soon:1,nm:'Amaterasu',ic:'🔥'},{id:'tsuku',soon:1,nm:'Tsukuyomi',ic:'🌕'}]}],
- hyuga:[{b:'Punho Gentil (Jūken)',n:[{id:'palma',sl:0,lv:1},{id:'kaiten',sl:1,lv:10},{id:'hakke',sl:2,lv:25}]}],
- nara:[{b:'Ferramentas ninja',n:[{id:'shuri',sl:0,lv:1}]},{b:'Técnicas de sombra (Kagemane)',n:[{id:'sombra',sl:1,lv:10},{id:'poss',sl:2,lv:25}]}]};
+ uchiha:[{b:'Katon (fogo)',n:[{id:'katon',sl:0}]},
+  {b:'Sharingan → Mangekyō (botão do meio)',n:[{id:'tm1',sl:1,tm:1},{id:'tm2',sl:1,tm:2},{id:'tm3',sl:1,tm:3},{id:'mgk',sl:1,tm:4}]},
+  {b:'Técnicas da Mangekyō (só com ela ligada)',n:[{id:'sus',sl:2},{id:'amat',soon:1,nm:'Amaterasu',ic:'🔥'},{id:'tsuku',soon:1,nm:'Tsukuyomi',ic:'🌕'}]}],
+ hyuga:[{b:'Punho Gentil (Jūken)',n:[{id:'palma',sl:0},{id:'kaiten',sl:1},{id:'hakke',sl:2}]}],
+ nara:[{b:'Ferramentas ninja',n:[{id:'shuri',sl:0}]},{b:'Técnicas de sombra (Kagemane)',n:[{id:'sombra',sl:1},{id:'poss',sl:2}]}]};
+// nível de cada nó: olhos do Uchiha em olhos.tomoe, o resto em jutsus (balanceamento.json)
+for(const c in JT)JT[c].forEach(B=>B.n.forEach(n=>{if(n.soon)return;n.lv=n.tm?TOM[n.tm].lv:+((BAL.jutsus[c]||{})[n.id])||1}));
 const JTD={
  katon:'Katon: Gōkakyū no Jutsu. Faz os selos e solta uma grande bola de fogo pela boca, que explode ao acertar.',
  tm1:'O Sharingan desperta com 1 tomoe: enxerga o chakra e acompanha movimentos rápidos.',
  tm2:'2 tomoe: lê o corpo do oponente e prevê melhor os golpes.',
  tm3:'3 tomoe: o Sharingan completo. Prevê qualquer movimento e prende com o olhar.',
  mgk:'O Sharingan evolui para a Mangekyō e toma o lugar dele no botão do meio. Mais forte e mais cara de manter. Ligada, libera as técnicas da Mangekyō.',
- sus:'O guerreiro espectral do seu Mangekyō. Libera no Nv 60 e só pode ser invocado com a Mangekyō ligada; se ela desligar, ele se desfaz.',
+ sus:'O guerreiro espectral do seu Mangekyō. Libera no Nv '+BAL.jutsus.uchiha.sus+' e só pode ser invocado com a Mangekyō ligada; se ela desligar, ele se desfaz.',
  amat:'Em breve: chamas negras que não se apagam. Só com a Mangekyō ligada.',
  tsuku:'Em breve: a ilusão que prende o oponente num mundo onde o tempo para. Só com a Mangekyō ligada.',
  palma:'Jūken: golpe de palma que atinge os pontos de chakra.',
@@ -612,12 +597,12 @@ let MGKIC=null;{const U=CLANS.uchiha&&CLANS.uchiha.sk;if(U&&SPR.ic&&U[1]&&SPR.ic
  a.onload=go;b.onload=go;a.src=SPR.ic[U[1].ic];b.src=SFXIC.exp}}
 const skIcon=s=>s.imk?'<img src="'+SPR[s.imk]+'" style="image-rendering:auto">':s.im?'<img src="'+s.im+'" style="image-rendering:auto">':s.ic!=null&&SPR.ic&&SPR.ic[s.ic]?'<img src="'+SPR.ic[s.ic]+'">':'<span>'+(s.i||'❔')+'</span>';
 const imgIc=u=>'<img src="'+u+'" style="image-rendering:auto">';
-function eyeLv(){if(clan!=='uchiha'||!CH)return 0;const l=CH.lv|0;return l>=40&&EYES[CH.mgk]?4:l>=25?3:l>=15?2:l>=5?1:0}
+function eyeLv(){if(clan!=='uchiha'||!CH)return 0;const l=CH.lv|0;return l>=TOM[4].lv&&EYES[CH.mgk]?4:l>=TOM[3].lv?3:l>=TOM[2].lv?2:l>=TOM[1].lv?1:0}
 const jtNodes=()=>(JT[clan]||[]).flatMap(b=>b.n);
 function jtSlotLv(i){const L=jtNodes().filter(n=>n.sl===i&&!n.soon).map(n=>n.lv);return L.length?Math.min(...L):1}
 // o que cada botão mostra agora (nome, ícone, trava)
 function jtBtn(i){const s=CLANS[clan].sk[i];let nm=s.n,ic=skIcon(s),lk=null,eye=0;
- if(clan==='uchiha'&&i===1){const l=eyeLv();if(l===4){nm='Mangekyō';if(MGKIC)ic=imgIc(MGKIC)}else if(!l)lk=5}
+ if(clan==='uchiha'&&i===1){const l=eyeLv();if(l===4){nm='Mangekyō';if(MGKIC)ic=imgIc(MGKIC)}else if(!l)lk=TOM[1].lv}
  else if(clan==='uchiha'&&i===2){const L2=jtSlotLv(2);if((CH.lv|0)<L2)lk=L2;else if(eyeLv()===4){if(SFXIC[CH.mgk])ic=imgIc(SFXIC[CH.mgk])}else eye=1}
  else if((CH.lv|0)<jtSlotLv(i))lk=jtSlotLv(i);
  return{nm,ic,lk,eye}}
@@ -630,7 +615,7 @@ function jtBtnTick(){if(!clan||!CH)return;const key=CH.lv+'|'+CH.mgk+'|'+eyeLv()
  if(clan==='uchiha'){const b1=$('#b1'),b2=$('#b2');if(b1){b1.classList.toggle('eyeon',!!EYE.on);if(EYE.on)b1.classList.remove('off')}
   if(b2){b2.classList.toggle('eyeon',susOn());if(EYE.on!=='mgk')b2.classList.add('off')}}}
 function jtLvUp(a,b){const L=jtNodes().filter(n=>!n.soon&&n.lv>a&&n.lv<=b);L.forEach(n=>{const nm=jtInfo(n).nm;toast('🌀 Novo jutsu: '+nm+'!');onlReg('🌀 Jutsu liberado no Nv '+n.lv+': '+nm+'. Veja na aba Jutsus.')});
- if(clan==='uchiha'&&a<40&&b>=40&&!CH.mgk)setTimeout(()=>{toast('👁️ A Mangekyō liberou: escolha o seu olho na aba Jutsus.');onlReg('👁️ Mangekyō liberada: escolha Itachi, Sasuke ou Madara na aba Jutsus. Cada uma tem o seu Susanoo (libera no Nv 60).')},L.length?2600:0)}
+ if(clan==='uchiha'&&a<TOM[4].lv&&b>=TOM[4].lv&&!CH.mgk)setTimeout(()=>{toast('👁️ A Mangekyō liberou: escolha o seu olho na aba Jutsus.');onlReg('👁️ Mangekyō liberada: escolha Itachi, Sasuke ou Madara na aba Jutsus. Cada uma tem o seu Susanoo (libera no Nv '+BAL.jutsus.uchiha.sus+').')},L.length?2600:0)}
 // travado: explica; Uchiha: botão do meio liga/desliga o olho, botão grande invoca o Susanoo
 {const _u=useBtn;useBtn=function(i){if(i<3&&clan&&CH){const o=jtBtn(i);
   if(o.eye){toast('👁️ Escolha o seu Mangekyō na aba Jutsus para liberar o Susanoo.');juSel='mgk';juPick=null;toggleBag(true,'ju');return}
@@ -640,7 +625,7 @@ function jtLvUp(a,b){const L=jtNodes().filter(n=>!n.soon&&n.lv>a&&n.lv<=b);L.for
 // ---------- Sharingan / Mangekyō: liga e desliga, gasta chakra por segundo (o chakra não volta enquanto estiver ligado) ----------
 const EYE={on:null,lv:0};
 const eyeOnAny=()=>!!EYE.on;
-const sevMul=esq=>Math.max(.3,Math.min(1,1-(+esq||0)/100)); // quanto mais esquiva o alvo tem, menos tempo fica preso
+const sevMul=esq=>Math.max(BAL.combate.olharMinimo,Math.min(1,1-(+esq||0)/100)); // quanto mais esquiva o alvo tem, menos tempo fica preso
 function eyeToggle(){if(EYE.on)return eyeOff();const l=eyeLv();if(!l||cd[1]>0||actRoot())return;
  if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}
  const D=TOM[l],mp=Math.round(D.mp*profMp(1));if(p.mp<mp){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
@@ -651,7 +636,7 @@ function eyeToggle(){if(EYE.on)return eyeOff();const l=eyeLv();if(!l||cd[1]>0||a
  onlReg('👁️ '+D.n+' ligado'+(n?' (prendeu '+n+' com o olhar)':'')+': +'+D.prec+' de precisão, +'+D.esq+' de esquiva e +'+D.cdmg+'% de dano nos jutsus do clã. Gasta '+D.dr+' de chakra por segundo; toque de novo para desligar.');
  skBtns();gsMeta()}
 function eyeOff(why){if(!EYE.on)return;const was=EYE.on;EYE.on=null;delete BUFS.eye;susEnd();
- const c=cdOf(1,CLANS.uchiha.sk[1]);cd[1]=Math.max(cd[1],was==='mgk'?c*2.5:c);stats();bufHud(1);skBtns();gsMeta();
+ const c=cdOf(1,CLANS.uchiha.sk[1]);cd[1]=Math.max(cd[1],was==='mgk'?c*BAL.olhos.mangekyoRecarga:c);stats();bufHud(1);skBtns();gsMeta();
  if(why){FT.push({x:p.x,y:p.y-70,t:why,txt:1,life:1});onlReg('👁️ '+(was==='mgk'?'Mangekyō':'Sharingan')+' desligou: '+why+'.')}}
 function eyeTick(dt){if(SUS&&!susOn())SUS=null;if(!EYE.on)return;if(eyeLv()<EYE.lv&&!(EYE.on==='shar'&&eyeLv()>0))return eyeOff('olho trocado');
  const D=TOM[EYE.lv]||TOM[1];p.mp-=(D.dr+(susOn()?SUSDR:0))*dt;if(p.mp<=0){p.mp=0;eyeOff('sem chakra')}}
@@ -663,7 +648,7 @@ function gaze(D){const R=D.cone*T,h=D.ang*Math.PI/180,all=E.concat(PVT()).filter
  fx.push({k:'cone',x:p.x,y:p.y-22,a,r:R,h,col:D.k==='mgk'?'#9a0018':'#e0102a',life:.5,max:.5});
  const st=+(D.st*(profOn('genjutsu')?1+profPerk()/100:1)).toFixed(2);if(hit.length&&profOn('genjutsu'))profGain(10*hit.length);
  if(ONL.on&&ONL.joined){const ms=hit.filter(e=>!e.pvp&&e.sid!=null).map(e=>e.sid),pl=hit.filter(e=>e.pvp).map(e=>e.pvp);if(ms.length||pl.length)gsSend({t:'gaze',st,m:ms,pl})}
- else hit.forEach(e=>{const s=st*sevMul(e.esq)*(e.boss?.5:1);e.stun=Math.max(e.stun||0,s);FT.push({x:e.x,y:e.y-(e.boss?120:52),t:'paralisado '+nf(s)+'s',txt:1,life:1})});
+ else hit.forEach(e=>{const s=st*sevMul(e.esq)*(e.boss?BAL.combate.olharChefe:1);e.stun=Math.max(e.stun||0,s);FT.push({x:e.x,y:e.y-(e.boss?120:52),t:'paralisado '+nf(s)+'s',txt:1,life:1})});
  return hit.length}
 function coneDraw(f){const a=f.life/f.max,k=1-a;ctx.save();ctx.globalAlpha=.42*a;const g=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r);g.addColorStop(0,f.col);g.addColorStop(1,'rgba(120,0,10,0)');
  ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.arc(f.x,f.y,f.r*(.55+.45*Math.min(1,k*3)),f.a-f.h,f.a+f.h);ctx.closePath();ctx.fill();ctx.restore()}
@@ -708,7 +693,7 @@ function jtInfo(n){const C=CLANS[clan],s=n.sl!=null?C.sk[n.sl]:null;let nm=n.nm|
 function juStats(n){const L=[],C=CLANS[clan];
  if(n.tm){const D=TOM[n.tm];L.push('Ao ligar: o olhar paralisa quem estiver num cone de '+nf(D.cone)+' tiles à frente por '+nf(D.st)+' s (menos tempo quanto mais esquiva o alvo tiver; chefes, metade).');
   L.push('Ligado: +'+D.prec+' de precisão, +'+D.esq+' de esquiva e +'+D.cdmg+'% de dano nos jutsus do clã.');
-  L.push('Gasto: '+D.mp+' de chakra para ligar e '+D.dr+' por segundo; o chakra não se recupera enquanto estiver ligado. Toque de novo para desligar (recarga de '+nf(cdOf(1,C.sk[1])*(D.k==='mgk'?2.5:1))+' s depois).');
+  L.push('Gasto: '+D.mp+' de chakra para ligar e '+D.dr+' por segundo; o chakra não se recupera enquanto estiver ligado. Toque de novo para desligar (recarga de '+nf(cdOf(1,C.sk[1])*(D.k==='mgk'?BAL.olhos.mangekyoRecarga:1))+' s depois).');
   if(n.tm===4)L.push('Libera as técnicas da Mangekyō no botão grande: o Susanoo no Nv '+jtSlotLv(2)+' (depois Amaterasu, Tsukuyomi…).');return L}
  if(n.id==='sus'){const E2=EYES[CH.mgk],sk=C.sk[2];L.push('Invocar: '+mpOf(2,sk)+' de chakra, recarga de '+nf(cdOf(2,sk))+' s; enquanto está de pé, gasta +'+SUSDR+' de chakra por segundo.');
   if(E2){const A=E2.sus;L.push('Ao surgir: '+A.dmg+' de dano em área'+(A.hits>1?' ('+A.hits+' vezes)':'')+(A.stun?' e atordoa '+nf(A.stun)+' s':'')+'.');L.push(A.t+' s de pé: −'+A.red+'% de dano recebido'+(A.dmgb?' e +'+A.dmgb+'% de dano':'')+'.')}
@@ -722,19 +707,19 @@ function juDraw(){const el=$('#paneJu');if(!el||el.hidden||!clan||!CH)return;con
  const n=all.find(x=>x.id===juSel),I=jtInfo(n),br=JT[clan].find(B=>B.n.includes(n)),tp=n.sl!=null?skType(n.sl):null;
  h+='</div><div class="jdet"><div class="jdh"><span class="ji">'+I.ic+'</span><div><b>'+I.nm+(I.sub?' <span class="z">'+I.sub+'</span>':'')+'</b><small>'+br.b.replace(/\s*\(.*\)/,'')+(n.sl!=null?' · botão '+SLN[n.sl]:'')+(tp?' · '+(TPN[tp]||tp):'')+'</small></div><span class="jst '+I.st+'">'+(n.soon?'Em breve':!I.ok?'🔒 Nv '+n.lv:I.needEye?'Escolha o olho':'✓ Liberado')+'</span></div>'
   +'<p class="pfd">'+(JTD[n.id]||'')+'</p>'+(()=>{const L=juStats(n);return L.length?ulist(L,'up'):''})();
- if(n.id==='mgk'){const can=(CH.lv|0)>=40;h+='<div class="pft pup">'+(CH.mgk?'Seu Mangekyō':'Escolha o seu Mangekyō')+(can?'':' <span>(libera no Nv 40)</span>')+'</div><div class="pfg">';
+ if(n.id==='mgk'){const can=(CH.lv|0)>=TOM[4].lv;h+='<div class="pft pup">'+(CH.mgk?'Seu Mangekyō':'Escolha o seu Mangekyō')+(can?'':' <span>(libera no Nv '+TOM[4].lv+')</span>')+'</div><div class="pfg">';
   for(const k in EYES){const Y=EYES[k],A=Y.sus,cur=CH.mgk===k,conf=juPick===k;
    h+='<div class="pfo'+(cur?' cur':'')+(can?'':' lock')+'"><div class="pfh"><span class="pfi jey">'+imgIc(SFXIC[k])+'</span><div><b>Mangekyō de '+Y.n+'</b><small>'+Y.d+'</small></div></div>'
     +'<div class="pfq">Susanoo: '+A.dmg+' de dano em área'+(A.hits>1?' ('+A.hits+'×)':'')+(A.stun?', atordoa '+nf(A.stun)+' s':'')+' · '+A.t+' s de pé · −'+A.red+'% de dano recebido'+(A.dmgb?' · +'+A.dmgb+'% de dano':'')+'</div>'
-    +'<button data-eye="'+k+'"'+(can&&!cur?'':' disabled')+(conf?' class="conf"':'')+'>'+(cur?'Atual':!can?'Nv 40':conf?'Confirmar troca':'Escolher')+'</button></div>'}
+    +'<button data-eye="'+k+'"'+(can&&!cur?'':' disabled')+(conf?' class="conf"':'')+'>'+(cur?'Atual':!can?'Nv '+TOM[4].lv:conf?'Confirmar troca':'Escolher')+'</button></div>'}
   h+='</div>'+(CH.mgk?'<p class="chnote">Por enquanto dá para trocar aqui; depois a escolha vai ser feita numa missão.</p>':'')}
  h+='</div></div><div class="jadm admo">[ADM] Ir para o nível: '+[5,10,15,25,40,60].map(v=>'<button data-lv="'+v+'"'+(CH.lv>=v?' disabled':'')+'>'+v+'</button>').join('')+'</div>';
  el.innerHTML=h;
  el.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>{juSel=b.dataset.j;juPick=null;juDraw()});
  el.querySelectorAll('[data-eye]').forEach(b=>b.onclick=()=>juEye(b.dataset.eye));
  el.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{const v=+b.dataset.lv;let g=0;while(CH.lv<v&&CH.lv<LVMAX&&g++<200)gainXp(xpNeed(CH.lv)-CH.xp);juDraw()})}
-function juEye(k){if(!EYES[k]||(CH.lv|0)<40||CH.mgk===k)return;if(CH.mgk&&juPick!==k){juPick=k;return juDraw()}
- juPick=null;if(EYE.on)eyeOff();CH.mgk=k;chSave();toast('👁️ Mangekyō de '+EYES[k].n+' escolhida!');onlReg('👁️ Sua Mangekyō: '+EYES[k].n+'. Ela toma o lugar do Sharingan no botão do meio; ligada, o botão grande invoca o seu Susanoo a partir do Nv 60.');skBtns();juDraw()}
+function juEye(k){if(!EYES[k]||(CH.lv|0)<TOM[4].lv||CH.mgk===k)return;if(CH.mgk&&juPick!==k){juPick=k;return juDraw()}
+ juPick=null;if(EYE.on)eyeOff();CH.mgk=k;chSave();toast('👁️ Mangekyō de '+EYES[k].n+' escolhida!');onlReg('👁️ Sua Mangekyō: '+EYES[k].n+'. Ela toma o lugar do Sharingan no botão do meio; ligada, o botão grande invoca o seu Susanoo a partir do Nv '+BAL.jutsus.uchiha.sus+'.');skBtns();juDraw()}
 
 // ---------- Hyuga de branco: parado (postura do Punho Gentil), andando, correndo e poses de golpe ----------
 // poses (folha "hya"): 0 guarda · 1 preparo · 2 estocada da palma · 4 guarda · 5 postura das 64 Palmas · 6 giro · 7 agachado
@@ -807,7 +792,7 @@ function castAoe(s,ax,ay){
   // toma dano contínuo e é empurrado até a animação acabar (uns 2 tiles no total), atordoado
   actStart('hakke');kfxAdd({q,x:p.x,y:p.y,sc:1.3,al:.95});
   const caught=new Set(),TK=[.26,.35,.44,.53,.62,.71,.8,.89,.98],N=TK.length,PUSH=2*T/N;
-  TK.forEach((t,j)=>later(t,()=>{HMUL=1.4/N; // os 9 toques juntos valem 1,4 golpe
+  TK.forEach((t,j)=>later(t,()=>{HMUL=BAL.golpes.hakkeTotal/N; // os 9 toques juntos valem hakkeTotal golpes (1,4)
    try{E.concat(PVT()).forEach(e=>{if(e.dead)return;const id=e.pvp||e.sid||e.id,d=Math.hypot(e.x-p.x,e.y-p.y);
     if(!caught.has(id)){if(d>=T+(e.rad||0)*.6)return;caught.add(id);kfxAdd({q:'icon',i:[0,4,5][Math.random()*3|0],x:e.x,y:e.y-(e.boss?70:30),sc:.55,d:.7})}
     const u=d||1;hitE(e,s.dmg,s.stun,(e.x-p.x)/u*PUSH,(e.y-p.y)/u*PUSH);
