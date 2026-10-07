@@ -103,7 +103,7 @@ rep('''<div id="s-login" class="scr on">
 <button id="go1">Entrar</button><p id="err" class="m"></p>
 </div>''',LOGIN)
 # HUD: contador online + chat
-rep('<div id="hud"><div id="hn"></div>','<div id="hud"><div id="hudFace"><canvas id="hudFaceCv" width="68" height="68"></canvas></div><div id="hn"></div>')
+rep('<div id="hud"><div id="hn"></div>','<div id="hud"><div id="hudFace" role="button" aria-label="Menu do personagem"><canvas id="hudFaceCv" width="68" height="68"></canvas><i id="hfBadge" hidden></i></div><div id="pfMenu" hidden><button data-pf="ch">🥷 Personagem</button><button data-pf="st">📊 Status<i id="pfBadge" hidden></i></button><button data-pf="ju">🌀 Jutsus</button></div><div id="hn"></div>')
 rep('<div class="bar xpb"><i id="xp"></i><b id="xpt">XP</b></div>','<div class="bar xpb"><i id="xp"></i><b id="xpt">XP</b></div><div id="onl" hidden></div><div id="phud"></div><div id="chatrow"><button id="chatbtn" aria-label="Chat" hidden>💬</button><div id="chatlog" hidden></div></div>')
 rep('<div id="rot" hidden>','''<div id="chatp" hidden><div class="cph"><button id="tabC" class="on">💬 Conversa</button><button id="tabR">📜 Registro<i id="regB" hidden></i></button><button id="chatX" aria-label="Fechar">✕</button></div><div id="cpList"></div><div id="cpIn"><div class="chs"><button data-ch="l" class="on">Local</button><button data-ch="g">Grupo</button><button data-ch="m">Mapa</button></div><div class="cpr"><input id="chatin" maxlength="80" placeholder="Mensagem…" autocomplete="off" enterkeyhint="send"><button id="chatgo">Enviar</button></div></div></div>
 <div id="toast" hidden></div>

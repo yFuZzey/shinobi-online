@@ -395,6 +395,22 @@ body:not(.adm) .admo{display:none!important}body:not(.adm) #paneBag .ivf{display
 .xpb i{border-radius:0;background:var(--ui-fill_xp) 0 0/100% 100%;box-shadow:0 0 4px #ffc94a66}
 .xpb b{inset:-4px}
 .xpb.big{height:20px}
+
+/* menu do retrato (Personagem, Status, Jutsus); o botão Status do canto sai, o aviso de pontos vai para o retrato */
+#statbtn{display:none!important}
+#hudFace{cursor:pointer;pointer-events:auto}
+#hudFace:active{filter:brightness(1.2)}
+#hfBadge,#pfBadge{position:absolute;right:-6px;top:-6px;min-width:18px;height:18px;padding:0 4px;line-height:18px;border-radius:9px;background:#ffc94a;color:#2a1600;font:800 11px/18px system-ui,sans-serif;font-style:normal;text-align:center;box-shadow:0 0 0 2px #1e1212,0 0 10px #ffb62a;text-shadow:none;animation:stp 1s infinite alternate}
+#hfBadge[hidden],#pfBadge[hidden],#pfMenu[hidden]{display:none}
+#pfBadge{position:static;display:inline-block;margin-left:8px;vertical-align:middle;animation:none}
+#pfMenu{position:absolute;left:0;top:58px;z-index:8;display:flex;flex-direction:column;gap:4px;width:170px;padding:2px 4px;border:solid transparent;border-width:16px 14px 14px 18px;border-image:var(--ui-painel) 8 7 7 9;background:#f0deaa var(--ui-papel) 0 0/32px 32px;background-clip:padding-box;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));image-rendering:pixelated;pointer-events:auto}
+#pfMenu button{display:block;width:100%;margin:0;padding:8px 10px;border:0;border-radius:0;background:none;color:#3a201a;font:700 14px system-ui,sans-serif;text-align:left;text-shadow:none;box-shadow:none;opacity:1}
+#pfMenu button+button{border-top:2px dashed #ceb078}
+#pfMenu button:active{background:#dec48e}
+
+/* contraste no papel: textos que eram dourado claro */
+#inv .ab{color:#a8560a}
+#inv #stPts.has{color:#a8560a}
 </style></head><body>
 
 <div id="s-login" class="scr on">
@@ -434,7 +450,7 @@ body:not(.adm) .admo{display:none!important}body:not(.adm) #paneBag .ivf{display
 
 <div id="s-game" class="scr">
 <canvas id="cv"></canvas>
-<div id="hud"><div id="hudFace"><canvas id="hudFaceCv" width="68" height="68"></canvas></div><div id="hn"></div><div class="bar hpb"><i class="gh" id="hpg"></i><i id="hp"></i><b id="hpt">HP</b></div><div class="bar mpb"><i id="mp"></i><b id="mpt">Chakra</b></div><div class="bar xpb"><i id="xp"></i><b id="xpt">XP</b></div><div id="onl" hidden></div><div id="phud"></div><div id="bufs"></div><div id="chatrow"><button id="chatbtn" aria-label="Chat" hidden>💬</button><div id="chatlog" hidden></div></div></div>
+<div id="hud"><div id="hudFace" role="button" aria-label="Menu do personagem"><canvas id="hudFaceCv" width="68" height="68"></canvas><i id="hfBadge" hidden></i></div><div id="pfMenu" hidden><button data-pf="ch">🥷 Personagem</button><button data-pf="st">📊 Status<i id="pfBadge" hidden></i></button><button data-pf="ju">🌀 Jutsus</button></div><div id="hn"></div><div class="bar hpb"><i class="gh" id="hpg"></i><i id="hp"></i><b id="hpt">HP</b></div><div class="bar mpb"><i id="mp"></i><b id="mpt">Chakra</b></div><div class="bar xpb"><i id="xp"></i><b id="xpt">XP</b></div><div id="onl" hidden></div><div id="phud"></div><div id="bufs"></div><div id="chatrow"><button id="chatbtn" aria-label="Chat" hidden>💬</button><div id="chatlog" hidden></div></div></div>
 <div id="hint" style="opacity:0"></div>
 <button id="mapbtn" aria-label="Escolher mapa"></button>
 <button id="bagbtn" aria-label="Mochila">🎒 Mochila</button>
@@ -2369,7 +2385,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610072327'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610072341'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2462,6 +2478,14 @@ function onlLogout(){ONL.closing=true;const fin=()=>{try{localStorage.removeItem
 function hudFace(){const cv=$('#hudFaceCv');if(!cv||cur!=='game'||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);c.imageSmoothingEnabled=false;
  const k=H/HFACE.z;c.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);try{if(HERO)drawHero(c,0,0,{fl:0,t:0,mv:0,run:0,aura:-1,th:-1,act:null});else drawChar(c,0,0,{...look,clan,dir:0,t:0,mv:0,run:0})}catch(_){}}
 const HFACE={z:22,y:44};setInterval(hudFace,700);
+/* tocar no retrato abre a lista Personagem / Status / Jutsus; a Mochila fica sozinha no botão dela */
+function pfMenu(v){const m=$('#pfMenu');if(!m)return;m.hidden=v===undefined?!m.hidden:!v}
+function pfBadge(){const n=CH&&CH.pts>0?CH.pts:0;[['#hfBadge'],['#pfBadge']].forEach(([s])=>{const e=$(s);if(e){e.hidden=!n;e.textContent=n}})}
+{const f=$('#hudFace'),m=$('#pfMenu');if(f&&m){f.onclick=e=>{e.stopPropagation();pfMenu()};
+ m.querySelectorAll('[data-pf]').forEach(b=>b.onclick=e=>{e.stopPropagation();pfMenu(false);toggleBag(true,b.dataset.pf)});
+ document.addEventListener('click',e=>{if(!m.hidden&&!m.contains(e.target)&&!f.contains(e.target))pfMenu(false)},true)}
+ setInterval(pfBadge,500)}
+{const _sp=setPanel;setPanel=function(w){_sp(w);const bag=w==='bag';$('#tbBag').hidden=!bag;['#tbCh','#tbSt','#tbJu'].forEach(s=>{$(s).hidden=bag})}}
 // ---------- Retrato do personagem (mochila e aba Personagem), animado enquanto a janela está aberta ----------
 function drawPortrait(cv,ts){if(!cv||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);
  const g=c.createRadialGradient(W/2,H*.8,4,W/2,H*.62,W*.62);g.addColorStop(0,'rgba(255,201,74,.22)');g.addColorStop(1,'rgba(255,201,74,0)');c.fillStyle=g;c.fillRect(0,0,W,H);

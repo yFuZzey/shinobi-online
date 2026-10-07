@@ -6,7 +6,7 @@ const file=process.argv[2]||'online.html',MOCK=process.argv[3]||'54333';let fail
  const nome='Neji'+suf;await pg.goto('file://'+require('path').join(__dirname,'..','paginas',file));await pg.click('#tabNew');await pg.fill('#nu',nome);await pg.fill('#np','12345678');await pg.fill('#ne','n@n.com');await pg.click('#goNew');
  await pg.waitForFunction(()=>cur==='cust',null,{timeout:20000});await pg.click('#go2');await pg.click('.card >> nth=1');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
  ok(await pg.evaluate(()=>clan)==='hyuga','personagem Hyuga');
- await pg.click('#statbtn');await W(300);
+ await pg.click('#hudFace');await pg.click('#pfMenu [data-pf=st]');await W(300);
  const st0=await pg.evaluate(()=>({btn:[...document.querySelectorAll('#stProf [data-prof]')].map(b=>[b.dataset.prof,b.disabled,b.textContent]),txt:document.querySelector('#stProf').textContent}));
  ok(st0.btn.length===4&&st0.btn.every(x=>x[1]),'4 especialidades, todas bloqueadas com status 0');
  ok(/Força 10/.test(st0.txt)&&/Inteligência 6/.test(st0.txt)&&/Destreza 10/.test(st0.txt),'mostra o que cada uma precisa');
@@ -41,7 +41,7 @@ const file=process.argv[2]||'online.html',MOCK=process.argv[3]||'54333';let fail
  await pg.evaluate(()=>onlLogout());await W(1500);await pg.fill('#u',nome);await pg.fill('#p','12345678');await pg.click('#go1');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
  ok(await pg.evaluate(x=>CH.prof.k==='taijutsu'&&CH.prof.xp===x,xpNow),'voltou com Taijutsu e o mesmo progresso ('+xpNow+')');
  // trocar especialidade (precisa confirmar e zera)
- await pg.evaluate(()=>{CH.st.int=10;stats()});await pg.click('#statbtn');await W(200);await pg.click('#stProf [data-trocar]');await W(100);
+ await pg.evaluate(()=>{CH.st.int=10;stats()});await pg.click('#hudFace');await pg.click('#pfMenu [data-pf=st]');await W(200);await pg.click('#stProf [data-trocar]');await W(100);
  await pg.click('#stProf [data-prof=ninjutsu]');await W(100);ok(await pg.evaluate(()=>CH.prof.k==='taijutsu'),'1º toque em trocar só pede confirmação');
  ok(/Confirmar troca/.test(await pg.textContent('#stProf [data-prof=ninjutsu]')),'botão vira "Confirmar troca"');
  await pg.screenshot({path:__dirname+'/pf3.png'});

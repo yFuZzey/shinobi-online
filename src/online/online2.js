@@ -1355,6 +1355,14 @@ function onlLogout(){ONL.closing=true;const fin=()=>{try{localStorage.removeItem
 function hudFace(){const cv=$('#hudFaceCv');if(!cv||cur!=='game'||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);c.imageSmoothingEnabled=false;
  const k=H/HFACE.z;c.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);try{if(HERO)drawHero(c,0,0,{fl:0,t:0,mv:0,run:0,aura:-1,th:-1,act:null});else drawChar(c,0,0,{...look,clan,dir:0,t:0,mv:0,run:0})}catch(_){}}
 const HFACE={z:22,y:44};setInterval(hudFace,700);
+/* tocar no retrato abre a lista Personagem / Status / Jutsus; a Mochila fica sozinha no botão dela */
+function pfMenu(v){const m=$('#pfMenu');if(!m)return;m.hidden=v===undefined?!m.hidden:!v}
+function pfBadge(){const n=CH&&CH.pts>0?CH.pts:0;[['#hfBadge'],['#pfBadge']].forEach(([s])=>{const e=$(s);if(e){e.hidden=!n;e.textContent=n}})}
+{const f=$('#hudFace'),m=$('#pfMenu');if(f&&m){f.onclick=e=>{e.stopPropagation();pfMenu()};
+ m.querySelectorAll('[data-pf]').forEach(b=>b.onclick=e=>{e.stopPropagation();pfMenu(false);toggleBag(true,b.dataset.pf)});
+ document.addEventListener('click',e=>{if(!m.hidden&&!m.contains(e.target)&&!f.contains(e.target))pfMenu(false)},true)}
+ setInterval(pfBadge,500)}
+{const _sp=setPanel;setPanel=function(w){_sp(w);const bag=w==='bag';$('#tbBag').hidden=!bag;['#tbCh','#tbSt','#tbJu'].forEach(s=>{$(s).hidden=bag})}}
 // ---------- Retrato do personagem (mochila e aba Personagem), animado enquanto a janela está aberta ----------
 function drawPortrait(cv,ts){if(!cv||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);
  const g=c.createRadialGradient(W/2,H*.8,4,W/2,H*.62,W*.62);g.addColorStop(0,'rgba(255,201,74,.22)');g.addColorStop(1,'rgba(255,201,74,0)');c.fillStyle=g;c.fillRect(0,0,W,H);

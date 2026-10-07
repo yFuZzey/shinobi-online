@@ -49,3 +49,19 @@
 .xpb i{border-radius:0;background:var(--ui-fill_xp) 0 0/100% 100%;box-shadow:0 0 4px #ffc94a66}
 .xpb b{inset:-4px}
 .xpb.big{height:20px}
+
+/* menu do retrato (Personagem, Status, Jutsus); o botão Status do canto sai, o aviso de pontos vai para o retrato */
+#statbtn{display:none!important}
+#hudFace{cursor:pointer;pointer-events:auto}
+#hudFace:active{filter:brightness(1.2)}
+#hfBadge,#pfBadge{position:absolute;right:-6px;top:-6px;min-width:18px;height:18px;padding:0 4px;line-height:18px;border-radius:9px;background:#ffc94a;color:#2a1600;font:800 11px/18px system-ui,sans-serif;font-style:normal;text-align:center;box-shadow:0 0 0 2px #1e1212,0 0 10px #ffb62a;text-shadow:none;animation:stp 1s infinite alternate}
+#hfBadge[hidden],#pfBadge[hidden],#pfMenu[hidden]{display:none}
+#pfBadge{position:static;display:inline-block;margin-left:8px;vertical-align:middle;animation:none}
+#pfMenu{position:absolute;left:0;top:58px;z-index:8;display:flex;flex-direction:column;gap:4px;width:170px;padding:2px 4px;border:solid transparent;border-width:16px 14px 14px 18px;border-image:var(--ui-painel) 8 7 7 9;background:#f0deaa var(--ui-papel) 0 0/32px 32px;background-clip:padding-box;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));image-rendering:pixelated;pointer-events:auto}
+#pfMenu button{display:block;width:100%;margin:0;padding:8px 10px;border:0;border-radius:0;background:none;color:#3a201a;font:700 14px system-ui,sans-serif;text-align:left;text-shadow:none;box-shadow:none;opacity:1}
+#pfMenu button+button{border-top:2px dashed #ceb078}
+#pfMenu button:active{background:#dec48e}
+
+/* contraste no papel: textos que eram dourado claro */
+#inv .ab{color:#a8560a}
+#inv #stPts.has{color:#a8560a}
