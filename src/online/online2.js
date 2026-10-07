@@ -40,14 +40,19 @@ async function onlLogin(nome,senha,novo,rec){const email=onlEmail(nome);let s;
  else s=await onlFetch('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password:senha})});
  ONL.nome=(s.user&&s.user.user_metadata&&s.user.user_metadata.nome)||nome;onlSess(s);return s}
 const COLS='nome,cla,nivel,xp,pontos,forca,agilidade,vitalidade,inteligencia,destreza,sorte,mapa,pele,cabelo,roupa';
-async function onlLoadChar(){const q=c=>onlFetch('/rest/v1/personagens?select='+COLS+c+',inventario(item,equipado)&id=eq.'+ONL.uid);let r=null;ONL.profDb=true;ONL.mgkDb=true;
+// ---------- versão do personagem salvo (no aparelho e na coluna "versao" do banco, sql/07) ----------
+// Quando o formato mudar: SAVE_V sobe (build_online2.py) e entra aqui a função que converte do anterior, ex.: 2:j=>{...;return j}.
+// Save sem número é da versão 1. Save de versão mais nova que este app (voltou de atualização) é lido como está.
+const MIGRA={};
+function chMigra(j){let v=Math.max(1,+j.v||1);while(v<SAVE_V){const f=MIGRA[v+1];if(f)j=f(j)||j;v++}j.v=Math.max(v,+j.v||1);return j}
+async function onlLoadChar(){const q=c=>onlFetch('/rest/v1/personagens?select='+COLS+c+',inventario(item,equipado)&id=eq.'+ONL.uid);let r=null;ONL.profDb=true;ONL.mgkDb=true;ONL.verDb=true;
  // colunas novas (proficiência: sql/03; Mangekyō: sql/06): se o banco ainda não tem, segue sem elas e guarda no aparelho
- for(let k=0;k<3;k++){try{r=await q((ONL.profDb?',proficiencia,prof_xp':'')+(ONL.mgkDb?',mangekyo':''));break}
-  catch(e){const m=String(e.message);if(ONL.mgkDb&&/mangekyo/.test(m))ONL.mgkDb=false;else if(ONL.profDb&&/proficiencia|prof_xp/.test(m))ONL.profDb=false;else throw e}}
+ for(let k=0;k<4;k++){try{r=await q((ONL.profDb?',proficiencia,prof_xp':'')+(ONL.mgkDb?',mangekyo':'')+(ONL.verDb?',versao':''));break}
+  catch(e){const m=String(e.message);if(ONL.verDb&&/versao/.test(m))ONL.verDb=false;else if(ONL.mgkDb&&/mangekyo/.test(m))ONL.mgkDb=false;else if(ONL.profDb&&/proficiencia|prof_xp/.test(m))ONL.profDb=false;else throw e}}
  return r&&r[0]||null}
 // uma informação por coluna (dá para editar cada uma no banco)
 function onlCols(){const c={cla:clan,nivel:CH.lv,xp:CH.xp,pontos:CH.pts,forca:CH.st.str,agilidade:CH.st.agi,vitalidade:CH.st.vit,inteligencia:CH.st.int,destreza:CH.st.dex,sorte:CH.st.luk,mapa:CURMAP,pele:look.skin,cabelo:look.hair,roupa:look.cloth};
- if(ONL.profDb){const P=CH.prof||{};c.proficiencia=P.k||null;c.prof_xp=P.k?P.xp|0:0}if(ONL.mgkDb)c.mangekyo=EYES[CH.mgk]?CH.mgk:null;return c}
+ if(ONL.profDb){const P=CH.prof||{};c.proficiencia=P.k||null;c.prof_xp=P.k?P.xp|0:0}if(ONL.mgkDb)c.mangekyo=EYES[CH.mgk]?CH.mgk:null;if(ONL.verDb)c.versao=Math.max(1,CH.v|0);return c}
 function onlInv(){return INV.map(i=>({item:i,equipado:false})).concat(Object.values(EQ).map(i=>({item:i,equipado:true})))}
 async function onlSaveInv(rows){await onlFetch('/rest/v1/rpc/salvar_inventario',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({itens:rows})})}
 async function onlCreateChar(){const c=onlCols(),inv=onlInv();
@@ -852,12 +857,13 @@ function onlStartMap(){const k=MAPS[START_MAP]?START_MAP:CURMAP;if(k!==CURMAP){C
 async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;name=ONL.nome;
  const row=await onlLoadChar();
  try{await gsReady()}catch(e){e.gs=1;throw e}
+ if(ONL.adm&&ONL.verDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem a coluna da versão do personagem: rode o arquivo sql/07_versao.sql no Supabase. O jogo funciona sem ela.'),1900);
  if(ONL.adm&&ONL.mgkDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem a coluna da Mangekyō: rode o arquivo sql/06_mangekyo.sql no Supabase. Até lá a escolha do olho fica salva só neste aparelho.'),1700);
  if(ONL.adm&&ONL.profDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem as colunas da proficiência: rode o arquivo sql/03_proficiencia.sql no Supabase. Até lá ela fica salva só neste aparelho.'),1500);
  if(row&&row.cla&&CLANS[row.cla]){ONL.hasChar=true;name=ONL.nome=row.nome||ONL.nome;
   ['pele','cabelo','roupa'].forEach((k,i)=>{if(row[k])look[['skin','hair','cloth'][i]]=row[k]});
-  const ch={lv:row.nivel,xp:row.xp,pts:row.pontos,st:{str:row.forca,agi:row.agilidade,vit:row.vitalidade,int:row.inteligencia,dex:row.destreza,luk:row.sorte},prof:{k:row.proficiencia||null,xp:row.prof_xp|0},mgk:row.mangekyo||null};
-  if(!ONL.profDb||!ONL.mgkDb){try{const o=JSON.parse(localStorage.getItem(chKey())||'null');if(o&&o.prof&&!ONL.profDb)ch.prof=o.prof;if(o&&o.mgk&&!ONL.mgkDb)ch.mgk=o.mgk}catch(_){}} // sem as colunas no banco: mantém o que estava no aparelho
+  const ch={lv:row.nivel,xp:row.xp,pts:row.pontos,st:{str:row.forca,agi:row.agilidade,vit:row.vitalidade,int:row.inteligencia,dex:row.destreza,luk:row.sorte},prof:{k:row.proficiencia||null,xp:row.prof_xp|0},mgk:row.mangekyo||null,v:ONL.verDb?+row.versao||1:1};
+  if(!ONL.profDb||!ONL.mgkDb||!ONL.verDb){try{const o=JSON.parse(localStorage.getItem(chKey())||'null');if(o&&o.prof&&!ONL.profDb)ch.prof=o.prof;if(o&&o.mgk&&!ONL.mgkDb)ch.mgk=o.mgk;if(o&&o.v&&!ONL.verDb)ch.v=o.v}catch(_){}} // sem as colunas no banco: mantém o que estava no aparelho
   const inv={inv:[],eq:{}};(row.inventario||[]).forEach(r=>{const it=ITEMS[r.item];if(!it)return;if(r.equipado&&!inv.eq[it.slot])inv.eq[it.slot]=r.item;else inv.inv.push(r.item)});
   try{localStorage.setItem(chKey(),JSON.stringify(ch));localStorage.setItem(invKey(),JSON.stringify(inv))}catch(_){}
   onlStartMap();

@@ -7,6 +7,7 @@ const MOCK='http://127.0.0.1:54333';const svc=(fn,body)=>fetch(MOCK+'/rest/v1/rp
  await pg.goto('file://'+require('path').join(__dirname,'..','paginas','online.html'));await pg.click('#tabNew');await pg.fill('#nu','Velho'+suf);await pg.fill('#np','12345678');await pg.fill('#ne','t@t.com');await pg.click('#goNew');
  await pg.waitForFunction(()=>cur==='cust',null,{timeout:20000});await pg.click('#go2');await pg.click('.card >> nth=0');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
  const id=await pg.evaluate(()=>ONL.uid);
+ const vv=await pg.evaluate(()=>({db:ONL.verDb,v:CH.v,col:ONL.last&&ONL.last.cols.versao}));ok(vv.v===1&&(vv.db?vv.col===1:vv.col===undefined),'personagem novo nasce na versão 1 do save'+(vv.db?' e grava a coluna versao':' (banco sem a coluna: segue sem ela)'));
  await svc('dar_itens',{p_personagem:id,p_itens:['susanoo_itachi','susanoo_madara','chidori']});await pg.evaluate(()=>invReload());await W(800);
  await pg.evaluate(()=>toggleBag(true,'bag'));await W(400);
  const r=await pg.evaluate(()=>({inv:INV.slice(),cells:document.querySelectorAll('#paneBag .cell, #paneBag [data-i]').length,txt:$('#paneBag').textContent}));

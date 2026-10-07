@@ -31,10 +31,12 @@ def rep(a,b,n=1):
     c=s.count(a)
     assert c==n,(c,a[:90])
     s=s.replace(a,b)
-rep("<script>\nconst $=s=>document.querySelector(s);","<script>\nconst BAL="+json.dumps(BAL,ensure_ascii=False,separators=(',',':'))+"; // server/balanceamento.json\nconst $=s=>document.querySelector(s);")
+rep("<script>\nconst $=s=>document.querySelector(s);","<script>\nconst BAL="+json.dumps(BAL,ensure_ascii=False,separators=(',',':'))+"; // server/balanceamento.json\nconst SAVE_V=1; // versão do formato do personagem salvo (sobe junto com uma migração em chMigra)\nconst $=s=>document.querySelector(s);")
 rep("const LVMAX=99,PTS_LV=5,xpNeed=l=>Math.round(80*Math.pow(l,1.4));","const LVMAX=BAL.personagem.nivelMax,PTS_LV=BAL.personagem.pontosPorNivel,xpNeed=l=>Math.round(BAL.personagem.xpBase*Math.pow(l,BAL.personagem.xpExpoente));")
 rep("b.disabled=CH.pts<1||CH.st[k]>=99;","b.disabled=CH.pts<1||CH.st[k]>=BAL.personagem.atributoMax;")
 rep("b.onclick=()=>{if(CH.pts<1||CH.st[k]>=99)return;","b.onclick=()=>{if(CH.pts<1||CH.st[k]>=BAL.personagem.atributoMax)return;")
+# save antigo passa pelas migrações (chMigra, em online2.js) antes de ser lido
+rep("function chLoad(){CH=chNew();try{const j=JSON.parse(localStorage.getItem(chKey())||'null');if(j){","function chLoad(){CH=chNew();try{let j=JSON.parse(localStorage.getItem(chKey())||'null');if(j){j=chMigra(j);")
 
 LOGIN='''<div id="s-login" class="scr on">
 <svg class="lgdune" viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 C120 70 230 80 330 115 S560 150 800 95 V200 H0Z" fill="#7a4a2c"/><path d="M0 155 C150 115 300 125 420 150 S650 170 800 140 V200 H0Z" fill="#a8693a"/><path d="M0 185 C200 160 380 168 520 182 S700 192 800 178 V200 H0Z" fill="#c98b4f"/></svg>
@@ -117,8 +119,8 @@ rep('<button id="stZero">','<button id="stZero" class="admo">')
 # projéteis de outros jogadores são só visuais
 rep("for(const e of E)if(!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE","for(const e of (b.rm?E:E.concat(PVT())))if(!b.rm&&!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE")
 # ---- proficiência ----
-rep("const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0}});","const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0},prof:{k:null,xp:0},mgk:null});")
-rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(BAL.personagem.atributoMax,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null}}catch(e){}}")
+rep("const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0}});","const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0},prof:{k:null,xp:0},mgk:null,v:SAVE_V});")
+rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(BAL.personagem.atributoMax,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null;CH.v=Math.max(SAVE_V,+j.v||1)}}catch(e){}}")
 rep("const mpOf=(i,s)=>{const a=i==0?atkItem():null;return a?(+a.atk.mp||0):s.mp};","const mpOf=(i,s)=>{const a=i==3?atkItem():null;return Math.round((a?(+a.atk.mp||0):s.mp)*profMp(i))};")
 rep("const cdOf=(i,s)=>{const a=i==0?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM())};","const cdOf=(i,s)=>{const a=i==3?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM()*profCd(i))};")
 rep("col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin})","col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin,tp:HTP})")

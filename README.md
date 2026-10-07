@@ -22,6 +22,7 @@ MMORPG 2D no universo Naruto (protótipo).
 - `inventario`: uma linha por item (personagem_id, item, equipado).
 - SQL de criação/atualização em `sql/`. Edite de preferência com o jogador fora do jogo.
 - `trocas`: histórico das trocas entre jogadores.
+- `versao` (`sql/07_versao.sql`): versão do formato do personagem. Quando o formato mudar, o jogo converte os saves antigos (função `chMigra` em `src/online/online2.js`); sem a coluna o jogo funciona e guarda a versão no aparelho.
 
 ## Trocas e itens (anti-duplicação)
 - O app só lê a mochila e marca equipado/desequipado. Criar, dar e trocar itens é só pelo servidor do jogo, com a chave secreta `SUPABASE_SERVICE_KEY` (variável no Render, nunca no código).
