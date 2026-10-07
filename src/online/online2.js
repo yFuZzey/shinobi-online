@@ -45,14 +45,14 @@ const COLS='nome,cla,nivel,xp,pontos,forca,agilidade,vitalidade,inteligencia,des
 // Save sem número é da versão 1. Save de versão mais nova que este app (voltou de atualização) é lido como está.
 const MIGRA={};
 function chMigra(j){let v=Math.max(1,+j.v||1);while(v<SAVE_V){const f=MIGRA[v+1];if(f)j=f(j)||j;v++}j.v=Math.max(v,+j.v||1);return j}
-async function onlLoadChar(){const q=c=>onlFetch('/rest/v1/personagens?select='+COLS+c+',inventario(item,equipado)&id=eq.'+ONL.uid);let r=null;ONL.profDb=true;ONL.mgkDb=true;ONL.verDb=true;
+async function onlLoadChar(){const q=c=>onlFetch('/rest/v1/personagens?select='+COLS+c+',inventario(item,equipado)&id=eq.'+ONL.uid);let r=null;ONL.profDb=true;ONL.mgkDb=true;ONL.verDb=true;ONL.ctDb=true;
  // colunas novas (proficiência: sql/03; Mangekyō: sql/06): se o banco ainda não tem, segue sem elas e guarda no aparelho
- for(let k=0;k<4;k++){try{r=await q((ONL.profDb?',proficiencia,prof_xp':'')+(ONL.mgkDb?',mangekyo':'')+(ONL.verDb?',versao':''));break}
-  catch(e){const m=String(e.message);if(ONL.verDb&&/versao/.test(m))ONL.verDb=false;else if(ONL.mgkDb&&/mangekyo/.test(m))ONL.mgkDb=false;else if(ONL.profDb&&/proficiencia|prof_xp/.test(m))ONL.profDb=false;else throw e}}
+ for(let k=0;k<5;k++){try{r=await q((ONL.profDb?',proficiencia,prof_xp':'')+(ONL.mgkDb?',mangekyo':'')+(ONL.verDb?',versao':'')+(ONL.ctDb?',contrato':''));break}
+  catch(e){const m=String(e.message);if(ONL.ctDb&&/contrato/.test(m))ONL.ctDb=false;else if(ONL.verDb&&/versao/.test(m))ONL.verDb=false;else if(ONL.mgkDb&&/mangekyo/.test(m))ONL.mgkDb=false;else if(ONL.profDb&&/proficiencia|prof_xp/.test(m))ONL.profDb=false;else throw e}}
  return r&&r[0]||null}
 // uma informação por coluna (dá para editar cada uma no banco)
 function onlCols(){const c={cla:clan,nivel:CH.lv,xp:CH.xp,pontos:CH.pts,forca:CH.st.str,agilidade:CH.st.agi,vitalidade:CH.st.vit,inteligencia:CH.st.int,destreza:CH.st.dex,sorte:CH.st.luk,mapa:CURMAP,pele:look.skin,cabelo:look.hair,roupa:look.cloth};
- if(ONL.profDb){const P=CH.prof||{};c.proficiencia=P.k||null;c.prof_xp=P.k?P.xp|0:0}if(ONL.mgkDb)c.mangekyo=EYES[CH.mgk]?CH.mgk:null;if(ONL.verDb)c.versao=Math.max(1,CH.v|0);return c}
+ if(ONL.profDb){const P=CH.prof||{};c.proficiencia=P.k||null;c.prof_xp=P.k?P.xp|0:0}if(ONL.mgkDb)c.mangekyo=EYES[CH.mgk]?CH.mgk:null;if(ONL.ctDb)c.contrato=ctFam(CH.ct)?CH.ct:null;if(ONL.verDb)c.versao=Math.max(1,CH.v|0);return c}
 function onlInv(){return INV.map(i=>({item:i,equipado:false})).concat(Object.values(EQ).map(i=>({item:i,equipado:true})))}
 async function onlSaveInv(rows){await onlFetch('/rest/v1/rpc/salvar_inventario',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({itens:rows})})}
 async function onlCreateChar(){const c=onlCols(),inv=onlInv();
@@ -138,11 +138,12 @@ juLoad('hyuga','kusho',{n:'Hakke Kūshō',i:'💨',t:'kusho',col:'#cfe0ff'});
 juLoad('hyuga','h128',{n:'128 Palmas',i:'☯️',t:'aoe',r:150,kq:'hakke',col:'#e3e9ff',fx:1,stun:3});
 juLoad('hyuga','sojishi',{n:'Sōjishi',i:'🌬️',t:'sojishi',col:'#9db7ff'});
 juLoad('hyuga','kperf',{n:'Kaiten Perfeito',i:'🌀',t:'kperf',col:'#cfe0ff'});
+for(const c of ['uchiha','hyuga','nara'])juLoad(c,'invoc',{n:'Invocação',i:'📜',t:'invoc',col:'#c9a227'});
 const juLv=s=>s&&s.lv?+s.lv:1;
 // passiva do Nara (Intelecto): ligada a partir do nível dela
 const naraInt=()=>{const s=clan==='nara'&&JU.nara&&JU.nara.intelecto;return s&&CH&&(CH.lv|0)>=juLv(s)?s:null};
 function juCdMul(s){const n=s&&s.sombra?naraInt():null;return n?1-(+n.cdSombra||0)/100:1}
-const ccPveMul=()=>{const n=naraInt();return n?1+(+n.ccPve||0)/100:1};
+const ccPveMul=()=>{const n=naraInt();return (n?1+(+n.ccPve||0)/100:1)*(1+(typeof ctPass==='function'?ctPass('ccPve'):0)/100)};
 let HTP=null,profPick=null; // HTP = tipo do golpe que está acertando agora
 const nf=x=>String(Math.round(x*10)/10).replace('.',','),sgn=x=>(x>0?'+':x<0?'−':'')+nf(Math.abs(x)),clv=(v,a,b)=>Math.max(a,Math.min(b,v));
 function profNorm(o){const k=o&&PROF[o.k]?o.k:null;return{k,xp:k?Math.max(0,Math.min(1e7,o.xp|0)):0}}
@@ -195,7 +196,12 @@ function hitRaw(base,tp){const it=typeof tp==='string'&&tp[0]==='@',t=tpN(tp),b=
 let BUFS={};
 function bufSum(){const n=performance.now(),o={red:0,esq:0,dmg:0,cdmg:0,prec:0,spd:0};for(const k in BUFS){const b=BUFS[k];if(b.until>n)for(const q in o)o[q]+=b[q]||0}return o}
 function bufOn(k){const n=performance.now();if(k)return !!(BUFS[k]&&BUFS[k].until>n);for(const q in BUFS)if(BUFS[q].until>n)return true;return false}
-function DX(items,prof){const a=calcChar(items,prof).at,b=bufSum();return{hp:Math.round(a.hp.fin),mp:Math.round(a.mp.fin),pf:a.pf.fin,pc:a.pc.fin,dmg:b.dmg,spd:a.spd.fin-100+b.spd,mpr:a.mpr.fin-100,esq:a.esq.fin+b.esq,prec:a.prec.fin+b.prec,red:Math.min(BAL.combate.reducaoMax,a.red.fin+b.red),crit:a.crit.fin,cdr:a.cdr.fin}}
+// ---------- contrato de invocação (planilha 11): família, passiva pequena (× afinidade no clã que combina) ----------
+const INVB=BAL.invocacoes||{familias:{}},ctFam=k=>k&&INVB.familias[k]?INVB.familias[k]:null;
+const ctAfim=(f,c)=>!!(f&&Array.isArray(f.cla)&&f.cla.includes(c||clan));
+function ctPass(k){const f=CH&&ctFam(CH.ct);if(!f||!f.passiva||!f.passiva[k]||(CH.lv|0)<(+INVB.nivel||1))return 0;return (+f.passiva[k]||0)*(ctAfim(f)?+INVB.afinidade||1:1)}
+const dotMul=()=>1+ctPass('dot')/100;
+function DX(items,prof){const a=calcChar(items,prof).at,b=bufSum();return{hp:Math.round(a.hp.fin*(1+ctPass('hp')/100)),mp:Math.round(a.mp.fin),pf:a.pf.fin,pc:a.pc.fin,dmg:b.dmg,spd:a.spd.fin-100+b.spd+ctPass('spd'),mpr:a.mpr.fin-100,esq:a.esq.fin+b.esq,prec:a.prec.fin+b.prec+ctPass('prec'),red:Math.min(BAL.combate.reducaoMax,a.red.fin+b.red),crit:a.crit.fin,cdr:a.cdr.fin}}
 function bufStart(key,B,aura){BUFS[key]={red:B.red||0,esq:B.esq||0,dmg:B.dmg||0,spd:B.spd||0,until:performance.now()+B.t*1000,t:B.t,nm:B.nm||key};if(aura){p.au=0;p.aud=B.t}stats();bufHud(1);
  FT.push({x:p.x,y:p.y-66-Object.keys(BUFS).length*14,t:String(B.nm||key).split(':')[0]+'!',txt:1,gold:1,life:1.2});onlReg('✨ '+B.nm+' por '+B.t+' s.')}
 function bufTick(){const n=performance.now();let ch=0;for(const k in BUFS)if(BUFS[k].until<=n){delete BUFS[k];ch=1}if(ch)stats();bufHud(ch)}
@@ -205,7 +211,7 @@ function bufHud(force){const el=document.getElementById('bufs');if(!el)return;co
  const h=Object.entries(BUFS).filter(([k,b])=>b.until>n).map(([k,b])=>'<span'+(b.until===Infinity?' class="on"':'')+'>'+String(b.nm).split(':')[0].replace(/[<>&]/g,'')+(k==='sus'&&SHD?' 🛡'+Math.ceil(SHD.v):'')+' <b>'+(b.until===Infinity?'ligado':Math.ceil((b.until-n)/1000)+'s')+'</b></span>').join('')+ccChips();if(el._h!==h){el._h=h;el.innerHTML=h}}
 function effSt(prof){const c=calcChar(1,prof),o={};for(const k of STK)o[k]=c.st[k].fin;return o}
 const profReqOk=k=>Object.entries(PROF[k].req).every(([s,v])=>CH.st[s]>=v);
-function profSkills(k){if(!clan||!JU[clan])return[];return Object.values(JU[clan]).filter(s=>s.tipo===k).map(s=>s.n).concat(k==='ninjutsu'&&atkItem()?[atkItem().name]:[])}
+function profSkills(k){if(!clan||!JU[clan])return[];return Object.values(JU[clan]).filter(s=>s.tipo===k&&s.t!=='invoc').map(s=>s.n).concat(k==='ninjutsu'&&atkItem()?[atkItem().name]:[])}
 function profPerkTxt(k,r){const v=PROF[k].pv*(r+1);return k==='taijutsu'?'−'+nf(v)+'% de recarga':k==='ninjutsu'?'−'+nf(v)+'% de chakra':k==='genjutsu'?'+'+nf(v)+'% de atordoamento':'+'+nf(v)+'% de crítico'}
 // listas de vantagens/desvantagens no rank r (r<0 = como fica ao escolher, rank E)
 function profLines(k,r){const K=PROF[k],rr=Math.max(0,r),m=1+.2*rr,up=[],dn=[];
@@ -245,6 +251,8 @@ function profDraw(){const el=$('#stProf');if(!el||!CH)return;CH.prof=profNorm(CH
 // golpes usados agora: marca o tipo para o bônus/treino
 {const _c=cast;cast=function(i){if(actRoot())return;{const s=CLANS[clan]&&CLANS[clan].sk[i];if(s&&seloBloqueia(mpOf(i,s)))return seloAviso();if(s&&silBloqueia(s))return silAviso();
   if(s&&JALVO[s.t]&&cd[i]<=0&&!alvoPerto(+s.alcance||5)&&!(s.mgk&&EYE.on!=='mgk')){if(!cast._a||performance.now()-cast._a>900){cast._a=performance.now();FT.push({x:p.x,y:p.y-70,t:'ninguém no alcance',txt:1,life:.9})}return}
+  if(s&&s.t==='invoc'&&cd[i]<=0&&!ctFam(CH.ct)){toast('📜 Escolha um contrato de invocação na aba Jutsus.');juSel='invoc';return}
+  if(s&&s.t==='invoc'&&cd[i]<=0&&ctFam(CH.ct)&&(ctFam(CH.ct).ativa||{}).k&&/prende|veneno/.test(ctFam(CH.ct).ativa.k)&&!alvoPerto(+ctFam(CH.ct).ativa.alcance||5)){FT.push({x:p.x,y:p.y-70,t:'ninguém no alcance',txt:1,life:.9});return}
   if(s&&s.mgk&&cd[i]<=0&&EYE.on!=='mgk'){if(!cast._m||performance.now()-cast._m>900){cast._m=performance.now();FT.push({x:p.x,y:p.y-70,t:'ligue a Mangekyō',txt:1,life:.9});toast('👁️ '+s.n+': só com a Mangekyō ligada.')}return}
   if(s&&s.exige==='sombra'&&cd[i]<=0&&!sombraPresos().length){if(!cast._k||performance.now()-cast._k>900){cast._k=performance.now();FT.push({x:p.x,y:p.y-70,t:'ninguém preso na sombra',txt:1,life:.9});toast('🫳 '+s.n+': prenda alguém com o Kagemane antes.')}return}}if(PST>0){if(!cast._t||performance.now()-cast._t>600){cast._t=performance.now();FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7})}return}
  const sk=CLANS[clan]&&CLANS[clan].sk[i],c0=cd[i];HTP=htpDe(skType(i),sk&&sk.id);try{_c(i)}finally{HTP=null}
@@ -280,10 +288,10 @@ function gsMobFollow(dt){const rt=performance.now()-IP.dm;
   for(const q of MTIM)if(e[q]>0)e[q]=Math.max(0,e[q]-dt)}}
 // golpes do jogador vão para o servidor (ele decide a vida da raposa)
 function gsHit(e,d,st,kx,ky){if(!ONL.on)return false;if(e.pvp)return pvpHit(e,d,st,kx,ky);if(!e.sid||e.dead||!ONL.joined)return true;
- const tp=tpN(HTP),pf=profOn(tp),base=d,x=hitRaw(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
+ const tp=tpN(HTP),pf=profOn(tp),base=d,x=hitRaw(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;if(st&&tp==='genjutsu')st*=1+ctPass('genj')/100;
  lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());d=Math.max(1,Math.round(lastCrit?x*critPve():x));if(pf)profGain(base*HMUL);
  const cm=ccPveMul(),H=HCC||{};if(H.lento&&+H.lento.t>0)FT.push({x:e.x,y:e.y-(e.boss?110:46),t:'lento',txt:1,life:.6});
- gsSend({t:'hit',m:e.sid,j:tpJ(HTP),d,st:(st||0)*cm,rt:(H.root||0)*cm,lt:H.lento?(+H.lento.t||0)*cm:0,lp:H.lento?+H.lento.v||0:0,cf:(+H.confusao||0)*cm,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec)});return true}
+ gsSend({t:'hit',m:e.sid,j:tpJ(HTP),d,st:(st||0)*cm,rt:(H.root||0)*cm,lt:H.lento?(+H.lento.t||0)*cm:0,lp:H.lento?+H.lento.v||0:0,cf:(+H.confusao||0)*cm*(1+ctPass('genj')/100),kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec)});return true}
 // ---------- PvP: quem não está no seu grupo pode ser atacado (menos na zona segura em volta do ponto de início) ----------
 // quem bate calcula o golpe igual ao dos monstros; o servidor confere (mapa, distância, grupo, zona segura) e repassa;
 // o alvo sorteia a esquiva (Esquiva dele x sua Precisão), aplica a redução e conta o resultado para todo mundo ver.
@@ -321,7 +329,7 @@ function ccRecebe(cc,src){if(Array.isArray(cc)){cc.forEach(c=>ccRecebe(c,src));r
 // escudo: absorve dano antes da vida; quando quebra, o Susanoo se desfaz
 function shieldAbsorb(n){if(!SHD||SHD.until<=performance.now()||SHD.v<=0)return n;const a=Math.min(n,SHD.v);SHD.v-=a;
  if(a>0)FT.push({x:p.x-16,y:p.y-64,t:'🛡'+Math.round(a),txt:1,life:.7});
- if(SHD.v<=0){SHD=null;FT.push({x:p.x,y:p.y-84,t:'escudo quebrou',txt:1,life:1});onlReg('🛡️ O escudo do Susanoo quebrou.');setTimeout(()=>{if(typeof susEnd==='function')susEnd()},0)}
+ if(SHD.v<=0){const sapo=SHD.src==='sapo';SHD=null;FT.push({x:p.x,y:p.y-84,t:'escudo quebrou',txt:1,life:1});if(sapo){onlReg('🐸 O escudo do sapo quebrou.')}else{onlReg('🛡️ O escudo do Susanoo quebrou.');setTimeout(()=>{if(typeof susEnd==='function')susEnd()},0)}}
  bufHud(1);return n-a}
 // dano já decidido pelo servidor (PvP): aplica direto, sem sortear de novo
 function hurtFix(n,miss,crit){HRES={miss:0,d:0,dead:0};if(miss){HRES.miss=1;FT.push({x:p.x,y:p.y-56,t:'esquivou',txt:1,life:.8});return}
@@ -335,9 +343,9 @@ function PVT(){if(!ONL.on||!ONL.joined||!PVP.on||(scene|0))return [];const L=[];
 function pvpSafeMsg(pe){if(pe)FT.push({x:pe.x,y:pe.y-60,t:'zona segura',txt:1,life:.8});const now=performance.now();if(!pvpSafeMsg.t||now-pvpSafeMsg.t>6000){pvpSafeMsg.t=now;onlReg('🛡️ Zona segura: perto do ponto de início ninguém ataca nem é atacado.')}}
 function pvpHit(e,d,st,kx,ky){const pe=ONL.peers[e.pvp];if(!pe||!ONL.joined)return true;
  if(pvpSafeAt(pe.x,pe.y)||pvpSafeAt(p.x,p.y)){pvpSafeMsg(pe);return true}
- const tp=tpN(HTP),pf=profOn(tp),x=hitRawPvp(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
+ const tp=tpN(HTP),pf=profOn(tp),x=hitRawPvp(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;if(st&&tp==='genjutsu')st*=1+ctPass('genj')/100;
  lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());
- const H=HCC||{},cc=ccDeHCC(H);if(H.semStunPvp)st=0;
+ let H=HCC||{};if(H.confusao&&ctPass('genj'))H=Object.assign({},H,{confusao:H.confusao*(1+ctPass('genj')/100)});const cc=ccDeHCC(H);if(H.semStunPvp)st=0;
  const pen=tp==='taijutsu'&&clan==='hyuga'?+BAL.cc.jukenPen||0:tp==='genjutsu'&&EYE.on==='mgk'?+BAL.cc.mangekyoPen||0:0;
  gsSend({t:'pvp',to:e.pvp,j:tpJ(HTP),d:Math.max(1,Math.round(lastCrit?x*critPvp():x)),st:st||0,g:st&&tp==='genjutsu'?1:undefined,pen:pen||undefined,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec),pj:H.pj?1:0,cc:cc||undefined});pe.hitT=.12;return true}
 function pvpShow(m){const pe=ONL.peers[m.to];if(m.safe){pvpSafeMsg(pe);return}
@@ -371,7 +379,7 @@ function gsMsg(m){
   if(m.miss){FT.push({x:e.x+(me?0:Math.random()*24-12),y,t:'esquivou',txt:1,life:.8});if(me)regMiss(e.nome);break}
   e.hit=me?.15:.12;if(me)e.hurt=.28;FT.push({x:e.x+(me?0:Math.random()*30-15),y,t:m.c?m.d+'!':m.d,life:me?.8:.7,crit:m.c,oth:me?0:1});if(me)regDmg('out',m.d,m.c,e.nome);break}
  case 'mev':gsMev(m);break;
- case 'hurt':{const pv=m.by||null;if(scene|0){if(pv)gsSend({t:'phr',by:pv,miss:1});break}
+ case 'hurt':{const pv=m.by||null;if(pv)ONL.pvpT=performance.now();if(scene|0){if(pv)gsSend({t:'phr',by:pv,miss:1});break}
   if(m.blk||(!pv&&kaitenGuard())){FT.push({x:p.x,y:p.y-62,t:pv?'refletiu':'defendeu',txt:1,life:.8});onlReg('🌀 Kaiten '+(pv?'refletiu um projétil':'bloqueou um golpe')+(m.src?' ('+m.src+')':''));break}
   if(m.fin)hurtFix(m.d,m.miss,m.c);else{HPREC=m.pr||0;hurt(m.d);HPREC=0}const R=HRES,src=m.src?' ('+m.src+')':'';if(!R.miss&&R.d>0)PCF=0; // dano desfaz a confusão (o golpe que confunde aplica depois)
   if(pv&&R.dead)gsSend({t:'phr',by:pv,dead:1});
@@ -412,7 +420,7 @@ function gsPos(force){const now=performance.now();if(!ONL.joined)return;
  const s=[p.x|0,p.y|0,p.fl?1:0,p.mv?1:0,p.run?1:0,scene|0,Math.round(p.hp),p.au>=0?1:0,p.th>=0?1:0].join(',');
  if(!force&&(now-ONL.lastPos<50||(s===ONL.lastSig&&now-ONL.lastPos<2000)))return;ONL.lastPos=now;ONL.lastSig=s;
  gsSend({t:'pos',c:Math.round(now),x:p.x|0,y:p.y|0,fl:p.fl?1:0,mv:p.mv?1:0,run:p.run?1:0,au:p.au>=0?+p.au.toFixed(2):-1,th:p.th>=0?+p.th.toFixed(2):-1,sc:scene|0,hp:Math.round(p.hp),max:p.max})}
-const FXOK={ring:1,rimp:1,bolt:1,line:1,kfx:1,act:1,cone:1,sline:1,sarea:1,aviso:1,chama:1,genj:1,amat:1,tsuku:1,kusho:1};
+const FXOK={ring:1,rimp:1,bolt:1,line:1,kfx:1,act:1,cone:1,sline:1,sarea:1,aviso:1,chama:1,genj:1,amat:1,tsuku:1,kusho:1,invoc:1};
 // qualidade automática: se o aparelho não segura ~50 quadros por segundo, desenha com menos pixels (até 1,5x)
 const PQ={acc:0,n:0,skip:2};
 function perfTick(dt){if(document.hidden)return;PQ.acc+=dt;PQ.n++;if(PQ.acc<3)return;const avg=PQ.acc/PQ.n;PQ.acc=0;PQ.n=0;if(PQ.skip>0){PQ.skip--;return}
@@ -681,6 +689,7 @@ const JT={
   {b:'Estratégia',n:[{id:'campo',j:'campo'},{id:'intelecto',j:'intelecto'}]}]};
 // nível de cada nó: olhos do Uchiha em olhos.tomoe, o resto no catálogo (balanceamento.json → golpes.jutsus)
 for(const c in JT)JT[c].forEach(B=>B.n.forEach(n=>{if(n.soon)return;n.lv=n.tm?TOM[n.tm].lv:juLv(JU[c]&&JU[c][n.j])}));
+for(const c of ['uchiha','hyuga','nara'])if(JT[c])JT[c].push({b:'Invocação (contrato)',n:[{id:'invoc',j:'invoc',lv:juLv(JU[c]&&JU[c].invoc)}]});
 const JTD={
  katon:'Katon: Gōkakyū no Jutsu. Faz os selos e solta uma grande bola de fogo pela boca, que explode ao acertar.',
  tm1:'O Sharingan desperta com 1 tomoe: enxerga o chakra e acompanha movimentos rápidos.',
@@ -702,6 +711,7 @@ const JTD={
  h128:'Hakke Hyakunijūhachi Shō: a evolução das 64 Palmas, com mais golpes e o chakra selado por mais tempo. No nível dela toma o lugar das 64 no botão (dá para voltar).',
  sojishi:'Hakke Kūshō: Sōjishi: duas palmas de vácuo ao mesmo tempo, para a frente e para trás. Quem está dentro é empurrado e fica lento.',
  kperf:'Kaiten Perfeito: o Kaiten maior. Bloqueia projéteis enquanto gira e no fim solta o golpe em toda a volta (a força é dividida entre os alvos) e sela o chakra.',
+ invoc:'Kuchiyose no Jutsu: assine o contrato com uma família de animais. Ele dá uma passiva pequena e a invocação vai num botão da barra. Só 1 contrato por vez; trocar tem espera.',
  shuri:'Arremesso de shuriken.',
  sombra:'Kagemane no Jutsu: a sombra estica em linha e prende quem tocar.',
  poss:'A sombra se espalha em área e prende vários inimigos ao mesmo tempo.',
@@ -823,7 +833,7 @@ function gsCast(sl){if(ONL.on&&ONL.joined){const s=CLANS[clan].sk[sl];gsSend({t:
 // derrotado: olho, reforços e Susanoo acabam
 {const _h=hurt;hurt=function(n){_h(n);if(HRES&&HRES.dead){eyeOff();susEnd();bufClear()}}}
 // começo de cada partida
-function jtStart(){EYE.on=null;SUS=null;BUFS={};BYK.on=0;BYK.slot=null;jtBtnTick.l=null;jtBtnTick.lv=CH?CH.lv:null;barLoad();skBtns();bufHud(1)}
+function jtStart(){EYE.on=null;SUS=null;BUFS={};BYK.on=0;BYK.slot=null;ctApply();jtBtnTick.l=null;jtBtnTick.lv=CH?CH.lv:null;barLoad();skBtns();bufHud(1)}
 // ---------- barra de jutsus: botões 0 e 1 e o 3 (no lugar do item) escolhidos pelo jogador; o grande (2) só para ultimate ----------
 let BAR=null;const barKey=()=>'shinobi-barra-'+String(name).toLowerCase();
 const barDefault=()=>(BAL.golpes.barra[clan]||[]).concat(['item']);
@@ -857,6 +867,7 @@ function juStats(n){const L=[],J=JU[clan]||{},bi=id=>BAR?BAR.indexOf(id):-1,sl=i
   if(E2){const A=E2.sus;L.push('Ao surgir: '+A.dmg+' de dano em área'+(A.hits>1?' ('+A.hits+' vezes)':'')+(A.stun?' e atordoa '+nf(A.stun)+' s':'')+'.');L.push(A.t+' s de pé: escudo de '+(+A.escudo||0)+'% da vida'+(A.dmgb?' e +'+A.dmgb+'% de dano':'')+'; '+(+BAL.olhos.susanooLento||0)+'% mais lento e sem recuperar vida; quebrou o escudo, ele se desfaz.')}
   else L.push('Cada Mangekyō tem o seu: escolha o olho no nó da Mangekyō.');return L}
  if(n.soon)return L;const s=J[n.j];if(!s)return L;const k=sl(n.j);
+ if(s.t==='invoc'){const f=ctFam(CH.ct);if(!f){L.push('Sem contrato: escolha uma família abaixo (a partir do Nv '+INVB.nivel+').');return L}L.push('Contrato: '+f.ic+' '+f.n+' — '+ctAtivaTxt(f)+'.');L.push('Passiva (sempre ligada): '+ctPassTxt(f)+'.');L.push('Chakra '+mpOf(sl('invoc'),s)+' · Recarga '+nf(cdOf(sl('invoc'),s))+' s');return L}
  if(s.nat&&NATT[s.nat])L.push('Natureza '+natNome(s.nat)+' ('+natRel(s.nat)+'). '+(s.papel==='basico'?'Golpe básico: só conta forte/fraco.':'No PvP: '+natEfTxt(s.nat)+'.'));
  if(s.papel==='passiva'){L.push('Jutsus de sombra (Kagemane, Kage Nui, Kubishibari, Possessão, Kageyose, Campo e Domínio): −'+(+s.cdSombra||0)+'% de recarga.');L.push('Em monstros, prender, atordoar e deixar lento duram +'+(+s.ccPve||0)+'%.');return L}
  L.push((s.dmg?'Dano base '+s.dmg+' · ':'')+'Chakra '+mpOf(k,s)+' · Recarga '+nf(cdOf(k,s))+' s'+(s.tel?' · Aviso '+nf(s.tel)+' s':'')+(s.stun?' · Atordoa '+nf(s.stun)+' s':'')+(s.root?' · Prende '+nf(s.root)+' s'+(s.alvos?' (até '+s.alvos+' alvos)':''):'')+(s.ccPvp&&s.ccPvp.k==='selo'?' · Sela o chakra '+nf(s.ccPvp.t)+' s (PvP)':'')+(s.queima?' · Queima '+s.queima+'% do chakra (PvP)':'')+(s.r?' · Área '+nf(s.r/T)+' tiles':''));
@@ -872,6 +883,7 @@ function juDraw(){const el=$('#paneJu');if(!el||el.hidden||!clan||!CH)return;con
  const n=all.find(x=>x.id===juSel),I=jtInfo(n),br=JT[clan].find(B=>B.n.includes(n)),js=n.j&&JU[clan][n.j],tp=js&&js.tipo||null,bk=BAR&&n.j?BAR.indexOf(n.j):-1;
  h+='</div><div class="jdet"><div class="jdh"><span class="ji">'+I.ic+'</span><div><b>'+I.nm+(I.sub?' <span class="z">'+I.sub+'</span>':'')+'</b><small>'+br.b.replace(/\s*\(.*\)/,'')+(js?' · '+(js.papel==='ult'?'ultimate':'jutsu')+(bk>=0?' no botão '+SLN[bk]:' fora da barra'):'')+(tp?' · '+(TPN[tp]||tp):'')+(js&&js.nat?' · '+natNome(js.nat):'')+'</small></div><span class="jst '+I.st+'">'+(n.soon?'Em breve':!I.ok?'🔒 Nv '+n.lv:I.needEye?'Escolha o olho':'✓ Liberado')+'</span></div>'
   +'<p class="pfd">'+(JTD[n.id]||'')+'</p>'+(()=>{const L=juStats(n);return L.length?ulist(L,'up'):''})()+juBarBtns(n,js,I);
+ if(n.id==='invoc')h+=ctHtml();
  if(n.id==='mgk'){const can=(CH.lv|0)>=TOM[4].lv;h+='<div class="pft pup">'+(CH.mgk?'Seu Mangekyō':'Escolha o seu Mangekyō')+(can?'':' <span>(libera no Nv '+TOM[4].lv+')</span>')+'</div><div class="pfg">';
   for(const k in EYES){const Y=EYES[k],A=Y.sus,cur=CH.mgk===k,conf=juPick===k;
    h+='<div class="pfo'+(cur?' cur':'')+(can?'':' lock')+'"><div class="pfh"><span class="pfi jey">'+imgIc(SFXIC[k])+'</span><div><b>Mangekyō de '+Y.n+'</b><small>'+Y.d+'</small></div></div>'
@@ -882,6 +894,7 @@ function juDraw(){const el=$('#paneJu');if(!el||el.hidden||!clan||!CH)return;con
  el.innerHTML=h;admClaBind(el,juDraw);
  el.querySelectorAll('[data-j]').forEach(b=>b.onclick=()=>{juSel=b.dataset.j;juPick=null;juDraw()});
  el.querySelectorAll('[data-eye]').forEach(b=>b.onclick=()=>juEye(b.dataset.eye));
+ el.querySelectorAll('[data-ct]').forEach(b=>b.onclick=()=>ctEscolhe(b.dataset.ct));
  el.querySelectorAll('[data-bar]').forEach(b=>b.onclick=()=>{const [i,id]=b.dataset.bar.split(':');if(!barSet(+i,id))toast('Não dá para pôr aí: '+(id==='item'?'o item fica no botão 3':'tire esse jutsu do outro botão primeiro')+'.');juDraw()});
  el.querySelectorAll('[data-bs]').forEach(b=>b.onclick=()=>{const id=BAR&&BAR[+b.dataset.bs];const n=id&&id!=='item'&&jtNodes().find(x=>x.j===id&&(!x.tm||x.tm===Math.max(1,eyeLv())));if(n){juSel=n.id;juDraw()}});
  el.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{const v=+b.dataset.lv;let g=0;while(CH.lv<v&&CH.lv<LVMAX&&g++<200)gainXp(xpNeed(CH.lv)-CH.xp);juDraw()})}
@@ -964,7 +977,7 @@ function castKubi(s,ax,ay){const tp=HTP,t=+s.tel||0,L=sombraPresos(),D=s.dot||{}
  L.forEach(e=>fx.push({k:'sline',x:p.x,y:p.y-4,ax:(e.x-p.x)/(Math.hypot(e.x-p.x,e.y-p.y)||1),ay:(e.y-p.y)/(Math.hypot(e.x-p.x,e.y-p.y)||1),len:Math.hypot(e.x-p.x,e.y-p.y),col:'#120a22',life:t+.5,max:t+.5,tel:t}));
  KDEL.push({t,fn:()=>{HTP=tp;try{L.forEach(e=>{if(e.dead)return;hitCom(e,s,+s.pot||1,s.silencio?{silencio:+s.silencio}:null);fx.push({k:'ring',x:e.x,y:e.y-30,r:16,col:'#5b3a8a',life:.4,max:.4})})}finally{HTP=null}
   if(L.length)onlReg('🫳 Kubishibari em '+L.length+' alvo'+(L.length>1?'s':'')+': silenciado'+(L.length>1?'s':'')+' por '+nf(+s.silencio||0)+' s.')}});
- for(let j=1;j<=(D.n|0);j++)KDEL.push({t:t+j*(+D.int||.5),fn:()=>{HTP=tp;try{L.forEach(e=>{if(!e.dead)hitCom(e,s,+D.pot||.1)})}finally{HTP=null}}})}
+ for(let j=1;j<=(D.n|0);j++)KDEL.push({t:t+j*(+D.int||.5),fn:()=>{HTP=tp;try{L.forEach(e=>{if(!e.dead)hitCom(e,s,(+D.pot||.1)*dotMul())})}finally{HTP=null}}})}
 // Kageyose: a sombra estica em linha, agarra o primeiro inimigo e puxa até você (4 puxões)
 function castYose(s,ax,ay){const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,len=s.len||240;
  fx.push({k:'sline',x:x0,y:y0-4,ax,ay,len,col:'#120a22',life:t+.25,max:t+.25,tel:t});
@@ -1008,7 +1021,7 @@ function castGenj(s,ax,ay){const tp=HTP,t=+s.tel||.4,tg=alvoPerto(+s.alcance||5)
 function castAmat(s,ax,ay){const tp=HTP,t=+s.tel||.8,tg=alvoPerto(+s.alcance||6),D=s.dot||{};if(!tg)return;
  fx.push({k:'amat',x:tg.x,y:tg.y,life:t,max:t,pre:1});
  KDEL.push({t,fn:()=>{if(tg.dead)return;HTP=tp;try{hitCom(tg,s,+s.pot||1)}finally{HTP=null}fx.push({k:'amat',x:tg.x,y:tg.y,life:1,max:1});onlReg('🖤 Amaterasu em '+(tg.nome||'o alvo')+'.')}});
- for(let j=1;j<=(D.n|0);j++)KDEL.push({t:t+j*(+D.int||1),fn:()=>{if(tg.dead)return;HTP=tp;try{hitCom(tg,s,+D.pot||.1)}finally{HTP=null}fx.push({k:'amat',x:tg.x,y:tg.y,life:.8,max:.8})}})}
+ for(let j=1;j<=(D.n|0);j++)KDEL.push({t:t+j*(+D.int||1),fn:()=>{if(tg.dead)return;HTP=tp;try{hitCom(tg,s,(+D.pot||.1)*dotMul())}finally{HTP=null}fx.push({k:'amat',x:tg.x,y:tg.y,life:.8,max:.8})}})}
 // Tsukuyomi (Mangekyō ligada): o olhar atordoa; quem está de costas para você não é pego
 const deFrente=e=>{const dx=p.x-e.x;return Math.abs(dx)<10||(e.fl?-1:1)*dx>0};
 function castTsuku(s,ax,ay){const tp=HTP,t=+s.tel||.8,tg=alvoPerto(+s.alcance||5);if(!tg)return;
@@ -1067,6 +1080,41 @@ function hyuFxDraw(f){const k=1-f.life/f.max,a=Math.min(1,f.life/.2);ctx.save();
  if(f.k==='kusho'){const g=f.tel>0?Math.min(1,(f.max-f.life)/f.tel):1,L=f.len*g,x=f.x+f.ax*L,y=f.y+f.ay*L,an=Math.atan2(f.ay,f.ax);ctx.globalAlpha=.55*a;ctx.strokeStyle='#e3efff';ctx.lineWidth=3;
   for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(x-f.ax*i*10,y-f.ay*i*10,10+i*5,an-1,an+1);ctx.stroke()}ctx.globalAlpha=.18*a;ctx.lineWidth=14;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(x,y);ctx.stroke()}
  ctx.restore()}
+// ---------- invocações (planilha 11) ----------
+// o jutsu "invoc" toma nome, ícone, recarga e chakra da família do contrato
+function ctApply(){if(!clan||!JU[clan]||!JU[clan].invoc)return;const s=JU[clan].invoc,f=CH&&ctFam(CH.ct);
+ s.n=f?'Invocação: '+f.n:'Invocação';s.i=f?f.ic:'📜';if(f){s.cd=+f.cd||s.cd;s.mpPct=+f.mpPct||s.mpPct}s.fam=f?CH.ct:null}
+function ctPassTxt(f,c){const P=f.passiva||{},m=ctAfim(f,c)?+INVB.afinidade||1:1,v=k=>nf((+P[k]||0)*m);
+ return Object.keys(P).map(k=>k==='genj'?'+'+v(k)+'% de genjutsu':k==='spd'?'+'+v(k)+'% de velocidade':k==='prec'?'+'+v(k)+' de precisão':k==='hp'?'+'+v(k)+'% de vida máxima':k==='cura'?'+'+v(k)+'% de cura recebida':k==='ccPve'?'+'+v(k)+'% de controle em monstros':k==='dot'?'+'+v(k)+'% de dano contínuo':k).join(', ')}
+function ctAtivaTxt(f){const a=f.ativa||{};return a.k==='clone'?'clone de corvo por '+a.t+' s: +'+a.esq+' de esquiva (distrai)':a.k==='dash'?'o falcão leva você '+a.tiles+' tiles para a frente':a.k==='prende'?'o cão prende o inimigo mais perto (até '+a.alcance+' tiles) por '+nf(a.t)+' s':a.k==='escudo'?'o sapo dá um escudo de '+a.pct+'% da vida por '+a.t+' s':a.k==='cura'?'a lesma cura '+a.pct+'% da vida em '+a.t+' s':a.k==='zona'?'área de '+a.raio+' tiles por '+a.t+' s: inimigos '+a.v+'% mais lentos':a.k==='veneno'?'a cobra morde o inimigo mais perto (até '+a.alcance+' tiles) e envenena ('+a.n+' toques)':''}
+const ctEspera=()=>{if(!CH||!CH.ct||!CH.ctT||ONL.adm)return 0;return Math.max(0,(+INVB.trocaEspera||0)-(Date.now()-CH.ctT)/1000)};
+let ctPick=null;
+function ctEscolhe(k){const f=ctFam(k);if(!f||(CH.lv|0)<(+INVB.nivel||1)||CH.ct===k)return;const w=ctEspera();if(w>0){toast('📜 Dá para trocar de contrato em '+Math.ceil(w/60)+' min.');return}
+ if(CH.ct&&ctPick!==k){ctPick=k;return juDraw()}ctPick=null;const de=ctFam(CH.ct);CH.ct=k;CH.ctT=Date.now();chSave();stats();ctApply();skBtns();
+ toast('📜 Contrato assinado: '+f.n+'!');onlReg('📜 Contrato com os '+f.n+(de?' (antes: '+de.n+')':'')+'. Passiva: '+ctPassTxt(f)+'. Invocação: '+ctAtivaTxt(f)+'. Coloque a Invocação num botão pela aba Jutsus.');juDraw()}
+function ctHtml(){const can=(CH.lv|0)>=(+INVB.nivel||1),w=ctEspera();let h='<div class="pft pup">'+(CH.ct?'Seu contrato':'Escolha o seu contrato')+(can?'':' <span>(libera no Nv '+INVB.nivel+')</span>')+(w>0?' <span>(troca liberada em '+Math.ceil(w/60)+' min)</span>':'')+'</div><div class="pfg">';
+ for(const k in INVB.familias){const f=INVB.familias[k],cur=CH.ct===k,conf=ctPick===k,af=ctAfim(f);
+  h+='<div class="pfo'+(cur?' cur':'')+(can?'':' lock')+'"><div class="pfh"><span class="pfi">'+f.ic+'</span><div><b>'+f.n+'</b><small>'+f.papel+(af?' · combina com o seu clã (×'+nf(+INVB.afinidade||1)+')':'')+'</small></div></div>'
+   +'<div class="pfq">Passiva: '+ctPassTxt(f)+'. Invocação: '+ctAtivaTxt(f)+'. Recarga '+f.cd+' s, '+f.mpPct+'% do chakra.</div>'
+   +'<button data-ct="'+k+'"'+(can&&!cur&&!(w>0)?'':' disabled')+(conf?' class="conf"':'')+'>'+(cur?'Atual':!can?'Nv '+INVB.nivel:conf?'Confirmar troca':'Assinar')+'</button></div>'}
+ return h+'</div><p class="chnote">Só 1 contrato por vez. Depois de trocar, a próxima troca espera '+Math.round((+INVB.trocaEspera||0)/60)+' min.</p>'}
+// soltar a invocação
+function castInvoc(s,ax,ay){const f=ctFam(CH.ct);if(!f)return;const a=f.ativa||{},tp=HTP;const ic=f.ic;
+ const show=(x,y,t,fol)=>fx.push({k:'invoc',ic,x,y,life:t,max:t,fol:fol?1:0,dx:fol?-22:0});
+ if(a.k==='clone'){show(p.x,p.y,+a.t||10,1);bufStart('invoc',{esq:+a.esq||0,t:+a.t||10,nm:f.n+': +'+a.esq+' de esquiva'});for(let i=0;i<5;i++)fx.push({k:'invoc',ic,x:p.x+(Math.random()-.5)*60,y:p.y-20-Math.random()*30,life:.9,max:.9,voa:1});return}
+ if(a.k==='dash'){const L=Math.hypot(ax,ay)||1,ux=ax/L,uy=ay/L,steps=Math.round((+a.tiles||4)*T/8);show(p.x,p.y,.7,0);for(let i=0;i<steps;i++){const nx=p.x+ux*8,ny=p.y+uy*8;if(sol(nx,ny)||blk(nx,ny))break;p.x=nx;p.y=ny}show(p.x,p.y,.7,0);if(ONL.on)gsPos(true);return}
+ if(a.k==='prende'||a.k==='veneno'){const tg=alvoPerto(+a.alcance||5);if(!tg)return;show(tg.x+14,tg.y,a.k==='veneno'?1.2:(+a.t||1)+.3,0);HTP=tp;
+  try{if(a.k==='prende')hitCom(tg,s,.15,{root:+a.t||1},ONL.on?0:+a.t||1);else hitCom(tg,s,+a.pot||.3)}finally{HTP=null}
+  if(a.k==='veneno')for(let j=1;j<=(a.n|0);j++)KDEL.push({t:j,fn:()=>{if(tg.dead)return;HTP=tp;try{hitCom(tg,s,(+a.potTick||.08)*dotMul())}finally{HTP=null}}});return}
+ if(a.k==='escudo'){const v=Math.round(p.max*(+a.pct||15)/100);SHD={v,until:performance.now()+(+a.t||8)*1000,src:'sapo'};show(p.x,p.y,+a.t||8,1);bufHud(1);onlReg('🐸 Escudo do sapo: '+v+' por '+a.t+' s.');return}
+ if(a.k==='cura'){const n=Math.max(1,Math.round(+a.t||6)),tot=p.max*(+a.pct||12)/100;show(p.x,p.y,+a.t||6,1);
+  for(let j=1;j<=n;j++)KDEL.push({t:j,fn:()=>{const pv=ONL.on&&ONL.pvpT&&performance.now()-ONL.pvpT<8000?+BAL.pvp.curaMul||1:1,h=tot/n*(1+ctPass('cura')/100)*pv;p.hp=Math.min(p.max,p.hp+h);FT.push({x:p.x+10,y:p.y-60,t:'+'+Math.round(h),txt:1,life:.7})}});return}
+ if(a.k==='zona'){const x0=p.x,y0=p.y,r=(+a.raio||3)*T,dur=+a.t||6;fx.push({k:'sarea',x:x0,y:y0-4,r,col:'#3d5a1e',life:dur,max:dur,tel:.3});show(x0,y0,dur,0);
+  for(let j=0;j<Math.round(dur);j++)KDEL.push({t:.3+j,fn:()=>{HTP=tp;try{alvosEm(x0,y0,r).forEach(e=>hitCom(e,s,.03,{lento:{v:+a.v||20,t:1.2}}))}finally{HTP=null}}});return}}
+JCAST.invoc=castInvoc;
+function invocDraw(f){const a=Math.min(1,f.life/.3),ts=performance.now();let x=f.x,y=f.y;if(f.fol){const o=f.pid?(ONL.peers||{})[f.pid]:p;if(o&&o.x!=null){x=o.x+(f.dx||0);y=o.y}}
+ if(f.voa){y-=(1-f.life/f.max)*40;x+=Math.sin(ts/120+f.x)*6}ctx.save();ctx.globalAlpha=a;ctx.font=(f.voa?14:22)+'px system-ui';ctx.textAlign='center';ctx.fillText(f.ic||'📜',x,y-6+Math.sin(ts/180)*2);
+ ctx.globalAlpha=.25*a;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(x,y+2,9,3,0,0,7);ctx.fill();ctx.restore()}
 // Bola de Fogo (Uchiha): selo com as mãos, depois a bola sai da boca e explode ao acertar
 function castFire(s,ax,ay){actStart('fogo');const tp=HTP;
  KDEL.push({t:s.tel||.16,fn:()=>{const l=Math.hypot(ax,ay)||1,ux=ax/l,uy=ay/l;P.push({x:p.x+ux*14,y:p.y-24,vx:ux*(s.sp||300),vy:uy*(s.sp||300),col:s.col,dmg:s.dmg,life:1.1,big:1,fire:1,tp})}})}
@@ -1175,12 +1223,13 @@ async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;
  const row=await onlLoadChar();
  try{await gsReady()}catch(e){e.gs=1;throw e}
  if(ONL.adm&&ONL.verDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem a coluna da versão do personagem: rode o arquivo sql/07_versao.sql no Supabase. O jogo funciona sem ela.'),1900);
+ if(ONL.adm&&ONL.ctDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem a coluna do contrato de invocação: rode o arquivo sql/08_contrato.sql no Supabase. Até lá o contrato fica salvo só neste aparelho.'),2100);
  if(ONL.adm&&ONL.mgkDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem a coluna da Mangekyō: rode o arquivo sql/06_mangekyo.sql no Supabase. Até lá a escolha do olho fica salva só neste aparelho.'),1700);
  if(ONL.adm&&ONL.profDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem as colunas da proficiência: rode o arquivo sql/03_proficiencia.sql no Supabase. Até lá ela fica salva só neste aparelho.'),1500);
  if(row&&row.cla&&CLANS[row.cla]){ONL.hasChar=true;name=ONL.nome=row.nome||ONL.nome;
   ['pele','cabelo','roupa'].forEach((k,i)=>{if(row[k])look[['skin','hair','cloth'][i]]=row[k]});
-  const ch={lv:row.nivel,xp:row.xp,pts:row.pontos,st:{str:row.forca,agi:row.agilidade,vit:row.vitalidade,int:row.inteligencia,dex:row.destreza,luk:row.sorte},prof:{k:row.proficiencia||null,xp:row.prof_xp|0},mgk:row.mangekyo||null,v:ONL.verDb?+row.versao||1:1};
-  if(!ONL.profDb||!ONL.mgkDb||!ONL.verDb){try{const o=JSON.parse(localStorage.getItem(chKey())||'null');if(o&&o.prof&&!ONL.profDb)ch.prof=o.prof;if(o&&o.mgk&&!ONL.mgkDb)ch.mgk=o.mgk;if(o&&o.v&&!ONL.verDb)ch.v=o.v}catch(_){}} // sem as colunas no banco: mantém o que estava no aparelho
+  const ch={lv:row.nivel,xp:row.xp,pts:row.pontos,st:{str:row.forca,agi:row.agilidade,vit:row.vitalidade,int:row.inteligencia,dex:row.destreza,luk:row.sorte},prof:{k:row.proficiencia||null,xp:row.prof_xp|0},mgk:row.mangekyo||null,ct:row.contrato||null,ctT:0,v:ONL.verDb?+row.versao||1:1};
+  if(!ONL.profDb||!ONL.mgkDb||!ONL.verDb||!ONL.ctDb||1){try{const o=JSON.parse(localStorage.getItem(chKey())||'null');if(o&&o.prof&&!ONL.profDb)ch.prof=o.prof;if(o&&o.mgk&&!ONL.mgkDb)ch.mgk=o.mgk;if(o&&o.v&&!ONL.verDb)ch.v=o.v;if(o&&o.ct&&!ONL.ctDb)ch.ct=o.ct;if(o&&o.ctT&&(o.ct===ch.ct))ch.ctT=o.ctT}catch(_){}} // sem as colunas no banco: mantém o que estava no aparelho
   const inv={inv:[],eq:{}};(row.inventario||[]).forEach(r=>{const it=ITEMS[r.item];if(!it)return;if(r.equipado&&!inv.eq[it.slot])inv.eq[it.slot]=r.item;else inv.inv.push(r.item)});
   try{localStorage.setItem(chKey(),JSON.stringify(ch));localStorage.setItem(invKey(),JSON.stringify(inv))}catch(_){}
   onlStartMap();

@@ -25,6 +25,8 @@ _need('personagem.retornoDecrescente.eficacia');_need('proficiencia.multMin');_n
 for _p in ['proficiencia.ranks','olhos.tomoe']:_need(_p,list)
 for _p in ['cc.janela','cc.imune','cc.agrupa','cc.cadeiaMax','cc.tenacidadeVit','cc.tenacidadeMax','cc.jukenPen','cc.mangekyoPen']:_need(_p)
 _need('cc.fatores',list)
+for _p in ['invocacoes.nivel','invocacoes.trocaEspera','invocacoes.afinidade','pvp.curaMul']:_need(_p)
+_need('invocacoes.familias',dict)
 _need('combate.critMultPve');_need('combate.critMultPvp');_need('pvp.itemDanoMax')
 for _p in ['naturezas.forte','naturezas.fraco','naturezas.efeitoCd']:_need(_p)
 for _p in ['naturezas.tipos','naturezas.cla','naturezas.itens']:_need(_p,dict)
@@ -139,8 +141,8 @@ rep('<button id="stZero">','<button id="stZero" class="admo">')
 # projéteis de outros jogadores são só visuais
 rep("for(const e of E)if(!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE","for(const e of (b.rm?E:E.concat(PVT())))if(!b.rm&&!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE")
 # ---- proficiência ----
-rep("const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0}});","const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0},prof:{k:null,xp:0},mgk:null,v:SAVE_V});")
-rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(BAL.personagem.atributoMax,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null;CH.v=Math.max(SAVE_V,+j.v||1)}}catch(e){}}")
+rep("const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0}});","const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0},prof:{k:null,xp:0},mgk:null,ct:null,ctT:0,v:SAVE_V});")
+rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(BAL.personagem.atributoMax,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null;CH.ct=ctFam(j.ct)?j.ct:null;CH.ctT=+j.ctT||0;CH.v=Math.max(SAVE_V,+j.v||1)}}catch(e){}}")
 rep("const mpOf=(i,s)=>{const a=i==0?atkItem():null;return a?(+a.atk.mp||0):s.mp};","const mpOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.round((a?(+a.atk.mp||0):Math.max(+s.mp||0,(+s.mpPct||0)*(p&&p.mpMax||0)/100))*profMp(i))};")
 rep("const cdOf=(i,s)=>{const a=i==0?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM())};","const cdOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM()*profCd(i)*juCdMul(a?null:s))};")
 rep("col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin})","col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin,tp:HTP})")
@@ -187,7 +189,7 @@ rep("if(p.dash){dashStep(dt)}else if(m>.15){","if(p.dash){dashStep(dt)}else if(P
 rep(" if(s.t=='aoe'){const cx=p.x+ax*(s.off||0),cy=p.y+ay*(s.off||0);\n  fx.push({k:'ring',x:cx,y:cy-8,r:s.r,col:s.col,life:.45,max:.45,sp:s.fx});\n  E.concat(PVT()).forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hitE(e,s.dmg,s.stun,ax*(s.kb||0),ay*(s.kb||0))});\n  if(s.fx)flash={col:s.col,a:.3}}",
     " if(s.t=='aoe')castAoe(s,ax,ay);else if(JCAST[s.t])JCAST[s.t](s,ax,ay);")
 # desenho dos efeitos da folha
-rep(" fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='ring'){"," fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'){shadowFxDraw(f);return}if(f.k=='aviso'||f.k=='chama'||f.k=='genj'||f.k=='amat'||f.k=='tsuku'){uchFxDraw(f);return}if(f.k=='kusho'){hyuFxDraw(f);return}if(f.k=='act')return;\n  if(f.k=='ring'){")
+rep(" fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='ring'){"," fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'){shadowFxDraw(f);return}if(f.k=='aviso'||f.k=='chama'||f.k=='genj'||f.k=='amat'||f.k=='tsuku'){uchFxDraw(f);return}if(f.k=='kusho'){hyuFxDraw(f);return}if(f.k=='invoc'){invocDraw(f);return}if(f.k=='act')return;\n  if(f.k=='ring'){")
 # Hyuga de branco: quadros novos entram no sprite (o jogo carrega e pinta pele/cabelo igual aos outros; a roupa branca não recebe cor)
 HYS=json.load(open('hyuga/spr_hyuga.json'));UCS=json.load(open('hyuga/spr_uchiha.json'))
 J=lambda o:json.dumps(o,separators=(',',':'))

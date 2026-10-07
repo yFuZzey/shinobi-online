@@ -1,6 +1,6 @@
 {
  "_leia": "Números de balanceamento do Shinobi Online. O servidor lê este arquivo ao iniciar (o Render reinicia sozinho quando ele muda no GitHub) e o jogo leva uma cópia na montagem (src/build.sh). Se algum valor faltar ou vier errado, o servidor usa o valor padrão do código e avisa no log. Tempos em segundos, distâncias em pixels (1 tile = 32 px), chances em %.",
- "versao": 12,
+ "versao": 13,
  "flags": {
   "_leia": "Liga (true) ou desliga (false) cada sistema.",
   "pvp": true
@@ -157,8 +157,9 @@
   }
  },
  "pvp": {
-  "_leia": "Planilha 12 (PvP × PvE). itemDanoMax = no PvP, o bônus de % de dano dos itens vale no máximo isso (o Manto da Raposa dá +100% no PvE). Dano no PvP = servidor.pvpMul; diferença de nível no PvP aberto = servidor.pvpNivelBonusMax (quem tem nível maior bate no máximo isso a mais do que alguém do nível do alvo; pvpNivelCurva = quanto o poder cresce por nível, 0 desliga).",
-  "itemDanoMax": 20
+  "_leia": "Planilha 12 (PvP × PvE). itemDanoMax = no PvP, o bônus de % de dano dos itens vale no máximo isso (o Manto da Raposa dá +100% no PvE). Dano no PvP = servidor.pvpMul; diferença de nível no PvP aberto = servidor.pvpNivelBonusMax (quem tem nível maior bate no máximo isso a mais do que alguém do nível do alvo; pvpNivelCurva = quanto o poder cresce por nível, 0 desliga). curaMul = cura no PvP (até 8 s depois de levar golpe de jogador).",
+  "itemDanoMax": 20,
+  "curaMul": 0.6
  },
  "personagem": {
   "_leia": "Nível, pontos e atributos. XP para passar do nível N = xpBase × N^xpExpoente.",
@@ -588,6 +589,17 @@
      "papel": "ativo",
      "lv": 50,
      "nat": "yin"
+    },
+    "invoc": {
+     "r": "E",
+     "f": 0,
+     "mp": 0,
+     "mpPct": 10,
+     "cd": 45,
+     "tipo": "ninjutsu",
+     "papel": "ativo",
+     "lv": 10,
+     "invoc": 1
     }
    },
    "hyuga": {
@@ -715,6 +727,17 @@
      "papel": "ult",
      "lv": 60,
      "nat": "yang"
+    },
+    "invoc": {
+     "r": "E",
+     "f": 0,
+     "mp": 0,
+     "mpPct": 10,
+     "cd": 45,
+     "tipo": "ninjutsu",
+     "papel": "ativo",
+     "lv": 10,
+     "invoc": 1
     }
    },
    "nara": {
@@ -861,6 +884,17 @@
      "papel": "ult",
      "lv": 60,
      "nat": "yin"
+    },
+    "invoc": {
+     "r": "E",
+     "f": 0,
+     "mp": 0,
+     "mpPct": 10,
+     "cd": 45,
+     "tipo": "ninjutsu",
+     "papel": "ativo",
+     "lv": 10,
+     "invoc": 1
     }
    }
   },
@@ -987,6 +1021,137 @@
     "t": 8,
     "escudo": 30,
     "dmgb": 10
+   }
+  }
+ },
+ "invocacoes": {
+  "_leia": "Planilha 11. 1 contrato por personagem (a partir do 'nivel'); trocar de contrato só depois de 'trocaEspera' s da última troca. A invocação vai num botão da barra (jutsu 'invoc' do catálogo; recarga e chakra vêm da família). passiva: genj = % a mais de genjutsu, spd = % de velocidade, prec = precisão, hp = % de vida máxima, cura = % de cura recebida, ccPve = % de controle em monstros, dot = % de dano contínuo. Clã com afinidade (cla) recebe a passiva × afinidade.",
+  "nivel": 10,
+  "trocaEspera": 600,
+  "afinidade": 1.5,
+  "familias": {
+   "corvos": {
+    "n": "Corvos",
+    "ic": "🐦‍⬛",
+    "papel": "Genjutsu e visão",
+    "passiva": {
+     "genj": 5
+    },
+    "ativa": {
+     "k": "clone",
+     "t": 10,
+     "esq": 15
+    },
+    "cd": 60,
+    "mpPct": 15,
+    "cla": [
+     "uchiha"
+    ]
+   },
+   "falcoes": {
+    "n": "Falcões",
+    "ic": "🦅",
+    "papel": "Mobilidade",
+    "passiva": {
+     "spd": 5
+    },
+    "ativa": {
+     "k": "dash",
+     "tiles": 4
+    },
+    "cd": 45,
+    "mpPct": 10,
+    "cla": [
+     "uchiha"
+    ]
+   },
+   "caes": {
+    "n": "Cães ninja",
+    "ic": "🐕",
+    "papel": "Rastreio",
+    "passiva": {
+     "prec": 8
+    },
+    "ativa": {
+     "k": "prende",
+     "t": 1,
+     "alcance": 5
+    },
+    "cd": 60,
+    "mpPct": 15,
+    "cla": [
+     "hyuga",
+     "nara"
+    ]
+   },
+   "sapos": {
+    "n": "Sapos",
+    "ic": "🐸",
+    "papel": "Tanque",
+    "passiva": {
+     "hp": 5
+    },
+    "ativa": {
+     "k": "escudo",
+     "pct": 15,
+     "t": 8
+    },
+    "cd": 75,
+    "mpPct": 20,
+    "cla": []
+   },
+   "lesmas": {
+    "n": "Lesmas",
+    "ic": "🐌",
+    "papel": "Suporte",
+    "passiva": {
+     "cura": 5
+    },
+    "ativa": {
+     "k": "cura",
+     "pct": 12,
+     "t": 6
+    },
+    "cd": 75,
+    "mpPct": 20,
+    "cla": []
+   },
+   "cervos": {
+    "n": "Cervos",
+    "ic": "🦌",
+    "papel": "Controle",
+    "passiva": {
+     "ccPve": 5
+    },
+    "ativa": {
+     "k": "zona",
+     "v": 20,
+     "t": 6,
+     "raio": 3
+    },
+    "cd": 60,
+    "mpPct": 15,
+    "cla": [
+     "nara"
+    ]
+   },
+   "cobras": {
+    "n": "Cobras",
+    "ic": "🐍",
+    "papel": "Agressivo",
+    "passiva": {
+     "dot": 4
+    },
+    "ativa": {
+     "k": "veneno",
+     "pot": 0.3,
+     "n": 6,
+     "potTick": 0.08,
+     "alcance": 4
+    },
+    "cd": 60,
+    "mpPct": 15,
+    "cla": []
    }
   }
  }
