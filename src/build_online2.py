@@ -23,6 +23,8 @@ for _p in ['combate.esquivaBase','combate.esquivaMin','combate.esquivaMax','comb
 for _p in ['personagem.atributos','personagem.retornoDecrescente','personagem.retornoDecrescente.inicio','proficiencia.tipos','golpes.ranks','golpes.jutsus','golpes.barra','olhos.susanoo']:_need(_p,dict)
 _need('personagem.retornoDecrescente.eficacia');_need('proficiencia.multMin');_need('proficiencia.multMax');_need('combate.esquivaMaxMonstro')
 for _p in ['proficiencia.ranks','olhos.tomoe']:_need(_p,list)
+for _p in ['cc.janela','cc.imune','cc.agrupa','cc.cadeiaMax','cc.tenacidadeVit','cc.tenacidadeMax','cc.jukenPen','cc.mangekyoPen']:_need(_p)
+_need('cc.fatores',list)
 assert len(BAL['olhos']['tomoe'])==4,'balanceamento.json: olhos.tomoe precisa de 4 estágios'
 for _c in ('uchiha','hyuga','nara'):
     _b=BAL['golpes']['barra'][_c];assert len(_b)==3 and all(x in BAL['golpes']['jutsus'][_c] for x in _b),'balanceamento.json: barra de '+_c

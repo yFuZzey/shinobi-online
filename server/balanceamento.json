@@ -1,6 +1,6 @@
 {
  "_leia": "Números de balanceamento do Shinobi Online. O servidor lê este arquivo ao iniciar (o Render reinicia sozinho quando ele muda no GitHub) e o jogo leva uma cópia na montagem (src/build.sh). Se algum valor faltar ou vier errado, o servidor usa o valor padrão do código e avisa no log. Tempos em segundos, distâncias em pixels (1 tile = 32 px), chances em %.",
- "versao": 9,
+ "versao": 10,
  "flags": {
   "_leia": "Liga (true) ou desliga (false) cada sistema.",
   "pvp": true
@@ -39,21 +39,41 @@
   "empurraoPvpMax": 0.6,
   "esquivaInformadaMax": 500,
   "reducaoInformadaMin": -50,
-  "reducaoInformadaMax": 90,
+  "reducaoInformadaMax": 60,
   "olharRaio": 260,
   "olharIntervalo": 0.8,
   "olharMax": 4
  },
  "combate": {
-  "_leia": "Valem no jogo e no servidor. Chance de esquivar = esquivaBase + Esquiva de quem defende − Precisão de quem ataca, entre esquivaMin e esquivaMax (jogador; planilha: 35%) ou esquivaMaxMonstro (monstro). O olhar do Sharingan dura menos quanto mais esquiva o alvo tem (no mínimo olharMinimo da duração); em chefe, olharChefe.",
+  "_leia": "Valem no jogo e no servidor. Chance de esquivar = esquivaBase + Esquiva de quem defende − Precisão de quem ataca, entre esquivaMin e esquivaMax (jogador; planilha: 35%) ou esquivaMaxMonstro (monstro). O olhar do Sharingan dura menos quanto mais esquiva o alvo tem (no mínimo olharMinimo da duração); em chefe, olharChefe. reducaoMax = teto da redução de dano somando tudo (planilha 10: 60%).",
   "esquivaBase": 5,
   "esquivaMin": 0,
   "esquivaMax": 35,
   "esquivaMaxMonstro": 60,
   "critMult": 2,
-  "reducaoMax": 80,
+  "reducaoMax": 60,
   "olharMinimo": 0.3,
   "olharChefe": 0.5
+ },
+ "cc": {
+  "_leia": "Controle (CC) no PvP, planilha 09: o mesmo tipo (atordoar, prender, silêncio/selo, lento, genjutsu, empurrão forte) repetido dentro de 'janela' s dura menos (fatores: 1ª, 2ª, 3ª, 4ª) e depois do último fica imune por 'imune' s. Vários toques do mesmo golpe dentro de 'agrupa' s contam uma vez. Tenacidade = VIT final × tenacidadeVit % (até tenacidadeMax) encurta todo controle; Byakugan dá resistência a genjutsu (até resGenMax). Uma cadeia de atordoamento nunca passa de cadeiaMax s. Empurrão conta a partir de deslocamentoMin (0,6 = o máximo por golpe). Penetração: Jūken (Hyuga, taijutsu) ignora jukenPen% da redução do alvo; Mangekyō ligada, genjutsu ignora mangekyoPen% (até penetracaoMax).",
+  "janela": 15,
+  "fatores": [
+   1,
+   0.75,
+   0.5,
+   0.25
+  ],
+  "imune": 3,
+  "agrupa": 1.1,
+  "cadeiaMax": 4,
+  "tenacidadeVit": 0.2,
+  "tenacidadeMax": 30,
+  "resGenMax": 50,
+  "deslocamentoMin": 0.5,
+  "jukenPen": 15,
+  "mangekyoPen": 10,
+  "penetracaoMax": 20
  },
  "personagem": {
   "_leia": "Nível, pontos e atributos. XP para passar do nível N = xpBase × N^xpExpoente.",

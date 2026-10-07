@@ -39,7 +39,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
  await A.evaluate(()=>{let g=0;while(CH.lv<30&&g++<99)gainXp(xpNeed(CH.lv)-CH.xp)});await put(C,0,400);await put(A,0,0);await put(B,70,0);await W(2500);
  await B.evaluate(()=>{PRT=0});await A.evaluate(()=>{PRT=0;cd[2]=0;p.mp=p.mpMax;cast(2)});await W(150);
  ok(await B.evaluate(()=>fx.some(f=>f.k==='sarea')),'B vê a sombra se espalhando no chão (aviso)');await W(800);
- const r4=await B.evaluate(()=>PRT);ok(r4>1&&r4<=1.5,'Kagemane múltiplo prende B ('+r4.toFixed(2)+' s)');
+ const r4=await B.evaluate(()=>PRT);ok(r4>.4&&r4<=1.5,'Kagemane múltiplo prende B ('+r4.toFixed(2)+' s restantes; é o 2º prender em 15 s: vale 75% pelo retorno decrescente)');
  // 5) PvE: monstro preso pela sombra não anda (o servidor segura)
  for(const pg of [A,B,C])await pg.evaluate(()=>{p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;gsPos(true)}); // os outros vão para a zona segura
  const Dn=await mk('Temari'+suf,2);await W(1500);await Dn.evaluate(()=>{autoOn=false;const g=gsMsg;gsMsg=function(m){if(m.t==='hurt'&&!m.by)return;return g(m)}});const A2=Dn;await A2.evaluate(()=>{let g=0;while(CH.lv<30&&g++<99)gainXp(xpNeed(CH.lv)-CH.xp)}); // precisão alta: o monstro não esquiva

@@ -20,8 +20,8 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
  let r=await pg.evaluate(()=>{p.mp=p.mpMax;window._pr0=D().prec;useBtn(3);return 1});await W(150);r=await pg.evaluate(()=>({on:BYK.on,dp:D().prec-_pr0,cls:$('#b3').classList.contains('eyeon')}));
  ok(r.on&&r.dp===10&&r.cls,'liga: +10 de precisão e o botão acende');
  const m0=await pg.evaluate(()=>p.mp);await W(1000);const m1=await pg.evaluate(()=>p.mp);ok(m1<m0,'gasta chakra enquanto está ligado ('+Math.round(m0)+' → '+Math.round(m1)+')');
- r=await pg.evaluate(()=>{ccRecebe({k:'confusao',t:1.5},'Teste');return PCF});ok(Math.abs(r-1.5*.85)<.05,'genjutsu em você dura 15% menos com o Byakugan ('+r.toFixed(2)+' s)');
- r=await pg.evaluate(()=>{PCF=0;useBtn(3);return{on:BYK.on,cd:cd[3],buf:!!BUFS.byak}});ok(!r.on&&r.cd>10&&!r.buf,'desliga: some o reforço e entra em recarga ('+r.cd.toFixed(1)+' s)');
+ r=await pg.evaluate(()=>onlMeta().rg);ok(r===15,'ligado, avisa o servidor: genjutsu em você dura 15% menos (resistência '+r+'%)');
+ r=await pg.evaluate(()=>{PCF=0;useBtn(3);return{on:BYK.on,cd:cd[3],buf:!!BUFS.byak,rg:onlMeta().rg}});ok(!r.on&&r.cd>10&&!r.buf&&r.rg===0,'desliga: some o reforço e a resistência, e entra em recarga ('+r.cd.toFixed(1)+' s)');
  // Kūshō
  await lvTo(15);await pg.evaluate(()=>barSet(3,'kusho'));await alvos([[130,0],[300,0]]);const d0=await pg.evaluate(()=>E[0].x-p.x);
  await pg.evaluate(()=>{p.ax=1;p.ay=0;cast(3)});await W(800);r=await pg.evaluate(()=>({d:E[0].x-p.x,h:_hits.slice()}));

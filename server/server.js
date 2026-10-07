@@ -54,6 +54,9 @@ const CFG = {
 };
 // Valem no jogo e no servidor (o app leva uma cópia na montagem)
 const COMBATE = { esquivaBase: 5, esquivaMin: 0, esquivaMax: 35, esquivaMaxMonstro: 60, critMult: 2, reducaoMax: 80, olharMinimo: .3, olharChefe: .5 };
+// controle (CC) no PvP — planilha 09: o mesmo tipo repetido dentro da janela dura menos (fatores) e depois do último fica imune;
+// tenacidade (VIT) encurta tudo; uma cadeia de atordoamento nunca passa de cadeiaMax s; vários toques do mesmo golpe contam uma vez (agrupa)
+const CCX = { janela: 15, imune: 3, agrupa: 1.1, cadeiaMax: 4, tenacidadeVit: .2, tenacidadeMax: 30, resGenMax: 50, deslocamentoMin: .5, jukenPen: 15, mangekyoPen: 10, penetracaoMax: 20, fatores: [1, .75, .5, .25] }; // tenacidadeVit, jukenPen e mangekyoPen são calculados no app
 
 // chance de esquivar: 5% + (Esquiva de quem defende − Precisão de quem ataca), entre 0% e 35% (jogador) ou 60% (monstro)
 const dodgeChance = (esq, prec, max = COMBATE.esquivaMax) => clamp(COMBATE.esquivaBase + num(esq, 0) - num(prec, 0), COMBATE.esquivaMin, max);
@@ -77,6 +80,8 @@ const BAL_INFO = (() => {
     const v = src[k]; if (typeof v === 'number' && isFinite(v)) dst[k] = v; else avisos.push(nome + '.' + k + ' não é número (ficou ' + dst[k] + ')'); } };
   if (!j || typeof j !== 'object') return { ok: 0, v: 0, avisos: ['balanceamento.json não é um objeto JSON'] };
   aplica(CFG, j.servidor, 'servidor'); aplica(COMBATE, j.combate, 'combate'); BALJ = j;
+  if (j.cc && typeof j.cc === 'object') { const { fatores, ...resto } = j.cc; aplica(CCX, resto, 'cc');
+    if (Array.isArray(fatores) && fatores.length && fatores.every(x => typeof x === 'number' && x >= 0 && x <= 1)) CCX.fatores = fatores.slice(0, 8); else if (fatores != null) avisos.push('cc.fatores precisa ser uma lista de números entre 0 e 1'); }
   if (j.flags && typeof j.flags.pvp === 'boolean') CFG.pvp = j.flags.pvp ? 1 : 0;
   return { ok: 1, v: num(j.versao, 0), avisos };
 })();
@@ -451,6 +456,8 @@ function setMeta(p, m) {
   if (m.esq != null) p.esq = clamp(num(m.esq, 0), 0, CFG.esquivaInformadaMax);
   if (m.red != null) p.red = clamp(num(m.red, 0), CFG.reducaoInformadaMin, CFG.reducaoInformadaMax);
   if (m.ey != null) p.ey = clamp(num(m.ey, 0) | 0, 0, 2); // olho ligado: 1 Sharingan, 2 Mangekyō (só visual para os outros)
+  if (m.ten != null) p.ten = clamp(num(m.ten, 0), 0, CCX.tenacidadeMax); // tenacidade: % a menos em todo controle
+  if (m.rg != null) p.rg = clamp(num(m.rg, 0), 0, CCX.resGenMax);        // resistência a genjutsu (Byakugan ligado): % a menos em genjutsu
 }
 function onJoin(p, m) {
   const map = str(m.map, 40); if (!MAPS[map]) return sys(p, 'Mapa desconhecido.');
@@ -591,6 +598,28 @@ function ccPvp(c) {
 // um efeito ({k…}) ou até 2 juntos ([{k…},{k…}], ex.: prender + silenciar); app antigo ignora a lista
 function ccPvpList(c) { if (!Array.isArray(c)) return ccPvp(c); const L = c.slice(0, 2).map(ccPvp).filter(Boolean); return L.length > 1 ? L : L[0]; }
 const ccPreso = cc => { let t = 0; for (const c of (Array.isArray(cc) ? cc : cc ? [cc] : [])) if (c.k === 'root' || c.k === 'silencio') t = Math.max(t, num(c.t, 0)); return t; };
+// fator do retorno decrescente para mais um controle da categoria "cat" vindo de "by" (0 = imune agora)
+function ccDR(q, cat, by, t) {
+  const D = q.dr || (q.dr = {}), o = D[cat] || (D[cat] = { n: 0, t0: 0, last: -99, by: '', f: 1, imu: 0 });
+  if (o.imu > t) return 0;
+  if (o.by === by && t - o.last < CCX.agrupa) { o.last = t; return o.f; } // mesmo golpe em vários toques: conta uma vez
+  if (o.imu && o.imu <= t) { o.imu = 0; o.n = 0; }
+  if (t - o.t0 > CCX.janela) { o.n = 0; o.t0 = t; }
+  const F = CCX.fatores, f = F[Math.min(o.n, F.length - 1)]; o.n++; o.last = t; o.by = by; o.f = f;
+  if (o.n >= F.length) o.imu = t + CCX.imune; // depois do último da lista: imune por CCX.imune s
+  return f;
+}
+const ccCat = k => k === 'root' ? 'root' : (k === 'selo' || k === 'silencio') ? 'sil' : k === 'lento' ? 'lento' : k === 'confusao' ? 'gen' : null;
+const ccRes = (q, cat) => (1 - num(q.ten, 0) / 100) * (cat === 'gen' ? 1 - num(q.rg, 0) / 100 : 1);
+// cadeia de atordoamento (perda total de controle): do começo da cadeia até o fim, no máximo CCX.cadeiaMax s
+function ccCadeia(q, st, t) { if (!(st > 0)) return 0; if (!(num(q.hcEnd, 0) > t - .3)) q.hcStart = t;
+  const end = Math.min(t + st, q.hcStart + CCX.cadeiaMax), s2 = Math.max(0, end - t); q.hcEnd = Math.max(num(q.hcEnd, 0), t + s2); return Math.round(s2 * 100) / 100; }
+// atordoamento no PvP já com retorno decrescente, tenacidade e teto de cadeia (gen = genjutsu: Tsukuyomi, olhar)
+function stunPvp(q, by, st, gen, t, imu) { if (!(st > 0)) return 0; const cat = gen ? 'gen' : 'stun', f = ccDR(q, cat, by, t); if (!f) { imu.push(cat); return 0; } return ccCadeia(q, st * f * ccRes(q, cat), t); }
+// efeitos (preso, silêncio, lento, confusão) com retorno decrescente e tenacidade; queima não é controle
+function ccAjusta(q, by, cc, t, imu) { if (!cc) return cc; const L = (Array.isArray(cc) ? cc : [cc]).map(c => { const cat = ccCat(c.k); if (!cat || !(c.t > 0)) return c;
+    const f = ccDR(q, cat, by, t); if (!f) { imu.push(cat); return null; } return Object.assign({}, c, { t: Math.round(c.t * f * ccRes(q, cat) * 100) / 100 }); }).filter(c => c && (!(c.t != null) || c.t > 0.05));
+  return L.length > 1 ? L : L[0]; }
 function onPvp(p, m) {
   const q = players.get(str(m.to, 64)); const why = pvpWhy(p, q);
   if (why === 'seguro') return p.conn.send({ t: 'ph', to: q.id, by: p.id, safe: 1 });
@@ -598,19 +627,22 @@ function onPvp(p, m) {
   const t = now(); if (t - p.hitT > 1) { p.hitT = t; p.hitN = 0; } if (++p.hitN > 25) return;
   const d = Math.max(1, Math.round(clamp(num(m.d, 0), 0, CFG.pvpMaxHit) * CFG.pvpMul)); if (!num(m.d, 0)) return;
   // empurrão proporcional ao golpe (o celular de quem apanha anda ~40× esse valor em px; máx. 24 px por golpe)
-  let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); if (kl > .01) { const k = Math.min(CFG.empurraoPvpMax, kl / 40); kx = kx / kl * k; ky = ky / kl * k; } else { kx = ky = 0; }
+  let kx = num(m.kx, 0), ky = num(m.ky, 0); const kl = hyp(kx, ky); let kk = 0; if (kl > .01) { kk = Math.min(CFG.empurraoPvpMax, kl / 40); kx = kx / kl * kk; ky = ky / kl * kk; } else { kx = ky = 0; }
   const r = room(p.map), pr = clamp(num(m.pr, 0), 0, 5000), c = m.c ? 1 : 0;
   if (q.guard && q.guard > t && m.pj) { toRoom(r, { t: 'ph', to: q.id, by: p.id, blk: 1 }, q); // Kaiten girando reflete projéteis (corpo a corpo passa)
     q.conn.send({ t: 'hurt', fin: 1, blk: 1, d: 0, src: p.nome, by: p.id }); return; }
   // o servidor sorteia a esquiva (Esquiva de quem apanha x Precisão de quem bate) e aplica a redução de dano:
   // assim o número aparece para todo mundo com uma ida e volta só (antes eram duas)
   if (Math.random() * 100 < dodgeChance(q.esq || 0, pr)) { toRoom(r, { t: 'ph', to: q.id, by: p.id, miss: 1 }, q); q.conn.send({ t: 'hurt', fin: 1, miss: 1, d: 0, src: p.nome, by: p.id }); return; }
-  const dd = Math.max(1, Math.round(d * (1 - clamp(q.red || 0, CFG.reducaoInformadaMin, CFG.reducaoInformadaMax) / 100)));
+  // redução de quem apanha (teto em reducaoInformadaMax = 60%, planilha 10); penetração (Jūken, Mangekyō) ignora parte dela
+  const red = clamp(q.red || 0, CFG.reducaoInformadaMin, CFG.reducaoInformadaMax), pen = clamp(num(m.pen, 0), 0, CCX.penetracaoMax);
+  const dd = Math.max(1, Math.round(d * (1 - (red > 0 ? red * (1 - pen / 100) : red) / 100)));
   const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(p.id) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(p.id, o);
   toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c }, q);
-  const pst = Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, CFG.stunMaxMonstro));
-  const cc = ccPvpList(m.cc);
-  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c, cc });
+  const imu = []; const pst = stunPvp(q, p.id, Math.min(CFG.pvpStun, clamp(num(m.st, 0), 0, CFG.stunMaxMonstro)), !!m.g, t, imu);
+  const cc = ccAjusta(q, p.id, ccPvpList(m.cc), t, imu);
+  if (kk >= CCX.deslocamentoMin) { const f = ccDR(q, 'desl', p.id, t); if (!f) imu.push('desl'); kx *= f; ky *= f; } // empurrão/puxão forte também tem retorno decrescente
+  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c, cc, imu: imu.length ? imu : undefined });
   lutaGolpe(q, p, dd, Math.max(pst, ccPreso(cc))); // "preso" no registro da luta: atordoado, preso pela sombra ou silenciado
 }
 // ---------------------------------------------------------------- olhar do Sharingan / Mangekyō (genjutsu)
@@ -625,7 +657,8 @@ function onGaze(p, m) {
     e.stun = Math.max(e.stun || 0, st); e.alone = 0; if (e.kind === 'mob' && !e.tg) e.tg = p; ms.push({ m: e.id, st }); }
   for (const id of (Array.isArray(m.pl) ? m.pl.slice(0, 10) : [])) {
     const q = players.get(str(id, 64)); const why = pvpWhy(p, q); if (why || hyp(p.x - q.x, p.y - q.y) > CFG.olharRaio) continue;
-    const st = Math.round(Math.min(CFG.pvpStun, st0 * sevMul(q.esq)) * 100) / 100;
+    const imu = [], st = stunPvp(q, p.id, Math.round(Math.min(CFG.pvpStun, st0 * sevMul(q.esq)) * 100) / 100, true, t, imu);
+    if (!(st > 0)) { if (imu.length) q.conn.send({ t: 'pstun', st: 0, by: p.id, src: p.nome, imu }); continue; }
     q.conn.send({ t: 'pstun', st, by: p.id, src: p.nome }); pl.push({ id: q.id, st }); lutaCC(q, p, st); }
   if (ms.length || pl.length) toRoom(r, { t: 'gz', by: p.id, ms, pl });
 }

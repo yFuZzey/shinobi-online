@@ -82,7 +82,8 @@ function gsConnect(){if(!ONL.on||ONL.ws||ONL.closing)return;
 function gsRetry(){if(!ONL.on||ONL.closing)return;clearTimeout(ONL.retryT);ONL.tries++;ONL.retryT=setTimeout(gsConnect,Math.min(5000,800+ONL.tries*600));onlStatus()}
 function gsJoin(){if(!ONL.authed||!clan)return;ONL.joined=false;ONL.peers={};E=[];EP=[];
  gsSend(Object.assign({t:'join',map:CURMAP,x:p.x|0,y:p.y|0,hp:Math.round(p.hp),max:p.max,sc:scene|0},onlMeta()))}
-function onlMeta(){let d={esq:0,red:0};try{d=D()}catch(_){}return {clan,lv:CH.lv,eq:Object.values(EQ),look:{skin:look.skin,hair:look.hair,cloth:look.cloth},esq:Math.round(d.esq*10)/10,red:Math.round(d.red*10)/10,ey:EYE.on==='mgk'?2:EYE.on?1:0}}
+function onlMeta(){let d={esq:0,red:0};try{d=D()}catch(_){}return {clan,lv:CH.lv,eq:Object.values(EQ),look:{skin:look.skin,hair:look.hair,cloth:look.cloth},esq:Math.round(d.esq*10)/10,red:Math.round(d.red*10)/10,ey:EYE.on==='mgk'?2:EYE.on?1:0,
+ ten:Math.round(tenac()*10)/10,rg:typeof BYK!=='undefined'&&BYK.on&&JU.hyuga&&JU.hyuga.byak?+JU.hyuga.byak.resGen||0:0}}
 let _gsmt=0;function gsMeta(){clearTimeout(_gsmt);_gsmt=setTimeout(()=>{if(ONL.joined)gsSend(Object.assign({t:'meta'},onlMeta()))},150)}
 function onlPeer(id,o){if(id===ONL.uid)return null;let pe=ONL.peers[id];if(!pe){pe=ONL.peers[id]={id,nome:'?',clan:'uchiha',lv:1,eq:[],x:null,y:null,tx:0,ty:0,fl:0,mv:0,run:0,au:-1,th:-1,sc:0,hp:1,max:1,seen:performance.now(),say:'',sayT:0,g:0}}
  if(o){['nome','clan','lv','eq','look','g','adm','ey'].forEach(k=>{if(o[k]!==undefined)pe[k]=o[k]});if(o.x!=null){pe.tx=o.x;pe.ty=o.y;if(pe.x===null||!pe.buf){pe.x=o.x;pe.y=o.y;pe.buf=null}}['fl','mv','run','au','th','sc','hp','max'].forEach(k=>{if(o[k]!==undefined)pe[k]=o[k]})}
@@ -295,9 +296,14 @@ function ccDeHCC(H){const L=[];if(!H)return undefined;if(H.root)L.push({k:'root'
 function seloBloqueia(mp){return PSL>0&&mp>BAL.golpes.seloLimite/100*p.mpMax}
 function seloAviso(){if(!seloAviso._t||performance.now()-seloAviso._t>700){seloAviso._t=performance.now();FT.push({x:p.x,y:p.y-70,t:'chakra selado',txt:1,life:.8})}}
 // efeito recebido no PvP (o servidor confere e repassa)
+const CCNM={stun:'atordoar',root:'prender',sil:'silêncio/selo',lento:'lentidão',gen:'genjutsu',desl:'empurrão'};
+function ccImune(L){if(!Array.isArray(L)||!L.length)return;const t='imune a '+L.map(k=>CCNM[k]||k).join(', ');FT.push({x:p.x,y:p.y-92,t,txt:1,gold:1,life:1.2});
+ if(!ccImune._t||performance.now()-ccImune._t>3000){ccImune._t=performance.now();onlReg('🛡️ Você ficou '+t+' por alguns segundos (o mesmo controle repetido perde força).')}}
+// tenacidade: VIT final × tenacidadeVit %, até tenacidadeMax (encurta todo controle no PvP; o servidor aplica)
+function tenac(){try{const c=calcChar(1,1);return Math.min(+BAL.cc.tenacidadeMax||30,(c.st.vit.fin||0)*(+BAL.cc.tenacidadeVit||0))}catch(_){return 0}}
 function ccRecebe(cc,src){if(Array.isArray(cc)){cc.forEach(c=>ccRecebe(c,src));return}if(!cc||!cc.k)return;const t=+cc.t||0;
  if(cc.k==='lento'&&t>0){const v=Math.max(0,Math.min(60,+cc.v||0));bufStart('lento',{spd:-v,t,nm:'Lento: '+v+'% mais devagar'});FT.push({x:p.x,y:p.y-70,t:'lento',txt:1,life:.8});onlReg('🪡 '+(src||'?')+' deixou você lento ('+v+'%, '+nf(t)+' s).');return}
- if(cc.k==='confusao'&&t>0){const t2=t*byakRes();PCF=Math.max(PCF,t2);FT.push({x:p.x,y:p.y-84,t:'confuso',txt:1,life:1});onlReg('🌀 '+(src||'?')+' prendeu você num genjutsu ('+nf(t2)+' s'+(t2<t?', o Byakugan encurtou':'')+'): os controles ficam invertidos até você levar dano.');return}
+ if(cc.k==='confusao'&&t>0){const t2=t;PCF=Math.max(PCF,t2);FT.push({x:p.x,y:p.y-84,t:'confuso',txt:1,life:1});onlReg('🌀 '+(src||'?')+' prendeu você num genjutsu ('+nf(t2)+' s'+(BYK.on?', o Byakugan encurtou':'')+'): os controles ficam invertidos até você levar dano.');return}
  if(cc.k==='silencio'&&t>0){PSI=Math.max(PSI,t);FT.push({x:p.x,y:p.y-84,t:'silenciado',txt:1,life:1});onlReg('🤐 '+(src||'?')+' silenciou você ('+nf(t)+' s): só o golpe básico.');return}
  if(cc.k==='root'&&t>0){PRT=Math.max(PRT,t);FT.push({x:p.x,y:p.y-70,t:'preso pela sombra',txt:1,life:1});onlReg('🌑 '+(src||'?')+' prendeu você no lugar ('+nf(t)+' s).')}
  else if(cc.k==='selo'&&t>0){PSL=Math.max(PSL,t);FT.push({x:p.x,y:p.y-70,t:'chakra selado',txt:1,life:1});onlReg('✋ '+(src||'?')+' selou o seu chakra ('+nf(t)+' s): só jutsus baratos.')}
@@ -322,7 +328,8 @@ function pvpHit(e,d,st,kx,ky){const pe=ONL.peers[e.pvp];if(!pe||!ONL.joined)retu
  const tp=tpN(HTP),pf=profOn(tp),x=hitRaw(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
  lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());
  const H=HCC||{},cc=ccDeHCC(H);if(H.semStunPvp)st=0;
- gsSend({t:'pvp',to:e.pvp,d:Math.max(1,Math.round(lastCrit?x*BAL.combate.critMult:x)),st:st||0,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec),pj:H.pj?1:0,cc:cc||undefined});pe.hitT=.12;return true}
+ const pen=tp==='taijutsu'&&clan==='hyuga'?+BAL.cc.jukenPen||0:tp==='genjutsu'&&EYE.on==='mgk'?+BAL.cc.mangekyoPen||0:0;
+ gsSend({t:'pvp',to:e.pvp,d:Math.max(1,Math.round(lastCrit?x*BAL.combate.critMult:x)),st:st||0,g:st&&tp==='genjutsu'?1:undefined,pen:pen||undefined,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec),pj:H.pj?1:0,cc:cc||undefined});pe.hitT=.12;return true}
 function pvpShow(m){const pe=ONL.peers[m.to];if(m.safe){pvpSafeMsg(pe);return}
  if(m.to===ONL.uid||!pe||pe.sc!==(scene|0))return; // quem apanhou já viu o próprio número
  const me=m.by===ONL.uid,y=pe.y-60;
@@ -360,7 +367,7 @@ function gsMsg(m){
   if(R.dead){PST=0;onlReg('☠️ Você foi derrotado'+src+' e voltou para o início do mapa.');toast('☠️ Você foi derrotado'+(pv?' por '+m.src:'')+' e voltou para o início.');gsPos(true);break}
   if(R.miss)onlReg('💨 Você esquivou'+src);else regDmg('in',R.d,0,m.src);
   if(pv&&!R.miss&&m.st>0){PST=Math.max(PST,m.st);FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.9})}
-  if(pv&&!R.miss&&m.cc)ccRecebe(m.cc,m.src);
+  if(pv&&!R.miss&&m.cc)ccRecebe(m.cc,m.src);if(pv&&m.imu)ccImune(m.imu);
   if(!R.miss&&(m.kx||m.ky)){for(let i=0;i<8;i++){const nx=p.x+m.kx*5,ny=p.y+m.ky*5;if(!sol(nx,ny)){p.x=nx;p.y=ny}}}shk=Math.max(shk,pv?.4:.6);gsPos(true);break}
  case 'ph':pvpShow(m);break;
  case 'pk':{const me=m.by===ONL.uid,vt=m.to===ONL.uid,t=me?'⚔️ Você derrotou '+m.toN+'!':vt?'☠️ '+m.byN+' derrotou você.':'⚔️ '+m.byN+' derrotou '+m.toN+'.';
@@ -766,7 +773,7 @@ function coneDraw(f){const a=f.life/f.max,k=1-a;ctx.save();ctx.globalAlpha=.42*a
  ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.arc(f.x,f.y,f.r*(.55+.45*Math.min(1,k*3)),f.a-f.h,f.a+f.h);ctx.closePath();ctx.fill();ctx.restore()}
 function gzMsg(m){(m.ms||[]).forEach(o=>{const e=E.find(x=>x.sid===o.m);if(e){e.stun=Math.max(e.stun||0,o.st);FT.push({x:e.x,y:e.y-(e.boss?120:52),t:'paralisado '+nf(o.st)+'s',txt:1,life:1})}});
  (m.pl||[]).forEach(o=>{const pe=ONL.peers[o.id];if(pe&&pe.x!=null)FT.push({x:pe.x,y:pe.y-62,t:'paralisado '+nf(o.st)+'s',txt:1,life:1})})}
-function pstunMsg(m){const st=+m.st||0;if(!(st>0))return;PST=Math.max(PST,st);FT.push({x:p.x,y:p.y-70,t:'paralisado '+nf(st)+'s',txt:1,life:1.1});flash={col:'#5a0010',a:.3};onlReg('👁️ '+(m.src||'?')+' prendeu você com o olhar ('+nf(st)+' s).')}
+function pstunMsg(m){const st=+m.st||0;if(m.imu)ccImune(m.imu);if(!(st>0))return;PST=Math.max(PST,st);FT.push({x:p.x,y:p.y-70,t:'paralisado '+nf(st)+'s',txt:1,life:1.1});flash={col:'#5a0010',a:.3};onlReg('👁️ '+(m.src||'?')+' prendeu você com o olhar ('+nf(st)+' s).')}
 {const g=gsMsg;gsMsg=function(m){if(m&&m.t==='gz')return gzMsg(m);if(m&&m.t==='pstun')return pstunMsg(m);return g(m)}}
 // brilho vermelho nos olhos (o seu e o dos outros jogadores); Mangekyō com faíscas da folha
 function eyeL(L){if(scene|0)return;if(EYE.on&&clan==='uchiha')L.push({y:p.y+.3,d:()=>eyeDraw(p,EYE.on==='mgk'?2:1)});
@@ -1013,9 +1020,9 @@ const BYK={on:0,slot:null};
 const byakSlot=()=>barSlots().find(k=>CLANS[clan].sk[k]&&CLANS[clan].sk[k].t==='byak');
 function byakToggle(i){const s=CLANS[clan].sk[i];if(!s)return;if(BYK.on)return byakOff();if(cd[i]>0||actRoot())return;
  if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}const mp=mpOf(i,s);if(seloBloqueia(mp))return seloAviso();if(p.mp<mp){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
- p.mp-=mp;BYK.on=1;BYK.slot=i;BUFS.byak={prec:+s.prec||0,until:Infinity,nm:'Byakugan: +'+(+s.prec||0)+' de precisão'};stats();bufHud(1);flash={col:'#9db7ff',a:.18};p.au=0;p.aud=.6;
+ p.mp-=mp;BYK.on=1;BYK.slot=i;gsMeta();BUFS.byak={prec:+s.prec||0,until:Infinity,nm:'Byakugan: +'+(+s.prec||0)+' de precisão'};stats();bufHud(1);flash={col:'#9db7ff',a:.18};p.au=0;p.aud=.6;
  FT.push({x:p.x,y:p.y-80,t:'Byakugan!',txt:1,gold:1,life:1});onlReg('👁️ Byakugan ligado: +'+(+s.prec||0)+' de precisão; genjutsu dura '+(+s.resGen||0)+'% menos em você. Gasta '+(+s.dreno||0)+'% do chakra por segundo e o chakra não se recupera enquanto estiver ligado; toque de novo para desligar.');skBtns()}
-function byakOff(why){if(!BYK.on)return;BYK.on=0;delete BUFS.byak;const k=BYK.slot!=null&&CLANS[clan].sk[BYK.slot]&&CLANS[clan].sk[BYK.slot].t==='byak'?BYK.slot:byakSlot();
+function byakOff(why){if(!BYK.on)return;BYK.on=0;delete BUFS.byak;gsMeta();const k=BYK.slot!=null&&CLANS[clan].sk[BYK.slot]&&CLANS[clan].sk[BYK.slot].t==='byak'?BYK.slot:byakSlot();
  if(k!=null)cd[k]=Math.max(cd[k],cdOf(k,CLANS[clan].sk[k]));stats();bufHud(1);skBtns();if(why){FT.push({x:p.x,y:p.y-70,t:why,txt:1,life:1});onlReg('👁️ Byakugan desligou: '+why+'.')}}
 function byakTick(dt){if(!BYK.on)return;const s=JU.hyuga&&JU.hyuga.byak;if(clan!=='hyuga'||!s){byakOff();return}p.mp-=(+s.dreno||0)/100*p.mpMax*dt;if(p.mp<=0){p.mp=0;byakOff('sem chakra')}}
 const byakRes=()=>BYK.on&&JU.hyuga&&JU.hyuga.byak?1-(+JU.hyuga.byak.resGen||0)/100:1;
@@ -1194,7 +1201,8 @@ function chDraw(){const el=$('#paneCh');if(!el||el.hidden||!CH||!clan)return;
   +AT.map(([k,ab,nm])=>{const x=c.st[k];return '<tr><td><b class="ab">'+ab+'</b> '+nm+'</td><td>'+x.pts+'</td><td>'+(x.it?'<span class="g">'+sgn(x.it)+'</span>':'<span class="z">—</span>')+'</td><td>'+x.base+'</td><td>'+pcTxt(x.pct,x.pi,x.pp,'itens','esp.')+'</td><td><b>'+nf(x.fin)+'</b>'+(x.dr?' <small class="z" title="acima de '+BAL.personagem.retornoDecrescente.inicio[k]+' cada ponto vale metade">de '+nf(x.bruto)+'</small>':'')+'</td></tr>'}).join('')+'</tbody></table></div>';
  h+='<div class="ivt">2 · Atributos</div><div class="tw"><table class="cht"><thead><tr><th>Atributo</th><th>Dos status</th><th>+ Fixos</th><th>% total</th><th>Final</th></tr></thead><tbody>'
   +ATR.map(([k,nm])=>{const x=c.at[k];return '<tr><td>'+nm+'</td><td>'+atrTxt(k,x.fromSt)+'</td><td>'+flTxt(k,x.fl,x.fi,x.fp)+'</td><td>'+pcTxt(x.pct,x.pi,x.pp,'itens','esp.')+'</td><td><b>'+atrTxt(k,x.fin)+'</b></td></tr>'}).join('')+'</tbody></table></div>'
-  +'<p class="chnote">Velocidade e Regeneração: 100% = normal. Crítico, Redução e Recarga já são porcentagens; nelas (e na Esquiva) a especialidade soma pontos.</p>';
+  +'<p class="chnote">Velocidade e Regeneração: 100% = normal. Crítico, Redução e Recarga já são porcentagens; nelas (e na Esquiva) a especialidade soma pontos. Redução: no máximo '+BAL.combate.reducaoMax+'% somando tudo.</p>'
+  +'<p class="chnote"><b>Tenacidade (PvP): '+nf(tenac())+'%</b> — VIT final × '+nf(+BAL.cc.tenacidadeVit*100/100)+'%, até '+BAL.cc.tenacidadeMax+'%. Encurta atordoar, prender, silêncio/selo, lentidão e genjutsu. O mesmo controle repetido em '+BAL.cc.janela+' s perde força ('+BAL.cc.fatores.map(f=>Math.round(f*100)+'%').join(' → ')+') e depois você fica imune por '+BAL.cc.imune+' s; atordoado seguido, no máximo '+BAL.cc.cadeiaMax+' s.</p>';
  h+='<div class="ivt">3 · Golpes</div><div class="tw"><table class="cht"><thead><tr><th>Golpe</th><th>Tipo</th><th>Dano</th><th>Recarga</th><th>Chakra</th></tr></thead><tbody>'
   +C.sk.concat(atkItem()&&!C.sk[3]?[{_it:1}]:[]).map((s,i)=>{const a=s._it?atkItem():null,tp=skType(i),bd=a?+a.atk.dmg||16:s.dmg,bc=a?+a.atk.cd||s.cd:s.cd,bm=a?+a.atk.mp||0:s.mp,tm=profTypeMul(tp),
     pw=skPow(tp),fd=Math.max(1,Math.round(hitRaw(bd,tp))),fc=cdOf(i,s),fm=mpOf(i,s),cls=(x,y,lowGood)=>Math.abs(x-y)<.01?'':((lowGood?x<y:x>y)?'g':'r');
