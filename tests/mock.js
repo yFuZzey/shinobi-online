@@ -23,6 +23,7 @@ const srv=http.createServer((req,res)=>{
   if(u.pathname==='/__inv')return J(res,200,{inv:INV,trocas:TROCAS});
   // NOPROF=1 simula o banco ANTES do SQL da proficiência (colunas ainda não existem)
   if(process.env.NOVER&&u.pathname==='/rest/v1/personagens'&&(/versao/.test(u.searchParams.get('select')||'')||'versao' in body))return J(res,400,{code:'42703',message:'column personagens.versao does not exist'});
+  if(process.env.NOCT&&u.pathname==='/rest/v1/personagens'&&(/contrato/.test(u.searchParams.get('select')||'')||'contrato' in body))return J(res,400,{code:'42703',message:'column personagens.contrato does not exist'});
   if(process.env.NOMGK&&u.pathname==='/rest/v1/personagens'&&(/mangekyo/.test(u.searchParams.get('select')||'')||'mangekyo' in body))return J(res,400,{code:'42703',message:'column personagens.mangekyo does not exist'});
   if(process.env.NOPROF&&u.pathname==='/rest/v1/personagens'&&(/proficiencia|prof_xp/.test(u.searchParams.get('select')||'')||'proficiencia' in body||'prof_xp' in body))return J(res,400,{code:'42703',message:'column personagens.proficiencia does not exist'});
   // banidos (SQL 05): só com a chave secreta; NOBAN=1 simula o banco sem a tabela

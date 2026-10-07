@@ -23,6 +23,13 @@ MMORPG 2D no universo Naruto (protótipo).
 - SQL de criação/atualização em `sql/`. Edite de preferência com o jogador fora do jogo.
 - `trocas`: histórico das trocas entre jogadores.
 - `versao` (`sql/07_versao.sql`): versão do formato do personagem. Quando o formato mudar, o jogo converte os saves antigos (função `chMigra` em `src/online/online2.js`); sem a coluna o jogo funciona e guarda a versão no aparelho.
+- `contrato`, `contrato_em` (`sql/08_contrato.sql`): contrato de invocação escolhido (Sapos/Gamabunta, Lesmas/Katsuyu, Cobras/Manda) e quando foi escolhido (troca só a cada 24 h). Sem as colunas o jogo funciona e guarda no aparelho.
+
+## Invocações (Entrega 11)
+- Nv 11: o jogador escolhe 1 contrato na aba Jutsus (ramo "Contrato de invocação"); o botão Kuchiyose passa a invocar a família escolhida. Valores em `server/balanceamento.json` → `invocacoes` (flag `flags.invocacoes`).
+- Sapo: escudo de 15% da vida; Lesma: cura 12% em 6 s (60% no PvP); Cobra: bote + veneno. Corvos, falcões, cães e cervos aparecem como "em breve" (sem arte).
+- Arte: `arte/invocacoes/` (folhas) e `arte/ferramentas/recortar_invocacoes.py` (gera `src/inv/*.json`).
+- Testes: `tests/jogo/invoc.js` (offline) e `tests/online/t39.js` (servidor).
 
 ## Trocas e itens (anti-duplicação)
 - O app só lê a mochila e marca equipado/desequipado. Criar, dar e trocar itens é só pelo servidor do jogo, com a chave secreta `SUPABASE_SERVICE_KEY` (variável no Render, nunca no código).
@@ -55,7 +62,6 @@ MMORPG 2D no universo Naruto (protótipo).
 - **Controle no PvP (planilha 09/10, o servidor aplica):** o mesmo tipo (atordoar, prender, silêncio/selo, lento, genjutsu, empurrão forte) repetido em 15 s vale 100% → 75% → 50% → 25% e depois fica imune 3 s (aparece "imune a …"). Vários toques do mesmo golpe contam uma vez. Tenacidade = VIT final × 0,2% (até 30%) encurta tudo. Atordoado seguido: no máximo 4 s. Redução de dano: no máximo 60% somando tudo. Jūken (taijutsu do Hyuga) atravessa 15% da redução; com a Mangekyō ligada, genjutsu atravessa 10%. Números em `server/balanceamento.json` → `cc`.
 - **Naturezas (planilha 07, o servidor decide pelo catálogo):** cada jutsu tem natureza (Uchiha: Katon e Yin; Hyuga: Yang e Fūton no Kūshō/Sōjishi; Nara: Yin; Chidori: Raiton). Quem apanha tem a natureza do clã (Uchiha Katon, Hyuga Yang, Nara Yin). Forte ×1,15, fraco ×0,85. Efeito no PvP (só em jutsu, não no golpe básico; no máximo 1 a cada 4 s): Katon queima 3% da vida em 3 s, Fūton atravessa 10% da redução, Raiton paralisa 0,3 s, Suiton deixa 20% lento, Yin faz prender/silenciar/genjutsu durar 10% a mais. Números em `server/balanceamento.json` → `naturezas`.
 - **PvP × PvE (planilha 12):** crítico ×1,5 em monstro e ×1,3 em jogador; no PvP o bônus de % de dano dos itens vale no máximo 20% (o Manto da Raposa continua +100% no PvE); no PvP aberto quem tem nível maior bate no máximo 10% a mais do que alguém do nível do alvo (servidor: `pvpNivelBonusMax`, `pvpNivelCurva`; 0 desliga).
-- **Invocações (planilha 11):** a partir do Nv 10, na aba Jutsus → Invocação, o jogador assina 1 contrato (Corvos, Falcões, Cães, Sapos, Lesmas, Cervos ou Cobras). Cada um dá uma passiva pequena (×1,5 no clã que combina) e a invocação vai num botão da barra: clone de corvo (+esquiva), dash do falcão, cão que prende, escudo do sapo, cura da lesma, zona lenta dos cervos, mordida com veneno da cobra. Trocar de contrato espera 10 min. Cura no PvP vale 60%. O contrato fica na coluna `contrato` (`sql/08_contrato.sql`); sem esse SQL fica salvo só no celular. Os bichos ainda são desenhados com emoji grande (dá para trocar por arte depois).
 - Susanoo: escudo de 25–35% da vida (Itachi o maior) por 8 s, mais lento e sem recuperar vida; quebrou o escudo, ele se desfaz.
 - Números de golpes, recargas, custos e efeitos: `server/balanceamento.json`.
 - 4º botão: habilidade do item equipado (Chidori…). Sem item que dê habilidade, ele aparece vazio.

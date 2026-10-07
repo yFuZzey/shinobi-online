@@ -459,7 +459,15 @@ function setMeta(p, m) {
   if (m.ey != null) p.ey = clamp(num(m.ey, 0) | 0, 0, 2); // olho ligado: 1 Sharingan, 2 Mangekyō (só visual para os outros)
   if (m.ten != null) p.ten = clamp(num(m.ten, 0), 0, CCX.tenacidadeMax); // tenacidade: % a menos em todo controle
   if (m.rg != null) p.rg = clamp(num(m.rg, 0), 0, CCX.resGenMax);        // resistência a genjutsu (Byakugan ligado): % a menos em genjutsu
+  if (m.ct !== undefined) p.contrato = contratoOk(m.ct);                    // contrato de invocação (planilha 11); p.ct é o relógio do app
 }
+// ---------------------------------------------------------------- invocações (planilha 11): o contrato vem do app; o servidor só aceita família ativa
+const INVS = () => (BALJ && BALJ.flags && BALJ.flags.invocacoes !== false && BALJ.invocacoes) || null;
+function contratoOk(k) { const I = INVS(), f = I && I.familias && typeof k === 'string' ? I.familias[k] : null; return f && f.ativo ? k : null; }
+const invDe = p => { const I = INVS(); return I && p.contrato ? (I.familias || {})[p.contrato] || null : null; };
+const passivaDe = (p, k) => { const f = invDe(p); return f && f.passiva ? num(f.passiva[k], 0) : 0; };
+// golpe "j" de quem bate: jutsu do clã (golpes.jutsus) ou a invocação do contrato ('kuchi')
+function jutsuSrv(p, j) { if (!j || !BALJ || !BALJ.golpes) return null; if (j === 'kuchi') return invDe(p); return (((BALJ.golpes.jutsus || {})[p.clan]) || {})[j] || null; }
 function onJoin(p, m) {
   const map = str(m.map, 40); if (!MAPS[map]) return sys(p, 'Mapa desconhecido.');
   if (p.map) leaveRoom(p);
@@ -633,12 +641,13 @@ function natMul(an, dn) { const N = NATS(), a = (N.tipos || {})[an]; if (!a || !
 // efeito secundário: só em jutsu (não no golpe básico) e no máximo 1 a cada efeitoCd s de cada atacante em cada alvo
 function natEfeito(q, p, an, j, t) { const N = NATS(), ef = an && ((N.tipos || {})[an] || {}).efeito; if (!ef || jBasico(p, j)) return null;
   const k = p.id + ':' + an, cd = q.natCd || (q.natCd = {}); if (cd[k] > t) return null; cd[k] = t + num(N.efeitoCd, 4); return ef; }
-// queimadura do Katon: o servidor tira pct% da vida máxima em t s (1 por segundo) e conta para quem queimou
-function queimaTick() { const t = now(); for (const q of players.values()) { const b = q.queima; if (!b) continue; if (!q.map || q.hp <= 0) { q.queima = null; continue; }
+// queimadura do Katon e veneno da cobra (invocação): o servidor tira pct% da vida máxima em t s (1 por segundo) e conta para quem fez
+const DOTS = [['queima', 'queimadura', 'qm'], ['veneno', 'veneno', 'vn']];
+function queimaTick() { const t = now(); for (const q of players.values()) for (const [k, nm, tag] of DOTS) { const b = q[k]; if (!b) continue; if (!q.map || q.hp <= 0) { q[k] = null; continue; }
   if (t < b.next) continue; const d = Math.max(1, Math.round(num(q.max, 100) * b.pct / 100)); b.next += 1; b.n--;
-  try { q.conn.send({ t: 'hurt', fin: 1, d, src: b.nome + ' (queimadura)', by: b.by, qm: 1 }); const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(b.by) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(b.by, o);
-    const a = players.get(b.by); if (a) { lutaGolpe(q, a, d, 0); if (q.map) toRoom(room(q.map), { t: 'ph', to: q.id, by: b.by, d, c: 0, qm: 1 }, q); } } catch (e) {}
-  if (b.n <= 0) q.queima = null; } }
+  try { q.conn.send({ t: 'hurt', fin: 1, d, src: b.nome + ' (' + nm + ')', by: b.by, [tag]: 1 }); const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(b.by) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(b.by, o);
+    const a = players.get(b.by); if (a) { lutaGolpe(q, a, d, 0); if (q.map) toRoom(room(q.map), { t: 'ph', to: q.id, by: b.by, d, c: 0, [tag]: 1 }, q); } } catch (e) {}
+  if (b.n <= 0) q[k] = null; } }
 setInterval(queimaTick, 250);
 // diferença de nível no PvP aberto (planilha 12/03): quem está acima bate no máximo pvpNivelBonusMax a mais do que alguém do nível do alvo
 function nivelMul(p, q) { const c = num(CFG.pvpNivelCurva, 0), a = num(p.lv, 1), b = num(q.lv, 1); if (!(c > 0) || a <= b) return 1;
@@ -671,7 +680,10 @@ function onPvp(p, m) {
   if (ef && ef.k === 'lento') { const L = cc0 ? (Array.isArray(cc0) ? cc0 : [cc0]) : []; if (L.length < 2) cc0 = L.concat([{ k: 'lento', t: num(ef.t, 2), v: num(ef.v, 20) }]); }
   if (Array.isArray(cc0) && cc0.length === 1) cc0 = cc0[0];
   const cc = ccAjusta(q, p.id, cc0 && ccPvpList(cc0), t, imu);
-  if (ef && ef.k === 'queima') q.queima = { by: p.id, nome: p.nome, pct: num(ef.pct, 3) / Math.max(1, num(ef.t, 3)), n: Math.max(1, Math.round(num(ef.t, 3))), next: t + 1 };
+  const dotMul = 1 + clamp(passivaDe(p, 'dot'), 0, 50) / 100; // contrato das cobras: dano contínuo um pouco maior
+  if (ef && ef.k === 'queima') q.queima = { by: p.id, nome: p.nome, pct: num(ef.pct, 3) / Math.max(1, num(ef.t, 3)) * dotMul, n: Math.max(1, Math.round(num(ef.t, 3))), next: t + 1 };
+  const vf = m.vn && j === 'kuchi' ? invDe(p) : null; // mordida da cobra: veneno (só quem tem o contrato e só pela invocação)
+  if (vf && num(vf.venenoPvp, 0) > 0) { const n = Math.max(1, Math.round(clamp(num(vf.dur, 6), 1, 20))); q.veneno = { by: p.id, nome: p.nome, pct: clamp(num(vf.venenoPvp, 0), 0, 20) / n * dotMul, n, next: t + 1 }; }
   if (kk >= CCX.deslocamentoMin) { const f = ccDR(q, 'desl', p.id, t); if (!f) imu.push('desl'); kx *= f; ky *= f; } // empurrão/puxão forte também tem retorno decrescente
   q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c, cc, imu: imu.length ? imu : undefined, nm: nmul !== 1 ? nmul : undefined, ef: ef ? ef.k : undefined });
   lutaGolpe(q, p, dd, Math.max(pst, ccPreso(cc))); // "preso" no registro da luta: atordoado, preso pela sombra ou silenciado
@@ -729,7 +741,7 @@ function cmdLutas(p, me) {
 // especialidade, com folga para a rede). App antigo, sem id: vale o jutsu da barra padrão daquele botão.
 // dano conferido pelo servidor (modo sombra, planilha 15 T-09): teto bem folgado para um golpe do jutsu "j" no nível de quem bate
 // (dano do rank × força + o maior poder possível no nível, × especialidade, reforços, itens e crítico). Passou do teto: anota "DANO?" no log
-function danoMax(p, j, pvp) { try { const G = BALJ && BALJ.golpes; if (!G || !j || j === 'item') return 0; const g = ((G.jutsus || {})[p.clan] || {})[j]; if (!g) return 0;
+function danoMax(p, j, pvp) { try { const G = BALJ && BALJ.golpes; if (!G || !j || j === 'item') return 0; const g = jutsuSrv(p, j); if (!g) return 0;
   const P = BALJ.personagem || {}, R = (G.ranks || {})[g.r] || {}, base = num(R.dmg, 80) * num(g.f, 1);
   const pts = Math.min(num(P.statusMax, 300), 30 + num(p.lv, 1) * num(P.pontosPorNivel, 5)) + 120; // + itens (folga)
   const forca = Math.max(1, num(g.pot, 1), num(g.total, 1)), crit = pvp ? num(COMBATE.critMultPvp, 1.3) : num(COMBATE.critMultPve, 1.5);
@@ -740,7 +752,7 @@ function cdMinimo(p, sl, id) {
   const j = BALJ, G = j && j.golpes; if (!G || !G.jutsus || !p.clan) return 0;
   let base = 0;
   if (!id && sl < 3) id = ((G.barra || {})[p.clan] || [])[sl];
-  let g = null; if (id && id !== 'item') { g = (G.jutsus[p.clan] || {})[id]; if (!g) return 0; base = num(g.cd, num((G.ranks[g.r] || {}).cd, 0)); }
+  let g = null; if (id && id !== 'item') { g = jutsuSrv(p, id); if (!g) return 0; base = num(g.cd, num((G.ranks[g.r] || {}).cd, 0)); }
   else { for (const iid of p.eq || []) { const it = ITEMS[iid]; if (it && num(it.cd, 0) > 0) base = num(it.cd, 0); } }
   if (!(base > 0)) return 0;
   const at = (j.personagem && j.personagem.atributos) || {}, cdr = num((at.cdr || {}).max, 40);

@@ -25,8 +25,6 @@ _need('personagem.retornoDecrescente.eficacia');_need('proficiencia.multMin');_n
 for _p in ['proficiencia.ranks','olhos.tomoe']:_need(_p,list)
 for _p in ['cc.janela','cc.imune','cc.agrupa','cc.cadeiaMax','cc.tenacidadeVit','cc.tenacidadeMax','cc.jukenPen','cc.mangekyoPen']:_need(_p)
 _need('cc.fatores',list)
-for _p in ['invocacoes.nivel','invocacoes.trocaEspera','invocacoes.afinidade','pvp.curaMul']:_need(_p)
-_need('invocacoes.familias',dict)
 _need('combate.critMultPve');_need('combate.critMultPvp');_need('pvp.itemDanoMax')
 for _p in ['naturezas.forte','naturezas.fraco','naturezas.efeitoCd']:_need(_p)
 for _p in ['naturezas.tipos','naturezas.cla','naturezas.itens']:_need(_p,dict)
@@ -48,6 +46,17 @@ for _c,_J in BAL['golpes']['jutsus'].items():
         for _q in ('lento',):
             if _q in _j:assert isinstance(_j[_q],dict) and 'v' in _j[_q] and 't' in _j[_q],'balanceamento.json: '+_c+'.'+_id+'.'+_q+' precisa de {v, t}'
 for _k in ('hp','mp','pf','pc','spd','mpr','crit','esq','prec','red','cdr'):assert _k in BAL['personagem']['atributos'],'balanceamento.json: atributo '+_k
+if BAL.get('flags',{}).get('invocacoes',True) and 'invocacoes' in BAL:  # Entrega 11 (planilha 11)
+    for _p in ['invocacoes.nivel','invocacoes.trocaHoras','invocacoes.curaPvp','invocacoes.pvpJanela','invocacoes.escudoMaxPct']:_need(_p)
+    _need('invocacoes.familias',dict)
+    for _k,_f in BAL['invocacoes']['familias'].items():
+        if _k[0]=='_' or not _f.get('ativo'):continue
+        assert _k in ('sapo','lesma','cobra'),'balanceamento.json: família '+_k+' ainda não tem invocação no jogo (deixe ativo false)'
+        for _q in ('r','cd','dur'):assert _q in _f,'balanceamento.json: invocacoes.familias.'+_k+'.'+_q
+        assert _f['r'] in BAL['golpes']['ranks'],'balanceamento.json: rank de invocacoes.familias.'+_k
+        assert 'papel' not in _f,'balanceamento.json: invocacoes.familias.'+_k+' usa "funcao" (papel é dos jutsus)'
+    for _k,_q in (('sapo','escudo'),('lesma','cura'),('cobra','venenoPvp'),('cobra','alcance')):
+        if BAL['invocacoes']['familias'].get(_k,{}).get('ativo'):assert _q in BAL['invocacoes']['familias'][_k],'balanceamento.json: invocacoes.familias.'+_k+'.'+_q
 def rep(a,b,n=1):
     global s
     c=s.count(a)
@@ -141,8 +150,8 @@ rep('<button id="stZero">','<button id="stZero" class="admo">')
 # projéteis de outros jogadores são só visuais
 rep("for(const e of E)if(!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE","for(const e of (b.rm?E:E.concat(PVT())))if(!b.rm&&!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE")
 # ---- proficiência ----
-rep("const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0}});","const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0},prof:{k:null,xp:0},mgk:null,ct:null,ctT:0,v:SAVE_V});")
-rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(BAL.personagem.atributoMax,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null;CH.ct=ctFam(j.ct)?j.ct:null;CH.ctT=+j.ctT||0;CH.v=Math.max(SAVE_V,+j.v||1)}}catch(e){}}")
+rep("const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0}});","const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0},prof:{k:null,xp:0},mgk:null,ct:{k:null,t:0},v:SAVE_V});")
+rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(BAL.personagem.atributoMax,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null;CH.ct=ctNorm(j.ct);CH.v=Math.max(SAVE_V,+j.v||1)}}catch(e){}}")
 rep("const mpOf=(i,s)=>{const a=i==0?atkItem():null;return a?(+a.atk.mp||0):s.mp};","const mpOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.round((a?(+a.atk.mp||0):Math.max(+s.mp||0,(+s.mpPct||0)*(p&&p.mpMax||0)/100))*profMp(i))};")
 rep("const cdOf=(i,s)=>{const a=i==0?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM())};","const cdOf=(i,s)=>{const a=i==3&&!(clan&&CLANS[clan].sk[3])?atkItem():null;return Math.max(.2,(a?+a.atk.cd||s.cd:s.cd)*CDM()*profCd(i)*juCdMul(a?null:s))};")
 rep("col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin})","col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin,tp:HTP})")
@@ -189,7 +198,7 @@ rep("if(p.dash){dashStep(dt)}else if(m>.15){","if(p.dash){dashStep(dt)}else if(P
 rep(" if(s.t=='aoe'){const cx=p.x+ax*(s.off||0),cy=p.y+ay*(s.off||0);\n  fx.push({k:'ring',x:cx,y:cy-8,r:s.r,col:s.col,life:.45,max:.45,sp:s.fx});\n  E.concat(PVT()).forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hitE(e,s.dmg,s.stun,ax*(s.kb||0),ay*(s.kb||0))});\n  if(s.fx)flash={col:s.col,a:.3}}",
     " if(s.t=='aoe')castAoe(s,ax,ay);else if(JCAST[s.t])JCAST[s.t](s,ax,ay);")
 # desenho dos efeitos da folha
-rep(" fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='ring'){"," fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'){shadowFxDraw(f);return}if(f.k=='aviso'||f.k=='chama'||f.k=='genj'||f.k=='amat'||f.k=='tsuku'){uchFxDraw(f);return}if(f.k=='kusho'){hyuFxDraw(f);return}if(f.k=='invoc'){invocDraw(f);return}if(f.k=='act')return;\n  if(f.k=='ring'){")
+rep(" fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='ring'){"," fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'){shadowFxDraw(f);return}if(f.k=='aviso'||f.k=='chama'||f.k=='genj'||f.k=='amat'||f.k=='tsuku'){uchFxDraw(f);return}if(f.k=='kusho'){hyuFxDraw(f);return}if(f.k=='act'||f.k=='inv'||f.k=='invx')return;\n  if(f.k=='ring'){")
 # Hyuga de branco: quadros novos entram no sprite (o jogo carrega e pinta pele/cabelo igual aos outros; a roupa branca não recebe cor)
 HYS=json.load(open('hyuga/spr_hyuga.json'));UCS=json.load(open('hyuga/spr_uchiha.json'))
 J=lambda o:json.dumps(o,separators=(',',':'))
@@ -230,7 +239,7 @@ rep('<div id="paneCh" hidden></div>','<div id="paneCh" hidden></div><div id="pan
 rep("if(w==='ch')chDraw();","if(w==='ch')chDraw();$('#paneJu').hidden=w!=='ju';$('#tbJu').classList.toggle('on',w==='ju');if(w==='ju')juDraw();")
 # com o Sharingan/Mangekyō ligado o chakra não se recupera (o olho consome)
 rep("p.mp=Math.min(p.mpMax,p.mp+5*dt*MG())","p.mp=Math.min(p.mpMax,p.mp+(eyeOnAny()?0:BAL.personagem.regenChakra*dt*MG()))")
-rep("p.hp=Math.min(p.max,p.hp+1.2*dt*RG())","p.hp=Math.min(p.max,p.hp+(susOn()?0:BAL.personagem.regenVida*dt*RG()))") # Susanoo de pé: sem recuperar vida
+rep("p.hp=Math.min(p.max,p.hp+1.2*dt*RG())","p.hp=Math.min(p.max,p.hp+(susOn()?0:BAL.personagem.regenVida*dt*RG()*curaMul()))") # Susanoo de pé: sem recuperar vida
 # começo da partida: botões conforme o nível
 rep("autoOn=true;C.sk.forEach((s,i)=>$('#b'+i).classList.toggle('ao',!!s.auto));","autoOn=true;C.sk.forEach((s,i)=>$('#b'+i).classList.toggle('ao',!!s.auto));jtStart();")
 # vários do mesmo item (cada drop é uma unidade nova; a mochila mostra pilhas)
@@ -241,6 +250,8 @@ rep("['dex','DEX','Destreza','−1% de recarga das habilidades por ponto (máx. 
 rep("['luk','LUK','Sorte','+0,7% de chance de golpe crítico (dano dobrado)']","['luk','LUK','Sorte','+0,7% de chance de golpe crítico (máx. "+str(BAL['personagem']['atributos']['crit']['max'])+"%)']")
 # chefe com nível e cor de perigo no nome
 rep("ctx.fillStyle='#ffe9a8';ctx.strokeText(e.nome,e.x,e.y-130-bz);ctx.fillText(e.nome,e.x,e.y-130-bz)","{const lb=mobName(e);ctx.fillStyle=lvColor(e,'#ffe9a8');ctx.strokeText(lb,e.x,e.y-130-bz);ctx.fillText(lb,e.x,e.y-130-bz)}")
+# número flutuante com cor própria (cura da Katsuyu em verde)
+rep("ctx.fillStyle=f.crit||f.gold?'#ffd23f':f.r?'#ff6b5a':'#fff';","ctx.fillStyle=f.col||(f.crit||f.gold?'#ffd23f':f.r?'#ff6b5a':'#fff');")
 # janela de troca e convite de troca
 rep('<div id="pinv" hidden>','''<div id="trd" hidden><div class="td">
 <div class="tdh"><b>🤝 Troca com <span id="tdNome"></span></b><button id="tdX" class="sec">Cancelar</button></div>
@@ -253,7 +264,7 @@ rep('<div id="pinv" hidden>','''<div id="trd" hidden><div class="td">
 <div id="pinv" hidden>''')
 # atualização automática: versão desta montagem e de onde baixar as próximas (dá para trocar nos testes)
 GV=os.environ.get('GAME_VER','0');OTA_BASE=os.environ.get('OTA_BASE','https://raw.githubusercontent.com/yFuZzey/shinobi-online/');OTA_API=os.environ.get('OTA_API','https://api.github.com/repos/yFuZzey/shinobi-online/commits/main')
-js=open('online/online2.js').read().replace('__GAME_VER__',GV).replace('__OTA_BASE__',OTA_BASE).replace('__OTA_API__',OTA_API).replace('__SUPA_URL__',url).replace('__SUPA_KEY__',key).replace('__GS_URL__',gs).replace('__MOBS__',open('mobs/mobs_client.json').read()).replace('__SFX__',open('sus/sfx.json').read()).replace('__SFXIC__',open('sus/icons.json').read()).replace('__KFX__',open('kaiten/kfx.json').read()).replace('__SPRITES__',open('mobs/sprites_used.json').read())
+js=open('online/online2.js').read().replace('__GAME_VER__',GV).replace('__OTA_BASE__',OTA_BASE).replace('__OTA_API__',OTA_API).replace('__SUPA_URL__',url).replace('__SUPA_KEY__',key).replace('__GS_URL__',gs).replace('__MOBS__',open('mobs/mobs_client.json').read()).replace('__SFX__',open('sus/sfx.json').read()).replace('__SFXIC__',open('sus/icons.json').read()).replace('__KFX__',open('kaiten/kfx.json').read()).replace('__SPRITES__',open('mobs/sprites_used.json').read()).replace('__IFX__',open('inv/ifx.json').read()).replace('__INVIC__',open('inv/icons.json').read())
 rep("document.addEventListener('contextmenu',e=>e.preventDefault());\n</script>","document.addEventListener('contextmenu',e=>e.preventDefault());\n"+js+"\n</script>")
 CSS="""
 /* ---- online ---- */

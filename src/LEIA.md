@@ -31,3 +31,7 @@ Precisa de Python 3 (com Pillow só para as ferramentas de arte), Node 18+ e Pla
 - Trocas no jogo base: `build_online2.py` (sempre com `rep`).
 - Mapas, itens e mobs: pelo editor (exporta para `ed/db/`).
 - Servidor: `server/server.js` (fora de `src/`, é o que o Render roda).
+
+## Invocações (Entrega 11)
+- `src/inv/ifx.json` e `src/inv/icons.json` (arte das invocações) entram no jogo por `build_online2.py` (`__IFX__`, `__INVIC__`). Para refazer: `cd arte/invocacoes && python3 ../ferramentas/recortar_invocacoes.py`.
+- Código do jogo: bloco "Entrega 11" em `src/online/online2.js`. Banco: `sql/08_contrato.sql`. Testes: `invoc` e `t39`.
