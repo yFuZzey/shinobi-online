@@ -72,7 +72,7 @@ rep("function chLoad(){CH=chNew();try{const j=JSON.parse(localStorage.getItem(ch
 LOGIN='''<div id="s-login" class="scr on">
 <svg class="lgdune" viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 C120 70 230 80 330 115 S560 150 800 95 V200 H0Z" fill="#7a4a2c"/><path d="M0 155 C150 115 300 125 420 150 S650 170 800 140 V200 H0Z" fill="#a8693a"/><path d="M0 185 C200 160 380 168 520 182 S700 192 800 178 V200 H0Z" fill="#c98b4f"/></svg>
 <div class="lgwrap">
- <div class="lgbrand"><div class="lgseal">忍</div><h1>Shinobi Online</h1><p>Mundo ninja online · comece na Vila da Areia</p></div>
+ <div class="lgbrand"><div class="lgseal">忍</div><div class="lglogo" role="img" aria-label="Shinobi Online"></div><h1>Shinobi Online</h1><p>Mundo ninja online · comece na Vila da Areia</p></div>
  <div class="lgcard">
   <div class="lgtabs" role="tablist"><button id="tabIn" class="on" role="tab">Entrar</button><button id="tabNew" role="tab">Criar conta</button></div>
   <form id="fIn" class="lgf" autocomplete="on" novalidate onsubmit="return false">
@@ -103,6 +103,7 @@ rep('''<div id="s-login" class="scr on">
 <button id="go1">Entrar</button><p id="err" class="m"></p>
 </div>''',LOGIN)
 # HUD: contador online + chat
+rep('<div id="hud"><div id="hn"></div>','<div id="hud"><div id="hudFace"><canvas id="hudFaceCv" width="68" height="68"></canvas></div><div id="hn"></div>')
 rep('<div class="bar xpb"><i id="xp"></i><b id="xpt">XP</b></div>','<div class="bar xpb"><i id="xp"></i><b id="xpt">XP</b></div><div id="onl" hidden></div><div id="phud"></div><div id="chatrow"><button id="chatbtn" aria-label="Chat" hidden>💬</button><div id="chatlog" hidden></div></div>')
 rep('<div id="rot" hidden>','''<div id="chatp" hidden><div class="cph"><button id="tabC" class="on">💬 Conversa</button><button id="tabR">📜 Registro<i id="regB" hidden></i></button><button id="chatX" aria-label="Fechar">✕</button></div><div id="cpList"></div><div id="cpIn"><div class="chs"><button data-ch="l" class="on">Local</button><button data-ch="g">Grupo</button><button data-ch="m">Mapa</button></div><div class="cpr"><input id="chatin" maxlength="80" placeholder="Mensagem…" autocomplete="off" enterkeyhint="send"><button id="chatgo">Enviar</button></div></div></div>
 <div id="toast" hidden></div>
@@ -456,6 +457,9 @@ body:not(.adm) .admo{display:none!important}body:not(.adm) #paneBag .ivf{display
 #mapbtn,#bagbtn,#statbtn,#grpbtn{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(12,10,20,.66)!important}
 @media (orientation:landscape) and (max-height:560px){#grpbtn{top:104px;padding:6px 11px;font-size:12px;min-width:96px}#phud .pm{width:150px}#chatrow{margin-top:5px}#chatp{height:calc(100% - 16px)}#toast{bottom:110px}}
 """
-i=s.rindex("</style></head>");s=s[:i]+CSS+s[i:]
+# ---- tema pixel (arte da interface: arte/ui → src/ui/ui.json, ver arte/ferramentas/recortar_ui.py) ----
+UI=json.load(open('ui/ui.json'))
+UICSS=':root{'+''.join('--ui-%s:url(%s);'%(n,v['src']) for n,v in UI.items() if n!='icone')+'}'+open('ui/tema.css').read()
+i=s.rindex("</style></head>");s=s[:i]+CSS+UICSS+s[i:]
 open(dst,'w').write(s)
 print('online ok',len(s),'configurado' if url.startswith('http') else 'sem servidor')

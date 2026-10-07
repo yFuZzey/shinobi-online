@@ -1,0 +1,51 @@
+/* ---- tema pixel: arte da interface (pacotes 1 a 4). Peças em src/ui/ui.json; 1 pixel da arte = 2 px no login, 1,5 nas janelas, 1 no HUD ---- */
+/* tela de entrada */
+#s-login{background:#1b1838 var(--ui-fundo_login) center bottom/cover no-repeat;image-rendering:pixelated}
+#s-login .lgdune,#s-login .lgseal{display:none}
+#s-login .lgbrand h1{position:absolute;width:1px;height:1px;margin:0;overflow:hidden;clip:rect(0 0 0 0)}
+.lglogo{width:min(328px,100%);aspect-ratio:164/76;background:var(--ui-logo) center/contain no-repeat;image-rendering:pixelated;filter:drop-shadow(0 4px 8px rgba(0,0,0,.55))}
+#s-login .lgbrand p{margin-top:8px;color:#f3e6c8;text-shadow:0 1px 0 #1e1212,0 0 4px #1e1212}
+#s-login .lgcard{border:solid transparent;border-width:16px 14px 14px 18px;border-image:var(--ui-painel) 8 7 7 9;border-radius:0;background:#f0deaa var(--ui-papel) 0 0/32px 32px;background-clip:padding-box;box-shadow:none;filter:drop-shadow(0 10px 18px rgba(0,0,0,.5));padding:4px 6px 2px;color:#3a201a;image-rendering:pixelated}
+#s-login .lgtabs{background:none;padding:0;gap:6px;border-radius:0;margin-bottom:8px}
+#s-login .lgtabs button{height:34px;padding:2px 6px 0;border:0 solid transparent;border-radius:0;background:none;border-image:var(--ui-aba_off) 4 5 1 5 fill/8px 10px 2px 10px;color:#f0deaa;text-shadow:0 1px 0 #1e1212;image-rendering:pixelated}
+#s-login .lgtabs button.on{padding-top:12px;border-image:var(--ui-aba_on) 8 5 0 5 fill/16px 10px 0 10px;color:#3a201a;text-shadow:none}
+#s-login .lgf input:not([type=checkbox]){height:42px;padding:6px 14px;border:0 solid transparent;border-radius:0;background:none;border-image:var(--ui-campo) 6 5 6 6 fill/12px 10px 12px 12px;color:#3a201a;box-shadow:none;image-rendering:pixelated}
+#s-login .lgf input:not([type=checkbox]):focus{border-image-source:var(--ui-campo_foco);box-shadow:none}
+#s-login .lgf input::placeholder{color:#8a6e4e}
+#s-login .eye{top:9px;right:10px;border-radius:0;background:#5c3424;color:#f0deaa;box-shadow:inset 0 0 0 2px #1e1212}
+#s-login .ck{color:#3a201a}
+#s-login .ck input{appearance:none;-webkit-appearance:none;width:24px;height:24px;margin:0;border:0;background:var(--ui-check_off) 0 0/100% 100%;image-rendering:pixelated}
+#s-login .ck input:checked{background-image:var(--ui-check_on)}
+#s-login .fl small{color:#6a4a30}#s-login .fl small.ok{color:#2d7a3e}#s-login .fl small.bad{color:#b0301a}
+#s-login #err{color:#9b2a14;text-shadow:none}
+#s-login .lgver,#s-login button.lnk{color:#7a5a3c}
+/* botão principal (Entrar, Criar conta, Escolher clã, Tentar de novo, avisos) */
+#s-login .lgf button[type=submit],#otaretry,#go2,#netblock button{height:48px;padding:0 20px 6px;border:0 solid transparent;border-radius:0;background:none;border-image:var(--ui-btn) 3 12 7 12 fill/6px 24px 14px 24px;color:#fff;font-weight:800;letter-spacing:.03em;text-shadow:0 2px 0 #681616,0 0 2px #1e1212;box-shadow:none;opacity:1;image-rendering:pixelated}
+#s-login .lgf button[type=submit]:active,#otaretry:active,#go2:active,#netblock button:active{border-image-source:var(--ui-btn_press);padding-bottom:2px}
+#s-login .lgf button[type=submit]:disabled,#otaretry:disabled,#go2:disabled,#netblock button:disabled{border-image-source:var(--ui-btn_off);color:#e4ddd6;text-shadow:0 2px 0 #3e3634;opacity:1}
+#otaretry{display:block;width:100%;margin:6px 0 0}
+#go2{width:auto;min-width:200px}
+/* janelas (Mochila, Personagem, Status, Jutsus) */
+#inv .iv,#grp .gp{border:solid transparent;border-width:32px 18px 18px 20px;border-image:var(--ui-janela) 21 12 12 13;border-radius:0;background:#f0deaa var(--ui-papel) 0 0/24px 24px;background-clip:padding-box;color:#2a1a14;image-rendering:pixelated;padding:6px 10px}
+#inv .ivh{top:-6px;background:#f0deaa var(--ui-papel) 0 0/24px 24px}
+#inv .tabs{gap:4px;align-items:flex-end}
+#inv .tabs button{height:36px;padding:4px 10px 0;border:0 solid transparent;border-radius:0;background:none;border-image:var(--ui-aba_off) 4 5 1 5 fill/6px 8px 2px 8px;color:#f0deaa;text-shadow:0 1px 0 #1e1212;box-shadow:none;opacity:1;image-rendering:pixelated}
+#inv .tabs button.on{padding-top:8px;border-image:var(--ui-aba_on) 8 5 0 5 fill/12px 8px 0 8px;color:#3a201a;text-shadow:none}
+#inv #ivX,#grp #grpX,#chatp #chatX,#mapmenu #mmX{flex:0 0 auto;color:transparent;text-shadow:none;width:38px;height:38px;padding:0;margin:0;border:0;border-radius:0;font-size:0;background:var(--ui-x) 0 0/100% 100%;box-shadow:none;opacity:1;image-rendering:pixelated}
+#inv #ivX:active,#grp #grpX:active,#chatp #chatX:active,#mapmenu #mmX:active{background-image:var(--ui-x_press)}
+/* HUD: retrato, plaquinha do nome e barras */
+#hud{width:276px;padding-left:58px;box-sizing:border-box}
+#hudFace{position:absolute;left:0;top:0;width:52px;height:52px;background:var(--ui-retrato) 0 0/100% 100%;image-rendering:pixelated}
+#hudFace canvas{position:absolute;left:8px;top:8px;width:36px;height:36px;image-rendering:pixelated}
+#hn{display:inline-block;max-width:100%;padding:3px 16px 3px;border:0 solid transparent;border-image:var(--ui-placa) 8 14 8 14 fill/8px 14px;color:#3a201a;text-shadow:none;font-size:12px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;image-rendering:pixelated}
+#hud .bar,.bar{box-sizing:border-box;height:18px;border:5px solid transparent;border-image:var(--ui-barra_hp) 5 fill;border-radius:0;background:none;box-shadow:none;overflow:visible;image-rendering:pixelated}
+.bar i{border-radius:0}
+#hp,.bar i#hp{background:var(--ui-fill_hp) 0 0/100% 100%}
+.mpb{border-image-source:var(--ui-barra_mp)}
+#mp{background:var(--ui-fill_mp) 0 0/100% 100%}
+.bar i.gh{background:#ffe9b0;opacity:.6}
+.bar b{inset:-5px}
+#hud .xpb,.xpb{height:11px;border-width:4px;border-image:var(--ui-barra_xp) 4 fill}
+.xpb i{border-radius:0;background:var(--ui-fill_xp) 0 0/100% 100%;box-shadow:0 0 4px #ffc94a66}
+.xpb b{inset:-4px}
+.xpb.big{height:20px}

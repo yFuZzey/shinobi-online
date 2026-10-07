@@ -1351,6 +1351,10 @@ async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;
 function onlBusy(b){['#go1','#goNew','#tabIn','#tabNew'].forEach(s=>{const e=$(s);if(e)e.disabled=b||!!OTA.gate})}
 function onlLogout(){ONL.closing=true;const fin=()=>{try{localStorage.removeItem(ONL_SESS)}catch(_){}location.reload()};
  const pr=ONL.on?onlSave():Promise.resolve();Promise.resolve(pr).finally(()=>{try{ONL.ws&&ONL.ws.close()}catch(_){}if(ONL.tok)onlFetch('/auth/v1/logout',{method:'POST'}).catch(()=>{}).finally(fin);else fin()})}
+// ---------- Retrato do HUD: o rosto do personagem dentro da moldura (arte/ui) ----------
+function hudFace(){const cv=$('#hudFaceCv');if(!cv||cur!=='game'||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);c.imageSmoothingEnabled=false;
+ const k=H/HFACE.z;c.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);try{if(HERO)drawHero(c,0,0,{fl:0,t:0,mv:0,run:0,aura:-1,th:-1,act:null});else drawChar(c,0,0,{...look,clan,dir:0,t:0,mv:0,run:0})}catch(_){}}
+const HFACE={z:22,y:44};setInterval(hudFace,700);
 // ---------- Retrato do personagem (mochila e aba Personagem), animado enquanto a janela está aberta ----------
 function drawPortrait(cv,ts){if(!cv||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);
  const g=c.createRadialGradient(W/2,H*.8,4,W/2,H*.62,W*.62);g.addColorStop(0,'rgba(255,201,74,.22)');g.addColorStop(1,'rgba(255,201,74,0)');c.fillStyle=g;c.fillRect(0,0,W,H);
