@@ -108,7 +108,9 @@ a.chip{text-decoration:none;color:var(--ink)}
      <div id="visAj">
       <label class="f">Ajustando a pose</label><div class="row" id="vPose"><button type="button" class="chip on" data-p="parado">Parado</button><button type="button" class="chip" data-p="correndo">Correndo</button></div>
       <div class="sub" style="font-size:12px;color:var(--mute);margin-top:4px">Cada pose tem o seu ajuste. Toque também no boneco para escolher a pose.</div>
-      <label class="f">Lugar</label><div class="row" id="vLado"><button type="button" class="chip" data-f="0">Atrás do corpo</button><button type="button" class="chip" data-f="1">Na frente do corpo</button></div>
+      <label class="f">Lugar</label><div class="row" id="vLado"><button type="button" class="chip" data-f="0">Atrás do corpo</button><button type="button" class="chip" data-f="1">Na frente do corpo</button><button type="button" class="chip" data-f="2">Dividido</button></div>
+      <div id="vCorteW"><div class="sub" style="font-size:12px;color:var(--mute);margin-top:4px">A parte de cima do desenho fica na frente do corpo (ex.: a ponta da espada por cima do ombro) e o resto passa por trás.</div>
+       <label class="f">Parte de cima na frente: <span id="vCV"></span>%</label><div class="sl"><button type="button" data-d="vC:-2">−</button><input id="vC" type="range" min="5" max="95" value="35"><button type="button" data-d="vC:2">+</button></div></div>
       <label class="f">Tamanho: <span id="vEscV"></span>%</label><div class="sl"><button type="button" data-d="vEsc:-2">−</button><input id="vEsc" type="range" min="40" max="250" value="100"><button type="button" data-d="vEsc:2">+</button></div>
       <label class="f">Esquerda ↔ direita: <span id="vXV"></span></label><div class="sl"><button type="button" data-d="vX:-1">−</button><input id="vX" type="range" min="-60" max="60" value="0"><button type="button" data-d="vX:1">+</button></div>
       <label class="f">Cima ↕ baixo: <span id="vYV"></span></label><div class="sl"><button type="button" data-d="vY:-1">−</button><input id="vY" type="range" min="-60" max="60" value="0"><button type="button" data-d="vY:1">+</button></div>
@@ -210,25 +212,25 @@ let VPOSE='parado';
 const VI={};const vImg=u=>{if(!u)return null;let i=VI[u];if(!i){i=new Image();i.src=u;VI[u]=i}return i.complete&&i.naturalWidth?i:null};
 /* ajuste por pose; um item antigo (um ajuste só) vira os dois, com o mesmo resultado de antes */
 function visV(){const v=ED.vis&&typeof ED.vis==='object'?ED.vis:(ED.vis={});
- for(const k of ITR.POSES)if(!v[k]||typeof v[k]!=='object'){const d=ITR.itPosePad(ED.slot,k,!!ED.visual2);v[k]='esc' in v?{esc:+v.esc||100,x:+v.x||0,y:+v.y||0,giro:(+v.giro||0)+d.giro,frente:d.frente}:d}
+ for(const k of ITR.POSES)if(!v[k]||typeof v[k]!=='object'){const d=ITR.itPosePad(ED.slot,k,!!ED.visual2);v[k]='esc' in v?{esc:+v.esc||100,x:+v.x||0,y:+v.y||0,giro:(+v.giro||0)+d.giro,frente:d.frente,corte:35}:d;if(v[k].corte==null)v[k].corte=35}
  return v}
 const visP=()=>visV()[VPOSE];
 function visUI(){if(!ED)return;const mao=ED.slot==='mao';$('#visW').classList.toggle('hide',mao);$('#vMao').classList.toggle('hide',!mao);
  $('#vis2L').textContent=ED.slot==='capa'?'Capa ao vento (desenho correndo, opcional)':'Desenho diferente correndo (opcional)';$('#vis2T').classList.toggle('hide',!ED.visual2);
  $('#visAj').classList.toggle('hide',!ED.visual);const v=visP(),ou=VPOSE==='parado'?'Correndo':'Parado';
  document.querySelectorAll('#vPose [data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p===VPOSE));document.querySelectorAll('.vcv').forEach(c=>c.classList.toggle('on',c.dataset.pose===VPOSE));
- document.querySelectorAll('#vLado [data-f]').forEach(b=>b.classList.toggle('on',+b.dataset.f===(v.frente?1:0)));$('#vCopia').textContent='Copiar do '+ou;
- [['vEsc','esc'],['vX','x'],['vY','y'],['vG','giro']].forEach(([id,k])=>{$('#'+id).value=v[k];$('#'+id+'V').textContent=v[k]})}
+ const lf=+v.frente===2?2:+v.frente?1:0;document.querySelectorAll('#vLado [data-f]').forEach(b=>b.classList.toggle('on',+b.dataset.f===lf));$('#vCorteW').classList.toggle('hide',lf!==2);$('#vCopia').textContent='Copiar do '+ou;
+ [['vEsc','esc'],['vX','x'],['vY','y'],['vG','giro'],['vC','corte']].forEach(([id,k])=>{if(v[k]==null)v[k]=k==='corte'?35:0;$('#'+id).value=v[k];$('#'+id+'V').textContent=v[k]})}
 function visDraw(t){requestAnimationFrame(visDraw);if(!ED||$('#ed').classList.contains('hide'))return;const R=MOLDE.parado&&MOLDE.parado.F[0];
  for(const [cv,k,mv] of [['#vPar','parado',0],['#vCor','correndo',1]]){const c=$(cv).getContext('2d'),M=MOLDE[k];c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,150,190);c.imageSmoothingEnabled=false;if(!M)continue;
   const f=(t/(mv?130:260)|0)%M.F.length,A=ITR.itAncoraRef(M.F[f],R);if(!A)continue; /* mesmo ritmo dos quadros do jogo */
   const z=Math.min(150/M.w,182/M.h)*.92,ox=(150-M.w*z)/2,oy=190-M.h*z-4;c.setTransform(z,0,0,z,ox,oy);
   const li=ED.visual&&vImg(mv&&ED.visual2?ED.visual2:ED.visual),P=li&&CFG&&ITR.CAMADA[ED.slot]?ITR.itCamada(ED.slot,A,visV(),li.width,li.height,mv,t,!!ED.visual2):null;
-  if(P&&P.tras)ITR.itDesenha(c,li,P);c.drawImage(M.im,f*M.w,0,M.w,M.h,0,0,M.w,M.h);if(P&&!P.tras)ITR.itDesenha(c,li,P)}}
+  if(P&&(P.tras||P.div))ITR.itDesenha(c,li,P,P.div?'baixo':0);c.drawImage(M.im,f*M.w,0,M.w,M.h,0,0,M.w,M.h);if(P&&!P.tras)ITR.itDesenha(c,li,P,P.div?'cima':0)}}
 requestAnimationFrame(visDraw);
 const visLe=(inp,campo)=>{const f=inp.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{try{const tinha=!!ED.visual2;ED[campo]=iconeLimpo(im,$('#tiraFundo').checked,160);if(campo==='visual2')visPad2(tinha);$('#eErr').textContent='';visUI()}catch(err){$('#eErr').textContent='Não consegui preparar o desenho: '+err.message}};im.src=rd.result};rd.readAsDataURL(f)};
 $('#vis1').onchange=e=>visLe(e.target,'visual');$('#vis2').onchange=e=>visLe(e.target,'visual2');
-const VK={vEsc:'esc',vX:'x',vY:'y',vG:'giro'};
+const VK={vEsc:'esc',vX:'x',vY:'y',vG:'giro',vC:'corte'};
 Object.entries(VK).forEach(([id,k])=>$('#'+id).oninput=e=>{visP()[k]=+e.target.value;$('#'+id+'V').textContent=e.target.value});
 document.querySelectorAll('.sl [data-d]').forEach(b=>b.onclick=()=>{const [id,d]=b.dataset.d.split(':'),i=$('#'+id),v=Math.max(+i.min,Math.min(+i.max,+i.value+ +d));i.value=v;visP()[VK[id]]=v;$('#'+id+'V').textContent=v});
 const vPose=k=>{VPOSE=k;visUI()};document.querySelectorAll('#vPose [data-p]').forEach(b=>b.onclick=()=>vPose(b.dataset.p));document.querySelectorAll('.vcv').forEach(c=>c.onclick=()=>{if(ED&&ED.visual)vPose(c.dataset.pose)});

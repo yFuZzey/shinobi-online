@@ -80,18 +80,20 @@
     acessorio: { tras: 0, piv: [.5, .5],  alt: .18, pos: A => [A.headX, A.shY + A.bh * .14] },
   };
   const POSES = ['parado', 'correndo'];
+  // lado (frente): 0 = atrás do corpo, 1 = na frente, 2 = dividido (a parte de cima do desenho na frente, o resto atrás; corte = % do desenho que fica na frente)
+  const lado = (f, C) => f == null ? (C.tras ? 0 : 1) : Math.round(+f) === 2 ? 2 : +f ? 1 : 0;
   function itPose(slot, v, mv) {
     v = v || {}; const C = CAMADA[slot] || {}, p = v[mv ? 'correndo' : 'parado'];
-    if (p && typeof p === 'object') return { esc: +p.esc || 100, x: +p.x || 0, y: +p.y || 0, giro: +p.giro || 0, frente: p.frente == null ? !C.tras : !!+p.frente, poses: 1 };
-    return { esc: +v.esc || 100, x: +v.x || 0, y: +v.y || 0, giro: +v.giro || 0, frente: !C.tras, poses: 0 };
+    if (p && typeof p === 'object') { const l = lado(p.frente, C); return { esc: +p.esc || 100, x: +p.x || 0, y: +p.y || 0, giro: +p.giro || 0, lado: l, frente: l === 1, corte: Math.max(5, Math.min(95, +p.corte || 35)), poses: 1 }; }
+    return { esc: +v.esc || 100, x: +v.x || 0, y: +v.y || 0, giro: +v.giro || 0, lado: C.tras ? 0 : 1, frente: !C.tras, corte: 35, poses: 0 };
   }
   // ajuste padrão de uma pose (a capa correndo já começa inclinada, como se fosse o vento)
-  function itPosePad(slot, pose, img2) { const C = CAMADA[slot] || {}; return { esc: 100, x: 0, y: 0, giro: slot === 'capa' && pose === 'correndo' && !img2 ? 14 : 0, frente: C.tras ? 0 : 1 }; }
+  function itPosePad(slot, pose, img2) { const C = CAMADA[slot] || {}; return { esc: 100, x: 0, y: 0, giro: slot === 'capa' && pose === 'correndo' && !img2 ? 14 : 0, frente: C.tras ? 0 : 1, corte: 35 }; }
   // limpa o ajuste vindo do banco/painel (só números dentro dos limites)
   function itVisLimpa(v) {
     v = v && typeof v === 'object' ? v : {}; const n = (x, d, a, b) => { x = Math.round(+x); return isFinite(x) ? Math.max(a, Math.min(b, x)) : d; };
     const um = p => ({ esc: n(p.esc || 100, 100, 20, 300), x: n(p.x, 0, -100, 100), y: n(p.y, 0, -100, 100), giro: n(p.giro, 0, -180, 180) }), o = um(v);
-    for (const k of POSES) if (v[k] && typeof v[k] === 'object') o[k] = Object.assign(um(v[k]), { frente: +v[k].frente ? 1 : 0 });
+    for (const k of POSES) if (v[k] && typeof v[k] === 'object') o[k] = Object.assign(um(v[k]), { frente: v[k].frente == null ? undefined : lado(v[k].frente, {}), corte: n(v[k].corte, 35, 5, 95) });
     return o;
   }
   // mv = pose correndo; img2 = o item tem desenho próprio para correr (então não inclina sozinho)
@@ -99,9 +101,15 @@
     const C = CAMADA[slot]; if (!C || !A || !iw || !ih) return null; const p = itPose(slot, v, mv);
     const esc = Math.max(.2, Math.min(3, p.esc / 100)), h = A.bh * C.alt * esc, w = h * iw / ih, [bx, by] = C.pos(A);
     const rot = p.giro + (slot === 'capa' ? (mv && !p.poses && !img2 ? 14 : 0) + Math.sin((t || 0) / 420) * 2 : slot === 'arma' ? Math.sin((t || 0) / 520) * 1.2 : 0);
-    return { x: bx + p.x * A.bh / 100, y: by + p.y * A.bh / 100, w, h, rot: rot * Math.PI / 180, px: C.piv[0], py: C.piv[1], tras: p.frente ? 0 : 1 };
+    return { x: bx + p.x * A.bh / 100, y: by + p.y * A.bh / 100, w, h, rot: rot * Math.PI / 180, px: C.piv[0], py: C.piv[1], tras: p.lado === 0 ? 1 : 0, div: p.lado === 2 ? 1 : 0, corte: p.corte / 100 };
   }
-  function itDesenha(c, im, P) { c.save(); c.translate(P.x, P.y); c.rotate(P.rot); c.drawImage(im, -P.px * P.w, -P.py * P.h, P.w, P.h); c.restore(); }
+  // parte: 'cima' (do topo do desenho até o corte) ou 'baixo' (do corte até o fim); sem parte, o desenho inteiro.
+  // O corte acompanha o giro do item; a parte de cima passa 1 px do corte para não aparecer emenda.
+  function itDesenha(c, im, P, parte) {
+    c.save(); c.translate(P.x, P.y); c.rotate(P.rot); const x0 = -P.px * P.w, y0 = -P.py * P.h;
+    if (parte) { const yc = y0 + P.h * (P.corte || .35); c.beginPath(); if (parte === 'cima') c.rect(x0 - 2, y0 - 2, P.w + 4, yc - y0 + 3); else c.rect(x0 - 2, yc, P.w + 4, y0 + P.h - yc + 2); c.clip(); }
+    c.drawImage(im, x0, y0, P.w, P.h); c.restore();
+  }
   // nome → código (p_espada_do_zabuza)
   function itId(nome) { return 'p_' + String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30); }
   G.ITR = { RAR, SLOTS, TIPOS, CORES, CAMADA, itStats, itHab, itAtk, itPassiva, itValida, itParaJogo, itId, descHtml, itAncora, itAncoraRef, itCamada, itDesenha, POSES, itPose, itPosePad, itVisLimpa };

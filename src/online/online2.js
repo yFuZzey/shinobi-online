@@ -1385,12 +1385,12 @@ let visBusca=-1e9;function eqVis(ids){const L=[];for(const id of (ids||Object.va
   else if(!it&&/^p_/.test(id)&&ONL.on&&performance.now()-visBusca>15000){visBusca=performance.now();itensLoad()}}return L} /* outro jogador com item publicado depois que você entrou: busca a lista de novo (no máximo 1 vez a cada 15 s) */
 function visCamadas(c,V,tras,im,dx,dy,dw,dh,o){const HS=o.set||HERO,R=HS&&HS.idle&&HS.idle[0]?ancDe(HS.idle[0]):null,A=ITR.itAncoraRef(ancDe(im),R);if(!A)return;const kx=dw/im.width,ky=dh/im.height,t=o.t||0,mv=!!o.mv;
  for(const it of V){if(!ITR.CAMADA[it.slot])continue;const v=it.vis,src=mv&&v.img2?v.img2:v.img,li=visImg(src);if(!li)continue;
-  const P=ITR.itCamada(it.slot,A,v,li.width,li.height,mv,t,!!v.img2);if(!P||!!P.tras!==tras)continue; /* cada pose (parada/correndo) tem o seu ajuste e escolhe frente ou atrás do corpo */
-  const Q={x:dx+P.x*kx,y:dy+P.y*ky,w:P.w*kx,h:P.h*ky,rot:P.rot,px:P.px,py:P.py},col=it.fx&&it.fx.arma&&(it.fx.cor||it.fx.glow||'#ff8a1a');
-  if(col){const pu=.5+.5*Math.sin(t/140);c.save();c.globalCompositeOperation='lighter';const g=c.createRadialGradient(Q.x,Q.y,1,Q.x,Q.y,Q.h*.42);g.addColorStop(0,hexA(col,.28+.12*pu));g.addColorStop(1,hexA(col,0));c.fillStyle=g;c.beginPath();c.arc(Q.x,Q.y,Q.h*.42,0,7);c.fill();c.restore();
-   c.save();c.shadowColor=col;c.shadowBlur=4+5*pu;ITR.itDesenha(c,li,Q);c.restore();
-   c.save();c.globalCompositeOperation='lighter';for(let i=0;i<5;i++){const ph=((t/900)+i/5)%1,ex=Q.x+(i-2)*Q.w*.18+Math.sin(t/200+i)*2,ey=Q.y+Q.h*.3-ph*Q.h*.8;c.fillStyle=hexA(col,.75*(1-ph));c.beginPath();c.arc(ex,ey,1.8*(1-ph)+.5,0,7);c.fill()}c.restore()}
-  else ITR.itDesenha(c,li,Q)}}
+  const P=ITR.itCamada(it.slot,A,v,li.width,li.height,mv,t,!!v.img2);if(!P||(!P.div&&!!P.tras!==tras))continue;const pa=P.div?(tras?'baixo':'cima'):0; /* cada pose (parada/correndo) tem o seu ajuste: atrás, na frente ou dividido (a parte de cima na frente do corpo, o resto atrás) */
+  const Q={x:dx+P.x*kx,y:dy+P.y*ky,w:P.w*kx,h:P.h*ky,rot:P.rot,px:P.px,py:P.py,corte:P.corte},col=it.fx&&it.fx.arma&&(it.fx.cor||it.fx.glow||'#ff8a1a');
+  if(col){const pu=.5+.5*Math.sin(t/140);if(!P.div||tras){c.save();c.globalCompositeOperation='lighter';const g=c.createRadialGradient(Q.x,Q.y,1,Q.x,Q.y,Q.h*.42);g.addColorStop(0,hexA(col,.28+.12*pu));g.addColorStop(1,hexA(col,0));c.fillStyle=g;c.beginPath();c.arc(Q.x,Q.y,Q.h*.42,0,7);c.fill();c.restore()}
+   c.save();c.shadowColor=col;c.shadowBlur=4+5*pu;ITR.itDesenha(c,li,Q,pa);c.restore();
+   if(!P.div||!tras){c.save();c.globalCompositeOperation='lighter';for(let i=0;i<5;i++){const ph=((t/900)+i/5)%1,ex=Q.x+(i-2)*Q.w*.18+Math.sin(t/200+i)*2,ey=Q.y+Q.h*.3-ph*Q.h*.8;c.fillStyle=hexA(col,.75*(1-ph));c.beginPath();c.arc(ex,ey,1.8*(1-ph)+.5,0,7);c.fill()}c.restore()}}
+  else ITR.itDesenha(c,li,Q,pa)}}
 /* o boneco é desenhado com drawImage dentro do drawHero: no primeiro drawImage, desenha as camadas de trás, o boneco e as da frente (com o mesmo giro/espelho) */
 {const _dh=drawHero;drawHero=function(c,x,y,o){const V=o&&o.vis;if(!V||!V.length||typeof ITR==='undefined')return _dh(c,x,y,o);
  const di=c.drawImage;let done=false;
