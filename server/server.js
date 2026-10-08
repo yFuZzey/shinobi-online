@@ -473,7 +473,7 @@ function setMeta(p, m) {
   if (typeof m.clan === 'string' && /^(uchiha|hyuga|nara)$/.test(m.clan)) p.clan = m.clan;
   if (m.esq != null) p.esq = clamp(num(m.esq, 0), 0, CFG.esquivaInformadaMax);
   if (m.red != null) p.red = clamp(num(m.red, 0), CFG.reducaoInformadaMin, CFG.reducaoInformadaMax);
-  if (m.ey != null) p.ey = clamp(num(m.ey, 0) | 0, 0, 2); // olho ligado: 1 Sharingan, 2 Mangekyō (só visual para os outros)
+  if (m.ey != null) p.ey = clamp(num(m.ey, 0) | 0, 0, 3); // olho ligado: 1 Sharingan, 2 Mangekyō, 3 Byakugan (só visual para os outros)
   if (m.ten != null) p.ten = clamp(num(m.ten, 0), 0, CCX.tenacidadeMax); // tenacidade: % a menos em todo controle
   if (m.rg != null) p.rg = clamp(num(m.rg, 0), 0, CCX.resGenMax);        // resistência a genjutsu (Byakugan ligado): % a menos em genjutsu
   if (m.ct !== undefined) p.contrato = contratoOk(m.ct);                    // contrato de invocação (planilha 11); p.ct é o relógio do app

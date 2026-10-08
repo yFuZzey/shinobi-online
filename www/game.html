@@ -1272,7 +1272,7 @@ function gsConnect(){if(!ONL.on||ONL.ws||ONL.closing)return;
 function gsRetry(){if(!ONL.on||ONL.closing)return;clearTimeout(ONL.retryT);ONL.tries++;ONL.retryT=setTimeout(gsConnect,Math.min(5000,800+ONL.tries*600));onlStatus()}
 function gsJoin(){if(!ONL.authed||!clan)return;ONL.joined=false;ONL.peers={};E=[];EP=[];
  gsSend(Object.assign({t:'join',map:CURMAP,x:p.x|0,y:p.y|0,hp:Math.round(p.hp),max:p.max,sc:scene|0},onlMeta()))}
-function onlMeta(){let d={esq:0,red:0};try{d=D()}catch(_){}return {clan,lv:CH.lv,eq:Object.values(EQ),look:{skin:look.skin,hair:look.hair,cloth:look.cloth},esq:Math.round(d.esq*10)/10,red:Math.round(d.red*10)/10,ey:EYE.on==='mgk'?2:EYE.on?1:0,
+function onlMeta(){let d={esq:0,red:0};try{d=D()}catch(_){}return {clan,lv:CH.lv,eq:Object.values(EQ),look:{skin:look.skin,hair:look.hair,cloth:look.cloth},esq:Math.round(d.esq*10)/10,red:Math.round(d.red*10)/10,ey:EYE.on==='mgk'?2:EYE.on?1:BYK.on?3:0,
  ten:Math.round(tenac()*10)/10,rg:typeof BYK!=='undefined'&&BYK.on&&JU.hyuga&&JU.hyuga.byak?+JU.hyuga.byak.resGen||0:0,ct:ctFam()?CH.ct.k:null}}
 let _gsmt=0;function gsMeta(){clearTimeout(_gsmt);_gsmt=setTimeout(()=>{if(ONL.joined)gsSend(Object.assign({t:'meta'},onlMeta()))},150)}
 function onlPeer(id,o){if(id===ONL.uid)return null;let pe=ONL.peers[id];if(!pe){pe=ONL.peers[id]={id,nome:'?',clan:'uchiha',lv:1,eq:[],x:null,y:null,tx:0,ty:0,fl:0,mv:0,run:0,au:-1,th:-1,sc:0,hp:1,max:1,seen:performance.now(),say:'',sayT:0,g:0}}
@@ -2004,12 +2004,13 @@ function gzMsg(m){(m.ms||[]).forEach(o=>{const e=E.find(x=>x.sid===o.m);if(e){e.
 function pstunMsg(m){const st=+m.st||0;if(m.imu)ccImune(m.imu);if(!(st>0))return;PST=Math.max(PST,st);FT.push({x:p.x,y:p.y-70,t:'paralisado '+nf(st)+'s',txt:1,life:1.1});flash={col:'#5a0010',a:.3};onlReg('👁️ '+(m.src||'?')+' prendeu você com o olhar ('+nf(st)+' s).')}
 {const g=gsMsg;gsMsg=function(m){if(m&&m.t==='gz')return gzMsg(m);if(m&&m.t==='pstun')return pstunMsg(m);return g(m)}}
 // brilho vermelho nos olhos (o seu e o dos outros jogadores); Mangekyō com faíscas da folha
-function eyeL(L){if(scene|0)return;if(EYE.on&&clan==='uchiha')L.push({y:p.y+.3,d:()=>eyeDraw(p,EYE.on==='mgk'?2:1)});
+function eyeL(L){if(scene|0)return;if(EYE.on&&clan==='uchiha')L.push({y:p.y+.3,d:()=>eyeDraw(p,EYE.on==='mgk'?2:1)});else if(BYK.on&&clan==='hyuga')L.push({y:p.y+.3,d:()=>eyeDraw(p,3)});
  if(ONL.on)for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.ey&&pe.x!=null&&pe.sc===(scene|0))L.push({y:pe.y+.3,d:()=>eyeDraw(pe,pe.ey)})}}
-function eyeDraw(o,lv){const t=performance.now()/1000,hx=o.x+(o.fl?-3:3),hy=o.y-43;ctx.save();ctx.globalCompositeOperation='lighter';
- const r=(lv>1?8:6)+Math.sin(t*6)*1.2,g=ctx.createRadialGradient(hx,hy,0,hx,hy,r);g.addColorStop(0,'rgba(255,50,50,.95)');g.addColorStop(.45,'rgba(220,20,30,.55)');g.addColorStop(1,'rgba(160,0,10,0)');
+/* lv: 1 Sharingan, 2 Mangekyō (vermelho), 3 Byakugan (azul; os olhos do Hyuga ficam mais à frente e, correndo, mais baixos) */
+function eyeDraw(o,lv){const t=performance.now()/1000,by=lv===3,ex=by?(o.mv?13:7.5):3,hx=o.x+(o.fl?-ex:ex),hy=o.y-(by?(o.mv?37:40):43);ctx.save();ctx.globalCompositeOperation='lighter';
+ const r=(lv===2?8:6)+Math.sin(t*6)*1.2,g=ctx.createRadialGradient(hx,hy,0,hx,hy,r);if(by){g.addColorStop(0,'rgba(200,228,255,.95)');g.addColorStop(.45,'rgba(90,150,255,.6)');g.addColorStop(1,'rgba(30,70,200,0)')}else{g.addColorStop(0,'rgba(255,50,50,.95)');g.addColorStop(.45,'rgba(220,20,30,.55)');g.addColorStop(1,'rgba(160,0,10,0)')}
  ctx.fillStyle=g;ctx.beginPath();ctx.arc(hx,hy,r,0,7);ctx.fill();ctx.restore();
- if(lv>1&&SFX_OK){const F=SFX.f.pt1,fr=F[(t/.12|0)%F.length],sc=(SFX.s.pt1||1)*.85,[sx,sy,w,h,gx,gy]=fr;ctx.save();ctx.globalAlpha=.6;ctx.drawImage(SIMG,sx,sy,w,h,o.x-gx*sc,o.y-gy*sc,w*sc,h*sc);ctx.restore()}}
+ if(lv===2&&SFX_OK){const F=SFX.f.pt1,fr=F[(t/.12|0)%F.length],sc=(SFX.s.pt1||1)*.85,[sx,sy,w,h,gx,gy]=fr;ctx.save();ctx.globalAlpha=.6;ctx.drawImage(SIMG,sx,sy,w,h,o.x-gx*sc,o.y-gy*sc,w*sc,h*sc);ctx.restore()}}
 // ---------- Susanoo do seu Mangekyō: surge em volta do ninja, ataca em área e fica de pé dando o reforço ----------
 let SUS=null;const susOn=()=>!!(SUS&&SUS.until>performance.now());
 function susPress(i){i=i==null?barSlots().find(k=>CLANS[clan].sk[k]&&CLANS[clan].sk[k].t==='sus'):i;const sk=i!=null&&CLANS[clan].sk[i];if(!sk||eyeLv()<4||(CH.lv|0)<juLv(sk))return;if(EYE.on!=='mgk'){toast('O Susanoo só pode ser invocado com a Mangekyō ativada.');return}
@@ -2139,7 +2140,7 @@ function actFrame(A){const D=A&&ACTS[A.a];if(!D)return null;const t=actEl(A);if(
  const HS=o.set||HERO,cl=o.clan!==undefined?o.clan:(o.set?null:clan),A=o.act!==undefined?o.act:(o.set?null:ACT);
  let key=null,fr=0,flip=0;
  if(HS&&A&&(A.root||A.para||!o.mv)){const r=actFrame(A),k=(ACTS[A.a]||{}).k||'hya';if(r&&HS[k]){key=k;fr=r.i;flip=r.flip}}
- if(key===null&&cl==='hyuga'&&HS&&HS.hyw&&!(o.aura>=0)&&!(o.th>=0)){
+ if(key===null&&cl==='hyuga'&&HS&&HS.hyw&&!(o.th>=0)){ /* com aura também (o Hyuga não tem pose de aura própria: não troca de boneco) */
   if(o.mv){if(o.run){key='hyr';fr=(o.t/60|0)%HS.hyr.length}else{key='hyw';fr=(o.t/95|0)%HS.hyw.length}}else{key='hya';fr=0}}
  if(key===null){HHAND=null;return _dh(c,x,y,o)}
  const im=HS[key][fr],an=(SPR.hyx[key]||SPR.ucx[key])[fr],sc=SPR.sc,bob=key==='hya'&&fr===0&&!o.mv?Math.round(Math.sin(o.t/420)*.6*2)/2:0,hd=SPR.hyh&&SPR.hyh[key]&&SPR.hyh[key][fr];if(!hd&&!SPR.hyx[key]){HHAND=null}
@@ -2258,7 +2259,7 @@ const BYK={on:0,slot:null};
 const byakSlot=()=>barSlots().find(k=>CLANS[clan].sk[k]&&CLANS[clan].sk[k].t==='byak');
 function byakToggle(i){const s=CLANS[clan].sk[i];if(!s)return;if(BYK.on)return byakOff();if(cd[i]>0||actRoot())return;
  if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}const mp=mpOf(i,s);if(seloBloqueia(mp))return seloAviso();if(p.mp<mp){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
- p.mp-=mp;BYK.on=1;BYK.slot=i;gsMeta();BUFS.byak={prec:+s.prec||0,until:Infinity,nm:'Byakugan: +'+(+s.prec||0)+' de precisão'};stats();bufHud(1);flash={col:'#9db7ff',a:.18};p.au=0;p.aud=.6;
+ p.mp-=mp;BYK.on=1;BYK.slot=i;gsMeta();BUFS.byak={prec:+s.prec||0,until:Infinity,nm:'Byakugan: +'+(+s.prec||0)+' de precisão'};stats();bufHud(1);flash={col:'#9db7ff',a:.18}; /* sem pose de aura: o Hyuga continua o mesmo, só os olhos brilham em azul */
  FT.push({x:p.x,y:p.y-80,t:'Byakugan!',txt:1,gold:1,life:1});onlReg('👁️ Byakugan ativado: +'+(+s.prec||0)+' de precisão; genjutsu dura '+(+s.resGen||0)+'% menos em você. Gasta '+(+s.dreno||0)+'% do chakra por segundo e o chakra não se recupera enquanto estiver ativado; toque de novo para desativar.');skBtns()}
 function byakOff(why){if(!BYK.on)return;BYK.on=0;delete BUFS.byak;gsMeta();const k=BYK.slot!=null&&CLANS[clan].sk[BYK.slot]&&CLANS[clan].sk[BYK.slot].t==='byak'?BYK.slot:byakSlot();
  if(k!=null)cd[k]=Math.max(cd[k],cdOf(k,CLANS[clan].sk[k]));stats();bufHud(1);skBtns();if(why){FT.push({x:p.x,y:p.y-70,t:why,txt:1,life:1});onlReg('👁️ Byakugan desativado: '+why+'.')}}
@@ -2459,7 +2460,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610080944'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610081003'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
