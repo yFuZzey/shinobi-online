@@ -1379,13 +1379,13 @@ function drenoGanha(pct){const v=Math.round(p.mpMax*pct/100);if(v<1)return;p.mp=
    O desenho de cada item vem do painel ("Visual no corpo"); os pontos de encaixe saem dos pixels de cada quadro do boneco,
    então a camada acompanha todas as poses (parado, correndo, golpes, aura) e vira junto quando ele vira. */
 const VIM={};function visImg(u){if(!u)return null;let i=VIM[u];if(!i){i=new Image();i.src=u;VIM[u]=i}return i.complete&&i.naturalWidth?i:null}
-const ANC=new WeakMap();function ancDe(im){let a=ANC.get(im);if(a!==undefined)return a;a=null;
+const ANC=new WeakMap();function ancDe(im){if(!im)return null;let a=ANC.get(im);if(a!==undefined)return a;if(im.complete===false||!(im.width>0))return null;a=null;
  try{const w=im.width,h=im.height,c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0);a=ITR.itAncora(g.getImageData(0,0,w,h).data,w,h)}catch(_){}ANC.set(im,a);return a}
 let visBusca=-1e9;function eqVis(ids){const L=[];for(const id of (ids||Object.values(EQ))){const it=ITEMS[id];if(it&&it.vis&&ITR.CAMADA[it.slot])L.push(it);
   else if(!it&&/^p_/.test(id)&&ONL.on&&performance.now()-visBusca>15000){visBusca=performance.now();itensLoad()}}return L} /* outro jogador com item publicado depois que você entrou: busca a lista de novo (no máximo 1 vez a cada 15 s) */
-function visCamadas(c,V,tras,im,dx,dy,dw,dh,o){const A=ancDe(im);if(!A)return;const kx=dw/im.width,ky=dh/im.height,t=o.t||0;
- for(const it of V){const C=ITR.CAMADA[it.slot];if(!C||!!C.tras!==tras)continue;const v=it.vis,src=o.mv&&v.img2?v.img2:v.img,li=visImg(src);if(!li)continue;
-  const P=ITR.itCamada(it.slot,A,v,li.width,li.height,o.mv&&!v.img2,t);if(!P)continue;
+function visCamadas(c,V,tras,im,dx,dy,dw,dh,o){const HS=o.set||HERO,R=HS&&HS.idle&&HS.idle[0]?ancDe(HS.idle[0]):null,A=ITR.itAncoraRef(ancDe(im),R);if(!A)return;const kx=dw/im.width,ky=dh/im.height,t=o.t||0,mv=!!o.mv;
+ for(const it of V){if(!ITR.CAMADA[it.slot])continue;const v=it.vis,src=mv&&v.img2?v.img2:v.img,li=visImg(src);if(!li)continue;
+  const P=ITR.itCamada(it.slot,A,v,li.width,li.height,mv,t,!!v.img2);if(!P||!!P.tras!==tras)continue; /* cada pose (parada/correndo) tem o seu ajuste e escolhe frente ou atrás do corpo */
   const Q={x:dx+P.x*kx,y:dy+P.y*ky,w:P.w*kx,h:P.h*ky,rot:P.rot,px:P.px,py:P.py},col=it.fx&&it.fx.arma&&(it.fx.cor||it.fx.glow||'#ff8a1a');
   if(col){const pu=.5+.5*Math.sin(t/140);c.save();c.globalCompositeOperation='lighter';const g=c.createRadialGradient(Q.x,Q.y,1,Q.x,Q.y,Q.h*.42);g.addColorStop(0,hexA(col,.28+.12*pu));g.addColorStop(1,hexA(col,0));c.fillStyle=g;c.beginPath();c.arc(Q.x,Q.y,Q.h*.42,0,7);c.fill();c.restore();
    c.save();c.shadowColor=col;c.shadowBlur=4+5*pu;ITR.itDesenha(c,li,Q);c.restore();

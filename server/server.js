@@ -907,8 +907,8 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { ...cors, 'Content-Type': 'text/html; charset=utf-8' }); return res.end(h);
     } catch (e) { res.writeHead(500, cors); return res.end('painel indisponível'); }
   }
-  // molde do boneco para a IA desenhar os itens no corpo (parado/correndo; _ia = grande, fundo magenta)
-  const mm = /^\/painel\/molde\/(parado|correndo)(_ia)?\.png$/.exec(u);
+  // molde do boneco para a IA desenhar os itens no corpo (parado/correndo; _ia = grande, fundo magenta; _4 = os 4 quadros da prévia animada)
+  const mm = /^\/painel\/molde\/(parado|correndo)(_ia|_4)?\.png$/.exec(u);
   if (mm) { try { const b = fs.readFileSync(path.join(__dirname, 'molde', mm[1] + (mm[2] || '') + '.png')); res.writeHead(200, { ...cors, 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' }); return res.end(b); } catch (e) { res.writeHead(404, cors); return res.end(); } }
   // o painel avisa que publicou algo: o servidor relê os itens na hora (no máximo 1 vez por segundo; o último pedido sempre vale)
   if (u === '/painel/recarregar' && req.method === 'POST') {

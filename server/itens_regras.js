@@ -46,7 +46,7 @@
     const atk = itAtk(cfg, r), pas = itPassiva(cfg, r), hid = itHab(cfg, r), h = hid && cfg.habilidades[hid], pronta = r.tipo === 'nova' && !!hid;
     return { id: r.id, name: r.nome, rarity: r.raridade, slot: r.slot, nivel: lv(r), painel: 1, icon: r.icone,
       desc: (r.descricao || '') + (r.tipo === 'nova' && !pronta ? (r.descricao ? '\n' : '') + '(cinza)Habilidade em preparo: por enquanto o item só dá os atributos.(cinza)' : ''),
-      stats: itStats(cfg, r), atk: atk || undefined, passiva: pas || undefined, vis: r.visual ? { img: r.visual, img2: r.visual2 || null, esc: +(r.vis || {}).esc || 100, x: +(r.vis || {}).x || 0, y: +(r.vis || {}).y || 0, giro: +(r.vis || {}).giro || 0 } : undefined, fx: h && h.fx ? Object.assign({ icon: r.icone }, h.fx) : undefined, aguardando: r.tipo === 'nova' && !pronta ? 1 : 0 };
+      stats: itStats(cfg, r), atk: atk || undefined, passiva: pas || undefined, vis: r.visual ? Object.assign(itVisLimpa(r.vis), { img: r.visual, img2: r.visual2 || null }) : undefined, fx: h && h.fx ? Object.assign({ icon: r.icone }, h.fx) : undefined, aguardando: r.tipo === 'nova' && !pronta ? 1 : 0 };
   }
   // descrição com cor e quebra de linha: (red)Passiva: Drenar(red) ou (vermelho)…(vermelho); Enter vira nova linha
   const CORES = { vermelho: '#c0301a', red: '#c0301a', azul: '#1f5fc4', blue: '#1f5fc4', verde: '#2d7a3e', green: '#2d7a3e', amarelo: '#b07a00', yellow: '#b07a00',
@@ -67,22 +67,43 @@
     let backX = x1; for (let x = x0; x <= x1; x++) if (op(x, Math.round(shY))) { backX = x; break; }
     return { x0, x1, y0, y1, bw, bh, headX, shY, backX };
   }
-  // onde fica cada parte do corpo (px do quadro do boneco); v = {esc, x, y, giro} do painel (x/y em % da altura do boneco)
+  // quadro da pose comparado com o boneco em pé (R): o tamanho e a largura vêm do boneco em pé, então a peça não "pulsa"
+  // quando as pernas sobem na corrida; a posição continua seguindo a cabeça e as costas de cada quadro
+  function itAncoraRef(A, R) { if (!A || !R || A === R) return A; return Object.assign({}, A, { bh: R.bh, bw: R.bw, shY: A.y0 + R.bh * .3 }); }
+  // onde fica cada parte do corpo (px do quadro do boneco); v = ajuste do painel (x/y em % da altura do boneco):
+  //   novo: {parado:{esc,x,y,giro,frente}, correndo:{…}} (cada pose com o seu ajuste e se fica na frente ou atrás do corpo)
+  //   antigo: {esc,x,y,giro} (vale para as duas poses)
   const CAMADA = {
     capa:      { tras: 1, piv: [.5, .02], alt: .72, pos: A => [A.headX - A.bw * .12, A.shY - A.bh * .06] },
     arma:      { tras: 1, piv: [.5, .5],  alt: .95, pos: A => [A.backX + A.bw * .2, A.shY + A.bh * .14] },
     cabeca:    { tras: 0, piv: [.5, 1],   alt: .2,  pos: A => [A.headX, A.y0 + A.bh * .17] },
     acessorio: { tras: 0, piv: [.5, .5],  alt: .18, pos: A => [A.headX, A.shY + A.bh * .14] },
   };
-  function itCamada(slot, A, v, iw, ih, mv, t) {
-    const C = CAMADA[slot]; if (!C || !A || !iw || !ih) return null; v = v || {};
-    const esc = Math.max(.2, Math.min(3, (+v.esc || 100) / 100)), h = A.bh * C.alt * esc, w = h * iw / ih, [bx, by] = C.pos(A);
-    let rot = (+v.giro || 0) + (slot === 'capa' ? (mv ? 14 : 0) + Math.sin((t || 0) / 420) * 2 : slot === 'arma' ? Math.sin((t || 0) / 520) * 1.2 : 0);
-    return { x: bx + (+v.x || 0) * A.bh / 100, y: by + (+v.y || 0) * A.bh / 100, w, h, rot: rot * Math.PI / 180, px: C.piv[0], py: C.piv[1], tras: C.tras };
+  const POSES = ['parado', 'correndo'];
+  function itPose(slot, v, mv) {
+    v = v || {}; const C = CAMADA[slot] || {}, p = v[mv ? 'correndo' : 'parado'];
+    if (p && typeof p === 'object') return { esc: +p.esc || 100, x: +p.x || 0, y: +p.y || 0, giro: +p.giro || 0, frente: p.frente == null ? !C.tras : !!+p.frente, poses: 1 };
+    return { esc: +v.esc || 100, x: +v.x || 0, y: +v.y || 0, giro: +v.giro || 0, frente: !C.tras, poses: 0 };
+  }
+  // ajuste padrão de uma pose (a capa correndo já começa inclinada, como se fosse o vento)
+  function itPosePad(slot, pose, img2) { const C = CAMADA[slot] || {}; return { esc: 100, x: 0, y: 0, giro: slot === 'capa' && pose === 'correndo' && !img2 ? 14 : 0, frente: C.tras ? 0 : 1 }; }
+  // limpa o ajuste vindo do banco/painel (só números dentro dos limites)
+  function itVisLimpa(v) {
+    v = v && typeof v === 'object' ? v : {}; const n = (x, d, a, b) => { x = Math.round(+x); return isFinite(x) ? Math.max(a, Math.min(b, x)) : d; };
+    const um = p => ({ esc: n(p.esc || 100, 100, 20, 300), x: n(p.x, 0, -100, 100), y: n(p.y, 0, -100, 100), giro: n(p.giro, 0, -180, 180) }), o = um(v);
+    for (const k of POSES) if (v[k] && typeof v[k] === 'object') o[k] = Object.assign(um(v[k]), { frente: +v[k].frente ? 1 : 0 });
+    return o;
+  }
+  // mv = pose correndo; img2 = o item tem desenho próprio para correr (então não inclina sozinho)
+  function itCamada(slot, A, v, iw, ih, mv, t, img2) {
+    const C = CAMADA[slot]; if (!C || !A || !iw || !ih) return null; const p = itPose(slot, v, mv);
+    const esc = Math.max(.2, Math.min(3, p.esc / 100)), h = A.bh * C.alt * esc, w = h * iw / ih, [bx, by] = C.pos(A);
+    const rot = p.giro + (slot === 'capa' ? (mv && !p.poses && !img2 ? 14 : 0) + Math.sin((t || 0) / 420) * 2 : slot === 'arma' ? Math.sin((t || 0) / 520) * 1.2 : 0);
+    return { x: bx + p.x * A.bh / 100, y: by + p.y * A.bh / 100, w, h, rot: rot * Math.PI / 180, px: C.piv[0], py: C.piv[1], tras: p.frente ? 0 : 1 };
   }
   function itDesenha(c, im, P) { c.save(); c.translate(P.x, P.y); c.rotate(P.rot); c.drawImage(im, -P.px * P.w, -P.py * P.h, P.w, P.h); c.restore(); }
   // nome → código (p_espada_do_zabuza)
   function itId(nome) { return 'p_' + String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30); }
-  G.ITR = { RAR, SLOTS, TIPOS, CORES, CAMADA, itStats, itHab, itAtk, itPassiva, itValida, itParaJogo, itId, descHtml, itAncora, itCamada, itDesenha };
+  G.ITR = { RAR, SLOTS, TIPOS, CORES, CAMADA, itStats, itHab, itAtk, itPassiva, itValida, itParaJogo, itId, descHtml, itAncora, itAncoraRef, itCamada, itDesenha, POSES, itPose, itPosePad, itVisLimpa };
   if (typeof module !== 'undefined' && module.exports) module.exports = G.ITR;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -43,7 +43,8 @@ button:disabled{opacity:.5}
 .tag.pub{background:#d6efd9;color:var(--ok)}.tag.ras{background:#efe1b8;color:var(--mute)}.tag.nova{background:#e9d9ff;color:#5a2aa6}
 .code{font-family:ui-monospace,Menlo,monospace;background:#efe1b8;padding:1px 5px;border-radius:3px}
 .hide{display:none!important}
-.vcv{width:150px;height:190px;background:#3a2c22;border:2px solid var(--wood);border-radius:6px;image-rendering:pixelated}.vcl{text-align:center;font-size:12px;color:var(--mute)}
+.vcv{width:150px;height:190px;background:#3a2c22;border:2px solid var(--wood);border-radius:6px;image-rendering:pixelated;cursor:pointer}.vcv.on{border-color:var(--acc);box-shadow:0 0 0 3px rgba(214,64,32,.35)}
+.sl{display:flex;align-items:center;gap:6px}.sl input{flex:1}.sl button{min-width:38px;padding:6px 0;font-size:18px;line-height:1}.vcl{text-align:center;font-size:12px;color:var(--mute)}
 a.chip{text-decoration:none;color:var(--ink)}
 .drop{border:2px dashed var(--wood);border-radius:6px;padding:10px;display:flex;gap:12px;align-items:center;background:#fff8de}
 .drop input{max-width:100%}
@@ -99,17 +100,20 @@ a.chip{text-decoration:none;color:var(--ink)}
      <div class="sub" style="font-size:12px;color:var(--mute);margin-bottom:6px">O desenho do item <b>vestido</b> no boneco, visto de lado. Baixe o molde, mande para a IA junto com o pedido e envie aqui o resultado (o fundo sai sozinho).</div>
      <div class="row" style="margin-bottom:6px"><a class="chip" href="/painel/molde/parado_ia.png" download="molde_parado.png">⬇ Molde parado</a><a class="chip" href="/painel/molde/correndo_ia.png" download="molde_correndo.png">⬇ Molde correndo</a></div>
      <div class="row" style="gap:12px;align-items:flex-start">
-      <div><canvas id="vPar" width="150" height="190" class="vcv"></canvas><div class="sub vcl">Parado</div></div>
-      <div><canvas id="vCor" width="150" height="190" class="vcv"></canvas><div class="sub vcl">Correndo</div></div>
+      <div><canvas id="vPar" width="150" height="190" class="vcv on" data-pose="parado"></canvas><div class="sub vcl">Parado</div></div>
+      <div><canvas id="vCor" width="150" height="190" class="vcv" data-pose="correndo"></canvas><div class="sub vcl">Correndo</div></div>
      </div>
      <label class="f" style="margin-top:8px">Desenho no corpo</label><input id="vis1" type="file" accept="image/png,image/webp,image/jpeg">
-     <div id="vis2W"><label class="f">Capa ao vento (quando corre, opcional)</label><input id="vis2" type="file" accept="image/png,image/webp,image/jpeg"></div>
+     <div id="vis2W"><label class="f" id="vis2L">Desenho diferente correndo (opcional)</label><input id="vis2" type="file" accept="image/png,image/webp,image/jpeg"><div class="row hide" id="vis2T" style="margin-top:4px"><button type="button" id="vTira2">Tirar desenho correndo</button></div></div>
      <div id="visAj">
-      <label class="f">Tamanho: <span id="vEscV"></span>%</label><input id="vEsc" type="range" min="40" max="250" value="100" style="width:100%">
-      <label class="f">Esquerda ↔ direita: <span id="vXV"></span></label><input id="vX" type="range" min="-60" max="60" value="0" style="width:100%">
-      <label class="f">Cima ↕ baixo: <span id="vYV"></span></label><input id="vY" type="range" min="-60" max="60" value="0" style="width:100%">
-      <label class="f">Giro: <span id="vGV"></span>°</label><input id="vG" type="range" min="-180" max="180" value="0" style="width:100%">
-      <div class="row" style="margin-top:8px"><button type="button" id="vReset">Posição padrão</button><button type="button" id="vTira">Tirar visual</button></div>
+      <label class="f">Ajustando a pose</label><div class="row" id="vPose"><button type="button" class="chip on" data-p="parado">Parado</button><button type="button" class="chip" data-p="correndo">Correndo</button></div>
+      <div class="sub" style="font-size:12px;color:var(--mute);margin-top:4px">Cada pose tem o seu ajuste. Toque também no boneco para escolher a pose.</div>
+      <label class="f">Lugar</label><div class="row" id="vLado"><button type="button" class="chip" data-f="0">Atrás do corpo</button><button type="button" class="chip" data-f="1">Na frente do corpo</button></div>
+      <label class="f">Tamanho: <span id="vEscV"></span>%</label><div class="sl"><button type="button" data-d="vEsc:-2">−</button><input id="vEsc" type="range" min="40" max="250" value="100"><button type="button" data-d="vEsc:2">+</button></div>
+      <label class="f">Esquerda ↔ direita: <span id="vXV"></span></label><div class="sl"><button type="button" data-d="vX:-1">−</button><input id="vX" type="range" min="-60" max="60" value="0"><button type="button" data-d="vX:1">+</button></div>
+      <label class="f">Cima ↕ baixo: <span id="vYV"></span></label><div class="sl"><button type="button" data-d="vY:-1">−</button><input id="vY" type="range" min="-60" max="60" value="0"><button type="button" data-d="vY:1">+</button></div>
+      <label class="f">Ângulo: <span id="vGV"></span>°</label><div class="sl"><button type="button" data-d="vG:-3">−</button><input id="vG" type="range" min="-180" max="180" value="0"><button type="button" data-d="vG:3">+</button></div>
+      <div class="row" style="margin-top:8px"><button type="button" id="vCopia">Copiar do Correndo</button><button type="button" id="vReset">Posição padrão</button><button type="button" id="vTira">Tirar visual</button></div>
      </div>
     </div>
     <p id="vMao" class="sub" style="font-size:12px;color:var(--mute)">Itens da mão não têm visual no corpo: usam efeito (ex.: o raio do Chidori).</p>
@@ -160,7 +164,7 @@ async function lista(){$('#listaErr').textContent='';try{ITENS=(await api('/rest
 // ---------- editor ----------
 const vazio=()=>({id:'',nome:'',icone:'',nivel:1,raridade:'comum',slot:'arma',tipo:'status',habilidade:Object.keys(CFG.habilidades||{})[0]||'',pedido:'',atributos:[],descricao:'',publicado:false,_novo:1});
 function chips(el,lista,nomes,cls,sel,cb){el.innerHTML=lista.map(k=>'<button type="button" class="chip '+cls+(cls==='rar'?' r-'+k:'')+(k===sel?' on':'')+'" data-k="'+k+'">'+nomes[k]+'</button>').join('');el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>cb(b.dataset.k))}
-function editar(r){ED=r?JSON.parse(JSON.stringify(r)):vazio();ED.atributos=ED.atributos||[];$('#ed').classList.remove('hide');$('#edT').textContent=ED._novo?'Novo item':'Editar: '+ED.nome;
+function editar(r){ED=r?JSON.parse(JSON.stringify(r)):vazio();VPOSE='parado';ED.atributos=ED.atributos||[];$('#ed').classList.remove('hide');$('#edT').textContent=ED._novo?'Novo item':'Editar: '+ED.nome;
  $('#nome').value=ED.nome;$('#desc').value=ED.descricao||'';$('#descN').textContent='('+$('#desc').value.length+'/300)';$('#pedido').value=ED.pedido||'';$('#icone').value='';
  $('#hab').innerHTML=Object.entries(CFG.habilidades||{}).map(([k,h])=>'<option value="'+k+'">'+esc(h.n)+'</option>').join('');$('#hab').value=ED.habilidade||'';
  $('#eErr').textContent='';$('#eMsg').textContent='';$('#vis1').value='';$('#vis2').value='';desenha();visUI();$('#ed').scrollIntoView({behavior:'smooth'})}
@@ -169,7 +173,7 @@ function desenha(){const it=valores(),mx=CFG.maxAtributos[it.raridade]||1;
  ED.atributos=ED.atributos.slice(0,mx);
  $('#nivel').max=$('#nivelN').max=CFG.nivelMax||99;$('#nivel').value=$('#nivelN').value=ED.nivel;$('#nivelV').textContent=ED.nivel;
  chips($('#rar'),ITR.RAR,RN,'rar',ED.raridade,k=>{ED.raridade=k;desenha()});
- chips($('#slot'),ITR.SLOTS,SN,'',ED.slot,k=>{ED.slot=k;desenha();visUI()});
+ chips($('#slot'),ITR.SLOTS,SN,'',ED.slot,k=>{if(k!==ED.slot)ED.vis=null;ED.slot=k;desenha();visUI()}); /* outra parte do corpo: o ajuste volta ao padrão dela */
  chips($('#tipo'),ITR.TIPOS,TN,'',ED.tipo,k=>{ED.tipo=k;desenha()});
  $('#habW').classList.toggle('hide',ED.tipo!=='habilidade');$('#pedW').classList.toggle('hide',ED.tipo!=='nova');
  $('#atrMax').textContent='(até '+mx+' para '+RN[ED.raridade]+'; o valor é automático)';
@@ -199,21 +203,41 @@ $('#nivel').oninput=e=>{ED.nivel=+e.target.value;$('#nivelN').value=ED.nivel;$('
   t.value=v.slice(0,a)+'('+k+')'+sel+'('+k+')'+v.slice(z);t.focus();t.setSelectionRange(a+k.length+2,a+k.length+2+sel.length);t.dispatchEvent(new Event('input'))}})}
 $('#desc').addEventListener('input',()=>{$('#descN').textContent='('+$('#desc').value.length+'/300)'});
 /* ---------- visual no corpo: prévia no molde (mesmas regras do jogo: itens_regras.js) ---------- */
-const MOLDE={};['parado','correndo'].forEach(k=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=i.width;c.height=i.height;const g=c.getContext('2d');g.drawImage(i,0,0);MOLDE[k]={im:i,A:ITR.itAncora(g.getImageData(0,0,i.width,i.height).data,i.width,i.height)}};i.src='/painel/molde/'+k+'.png'});
+/* molde animado: 4 quadros parado e 4 correndo (os mesmos do jogo), cada um com os seus pontos do corpo */
+const MOLDE={};['parado','correndo'].forEach(k=>{const i=new Image();i.onload=()=>{const n=4,w=i.width/n,h=i.height,c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true}),F=[];
+  for(let f=0;f<n;f++){g.clearRect(0,0,w,h);g.drawImage(i,f*w,0,w,h,0,0,w,h);F.push(ITR.itAncora(g.getImageData(0,0,w,h).data,w,h))}MOLDE[k]={im:i,w,h,F}};i.src='/painel/molde/'+k+'_4.png'});
+let VPOSE='parado';
 const VI={};const vImg=u=>{if(!u)return null;let i=VI[u];if(!i){i=new Image();i.src=u;VI[u]=i}return i.complete&&i.naturalWidth?i:null};
-function visV(){return ED.vis||(ED.vis={esc:100,x:0,y:0,giro:0})}
-function visUI(){if(!ED)return;const mao=ED.slot==='mao';$('#visW').classList.toggle('hide',mao);$('#vMao').classList.toggle('hide',!mao);$('#vis2W').classList.toggle('hide',ED.slot!=='capa');
- $('#visAj').classList.toggle('hide',!ED.visual);const v=visV();[['vEsc','esc'],['vX','x'],['vY','y'],['vG','giro']].forEach(([id,k])=>{$('#'+id).value=v[k];$('#'+id+'V').textContent=v[k]})}
-function visDraw(t){requestAnimationFrame(visDraw);if(!ED||$('#ed').classList.contains('hide'))return;
- for(const [cv,k,mv] of [['#vPar','parado',0],['#vCor','correndo',1]]){const c=$(cv).getContext('2d'),M=MOLDE[k];c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,150,190);c.imageSmoothingEnabled=false;if(!M||!M.A)continue;
-  const z=Math.min(150/M.im.width,182/M.im.height)*.92,ox=(150-M.im.width*z)/2,oy=190-M.im.height*z-4;c.setTransform(z,0,0,z,ox,oy);
-  const li=ED.visual&&vImg(mv&&ED.visual2?ED.visual2:ED.visual),P=li&&CFG&&ITR.CAMADA[ED.slot]?ITR.itCamada(ED.slot,M.A,visV(),li.width,li.height,mv&&!ED.visual2,t):null;
-  if(P&&P.tras)ITR.itDesenha(c,li,P);c.drawImage(M.im,0,0);if(P&&!P.tras)ITR.itDesenha(c,li,P)}}
+/* ajuste por pose; um item antigo (um ajuste só) vira os dois, com o mesmo resultado de antes */
+function visV(){const v=ED.vis&&typeof ED.vis==='object'?ED.vis:(ED.vis={});
+ for(const k of ITR.POSES)if(!v[k]||typeof v[k]!=='object'){const d=ITR.itPosePad(ED.slot,k,!!ED.visual2);v[k]='esc' in v?{esc:+v.esc||100,x:+v.x||0,y:+v.y||0,giro:(+v.giro||0)+d.giro,frente:d.frente}:d}
+ return v}
+const visP=()=>visV()[VPOSE];
+function visUI(){if(!ED)return;const mao=ED.slot==='mao';$('#visW').classList.toggle('hide',mao);$('#vMao').classList.toggle('hide',!mao);
+ $('#vis2L').textContent=ED.slot==='capa'?'Capa ao vento (desenho correndo, opcional)':'Desenho diferente correndo (opcional)';$('#vis2T').classList.toggle('hide',!ED.visual2);
+ $('#visAj').classList.toggle('hide',!ED.visual);const v=visP(),ou=VPOSE==='parado'?'Correndo':'Parado';
+ document.querySelectorAll('#vPose [data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p===VPOSE));document.querySelectorAll('.vcv').forEach(c=>c.classList.toggle('on',c.dataset.pose===VPOSE));
+ document.querySelectorAll('#vLado [data-f]').forEach(b=>b.classList.toggle('on',+b.dataset.f===(v.frente?1:0)));$('#vCopia').textContent='Copiar do '+ou;
+ [['vEsc','esc'],['vX','x'],['vY','y'],['vG','giro']].forEach(([id,k])=>{$('#'+id).value=v[k];$('#'+id+'V').textContent=v[k]})}
+function visDraw(t){requestAnimationFrame(visDraw);if(!ED||$('#ed').classList.contains('hide'))return;const R=MOLDE.parado&&MOLDE.parado.F[0];
+ for(const [cv,k,mv] of [['#vPar','parado',0],['#vCor','correndo',1]]){const c=$(cv).getContext('2d'),M=MOLDE[k];c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,150,190);c.imageSmoothingEnabled=false;if(!M)continue;
+  const f=(t/(mv?130:260)|0)%M.F.length,A=ITR.itAncoraRef(M.F[f],R);if(!A)continue; /* mesmo ritmo dos quadros do jogo */
+  const z=Math.min(150/M.w,182/M.h)*.92,ox=(150-M.w*z)/2,oy=190-M.h*z-4;c.setTransform(z,0,0,z,ox,oy);
+  const li=ED.visual&&vImg(mv&&ED.visual2?ED.visual2:ED.visual),P=li&&CFG&&ITR.CAMADA[ED.slot]?ITR.itCamada(ED.slot,A,visV(),li.width,li.height,mv,t,!!ED.visual2):null;
+  if(P&&P.tras)ITR.itDesenha(c,li,P);c.drawImage(M.im,f*M.w,0,M.w,M.h,0,0,M.w,M.h);if(P&&!P.tras)ITR.itDesenha(c,li,P)}}
 requestAnimationFrame(visDraw);
-const visLe=(inp,campo)=>{const f=inp.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{try{ED[campo]=iconeLimpo(im,$('#tiraFundo').checked,160);$('#eErr').textContent='';visUI()}catch(err){$('#eErr').textContent='Não consegui preparar o desenho: '+err.message}};im.src=rd.result};rd.readAsDataURL(f)};
+const visLe=(inp,campo)=>{const f=inp.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{try{const tinha=!!ED.visual2;ED[campo]=iconeLimpo(im,$('#tiraFundo').checked,160);if(campo==='visual2')visPad2(tinha);$('#eErr').textContent='';visUI()}catch(err){$('#eErr').textContent='Não consegui preparar o desenho: '+err.message}};im.src=rd.result};rd.readAsDataURL(f)};
 $('#vis1').onchange=e=>visLe(e.target,'visual');$('#vis2').onchange=e=>visLe(e.target,'visual2');
-[['vEsc','esc'],['vX','x'],['vY','y'],['vG','giro']].forEach(([id,k])=>$('#'+id).oninput=e=>{visV()[k]=+e.target.value;$('#'+id+'V').textContent=e.target.value});
-$('#vReset').onclick=()=>{ED.vis={esc:100,x:0,y:0,giro:0};visUI()};$('#vTira').onclick=()=>{ED.visual=null;ED.visual2=null;$('#vis1').value='';$('#vis2').value='';visUI()};
+const VK={vEsc:'esc',vX:'x',vY:'y',vG:'giro'};
+Object.entries(VK).forEach(([id,k])=>$('#'+id).oninput=e=>{visP()[k]=+e.target.value;$('#'+id+'V').textContent=e.target.value});
+document.querySelectorAll('.sl [data-d]').forEach(b=>b.onclick=()=>{const [id,d]=b.dataset.d.split(':'),i=$('#'+id),v=Math.max(+i.min,Math.min(+i.max,+i.value+ +d));i.value=v;visP()[VK[id]]=v;$('#'+id+'V').textContent=v});
+const vPose=k=>{VPOSE=k;visUI()};document.querySelectorAll('#vPose [data-p]').forEach(b=>b.onclick=()=>vPose(b.dataset.p));document.querySelectorAll('.vcv').forEach(c=>c.onclick=()=>{if(ED&&ED.visual)vPose(c.dataset.pose)});
+document.querySelectorAll('#vLado [data-f]').forEach(b=>b.onclick=()=>{visP().frente=+b.dataset.f;visUI()});
+$('#vCopia').onclick=()=>{const v=visV(),de=v[VPOSE==='parado'?'correndo':'parado'];v[VPOSE]=Object.assign({},de);visUI()};
+$('#vReset').onclick=()=>{visV()[VPOSE]=ITR.itPosePad(ED.slot,VPOSE,!!ED.visual2);visUI()};$('#vTira').onclick=()=>{ED.visual=null;ED.visual2=null;$('#vis1').value='';$('#vis2').value='';visUI()};
+$('#vTira2').onclick=()=>{ED.visual2=null;visPad2(true);$('#vis2').value='';visUI()};
+/* a capa correndo só inclina sozinha sem desenho próprio: se o ajuste correndo ainda é o padrão, acompanha */
+function visPad2(tinha){const v=visV(),a=ITR.itPosePad(ED.slot,'correndo',tinha);if(JSON.stringify(v.correndo)===JSON.stringify(a))v.correndo=ITR.itPosePad(ED.slot,'correndo',!!ED.visual2)}
 $('#novo').onclick=()=>editar(null);$('#fechar').onclick=()=>{ED=null;$('#ed').classList.add('hide')};
 
 // ícone: reduz para no máximo 96 px (pixel art fica nítida) e guarda como imagem dentro do item
@@ -271,7 +295,7 @@ function iconeLimpo(im,tira,mx){
 async function gravar(pub){const v=valores(),it={...v,id:ED._novo?livre(ITR.itId(v.nome)):ED.id,publicado:pub===undefined?!!ED.publicado:pub};
  it.visual=ED.visual;it.visual2=ED.visual2;const e=ITR.itValida(CFG,it);$('#eErr').textContent=e.length?'Falta arrumar:\n· '+e.join('\n· '):'';$('#eMsg').textContent='';if(e.length)return;
  const row={id:it.id,nome:it.nome,icone:it.icone,nivel:it.nivel,raridade:it.raridade,slot:it.slot,tipo:it.tipo,habilidade:it.tipo==='habilidade'?it.habilidade:null,pedido:it.tipo==='nova'?it.pedido:null,atributos:it.atributos,descricao:it.descricao,publicado:it.publicado};
- if('visual' in ED){row.visual=ED.slot==='mao'?null:(ED.visual||null);row.visual2=ED.slot==='capa'&&ED.visual?ED.visual2||null:null;row.vis=ED.visual?visV():{}}
+ if('visual' in ED){row.visual=ED.slot==='mao'?null:(ED.visual||null);row.visual2=row.visual?ED.visual2||null:null;const v=visV();row.vis=row.visual?ITR.itVisLimpa(Object.assign({},v.parado,{parado:v.parado,correndo:v.correndo})):{}}
  const bs=document.querySelectorAll('.bar button');bs.forEach(b=>b.disabled=true);
  try{if(ED._novo)await api('/rest/v1/itens',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(row)});
   else await api('/rest/v1/itens?id=eq.'+encodeURIComponent(it.id),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(row)});
