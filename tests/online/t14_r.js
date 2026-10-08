@@ -14,7 +14,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
  await pg.click('#go2');await pg.click('.card');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
  ok(await pg.evaluate(()=>CURMAP)==='vila_areia','entrou no jogo na Vila da Areia');
  const sp=await pg.evaluate(()=>[p.x/32,p.y/32,SPAWN]);ok(Math.abs(sp[0]-sp[2][0])<1&&Math.abs(sp[1]-sp[2][1])<1,'nasceu no ponto de início '+JSON.stringify(sp));
- await pg.click('#mapbtn');await W(200);ok(await pg.isHidden('#mapmenu')&&/Vila da Areia/.test(await pg.textContent('#toast')),'jogador comum não troca de vila');
+ await pg.click('#mapbtn');await W(200);ok(await pg.isHidden('#mapmenu')&&/outras vilas/.test(await pg.textContent('#toast')),'jogador comum não troca de vila');
  const meta=await pg.evaluate(()=>onlFetch('/auth/v1/user'));
  ok(await pg.evaluate(()=>localStorage.getItem('shinobi-lembrar'))===null,'sem marcar: nada salvo');
  await pg.evaluate(()=>onlLogout());await W(1500);

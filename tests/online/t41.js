@@ -51,7 +51,7 @@ const darItens=(uid,it)=>fetch(MOCK+'/rest/v1/rpc/dar_itens',{method:'POST',head
   return{has:['p_espada_do_zabuza','p_lamina_raio','p_kubikiribocho'].every(i=>INV.includes(i)),st:z&&z.stats,nv:z&&z.nivel,atk:l&&l.atk,fx:l&&l.fx,ag:k&&k.aguardando,desc:k&&k.desc,unk:(ONL.unk||[]).map(x=>x.item),inv:onlInv().map(x=>x.item)}});
  ok(r.has&&r.st&&r.st.str===7&&r.st.dmg_pct===5&&r.st.speed_pct===8&&r.nv===10,'o jogo carrega os itens publicados com os atributos calculados '+JSON.stringify(r.st));
  ok(r.atk&&r.atk.kind==='raio'&&r.atk.dmg===19&&r.fx&&r.fx.hand,'item com a investida de raio: dano 19 (lendário Nv 1) e efeito na mão');
- ok(r.ag===1&&/Habilidade em preparo/.test(r.desc),'item com habilidade nova: funciona só com atributos e avisa que a habilidade está em preparo');
+ ok(r.ag===1&&!/preparo|por enquanto/.test(r.desc),'item com habilidade nova: funciona só com atributos, sem aviso de desenvolvimento para o jogador');
  ok(r.unk.includes('p_fantasma')&&r.inv.includes('p_fantasma'),'item desconhecido continua guardado (não some da mochila no banco)');
  const e1=await J.evaluate(()=>{const s0=D().pf;equipItem('p_espada_do_zabuza');return{eq:EQ.arma,toast:$('#toast').textContent,s0}});
  ok(!e1.eq&&/precisa do Nv 10/.test(e1.toast),'Nv 1 não equipa item de Nv 10 e explica');

@@ -45,7 +45,7 @@
   function itParaJogo(cfg, r) {
     const atk = itAtk(cfg, r), pas = itPassiva(cfg, r), hid = itHab(cfg, r), h = hid && cfg.habilidades[hid], pronta = r.tipo === 'nova' && !!hid;
     return { id: r.id, name: r.nome, rarity: r.raridade, slot: r.slot, nivel: lv(r), painel: 1, icon: r.icone,
-      desc: (r.descricao || '') + (r.tipo === 'nova' && !pronta ? (r.descricao ? '\n' : '') + '(cinza)Habilidade em preparo: por enquanto o item só dá os atributos.(cinza)' : ''),
+      desc: r.descricao || '', /* habilidade ainda não programada: o item só dá os atributos (o aviso fica só no painel) */
       stats: itStats(cfg, r), atk: atk || undefined, passiva: pas || undefined, vis: r.visual ? Object.assign(itVisLimpa(r.vis), { img: r.visual, img2: r.visual2 || null }) : undefined, fx: h && h.fx ? Object.assign({ icon: r.icone }, h.fx) : undefined, aguardando: r.tipo === 'nova' && !pronta ? 1 : 0 };
   }
   // descrição com cor e quebra de linha: (red)Passiva: Drenar(red) ou (vermelho)…(vermelho); Enter vira nova linha

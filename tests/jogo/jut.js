@@ -21,7 +21,7 @@ const TOM_DR=x=>Math.round(x*10)/10,EYES_ESC=35;const {chromium}=require(process
  ok(tab.n===13&&tab.ok===2&&/Katon/.test(tab.txt)&&/Sharingan → Mangekyō/.test(tab.txt)&&/Técnicas da Mangekyō/.test(tab.txt),'aba Jutsus: 3 ramos + contrato = 13 jutsus (2 liberados no Nv 1: Bola de Fogo e Gōkakyū forte)');
  await U.screenshot({path:__dirname+'/ju_tab1.png'});await U.evaluate(()=>toggleBag(false));
  // Nv 5: Sharingan 1 tomoe
- await lvTo(U,5);await W(200);b1=await btn(U,1);ok(!b1.lock&&/Sharingan/.test(b1.t)&&await U.evaluate(()=>/Novo jutsu: Sharingan/.test($('#toast').textContent)),'Nv 5: Sharingan libera e aparece o aviso');
+ await lvTo(U,5);await W(200);b1=await btn(U,1);ok(!b1.lock&&/Sharingan/.test(b1.t)&&await U.evaluate(()=>/Novo jutsu\s*Sharingan/.test($('#toast').textContent)),'Nv 5: Sharingan libera e aparece o aviso');
  // olhar em cone: na frente (esquiva 0 e 50), atrás e longe
  await mobs(U,[[60,0,0],[50,20,50],[-60,0,0],[260,0,0]]);const mp0=await U.evaluate(()=>p.mp);
  const r0=await U.evaluate(()=>({raw:hitRaw(16,'ninjutsu'),it:hitRaw(16,'@ninjutsu'),esq:D().esq,prec:D().prec}));

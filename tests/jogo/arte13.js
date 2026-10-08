@@ -36,4 +36,15 @@ const path=require('path');
  await W(200);await pg.screenshot({path:path.join(__dirname,'arte13_nivel.png'),clip:{x:220,y:20,width:400,height:160}});
  await pg.evaluate(()=>{$('#lvup').hidden=true;bufStart('lento',{spd:-30,t:9,nm:'Lento: 30% mais devagar'});bufStart('campo',{red:20,t:9,nm:'Campo de Sombras: −20% de dano recebido'});PRT=4;bufHud(1)});await W(200);
  await pg.screenshot({path:path.join(__dirname,'arte13_estados.png'),clip:{x:0,y:0,width:420,height:200}});
+ // avisos no meio da tela: pergaminho; conquista com faixa e o ícone do jutsu
+ const ts=await pg.evaluate(()=>{toast('🌀 Novo jutsu: Kage Nui!');const el=$('#toast');return{c:el.className,ic:!!el.querySelector('.tic img'),hd:(el.querySelector('small')||{}).textContent,bd:(el.querySelector('b')||{}).textContent,
+  src:(el.querySelector('.tic img')||{}).src===UIJ.nui,fx:getComputedStyle(el,'::before').backgroundImage.slice(0,20)}});
+ ok(ts.c==='tt-conq'&&ts.ic&&ts.src&&ts.hd==='Novo jutsu'&&ts.bd==='Kage Nui!'&&/url/.test(ts.fx),'aviso de novo jutsu: pergaminho com faixa dourada e o ícone do Kage Nui ('+JSON.stringify(ts)+')');
+ await W(400);await pg.screenshot({path:path.join(__dirname,'arte13_toast1.png'),clip:{x:180,y:150,width:480,height:240}});
+ const t2=await pg.evaluate(()=>{toast('Equipe um item que dá habilidade (como o Chidori) para usar este botão.');const el=$('#toast');return{c:el.className,ic:!!el.querySelector('.tic'),t:el.textContent}});
+ ok(t2.c==='tt-av'&&!t2.ic&&/Equipe um item/.test(t2.t),'aviso comum: pergaminho simples, sem faixa');
+ await W(400);await pg.screenshot({path:path.join(__dirname,'arte13_toast2.png'),clip:{x:180,y:150,width:480,height:240}});
+ // o círculo do Gōryūka fica na tela durante a explosão
+ const gr=await pg.evaluate(()=>{const f={k:'aviso',x:p.x,y:p.y,r:60,col:'#ff5a1a',life:1.3,max:1.3,tel:.7};fx.push(f);return new Promise(r=>setTimeout(()=>r(fx.includes(f)),900))});
+ ok(gr,'o círculo continua na tela depois da hora do golpe (some aos poucos)');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();

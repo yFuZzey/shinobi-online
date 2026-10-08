@@ -25,10 +25,10 @@ function onlErr(e){const m=String(e&&e.message||e),c=e&&e.code;
  if(/invalid login|invalid_credentials/i.test(m+c))return 'Usuário ou senha incorretos.';
  if(/already registered|user_already_exists|already been registered/i.test(m+c))return 'Esse nome de usuário já existe. Escolha outro.';
  if(/at least \d|weak_password/i.test(m+c))return 'A senha precisa ter pelo menos 8 caracteres.';
- if(/not confirmed|email_not_confirmed/i.test(m+c))return 'A conta precisa ser confirmada por e-mail. No Supabase, desligue "Confirm email" em Authentication.';
+ if(/not confirmed|email_not_confirmed/i.test(m+c))return 'Confirme a sua conta pelo link enviado ao seu e-mail.';
  if(/rate limit|over_email_send/i.test(m+c))return 'Muitas tentativas seguidas. Espere um pouco e tente de novo.';
- if(/signups? (not allowed|disabled)/i.test(m+c))return 'Criação de contas está desligada no servidor.';
- if(/personagens|inventario|salvar_inventario|column/.test(m)&&/does not exist|relation|schema cache|could not find/i.test(m))return 'O banco de dados ainda não foi atualizado (falta rodar o SQL novo no Supabase).';
+ if(/signups? (not allowed|disabled)/i.test(m+c))return 'A criação de contas está fechada no momento.';
+ if(/personagens|inventario|salvar_inventario|column/.test(m)&&/does not exist|relation|schema cache|could not find/i.test(m))return 'O jogo está em manutenção. Tente de novo em instantes.';
  return 'Erro do servidor: '+m}
 function onlSess(s){ONL.tok=s.access_token;ONL.rtok=s.refresh_token;ONL.uid=s.user&&s.user.id||ONL.uid;
  clearTimeout(ONL.refT);ONL.refT=setTimeout(onlRefresh,Math.max(30,(+s.expires_in||3600)-120)*1000)}
@@ -234,9 +234,9 @@ function profGain(base){const P=CH.prof;if(!P||!P.k)return;const r0=profRank();P
  if(!$('#paneSt').hidden&&!$('#inv').hidden)profDraw()}
 function profChoose(k){if(!PROF[k]||!profReqOk(k))return;const P=CH.prof||(CH.prof={k:null,xp:0});
  if(P.k&&P.k!==k&&profPick!==k){profPick=k;profDraw();return} // trocar pede confirmação: zera o progresso
- P.k=k;P.xp=0;profPick=null;profSave();stats();onlReg('🎖️ Especialidade escolhida: '+PROF[k].n+' (rank E). Treine usando '+(profSkills(k).join(', ')||'golpes desse tipo')+'.')}
+ P.k=k;P.xp=0;profPick=null;profSave();stats();onlReg('🎖️ Especialidade escolhida: '+PROF[k].n+'.')}
 function profDraw(){const el=$('#stProf');if(!el||!CH)return;CH.prof=profNorm(CH.prof);const P=CH.prof,r=profRank();let h='';
- const lib=Object.keys(PROF).filter(profReqOk);if(!P.k&&lib.length&&!profDraw.told&&cur==='game'){profDraw.told=1;setTimeout(()=>{toast('🎖️ Você já pode escolher uma especialidade: '+lib.map(k=>PROF[k].n).join(', ')+' (aba Status).');onlReg('🎖️ Especialidade liberada: '+lib.map(k=>PROF[k].n).join(', ')+'. Escolha na aba Status, no fim da página.')},600)}
+ const lib=Object.keys(PROF).filter(profReqOk);if(!P.k&&lib.length&&!profDraw.told&&cur==='game'){profDraw.told=1;setTimeout(()=>{toast('🎖️ Você já pode escolher uma especialidade: '+lib.map(k=>PROF[k].n).join(', ')+' (aba Status).');onlReg('🎖️ Especialidade liberada: '+lib.map(k=>PROF[k].n).join(', ')+'. Escolha na aba Status.')},600)}
  if(P.k&&!profPick){const K=PROF[P.k],nx=PRK[r+1],pc=nx?Math.min(100,(P.xp-PRK[r][1])/(nx[1]-PRK[r][1])*100):100,sk=profSkills(P.k),L=profLines(P.k,r);
   h+='<div class="pfc"><div class="pfh"><span class="pfi">'+K.ic+'</span><div><b>'+K.n+'</b><small>'+K.ds+'</small></div><span class="pfr">'+PRK[r][0]+'</span></div>'
    +'<div class="bar xpb big"><i style="width:'+pc+'%"></i><b>'+(nx?'Rank '+nx[0]+' em '+(nx[1]-P.xp)+' de treino':'Rank máximo')+'</b></div>'
@@ -322,15 +322,15 @@ function natEfTxt(k){const e=(NATT[k]||{}).efeito||{};return e.k==='queima'?'que
 function natRel(k){const a=NATT[k]||{};return (a.forte?'forte contra '+natNome(a.forte):'')+(a.forte&&a.fraco?', ':'')+(a.fraco?'fraco contra '+natNome(a.fraco):'')||'neutro'}
 const CCNM={stun:'atordoar',root:'prender',sil:'silêncio/selo',lento:'lentidão',gen:'genjutsu',desl:'empurrão'};
 function ccImune(L){if(!Array.isArray(L)||!L.length)return;const t='imune a '+L.map(k=>CCNM[k]||k).join(', ');FT.push({x:p.x,y:p.y-92,t,txt:1,gold:1,life:1.2});
- if(!ccImune._t||performance.now()-ccImune._t>3000){ccImune._t=performance.now();onlReg('🛡️ Você ficou '+t+' por alguns segundos (o mesmo controle repetido perde força).')}}
+ if(!ccImune._t||performance.now()-ccImune._t>3000){ccImune._t=performance.now();onlReg('🛡️ Você ficou '+t+' por alguns segundos.')}}
 // tenacidade: VIT final × tenacidadeVit %, até tenacidadeMax (encurta todo controle no PvP; o servidor aplica)
 function tenac(){try{const c=calcChar(1,1);return Math.min(+BAL.cc.tenacidadeMax||30,(c.st.vit.fin||0)*(+BAL.cc.tenacidadeVit||0))}catch(_){return 0}}
 function ccRecebe(cc,src){if(Array.isArray(cc)){cc.forEach(c=>ccRecebe(c,src));return}if(!cc||!cc.k)return;const t=+cc.t||0;
  if(cc.k==='lento'&&t>0){const v=Math.max(0,Math.min(60,+cc.v||0));bufStart('lento',{spd:-v,t,nm:'Lento: '+v+'% mais devagar'});FT.push({x:p.x,y:p.y-70,t:'lento',txt:1,life:.8});onlReg('🪡 '+(src||'?')+' deixou você lento ('+v+'%, '+nf(t)+' s).');return}
- if(cc.k==='confusao'&&t>0){const t2=t;PCF=Math.max(PCF,t2);FT.push({x:p.x,y:p.y-84,t:'confuso',txt:1,life:1});onlReg('🌀 '+(src||'?')+' prendeu você num genjutsu ('+nf(t2)+' s'+(BYK.on?', o Byakugan encurtou':'')+'): os controles ficam invertidos até você levar dano.');return}
- if(cc.k==='silencio'&&t>0){PSI=Math.max(PSI,t);FT.push({x:p.x,y:p.y-84,t:'silenciado',txt:1,life:1});onlReg('🤐 '+(src||'?')+' silenciou você ('+nf(t)+' s): só o golpe básico.');return}
+ if(cc.k==='confusao'&&t>0){const t2=t;PCF=Math.max(PCF,t2);FT.push({x:p.x,y:p.y-84,t:'confuso',txt:1,life:1});onlReg('🌀 '+(src||'?')+' prendeu você num genjutsu ('+nf(t2)+' s'+'), controles invertidos.');return}
+ if(cc.k==='silencio'&&t>0){PSI=Math.max(PSI,t);FT.push({x:p.x,y:p.y-84,t:'silenciado',txt:1,life:1});onlReg('🤐 '+(src||'?')+' silenciou você ('+nf(t)+' s).');return}
  if(cc.k==='root'&&t>0){PRT=Math.max(PRT,t);FT.push({x:p.x,y:p.y-70,t:'preso pela sombra',txt:1,life:1});onlReg('🌑 '+(src||'?')+' prendeu você no lugar ('+nf(t)+' s).')}
- else if(cc.k==='selo'&&t>0){PSL=Math.max(PSL,t);FT.push({x:p.x,y:p.y-70,t:'chakra selado',txt:1,life:1});onlReg('✋ '+(src||'?')+' selou o seu chakra ('+nf(t)+' s): só jutsus baratos.')}
+ else if(cc.k==='selo'&&t>0){PSL=Math.max(PSL,t);FT.push({x:p.x,y:p.y-70,t:'chakra selado',txt:1,life:1});onlReg('✋ '+(src||'?')+' selou o seu chakra ('+nf(t)+' s).')}
  else if(cc.k==='queima'){const v=Math.min(p.mp,(+cc.v||0)/100*p.mpMax);if(v>0){p.mp-=v;FT.push({x:p.x+14,y:p.y-60,t:'−'+Math.round(v)+' chakra',txt:1,life:.8})}}}
 // escudo: absorve dano antes da vida; quando quebra, o Susanoo se desfaz
 function shieldAbsorb(n){n=sapoAbsorb(n);if(!SHD||SHD.until<=performance.now()||SHD.v<=0)return n;const a=Math.min(n,SHD.v);SHD.v-=a;
@@ -346,7 +346,7 @@ const pvpSafeAt=(x,y)=>!!(PVP.safe>0&&SPAWN&&Math.hypot(x-SPAWN[0]*T,y-SPAWN[1]*
 function PVT(){if(!ONL.on||!ONL.joined||!PVP.on||(scene|0))return [];const L=[];
  for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.x===null||pe.sc!==(scene|0)||inGrp(id)||!(pe.hp>0))continue;
   const o=pe._pv||(pe._pv={pvp:id,rad:16,boss:0,dead:0,kind:'pvp'});o.x=pe.x;o.y=pe.y;o.nome=pe.nome;o.fl=pe.fl?1:0;L.push(o)}return L}
-function pvpSafeMsg(pe){if(pe)FT.push({x:pe.x,y:pe.y-60,t:'zona segura',txt:1,life:.8});const now=performance.now();if(!pvpSafeMsg.t||now-pvpSafeMsg.t>6000){pvpSafeMsg.t=now;onlReg('🛡️ Zona segura: perto do ponto de início ninguém ataca nem é atacado.')}}
+function pvpSafeMsg(pe){if(pe)FT.push({x:pe.x,y:pe.y-60,t:'zona segura',txt:1,life:.8});const now=performance.now();if(!pvpSafeMsg.t||now-pvpSafeMsg.t>6000){pvpSafeMsg.t=now;onlReg('🛡️ Zona segura: aqui ninguém ataca nem é atacado.')}}
 function pvpHit(e,d,st,kx,ky){const pe=ONL.peers[e.pvp];if(!pe||!ONL.joined)return true;
  if(pvpSafeAt(pe.x,pe.y)||pvpSafeAt(p.x,p.y)){pvpSafeMsg(pe);return true}
  const tp=tpN(HTP),pf=profOn(tp),x=hitRawPvp(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
@@ -367,12 +367,12 @@ function gsMsg(m){
  case 'authfail':onlReg('⚠️ Falha ao entrar no servidor: '+m.msg);if(ONL.rtok)onlRefresh();break;
  case 'old':ONL.closing=true;
   if(m.v&&m.v<GS_PROTO){gsWait();break} // o servidor é que ainda está atualizando
-  if(OTA.app){gsBlock('Atualizando o jogo…','Saiu uma versão nova. Baixando… o jogo reinicia sozinho.');otaCheck().then(ok=>{if(ok||OTA.ready)location.reload();else if(!m.v)gsWait();else gsBlock('Versão desatualizada','Não consegui baixar a versão nova agora. Verifique a internet e abra o jogo de novo.')})}
-  else gsBlock('Versão desatualizada','Seu app está desatualizado. Baixe a versão nova do jogo no GitHub (Releases).');break;
+  if(OTA.app){gsBlock('Atualizando o jogo…','Baixando a versão nova…');otaCheck().then(ok=>{if(ok||OTA.ready)location.reload();else if(!m.v)gsWait();else gsBlock('Versão desatualizada','Não consegui baixar a versão nova agora. Verifique a internet e abra o jogo de novo.')})}
+  else gsBlock('Versão desatualizada','Instale a versão mais nova do jogo para continuar.');break;
  case 'banned':{ONL.closing=true;const at=m.ate?new Date(m.ate):null;
   gsBlock('Conta banida','Sua conta foi banida '+(at?'até '+at.toLocaleDateString('pt-BR')+' às '+at.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'por tempo indeterminado')+'.'+(m.motivo?' Motivo: '+m.motivo+'.':''));break}
  case 'kicked':ONL.closing=true;gsBlock('Desconectado',m.msg||'Sua conta entrou em outro aparelho.');break;
- case 'room':if(m.map!==CURMAP)break;ONL.joined=true;if(PVP.on&&!pvpTold){pvpTold=1;setTimeout(()=>onlReg('⚔️ PvP ligado: quem não está no seu grupo pode te atacar, e você também pode atacar. Perto do ponto de início é zona segura.'),800)}ONL.peers={};(m.players||[]).forEach(o=>onlPeer(o.id,o));E=[];(m.mobs||[]).forEach(x=>gsMobState(gsMob(x.def),x.s));ONL.mo=null;onlStatus();gsPos(true);break;
+ case 'room':if(m.map!==CURMAP)break;ONL.joined=true;if(PVP.on&&!pvpTold){pvpTold=1;setTimeout(()=>onlReg('⚔️ PvP ativo neste mapa. Perto do ponto de início é zona segura.'),800)}ONL.peers={};(m.players||[]).forEach(o=>onlPeer(o.id,o));E=[];(m.mobs||[]).forEach(x=>gsMobState(gsMob(x.def),x.s));ONL.mo=null;onlStatus();gsPos(true);break;
  case 'pj':{const pe=onlPeer(m.p.id,m.p);if(pe)onlReg('🟢 '+pe.nome+' entrou no mapa');onlStatus();break}
  case 'pl':{const pe=ONL.peers[m.id];if(pe){onlReg('⚪ '+pe.nome+' saiu do mapa');delete ONL.peers[m.id]}onlStatus();grpDraw();break}
  case 'pm':onlPeer(m.id,m);grpDraw();break;
@@ -420,7 +420,7 @@ function gsMev(m){if(scene|0)return;
  if(m.k==='ep'){EP.push({sid:m.id,sv:1,x:m.x,y:m.y,vx:m.vx,vy:m.vy,life:m.life||1.35});shk=Math.max(shk,.3)}
  else if(m.k==='epx'){EP=EP.filter(b=>b.sid!==m.id);fx.push({k:'boom',x:m.x,y:m.y,life:.35,max:.35,rm:1,_s:1})}
  else if(m.k==='shock'){fx.push({k:'shock',x:m.x,y:m.y,r:m.r||102,life:.55,max:.55,rm:1,_s:1});if(Math.hypot(p.x-m.x,p.y-m.y)<500)shk=1}
- else if(m.k==='reset'){const e=E.find(x=>x.sid===m.m);if(e){e.x=m.x;e.y=m.y;e.jz=0;e.buf=null}fx.push({k:'ring',x:m.x,y:m.y-20,r:70,col:'#ffd27a',life:.6,max:.6,rm:1,_s:1});onlReg('🦊 A raposa voltou ao covil e recuperou toda a vida (ninguém por perto).')}
+ else if(m.k==='reset'){const e=E.find(x=>x.sid===m.m);if(e){e.x=m.x;e.y=m.y;e.jz=0;e.buf=null}fx.push({k:'ring',x:m.x,y:m.y-20,r:70,col:'#ffd27a',life:.6,max:.6,rm:1,_s:1});onlReg('🦊 A Raposa de Nove Caudas voltou ao covil.')}
  else if(m.k==='spawn'){const e=E.find(x=>x.sid===m.m);if(e){e.x=m.x;e.y=m.y;e.dead=0;e.dt=0;e.buf=null}onlReg('🦊 A Raposa de Nove Caudas renasceu.')}}
 function gsPos(force){const now=performance.now();if(!ONL.joined)return;
  const s=[p.x|0,p.y|0,p.fl?1:0,p.mv?1:0,p.run?1:0,scene|0,Math.round(p.hp),p.au>=0?1:0,p.th>=0?1:0].join(',');
@@ -549,7 +549,7 @@ function onlChatSend(){const i=$('#chatin'),t=i.value.trim().slice(0,80);if(!t)r
 let toastT=0;function toast(t){const el=$('#toast');if(!el)return;el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,3500)}
 function onlLog(t){onlReg(t)}
 // servidor ainda na versão anterior (acabou de sair uma atualização): espera e tenta de novo sozinho
-function gsWait(){gsBlock('Servidor atualizando…','Saiu uma versão nova e o servidor está terminando de atualizar. Tentando de novo em 20 segundos…');
+function gsWait(){gsBlock('Servidor em manutenção','Voltamos em instantes. Tentando de novo em 20 segundos…');
  const b=$('#netblock');setTimeout(()=>{b.hidden=true;ONL.closing=false;ONL.tries=0;gsConnect()},20000)}
 function gsBlock(tt,msg){const b=$('#netblock');b.querySelector('b').textContent=tt;b.querySelector('span').textContent=msg;b.hidden=false;try{ONL.ws&&ONL.ws.close()}catch(_){}}
 
@@ -751,10 +751,23 @@ function ftDig(f){if(f.txt||f.col)return false;const m=/^(\d+)(!?)$/.exec(String
 /* círculo rúnico no chão nos avisos de área (vermelho no fogo, azul no Hyuga); no fim ele some aos poucos */
 const RNI={};function rnImg(n){let i=RNI[n];if(!i&&UIJ[n]){i=new Image();i.src=UIJ[n];RNI[n]=i}return i&&i.complete&&i.naturalWidth?i:null}
 function runaDraw(f,k,ts){const c=String(f.col||'#ff5a1a'),r=parseInt(c.slice(1,3),16)||0,b=parseInt(c.slice(5,7),16)||0,im=rnImg(b>r?'runa_azul':'runa_vermelha');if(!im)return false;
- const R=f.r,h=R*im.height/im.width,fim=Math.max(0,(k-.78)/.22),so=rnImg('runa_some');ctx.save();ctx.translate(f.x,f.y);ctx.scale(1,.55);
- ctx.globalAlpha=.18+.22*k;ctx.fillStyle=c;ctx.beginPath();ctx.arc(0,0,R*k,0,7);ctx.fill(); /* o miolo enche até a hora do golpe */
+ const R=f.r,h=R*im.height/im.width,el=f.max-f.life,kt=f.tel?Math.min(1,el/f.tel):k,fim=f.tel?Math.max(0,(el-f.tel)/Math.max(.01,f.max-f.tel)):Math.max(0,(k-.78)/.22),so=rnImg('runa_some');ctx.save();ctx.translate(f.x,f.y);ctx.scale(1,.55);
+ if(fim<=0){ctx.globalAlpha=.18+.22*kt;ctx.fillStyle=c;ctx.beginPath();ctx.arc(0,0,R*kt,0,7);ctx.fill()} /* o miolo enche até a hora do golpe */
  ctx.rotate(ts/1800);ctx.globalAlpha=.92*(1-fim);ctx.drawImage(im,-R,-h,2*R,2*h);if(so&&fim>0){ctx.globalAlpha=.9*fim;ctx.drawImage(so,-R,-h,2*R,2*h)}ctx.restore();return true}
 {try{if(UIJ.faixa)document.documentElement.style.setProperty('--ui-faixa','url('+UIJ.faixa+')')}catch(_){}}
+/* avisos no meio da tela (toast): cartão de pergaminho com moldura de madeira; conquistas (novo jutsu, evolução, contrato, olho, especialidade)
+   ganham a faixa dourada e o ícone do jutsu (ou o emblema do clã). "Título: texto" vira título pequeno em cima e texto grande embaixo. */
+const tEsc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function tstIc(em,bd){const nm=String(bd).replace(/[!.]+$/,'').trim();let h='';
+ if(/🌀|⬆/.test(em)&&clan&&JU[clan]){const e=Object.entries(JU[clan]).find(([id,j])=>j&&j.n===nm);if(e)h=uiJuIc(Object.assign({},e[1],{id:e[1].id||e[0]}))}
+ if(!h&&/👁/.test(em)&&CH){const k=CH.mgk&&UIJ['mgk_'+CH.mgk]?'mgk_'+CH.mgk:'olho3';if(UIJ[k])h='<img src="'+UIJ[k]+'">'}
+ if(!h&&clan&&UIJ['emb_'+clan])h='<img src="'+UIJ['emb_'+clan]+'">';return h}
+toast=function(t){const el=$('#toast');if(!el)return;const s=String(t==null?'':t);let em='',r=s;
+ const m=/^(\S+)\s+([\s\S]*)$/.exec(s);if(m&&m[1].length<=4&&!/[A-Za-z0-9À-ÿ\[\]]/.test(m[1])){em=m[1];r=m[2]}
+ const cq=/^(🌀|⬆|📜|👁|🎖)/.test(em),i=r.indexOf(': ');let hd='',bd=r;if(i>0&&i<34){hd=r.slice(0,i);bd=r.slice(i+2)}
+ const ic=cq?tstIc(em,bd):'';el.className=cq?'tt-conq':'tt-av';
+ el.innerHTML=(ic?'<div class="tic">'+ic+'</div>':em?'<div class="tem">'+tEsc(em)+'</div>':'')+'<div class="ttx">'+(hd?'<small>'+tEsc(hd)+'</small>':'')+'<b>'+tEsc(bd)+'</b></div>';
+ el.hidden=false;el.style.animation='none';void el.offsetWidth;el.style.animation='';clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,cq?4500:3500)};
 const skIcon=s=>uiJuIc(s)||(s.imk?'<img src="'+SPR[s.imk]+'" style="image-rendering:auto">':s.im?'<img src="'+s.im+'" style="image-rendering:auto">':s.ic!=null&&SPR.ic&&SPR.ic[s.ic]?'<img src="'+SPR.ic[s.ic]+'">':'<span>'+(s.i||'❔')+'</span>');
 const imgIc=u=>'<img src="'+u+'" style="image-rendering:auto">';
 function eyeLv(){if(clan!=='uchiha'||!CH)return 0;const l=CH.lv|0;return l>=TOM[4].lv&&EYES[CH.mgk]?4:l>=TOM[3].lv?3:l>=TOM[2].lv?2:l>=TOM[1].lv?1:0}
@@ -780,10 +793,10 @@ function jtBtnTick(){if(!clan||!CH)return;const key=CH.lv+'|'+CH.mgk+'|'+eyeLv()
   else if(s.t==='kuchi')b.classList.toggle('eyeon',invAtiva());
   else if(s.mgk&&EYE.on!=='mgk')b.classList.add('off')}}
 function jtLvUp(a,b){const L=jtNodes().filter(n=>!n.soon&&n.lv>a&&n.lv<=b);
- for(const id in JU[clan]||{}){const s=JU[clan][id];if(!s.evolui||!BAR)continue;const L2=juLv(s),k=BAR.indexOf(s.evolui);if(a<L2&&b>=L2&&k>=0&&barSet(k,id))setTimeout(()=>{toast('⬆️ '+JU[clan][s.evolui].n+' evoluiu: '+s.n+'!');onlReg('⬆️ '+JU[clan][s.evolui].n+' evoluiu para '+s.n+' no mesmo botão (dá para voltar na aba Jutsus).')},1200)}L.forEach(n=>{const nm=jtInfo(n).nm;toast('🌀 Novo jutsu: '+nm+'!');onlReg('🌀 Jutsu liberado no Nv '+n.lv+': '+nm+'. Veja na aba Jutsus.')});
- if(INV_ON&&a<ctLv()&&b>=ctLv()&&!(CH.ct&&CH.ct.k))setTimeout(()=>{if(CH.ct&&CH.ct.k)return;toast('📜 Contrato de invocação liberado: escolha a sua família na aba Jutsus.');onlReg('📜 Contrato de invocação liberado (Nv '+ctLv()+'): Sapos, Lesmas ou Cobras. Escolha na aba Jutsus; a invocação entra na barra como um jutsu.')},L.length?2000:0);
+ for(const id in JU[clan]||{}){const s=JU[clan][id];if(!s.evolui||!BAR)continue;const L2=juLv(s),k=BAR.indexOf(s.evolui);if(a<L2&&b>=L2&&k>=0&&barSet(k,id))setTimeout(()=>{toast('⬆️ '+JU[clan][s.evolui].n+' evoluiu: '+s.n+'!');onlReg('⬆️ '+JU[clan][s.evolui].n+' evoluiu para '+s.n+'!')},1200)}L.forEach(n=>{const nm=jtInfo(n).nm;toast('🌀 Novo jutsu: '+nm+'!');onlReg('🌀 Jutsu liberado no Nv '+n.lv+': '+nm+'. Veja na aba Jutsus.')});
+ if(INV_ON&&a<ctLv()&&b>=ctLv()&&!(CH.ct&&CH.ct.k))setTimeout(()=>{if(CH.ct&&CH.ct.k)return;toast('📜 Contrato de invocação liberado: escolha a sua família na aba Jutsus.');onlReg('📜 Contrato de invocação liberado: Sapos, Lesmas ou Cobras. Escolha na aba Jutsus.')},L.length?2000:0);
  if(clan==='uchiha'&&a<TOM[4].lv&&b>=TOM[4].lv&&!CH.mgk)setTimeout(()=>{if(CH.mgk)return; // já escolheu nesse meio-tempo
- toast('👁️ A Mangekyō liberou: escolha o seu olho na aba Jutsus.');onlReg('👁️ Mangekyō liberada: escolha Itachi, Sasuke ou Madara na aba Jutsus. Cada uma tem o seu Susanoo (libera no Nv '+juLv(JU.uchiha.sus)+').')},L.length?2600:0)}
+ toast('👁️ A Mangekyō liberou: escolha o seu olho na aba Jutsus.');onlReg('👁️ Mangekyō liberada: escolha Itachi, Sasuke ou Madara na aba Jutsus.')},L.length?2600:0)}
 // travado: explica; Uchiha: botão do meio liga/desliga o olho, botão grande invoca o Susanoo
 {const _u=useBtn;useBtn=function(i){const s=clan&&CH&&CLANS[clan].sk[i];if(s){const o=jtBtn(i);
   if(o.eye){toast('👁️ Escolha o seu Mangekyō na aba Jutsus para liberar o Susanoo.');juSel='mgk';juPick=null;toggleBag(true,'ju');return}
@@ -804,7 +817,7 @@ function eyeToggle(i){i=i==null?barSlots().find(k=>CLANS[clan].sk[k]&&CLANS[clan
  BUFS.eye={prec:D.prec,esq:D.esq,cdmg:D.cdmg,until:Infinity,nm};stats();bufHud(1);p.au=0;p.aud=.7;
  if(D.k==='mgk'){flash={col:'#4a000c',a:.45};shk=Math.max(shk,.4);kfxAdd({q:'mgk',x:p.x,y:p.y,fol:1,sc:1.2})}else flash={col:'#8a0010',a:.2};
  const n=gaze(D);FT.push({x:p.x,y:p.y-80,t:nm+'!',txt:1,gold:1,life:1.1});
- onlReg('👁️ '+D.n+' ativado'+(n?' (prendeu '+n+' com o olhar)':'')+': +'+D.prec+' de precisão, +'+D.esq+' de esquiva e +'+D.cdmg+'% de dano nos jutsus do clã. Gasta '+eyeDrTxt(D)+' de chakra por segundo'+(D.max?' e fica no máximo '+D.max+' s ativado':'')+'; toque de novo para desativar.');
+ onlReg('👁️ '+D.n+' ativado'+(n?' (prendeu '+n+' com o olhar)':'')+'.');
  skBtns();gsMeta()}
 function eyeOff(why){if(!EYE.on)return;const was=EYE.on;EYE.on=null;delete BUFS.eye;susEnd();
  const k=EYE.slot!=null&&CLANS[clan].sk[EYE.slot]&&CLANS[clan].sk[EYE.slot].t==='eye'?EYE.slot:barSlots().find(q=>CLANS[clan].sk[q]&&CLANS[clan].sk[q].t==='eye');
@@ -944,7 +957,7 @@ function juBarBtns(n,js,I){if(!js||!BAR||!I.ok||n.soon)return '';const at=BAR.in
  if(js.papel==='ult')return '<div class="jbb">'+(at===2?'<span class="z">Está no botão grande.</span>':'<button data-bar="2:'+js.id+'">Usar no botão grande</button>')+'</div>';
  return '<div class="jbb"><span>Pôr no botão:</span>'+[0,1,3].map(i=>'<button data-bar="'+i+':'+js.id+'"'+(at===i?' disabled':'')+'>'+SLN[i]+(i===3?' (no lugar do item)':'')+'</button>').join('')+(BAR[3]!=='item'?'<button data-bar="3:item">Item de volta no 3</button>':'')+'</div>'}
 function juEye(k){if(!EYES[k]||(CH.lv|0)<TOM[4].lv||CH.mgk===k)return;if(CH.mgk&&juPick!==k){juPick=k;return juDraw()}
- juPick=null;if(EYE.on)eyeOff();CH.mgk=k;chSave();toast('👁️ Mangekyō de '+EYES[k].n+' escolhida!');onlReg('👁️ Sua Mangekyō: '+EYES[k].n+'. Ela toma o lugar do Sharingan no botão do meio; ativada, o botão grande invoca o seu Susanoo a partir do Nv '+juLv(JU.uchiha.sus)+'.');skBtns();juDraw()}
+ juPick=null;if(EYE.on)eyeOff();CH.mgk=k;chSave();toast('👁️ Mangekyō de '+EYES[k].n+' escolhida!');onlReg('👁️ Sua Mangekyō: '+EYES[k].n+'.');skBtns();juDraw()}
 
 // ---------- Hyuga de branco: parado (postura do Punho Gentil), andando, correndo e poses de golpe ----------
 // poses (folha "hya"): 0 guarda · 1 preparo · 2 estocada da palma · 4 guarda · 5 postura das 64 Palmas · 6 giro · 7 agachado
@@ -1050,7 +1063,7 @@ function castHosenka(s,ax,ay){actStart('fogo');const tp=HTP,n=Math.max(1,(s.tiro
   P.push({x:p.x+Math.cos(a)*12,y:p.y-24,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:s.col,dmg:s.dmg,life:.95,big:1,mini:1,fire:1,hm:(+s.pot||1)/n,tp})}}})}
 // Gōryūka: o chão avisa onde o dragão vai cair (todo mundo vê); depois explode em área
 function castGoryu(s,ax,ay){actStart('fogo');const tp=HTP,t=+s.tel||.6,tg=alvoPerto(+s.alcance||5),x=tg?tg.x:p.x+ax*3*T,y=tg?tg.y:p.y+ay*3*T,r=s.r||2.2*T;
- fx.push({k:'aviso',x,y,r,col:'#ff5a1a',life:t,max:t});
+ fx.push({k:'aviso',x,y,r,col:'#ff5a1a',life:t+.6,max:t+.6,tel:t}); /* o círculo fica mais 0,6 s, sumindo durante a explosão */
  KDEL.push({t,fn:()=>{HTP=tp;try{alvosEm(x,y,r).forEach(e=>{const d=Math.hypot(e.x-x,e.y-y)||1;hitCom(e,s,+s.pot||1,null,0,(e.x-x)/d*14,(e.y-y)/d*14)})}finally{HTP=null}
   fx.push({k:'boom',x,y:y-10,life:.5,max:.5});fx.push({k:'ring',x,y:y-4,r,col:'#ff8a2a',life:.45,max:.45,sp:1});fx.push({k:'chama',x,y,r,life:.9,max:.9});flash={col:'#ff6a1a',a:.25};shk=Math.max(shk,.35)}})}
 // Genjutsu: Sharingan: ilusão no alvo mais perto; jogador fica com os controles invertidos, monstro fica perdido (passa ao levar dano)
@@ -1090,7 +1103,7 @@ const byakSlot=()=>barSlots().find(k=>CLANS[clan].sk[k]&&CLANS[clan].sk[k].t==='
 function byakToggle(i){const s=CLANS[clan].sk[i];if(!s)return;if(BYK.on)return byakOff();if(cd[i]>0||actRoot())return;
  if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}const mp=mpOf(i,s);if(seloBloqueia(mp))return seloAviso();if(p.mp<mp){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
  p.mp-=mp;BYK.on=1;BYK.slot=i;gsMeta();BUFS.byak={prec:+s.prec||0,until:Infinity,nm:'Byakugan: +'+(+s.prec||0)+' de precisão'};stats();bufHud(1);flash={col:'#9db7ff',a:.18}; /* sem pose de aura: o Hyuga continua o mesmo, só os olhos brilham em azul */
- FT.push({x:p.x,y:p.y-80,t:'Byakugan!',txt:1,gold:1,life:1});onlReg('👁️ Byakugan ativado: +'+(+s.prec||0)+' de precisão; genjutsu dura '+(+s.resGen||0)+'% menos em você. Gasta '+(+s.dreno||0)+'% do chakra por segundo e o chakra não se recupera enquanto estiver ativado; toque de novo para desativar.');skBtns()}
+ FT.push({x:p.x,y:p.y-80,t:'Byakugan!',txt:1,gold:1,life:1});onlReg('👁️ Byakugan ativado.');skBtns()}
 function byakOff(why){if(!BYK.on)return;BYK.on=0;delete BUFS.byak;gsMeta();const k=BYK.slot!=null&&CLANS[clan].sk[BYK.slot]&&CLANS[clan].sk[BYK.slot].t==='byak'?BYK.slot:byakSlot();
  if(k!=null)cd[k]=Math.max(cd[k],cdOf(k,CLANS[clan].sk[k]));stats();bufHud(1);skBtns();if(why){FT.push({x:p.x,y:p.y-70,t:why,txt:1,life:1});onlReg('👁️ Byakugan desativado: '+why+'.')}}
 function byakTick(dt){if(!BYK.on)return;const s=JU.hyuga&&JU.hyuga.byak;if(clan!=='hyuga'||!s){byakOff();return}p.mp-=(+s.dreno||0)/100*p.mpMax*dt;if(p.mp<=0){p.mp=0;byakOff('sem chakra')}}
@@ -1111,11 +1124,11 @@ function castSojishi(s,ax,ay){actStart('palma');const tp=HTP,t=+s.tel||.5,R=s.r|
   flash={col:'#cfe0ff',a:.18}}})}
 // Kaiten Perfeito (ultimate): gira maior; bloqueia projéteis enquanto gira e no fim solta o golpe em área (a força é dividida entre os alvos) e sela o chakra
 function castKperf(s,ax,ay){actStart('kaiten');const tp=HTP,t=+s.tel||.8,R=s.r||2.5*T;if(s.imune)gsSend({t:'guard',d:Math.max(1,t)});
- const f=KFX_OK?kfxAdd({q:'kaiten',x:p.x,y:p.y,fol:1,dy:6,sc:R*1.4/101}):null;fx.push({k:'aviso',x:p.x,y:p.y,r:R,col:'#9db7ff',life:t,max:t});
+ const f=KFX_OK?kfxAdd({q:'kaiten',x:p.x,y:p.y,fol:1,dy:6,sc:R*1.4/101}):null;fx.push({k:'aviso',x:p.x,y:p.y,r:R,col:'#9db7ff',life:t+.6,max:t+.6,tel:t});
  KDEL.push({t,fn:()=>{const L=alvosEm(p.x,p.y,R),n=Math.max(1,L.length),mul=(+s.pot||1)/(s.divide?n:1),cc=s.ccPvp&&s.ccPvp.k==='selo'?{selo:+s.ccPvp.t,semStunPvp:1}:null;
   HTP=tp;try{L.forEach(e=>{const d=Math.hypot(e.x-p.x,e.y-p.y)||1;hitCom(e,s,mul,cc,0,(e.x-p.x)/d*22,(e.y-p.y)/d*22)})}finally{HTP=null}
   if(f)f.hit=1;fx.push({k:'ring',x:p.x,y:p.y-10,r:R,col:'#cfe0ff',life:.5,max:.5,sp:1});flash={col:'#e3e9ff',a:.35};shk=Math.max(shk,.35);
-  if(L.length)onlReg('🌀 Kaiten Perfeito em '+L.length+' alvo'+(L.length>1?'s':'')+(s.divide&&L.length>1?' (força dividida)':'')+'.')}})}
+  if(L.length)onlReg('🌀 Kaiten Perfeito em '+L.length+' alvo'+(L.length>1?'s':'')+'.')}})}
 Object.assign(JCAST,{kusho:castKusho,sojishi:castSojishi,kperf:castKperf});
 function hyuFxDraw(f){const k=1-f.life/f.max,a=Math.min(1,f.life/.2);ctx.save();
  if(f.k==='kusho'){const g=f.tel>0?Math.min(1,(f.max-f.life)/f.tel):1,L=f.len*g,x=f.x+f.ax*L,y=f.y+f.ay*L,an=Math.atan2(f.ay,f.ax);ctx.globalAlpha=.55*a;ctx.strokeStyle='#e3efff';ctx.lineWidth=3;
@@ -1170,7 +1183,7 @@ function ctChoose(k){const F=INVF[k];if(!INV_ON||!F||!F.ativo||(CH.lv|0)<ctLv())
  ctPick=null;invEnd();CH.ct={k,t:Date.now()};ctApply();
  if(cur){const s=JU[clan].kuchi,t=performance.now(),bi=BAR?BAR.indexOf('kuchi'):-1,c=cdOf(bi>=0?bi:1,s);JCD.kuchi=Math.max(JCD.kuchi||0,t+c*1000);if(bi>=0)cd[bi]=Math.max(cd[bi],c)}
  chSave();stats();skBtns();toast('📜 Contrato com os '+F.n+'!');
- onlReg('📜 Contrato com os '+F.n+': '+ctPasTxt(F)+'. A invocação ('+F.inv+') fica na aba Jutsus → Contrato de invocação; ponha num botão da barra para usar.');juDraw()}
+ onlReg('📜 Contrato com os '+F.n+' firmado: '+ctPasTxt(F)+'.');juDraw()}
 // efeito que todo mundo vê (vai para os outros jogadores pelo "fx")
 function invFx(o){const f=Object.assign({k:'inv',max:o.life},o);fx.push(f);return f}
 const INVS={sapo:.4,lesma:.9,cobra:.5}; // saída: a invocação some fazendo a animação (s)
@@ -1319,7 +1332,7 @@ async function otaRun(o){o=o||{};if(!OTA.app||!OTA.v)return 'ok';if(OTA.ready)re
   await otaPut({v:+vj.v,html});OTA.ready=+vj.v;if(!o.gate)otaShow();return 'nova'}
  catch(e){console.warn('atualização:',e&&e.message);return 'falhou'}finally{OTA.busy=0}}
 async function otaCheck(){if(!OTA.app||OTA.busy||OTA.ready||!OTA.v)return 0;const r=await otaRun();
- if(r==='apk'&&!OTA.told){OTA.told=1;onlReg('📦 Saiu uma versão que precisa do APK novo: baixe em GitHub → Releases.')}return r==='nova'?1:0}
+ if(r==='apk'&&!OTA.told){OTA.told=1;onlReg('📦 Saiu uma versão nova do jogo: instale para continuar jogando.')}return r==='nova'?1:0}
 function otaReload(){location.reload()}
 /* porteiro: ao abrir o jogo, Entrar e Criar conta ficam travados até confirmar que a versão é a mais nova */
 let otaRetryTk=0;
@@ -1330,7 +1343,7 @@ async function otaGate(){if(!OTA.app||!OTA.v)return 'ok';OTA.gate=1;onlBusy(fals
  const r=await otaRun({gate:1,fase:()=>{er.textContent='⬇️ Jogo atualizando… 0%'},prog:n=>{er.textContent='⬇️ Jogo atualizando… '+n+'%'}});
  if(r==='ok'){OTA.gate=0;er.textContent='';onlBusy(false)}
  else if(r==='nova'){er.textContent='✅ Atualizado! Reiniciando o jogo…';setTimeout(otaReload,500)}
- else if(r==='apk')er.textContent='📦 Esta versão precisa do APK novo. Baixe em GitHub → Releases e instale para entrar.';
+ else if(r==='apk')er.textContent='📦 Instale a versão mais nova do jogo para entrar.';
  else{er.textContent='⚠️ Não consegui verificar a atualização. Confira a internet. Tentando de novo…';bt.hidden=false;otaRetryTk=setTimeout(otaGate,10000)}
  return r}
 function otaShow(){const b=$('#otabar');if(!b)return;b.querySelector('span').textContent='🔄 Versão nova do jogo baixada ('+otaVerTxt(OTA.ready)+').';b.hidden=false;
@@ -1342,7 +1355,7 @@ async function otaApply(){const b=$('#otabar');if(b)b.querySelector('button').di
 {const _sw=switchMap;switchMap=function(k){_sw(k);if(ONL.on){gsJoin();ONL.dirty=true;grpDraw()}}}
 function gsReady(){return new Promise((res,rej)=>{if(ONL.authed)return res();ONL.welcomeCb=res;gsConnect();
  const er=$('#err'),t0=performance.now();const tk=setInterval(()=>{if(ONL.authed||!ONL.welcomeCb){clearInterval(tk);return}const s=Math.round((performance.now()-t0)/1000);
-  er.textContent=s<4?'Conectando ao servidor do jogo…':'Acordando o servidor do jogo… '+s+'s (no plano grátis ele dorme quando ninguém joga; pode levar até 1 minuto)';
+  er.textContent=s<4?'Conectando ao servidor do jogo…':'Conectando ao servidor… '+s+'s';
   if(s>120){clearInterval(tk);ONL.welcomeCb=null;rej(new Error('O servidor do jogo não respondeu. Tente de novo em instantes.'))}},500)})}
 async function onlEnter(){if(OTA.gate)return;const n=$('#u').value.trim(),s=$('#p').value,er=$('#err');
  if(!n||!s){er.textContent='Digite seu nome de usuário e sua senha.';return}
@@ -1565,7 +1578,7 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
  $('#keep').onchange=()=>{if(!$('#keep').checked)keepSet('')};
  const kp=keepGet();if(kp){$('#u').value=kp.u;$('#p').value=kp.p;$('#keep').checked=true}
  // trocar de vila fica só para admin por enquanto
- const mb=$('#mapbtn'),mbo=mb.onclick;mb.onclick=()=>{if(!ONL.on||ONL.adm)mbo();else toast('Por enquanto todos os ninjas ficam na Vila da Areia.')};
+ const mb=$('#mapbtn'),mbo=mb.onclick;mb.onclick=()=>{if(!ONL.on||ONL.adm)mbo();else toast('🗺️ As outras vilas ainda estão fechadas. Em breve!')};
  $('#chatbtn').onclick=()=>chatOpen($('#chatp').hidden);$('#chatX').onclick=()=>chatOpen(false);
  $('#tabC').onclick=()=>chatOpen(true,'c');$('#tabR').onclick=()=>chatOpen(true,'r');
  document.querySelectorAll('#cpIn .chs button').forEach(b=>b.onclick=()=>{ONL.chatCh=b.dataset.ch;chatDraw();$('#chatin').focus()});
@@ -1586,7 +1599,7 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
  $('#tbCh').onclick=()=>setPanel('ch');$('#tbJu').onclick=()=>setPanel('ju');
  // abriu até aqui sem erro: o carregador pode confiar nesta versão
  try{if(OTA.v){localStorage.setItem('so-ota-ok',String(OTA.v));localStorage.setItem('so-ota-fail','0')}}catch(_){}
- {const lv=$('#lgVer');if(lv)lv.textContent='Versão '+otaVerTxt(OTA.v)+(OTA.app?' · atualiza sozinho':'')}
+ {const lv=$('#lgVer');if(lv)lv.textContent='Versão '+otaVerTxt(OTA.v)}
  {const ob=$('#otabar');document.body.appendChild(ob);ob.querySelector('button').onclick=otaApply} // aparece em qualquer tela
  if(OTA.app){otaGate();setInterval(otaCheck,20*60*1000)}})();
 //ONLINE-END

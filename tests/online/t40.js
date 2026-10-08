@@ -36,5 +36,5 @@ let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
  await prep({v:200000000001});await W(700);s=await st();ok(!s.go&&s.rl===0&&s.t==='','versão que não abre no aparelho (marcada como ruim) não prende em loop: libera');
  await pg.evaluate(()=>{localStorage.removeItem('so-ota-bad')});
  // 5) versão que exige APK novo: não dá para atualizar sozinho, continua travado e explica
- await prep({v:200000000001,loader:2});await W(700);s=await st();ok(s.go&&s.nw&&/APK novo/.test(s.t)&&!s.retry,'versão que precisa do APK novo: continua travado e explica onde baixar');
+ await prep({v:200000000001,loader:2});await W(700);s=await st();ok(s.go&&s.nw&&/versão mais nova/.test(s.t)&&!s.retry,'versão que precisa do APK novo: continua travado e explica onde baixar');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();

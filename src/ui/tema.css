@@ -136,3 +136,14 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 #bufs .sti{display:inline-block;width:14px;height:14px;margin:0 4px 0 -3px;vertical-align:-3px;background:center/contain no-repeat;border-radius:3px}
 #lvup::before{content:'';display:block;height:22px;margin:-4px -12px 6px;background:var(--ui-faixa) center/100% 100% no-repeat}
 #bufs span.cc{display:inline-block} /* a classe .cc também é usada em outra parte da tela (coluna); aqui o selo fica numa linha só */
+/* avisos no meio da tela: cartão de pergaminho (mesma moldura do login); conquistas com a faixa dourada e o ícone */
+#toast.tt-av,#toast.tt-conq{display:flex;align-items:center;gap:10px;width:max-content;max-width:min(440px,82vw);padding:0 8px 0 2px;border:solid transparent;border-width:16px 14px 14px 18px;border-image:var(--ui-painel) 8 7 7 9;border-radius:0;background:#f0deaa var(--ui-papel) 0 0/32px 32px;background-clip:padding-box;color:#3a201a;text-align:left;filter:drop-shadow(0 8px 14px rgba(0,0,0,.5));font:600 13px/1.3 system-ui,sans-serif;animation:tpop .28s cubic-bezier(.2,1.4,.4,1)}
+#toast.tt-conq{margin-top:22px}
+#toast.tt-conq::before{content:'';position:absolute;left:-22px;right:-20px;top:-38px;height:26px;background:var(--ui-faixa) center/100% 100% no-repeat;pointer-events:none}
+#toast .tic{flex:none;width:44px;height:44px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 2px #5c3424,0 0 0 4px #d9a441,0 2px 6px 4px rgba(0,0,0,.25);background:#2a1a14}
+#toast .tic img{display:block;width:100%;height:100%;object-fit:cover}
+#toast .tem{flex:none;font-size:22px;line-height:1;filter:drop-shadow(0 1px 0 rgba(0,0,0,.25))}
+#toast .ttx small{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a5a2a}
+#toast .ttx b{display:block;font-size:14px;font-weight:800;color:#3a201a}
+#toast.tt-conq .ttx b{font-size:17px;color:#6a1a0a}
+@keyframes tpop{from{opacity:0;transform:translate(-50%,14px) scale(.9)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
