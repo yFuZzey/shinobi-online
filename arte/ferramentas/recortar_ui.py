@@ -97,13 +97,49 @@ ICO.update(soltas('p11_hyuga.png', dict(zip(H, B11)), 80))
 ICO.update(soltas('p9_clas.png', {'emb_uchiha': (119, 61, 343, 343), 'emb_hyuga': (595, 61, 347, 345), 'emb_nara': (1070, 60, 343, 346)}, 96))
 ICO.update(soltas('p9_clas.png', {'rolo_uchiha': (34, 444, 208, 525), 'rolo_uchiha_on': (261, 407, 243, 572), 'rolo_hyuga': (542, 444, 201, 525),
                                   'rolo_hyuga_on': (772, 407, 240, 573), 'rolo_nara': (1050, 444, 206, 526), 'rolo_nara_on': (1270, 408, 244, 576)}, 200))
+# pacote 12: jutsus do Nara (15 desenhos; os que não estão na lista são variações guardadas na folha)
+B12 = [(7, 4, 261, 250), (283, 5, 260, 249), (558, 4, 261, 250), (833, 4, 261, 250), (1108, 4, 261, 250),
+       (8, 264, 259, 245), (284, 264, 258, 245), (558, 264, 259, 245), (834, 264, 259, 245), (1109, 264, 259, 245),
+       (9, 520, 257, 247), (284, 520, 258, 247), (559, 520, 258, 247), (834, 520, 258, 247), (1110, 520, 258, 247)]
+N12 = {'shuri': 0, 'poss': 1, 'nui': 3, 'kubi': 4, 'yose': 5, 'sombra': 9, 'campo': 11, 'intelecto': 12, 'dominio': 13}
+ICO.update(soltas('p12_nara.png', {n: B12[i] for n, i in N12.items()}, 80))
+# pacote 13: ícones de estado, números de dano (5 cores), faixa e círculos de aviso
+ST = ['st_fogo', 'st_veneno', 'st_escudo', 'st_confuso', 'st_selo', 'st_lento', 'st_forca', 'st_veloc', 'st_regen', 'st_preso']
+B13 = [(27, 24, 115, 117), (149, 25, 115, 116), (271, 25, 115, 116), (392, 25, 115, 116), (514, 25, 115, 116),
+       (637, 25, 115, 116), (758, 25, 115, 116), (880, 24, 115, 117), (1003, 25, 114, 116), (1126, 25, 114, 116)]
+ICO.update(soltas('p13_efeitos.png', dict(zip(ST, B13)), 40))
+ICO.update(soltas('p13_efeitos.png', {'faixa': (30, 478, 1206, 96)}, 480))
+ICO.update(soltas('p13_efeitos.png', {'runa_vermelha': (36, 569, 276, 256), 'runa_azul': (344, 572, 272, 254), 'runa_mista': (646, 571, 278, 256), 'runa_some': (955, 572, 265, 255)}, 128))
+def digitos(f, faixas, alto):
+    """cada cor vira uma tira 0-9 com células da mesma largura (o jogo pega o dígito pela posição)"""
+    a = np.array(Image.open(os.path.join(D, f)).convert('RGB')).astype(int)
+    rosa = (a[:, :, 0] > 170) & (a[:, :, 2] > 120) & (a[:, :, 1] < 90) & (np.abs(a[:, :, 0] - a[:, :, 2]) < 110)
+    rgba = np.dstack([a.astype(np.uint8), np.where(rosa, 0, 255).astype(np.uint8)])
+    res = {}
+    for nome, (y0, y1) in faixas.items():
+        cols = (~rosa[y0:y1]).sum(0); runs = []; ini = None
+        for x, v in enumerate(cols):
+            if v and ini is None: ini = x
+            if not v and ini is not None:
+                if x - ini > 10: runs.append((ini, x))
+                ini = None
+        ds = []
+        for x0, x1 in runs[:10]:
+            im = Image.fromarray(rgba[y0:y1, x0:x1]); im = im.crop(im.getbbox())
+            im = im.resize((max(1, round(im.width * alto / im.height)), alto), Image.LANCZOS)
+            q = np.array(im); q[:, :, 3] = np.where(q[:, :, 3] >= 110, 255, 0); ds.append(q)
+        cw = max(d.shape[1] for d in ds); tira = np.zeros((alto, cw * 10, 4), np.uint8)
+        for i, d in enumerate(ds): o = i * cw + (cw - d.shape[1]) // 2; tira[:, o:o + d.shape[1]] = d
+        res[nome] = tira
+    return res
+ICO.update(digitos('p13_efeitos.png', {'dg_branco': (169, 226), 'dg_amarelo': (232, 289), 'dg_verde': (296, 352), 'dg_cinza': (360, 416), 'dg_vermelho': (423, 476)}, 22))
 def webp64(a):
     b = io.BytesIO(); Image.fromarray(a).save(b, 'WEBP', quality=90, method=6)
     return 'data:image/webp;base64,' + base64.b64encode(b.getvalue()).decode()
 json.dump({n: webp64(p) for n, p in ICO.items()}, open('src/ui/icones.json', 'w'), separators=(',', ':'))
 print('icones.json', os.path.getsize('src/ui/icones.json'), 'bytes;', ', '.join(f'{n} {p.shape[1]}x{p.shape[0]}' for n, p in ICO.items()))
 if os.environ.get('PREVIEW'):
-    Z = 2; x = y = 10; lh = 0; cv = Image.new('RGBA', (1400, 1400), (60, 160, 60, 255))
+    Z = 2; x = y = 10; lh = 0; cv = Image.new('RGBA', (1400, 3000), (60, 160, 60, 255))
     for n, p in ICO.items():
         im = Image.fromarray(p).resize((p.shape[1] * Z, p.shape[0] * Z), Image.NEAREST)
         if x + im.width > 1400: x = 10; y += lh + 10; lh = 0

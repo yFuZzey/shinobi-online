@@ -215,7 +215,7 @@ function bufTick(){const n=performance.now();let ch=0;for(const k in BUFS)if(BUF
 function bufClear(){if(!Object.keys(BUFS).length)return;BUFS={};stats();bufHud(1)}
 // chips no canto com os reforços ativos e quantos segundos faltam
 function bufHud(force){const el=document.getElementById('bufs');if(!el)return;const n=performance.now();if(!force&&n-(bufHud.t||0)<250)return;bufHud.t=n;
- const h=Object.entries(BUFS).filter(([k,b])=>b.until>n).map(([k,b])=>'<span'+(b.until===Infinity?' class="on"':'')+'>'+String(b.nm).split(':')[0].replace(/[<>&]/g,'')+(k==='sus'&&SHD?' 🛡'+Math.ceil(SHD.v):'')+(k==='inv'&&SHT?' 🛡'+Math.ceil(SHT.v):'')+' <b>'+(b.until===Infinity?'ativado':Math.ceil((b.until-n)/1000)+'s')+'</b></span>').join('')+ccChips();if(el._h!==h){el._h=h;el.innerHTML=h}}
+ const h=Object.entries(BUFS).filter(([k,b])=>b.until>n).map(([k,b])=>'<span'+(b.until===Infinity?' class="on"':'')+'>'+stIc(stDeBuf(k,b))+String(b.nm).split(':')[0].replace(/[<>&]/g,'')+(k==='sus'&&SHD?' 🛡'+Math.ceil(SHD.v):'')+(k==='inv'&&SHT?' 🛡'+Math.ceil(SHT.v):'')+' <b>'+(b.until===Infinity?'ativado':Math.ceil((b.until-n)/1000)+'s')+'</b></span>').join('')+ccChips();if(el._h!==h){el._h=h;el.innerHTML=h}}
 function effSt(prof){const c=calcChar(1,prof),o={};for(const k of STK)o[k]=c.st[k].fin;return o}
 const profReqOk=k=>Object.entries(PROF[k].req).every(([s,v])=>CH.st[s]>=v);
 function profSkills(k){if(!clan||!JU[clan])return[];return Object.values(JU[clan]).filter(s=>s.tipo===k&&s.t!=='kuchi').map(s=>s.n).concat(k==='ninjutsu'&&atkItem()?[atkItem().name]:[])}
@@ -307,7 +307,7 @@ const PVP={on:1,safe:4};let PST=0,HRES={miss:0,d:0,dead:0},pvpTold=0;
 let PRT=0,PSL=0,PSI=0,PCF=0,SHD=null,HCC=null; // PCF = confuso (Genjutsu: Sharingan): anda ao contrário até levar dano
  // HCC = efeito do golpe que está acertando agora (como HTP): {root, selo, queima, lento:{v,t}, silencio, pj (projétil), semStunPvp}
 function ccTick(dt){if(PRT>0)PRT=Math.max(0,PRT-dt);if(PSL>0)PSL=Math.max(0,PSL-dt);if(PSI>0)PSI=Math.max(0,PSI-dt);if(PCF>0)PCF=Math.max(0,PCF-dt);if(SHD&&SHD.until<=performance.now())SHD=null}
-function ccChips(){const L=[];if(PRT>0)L.push('<span class="cc">Preso <b>'+Math.ceil(PRT)+'s</b></span>');if(PSL>0)L.push('<span class="cc">Chakra selado <b>'+Math.ceil(PSL)+'s</b></span>');if(PSI>0)L.push('<span class="cc">Silenciado <b>'+Math.ceil(PSI)+'s</b></span>');if(PCF>0)L.push('<span class="cc">Confuso <b>'+Math.ceil(PCF)+'s</b></span>');return L.join('')}
+function ccChips(){const L=[];if(PRT>0)L.push('<span class="cc">'+stIc('st_preso')+'Preso <b>'+Math.ceil(PRT)+'s</b></span>');if(PSL>0)L.push('<span class="cc">'+stIc('st_selo')+'Chakra selado <b>'+Math.ceil(PSL)+'s</b></span>');if(PSI>0)L.push('<span class="cc">Silenciado <b>'+Math.ceil(PSI)+'s</b></span>');if(PCF>0)L.push('<span class="cc">'+stIc('st_confuso')+'Confuso <b>'+Math.ceil(PCF)+'s</b></span>');return L.join('')}
 const silBloqueia=s=>PSI>0&&!(s&&s.papel==='basico');
 function silAviso(){if(!silAviso._t||performance.now()-silAviso._t>700){silAviso._t=performance.now();FT.push({x:p.x,y:p.y-70,t:'silenciado',txt:1,life:.8})}}
 // efeitos do golpe que está acertando (HCC) no formato do servidor: um só ({k…}) ou até 2 juntos (lista)
@@ -736,6 +736,25 @@ let MGKIC=null;{const U=[null,JU.uchiha&&JU.uchiha.olho];if(U[1]&&SPR.ic&&SPR.ic
 /* ícones novos dos jutsus (arte/ui → src/ui/icones.json). Sem ícone novo, fica o de antes */
 const UIJ=__UIJ__;
 function uiJuIc(s){if(!s||!clan||!CH)return '';let k=s.id;if(s.t==='eye'){const l=eyeLv();k=l===4&&CH.mgk?'mgk_'+CH.mgk:'olho'+Math.max(1,l)}return UIJ[k]?'<img class="uij" src="'+UIJ[k]+'" style="image-rendering:auto">':''}
+/* ---------- pacote 13: ícones de estado, números de dano, faixa do nível e círculos de aviso ---------- */
+const stIc=n=>n&&UIJ[n]?'<i class="sti" style="background-image:url('+UIJ[n]+')"></i>':'';
+function stDeBuf(k,b){if(k==='lento')return 'st_lento';if(k==='sus'||k==='campo')return 'st_escudo';if(k==='inv')return /cura/i.test(b.nm||'')?'st_regen':'st_escudo';
+ if(k==='eye'||k==='byak')return '';if(+b.dmg>0)return 'st_forca';if(+b.spd>0)return 'st_veloc';if(+b.red>0)return 'st_escudo';return ''}
+/* números: branco = seu dano, amarelo = crítico, vermelho = dano que você leva, cinza = dano de outros jogadores, verde = cura (reservado) */
+const DGI={};function dgImg(n){let o=DGI[n];if(!o&&UIJ[n]){const im=new Image();o=DGI[n]={im,w:null};im.onload=()=>{try{const c=document.createElement('canvas'),cw=im.width/10;c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);
+  const d=g.getImageData(0,0,im.width,im.height).data;o.w=[];for(let k=0;k<10;k++){let a=-1,z=-1;for(let x=Math.floor(k*cw);x<Math.floor((k+1)*cw);x++){let on=0;for(let y=0;y<im.height;y++)if(d[(y*im.width+x)*4+3]>40){on=1;break}if(on){if(a<0)a=x;z=x}}o.w.push(a<0?[k*cw,cw]:[a,z-a+1])}}catch(_){o.w=null}};im.src=UIJ[n]}
+ return o&&o.w&&o.im.complete?o:null}
+function ftDig(f){if(f.txt||f.col)return false;const m=/^(\d+)(!?)$/.exec(String(f.t));if(!m)return false;const crit=!!(f.crit||m[2]||f.gold);
+ const o=dgImg(crit&&!f.r?'dg_amarelo':f.r?'dg_vermelho':f.cura?'dg_verde':f.oth?'dg_cinza':'dg_branco');if(!o)return false;
+ const ih=o.im.height,h=(crit?17:13)*(f.oth?.85:1),k=h/ih,s=m[1];let W=0;for(const c of s)W+=o.w[+c][1]*k-1;
+ let x=f.x-W/2;ctx.globalAlpha=Math.min(1,f.life*2);for(const c of s){const [sx,sw]=o.w[+c];ctx.drawImage(o.im,sx,0,sw,ih,x,f.y-h+2,sw*k,h);x+=sw*k-1}return true}
+/* círculo rúnico no chão nos avisos de área (vermelho no fogo, azul no Hyuga); no fim ele some aos poucos */
+const RNI={};function rnImg(n){let i=RNI[n];if(!i&&UIJ[n]){i=new Image();i.src=UIJ[n];RNI[n]=i}return i&&i.complete&&i.naturalWidth?i:null}
+function runaDraw(f,k,ts){const c=String(f.col||'#ff5a1a'),r=parseInt(c.slice(1,3),16)||0,b=parseInt(c.slice(5,7),16)||0,im=rnImg(b>r?'runa_azul':'runa_vermelha');if(!im)return false;
+ const R=f.r,h=R*im.height/im.width,fim=Math.max(0,(k-.78)/.22),so=rnImg('runa_some');ctx.save();ctx.translate(f.x,f.y);ctx.scale(1,.55);
+ ctx.globalAlpha=.18+.22*k;ctx.fillStyle=c;ctx.beginPath();ctx.arc(0,0,R*k,0,7);ctx.fill(); /* o miolo enche até a hora do golpe */
+ ctx.rotate(ts/1800);ctx.globalAlpha=.92*(1-fim);ctx.drawImage(im,-R,-h,2*R,2*h);if(so&&fim>0){ctx.globalAlpha=.9*fim;ctx.drawImage(so,-R,-h,2*R,2*h)}ctx.restore();return true}
+{try{if(UIJ.faixa)document.documentElement.style.setProperty('--ui-faixa','url('+UIJ.faixa+')')}catch(_){}}
 const skIcon=s=>uiJuIc(s)||(s.imk?'<img src="'+SPR[s.imk]+'" style="image-rendering:auto">':s.im?'<img src="'+s.im+'" style="image-rendering:auto">':s.ic!=null&&SPR.ic&&SPR.ic[s.ic]?'<img src="'+SPR.ic[s.ic]+'">':'<span>'+(s.i||'❔')+'</span>');
 const imgIc=u=>'<img src="'+u+'" style="image-rendering:auto">';
 function eyeLv(){if(clan!=='uchiha'||!CH)return 0;const l=CH.lv|0;return l>=TOM[4].lv&&EYES[CH.mgk]?4:l>=TOM[3].lv?3:l>=TOM[2].lv?2:l>=TOM[1].lv?1:0}
@@ -1053,7 +1072,8 @@ function castTsuku(s,ax,ay){const tp=HTP,t=+s.tel||.8,tg=alvoPerto(+s.alcance||5
 Object.assign(JCAST,{goka:castGoka,hosenka:castHosenka,goryuka:castGoryu,genj:castGenj,amat:castAmat,tsuku:castTsuku});
 // desenho dos efeitos do Uchiha (também chegam para quem está vendo)
 function uchFxDraw(f){const k=1-f.life/f.max,a=Math.min(1,f.life/.25),ts=performance.now();ctx.save();
- if(f.k==='aviso'){ctx.globalAlpha=.25+.35*k;ctx.fillStyle=f.col||'#ff5a1a';ctx.beginPath();ctx.ellipse(f.x,f.y,f.r*k,f.r*k*.55,0,0,7);ctx.fill();ctx.globalAlpha=.85;ctx.strokeStyle=f.col||'#ff5a1a';ctx.lineWidth=2;ctx.setLineDash([8,6]);ctx.beginPath();ctx.ellipse(f.x,f.y,f.r,f.r*.55,0,0,7);ctx.stroke()}
+ if(f.k==='aviso'&&runaDraw(f,k,ts)){}
+ else if(f.k==='aviso'){ctx.globalAlpha=.25+.35*k;ctx.fillStyle=f.col||'#ff5a1a';ctx.beginPath();ctx.ellipse(f.x,f.y,f.r*k,f.r*k*.55,0,0,7);ctx.fill();ctx.globalAlpha=.85;ctx.strokeStyle=f.col||'#ff5a1a';ctx.lineWidth=2;ctx.setLineDash([8,6]);ctx.beginPath();ctx.ellipse(f.x,f.y,f.r,f.r*.55,0,0,7);ctx.stroke()}
  else if(f.k==='chama'){ctx.globalCompositeOperation='lighter';for(let i=0;i<14;i++){const an=i*2.4+ts/300,rr=f.r*(.2+.75*((i*37)%10)/10),x=f.x+Math.cos(an)*rr,y=f.y+Math.sin(an)*rr*.55-(1-a)*10,h=10+8*Math.sin(ts/90+i);
   const g=ctx.createRadialGradient(x,y-h/2,0,x,y-h/2,h);g.addColorStop(0,'rgba(255,220,120,'+(.8*a)+')');g.addColorStop(1,'rgba(255,60,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y-h/2,h,0,7);ctx.fill()}}
  else if(f.k==='genj'){ctx.translate(f.x,f.y-34);ctx.globalAlpha=a;ctx.strokeStyle='#c4143c';ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<40;i++){const an=i*.35+ts/180,rr=2+i*.45;i?ctx.lineTo(Math.cos(an)*rr,Math.sin(an)*rr*.7):ctx.moveTo(Math.cos(an)*rr,Math.sin(an)*rr*.7)}ctx.stroke();

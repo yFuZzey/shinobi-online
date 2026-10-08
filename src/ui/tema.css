@@ -132,3 +132,7 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 
 /* nível exigido do item (itens do painel) */
 .dnv{font-size:12px;font-weight:700;color:#7a5a3c;margin:2px 0 4px}.dnv.lk{color:#b0301a}
+/* pacote 13: ícone dos estados (lento, preso, escudo…) e faixa no aviso de nível */
+#bufs .sti{display:inline-block;width:14px;height:14px;margin:0 4px 0 -3px;vertical-align:-3px;background:center/contain no-repeat;border-radius:3px}
+#lvup::before{content:'';display:block;height:22px;margin:-4px -12px 6px;background:var(--ui-faixa) center/100% 100% no-repeat}
+#bufs span.cc{display:inline-block} /* a classe .cc também é usada em outra parte da tela (coluna); aqui o selo fica numa linha só */

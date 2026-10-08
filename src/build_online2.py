@@ -196,6 +196,8 @@ rep("  E.forEach(e=>{if(e.dead)return;const dx=e.x-p.x,dy=e.y-p.y,pr=","  E.conc
 rep("  E.forEach(e=>{if(e.dead)return;const dx=e.x-hx,dy=e.y-hy,dd=","  E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-hx,dy=e.y-hy,dd=")
 # atordoado (PvP): não anda
 rep("if(p.dash){dashStep(dt)}else if(m>.15){","if(p.dash){dashStep(dt)}else if(PST>0){PST-=dt;p.mv=0}else if(PRT>0||actRoot()||actPara()){p.mv=0}else if(m>.15){if(ACT&&!ACT.root)ACT=null;")
+# números de dano com a fonte do pacote 13 (se a imagem ainda não carregou, continua o texto de antes)
+rep("FT.forEach(f=>{ctx.globalAlpha=Math.min(1,f.life*2);ctx.strokeStyle='#000';","FT.forEach(f=>{if(typeof ftDig==='function'&&ftDig(f))return;ctx.globalAlpha=Math.min(1,f.life*2);ctx.strokeStyle='#000';")
 # sempre correndo: qualquer toque no joystick já corre (não existe mais andar devagar)
 rep("const run=m>.8||keys.shift;","const run=1;")
 # golpes em área passam por castAoe (os Hyuga usam a folha de efeitos do Kaiten)
