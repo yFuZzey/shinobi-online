@@ -234,7 +234,7 @@ async function itensDb() {
   if (!ITR || !SB_URL || !SB_SVC || !BALJ || !BALJ.itensPainel) { IT_DB.motivo = 'sem chave secreta ou sem itensPainel'; return; }
   try {
     const L = await svc('/rest/v1/itens?select=id,nome,nivel,raridade,slot,tipo,habilidade,atributos&publicado=eq.true') || [], ok = new Set();
-    for (const r of L) { if (!/^p_[a-z0-9_]+$/.test(r.id || '')) continue; const a = ITR.itAtk(BALJ.itensPainel, r); ITEMS[r.id] = { id: r.id, name: r.nome, painel: 1, cd: a ? a.cd : undefined }; ok.add(r.id); }
+    for (const r of L) { if (!/^p_[a-z0-9_]+$/.test(r.id || '')) continue; const a = ITR.itAtk(BALJ.itensPainel, r); ITEMS[r.id] = { id: r.id, name: r.nome, painel: 1, cd: a ? a.cd : undefined, passiva: ITR.itPassiva(BALJ.itensPainel, r) || undefined }; ok.add(r.id); }
     for (const id in ITEMS) if (ITEMS[id].painel && !ok.has(id)) delete ITEMS[id]; // despublicado: não cai mais nem troca
     if (ok.size !== IT_DB.n || IT_DB.motivo) log('itens do painel: ' + ok.size + ' publicado(s)');
     IT_DB = { n: ok.size, quando: Date.now(), motivo: '' };
@@ -242,6 +242,8 @@ async function itensDb() {
 }
 setTimeout(itensDb, 800); setInterval(itensDb, 60 * 1000);
 let itensPedido = 0, itensTimer = 0;
+// passiva "drenar chakra" (ex.: Samehada): só vale se o item estiver equipado de verdade
+function drenoDe(p) { for (const id of p.eq || []) { const it = ITEMS[id]; if (it && it.passiva && it.passiva.k === 'drena') return it.passiva; } return null; }
 async function invOf(uid) { const rows = await svc('/rest/v1/inventario?select=item,equipado&personagem_id=eq.' + encodeURIComponent(uid)); return rows || []; }
 // dá itens (drop/admin); cada nome = 1 unidade; devolve o que entrou de fato
 async function giveDb(uid, items) { if (!items.length) return []; const got = await rpc('dar_itens', { p_personagem: uid, p_itens: items }); return Array.isArray(got) ? got : []; }
@@ -687,7 +689,9 @@ function onPvp(p, m) {
   const red = clamp(q.red || 0, CFG.reducaoInformadaMin, CFG.reducaoInformadaMax), pen = clamp(num(m.pen, 0) + (ef && ef.k === 'pen' ? num(ef.v, 0) : 0), 0, CCX.penetracaoMax);
   const dd = Math.max(1, Math.round(d * (1 - (red > 0 ? red * (1 - pen / 100) : red) / 100)));
   const pe = q.pvpPend || (q.pvpPend = new Map()), o = pe.get(p.id) || { n: 0 }; o.n = Math.min(o.n + 1, 30); o.exp = t + 4; pe.set(p.id, o);
-  toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c, nm: nmul !== 1 ? nmul : undefined }, q);
+  const dre = m.dr ? drenoDe(p) : null; let dr; // drenar chakra: no máximo 1 vez a cada "intervalo" s
+  if (dre && t - (p.drT || 0) >= clamp(num(dre.intervalo, .5), .2, 5)) { p.drT = t; dr = clamp(num(dre.pvp, 0), 0, 20) || undefined; }
+  toRoom(r, { t: 'ph', to: q.id, by: p.id, d: dd, c, nm: nmul !== 1 ? nmul : undefined, dr }, q);
   const yin = an === 'yin' ? 1 + num(((NATS().tipos || {}).yin || {}).efeito && NATS().tipos.yin.efeito.pct, 0) / 100 : 1; // Yin: controle dura mais (antes do retorno decrescente)
   let st0 = clamp(num(m.st, 0), 0, CFG.stunMaxMonstro) * (m.g ? yin : 1); if (ef && ef.k === 'para') st0 = Math.max(st0, num(ef.t, 0));
   const imu = []; const pst = stunPvp(q, p.id, Math.min(CFG.pvpStun, st0), !!m.g, t, imu);
@@ -700,7 +704,7 @@ function onPvp(p, m) {
   const vf = m.vn && j === 'kuchi' ? invDe(p) : null; // mordida da cobra: veneno (só quem tem o contrato e só pela invocação)
   if (vf && num(vf.venenoPvp, 0) > 0) { const n = Math.max(1, Math.round(clamp(num(vf.dur, 6), 1, 20))); q.veneno = { by: p.id, nome: p.nome, pct: clamp(num(vf.venenoPvp, 0), 0, 20) / n * dotMul, n, next: t + 1 }; }
   if (kk >= CCX.deslocamentoMin) { const f = ccDR(q, 'desl', p.id, t); if (!f) imu.push('desl'); kx *= f; ky *= f; } // empurrão/puxão forte também tem retorno decrescente
-  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c, cc, imu: imu.length ? imu : undefined, nm: nmul !== 1 ? nmul : undefined, ef: ef ? ef.k : undefined });
+  q.conn.send({ t: 'hurt', fin: 1, d: dd, kx: Math.round(kx * 100) / 100, ky: Math.round(ky * 100) / 100, src: p.nome, by: p.id, st: pst, c, cc, imu: imu.length ? imu : undefined, nm: nmul !== 1 ? nmul : undefined, ef: ef ? ef.k : undefined, dr });
   lutaGolpe(q, p, dd, Math.max(pst, ccPreso(cc))); // "preso" no registro da luta: atordoado, preso pela sombra ou silenciado
 }
 // ---------------------------------------------------------------- olhar do Sharingan / Mangekyō (genjutsu)

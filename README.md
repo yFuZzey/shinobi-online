@@ -29,6 +29,7 @@ MMORPG 2D no universo Naruto (protótipo).
 - Endereço: `https://shinobi-server-gdhx.onrender.com/painel` (entra com o usuário e a senha do jogo; só contas admin).
 - Cria o item do zero: ícone, nome, nível para equipar, raridade, parte do corpo, tipo (só atributos, habilidade que já existe ou habilidade nova para o Claude programar) e atributos. O valor dos atributos é automático: `server/balanceamento.json` → `itensPainel`.
 - Rascunho só o admin vê; **Publicar** coloca no jogo (o servidor relê na hora). O código do item (`p_…`) é o que vai nos drops do editor.
+- Habilidade nova pedida no painel: o Claude programa, põe em `itensPainel.habilidades` e liga o item em `itensPainel.prontas` (código → habilidade). Ex.: Samehada → `drena` (passiva Drenar chakra + arma nas costas com aura laranja; teste `tests/online/t42.js`).
 - Banco: `sql/09_itens.sql` (tabela `itens`; todos leem os publicados, só admin grava). Regras iguais no jogo, servidor e painel: `server/itens_regras.js`. Teste: `tests/online/t41.js`.
 
 ## Arte da interface (tema pixel)

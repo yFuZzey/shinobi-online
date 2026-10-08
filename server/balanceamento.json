@@ -1,6 +1,6 @@
 {
  "_leia": "Números de balanceamento do Shinobi Online. O servidor lê este arquivo ao iniciar (o Render reinicia sozinho quando ele muda no GitHub) e o jogo leva uma cópia na montagem (src/build.sh). Se algum valor faltar ou vier errado, o servidor usa o valor padrão do código e avisa no log. Tempos em segundos, distâncias em pixels (1 tile = 32 px), chances em %.",
- "versao": 14,
+ "versao": 15,
  "flags": {
   "_leia": "Liga (true) ou desliga (false) cada sistema.",
   "pvp": true,
@@ -1097,7 +1097,7 @@
   }
  },
  "itensPainel": {
-  "_leia": "Itens criados no painel (/painel no servidor). O valor de cada atributo é automático: (base + porNivel × (nível − 1)) × raridade. maxAtributos = quantos atributos cada raridade pode ter. habilidades = as que já existem no jogo (o item usa no botão do item); base e porNivel valem como os atributos (o dano também multiplica pela raridade). nivelMax = maior nível de item. iconeMaxKb = tamanho máximo do ícone.",
+  "_leia": "Itens criados no painel (/painel no servidor). O valor de cada atributo é automático: (base + porNivel × (nível − 1)) × raridade. maxAtributos = quantos atributos cada raridade pode ter. habilidades = as que já existem no jogo (o item usa no botão do item); base e porNivel valem como os atributos (o dano também multiplica pela raridade). nivelMax = maior nível de item. iconeMaxKb = tamanho máximo do ícone. Habilidade passiva (passiva: true) funciona sozinha, sem botão. prontas = itens do painel com 'habilidade nova' que o Claude já programou (código do item → habilidade); eles passam a usar sem mexer no painel.",
   "nivelMax": 99,
   "iconeMaxKb": 40,
   "raridade": {
@@ -1210,7 +1210,26 @@
      "orbit": false,
      "tails": false
     }
+   },
+   "drena": {
+    "n": "Drenar chakra (passiva)",
+    "passiva": true,
+    "base": {
+     "pvp": 3,
+     "pve": 1.5,
+     "intervalo": 0.5
+    },
+    "porNivel": {},
+    "fx": {
+     "kind": "drena",
+     "arma": true,
+     "glow": "#ff8a1a"
+    },
+    "_leia": "Cada golpe que acerta: em jogador, ele perde pvp% do chakra máximo dele e você recupera pvp% do seu; em monstro, você recupera pve% do seu. No máximo 1 vez a cada 'intervalo' s. O servidor confere que o item está equipado."
    }
+  },
+  "prontas": {
+   "p_samehada": "drena"
   }
  }
 }

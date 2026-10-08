@@ -353,7 +353,7 @@ function pvpHit(e,d,st,kx,ky){const pe=ONL.peers[e.pvp];if(!pe||!ONL.joined)retu
  lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());
  const H=HCC||{},cc=ccDeHCC(H);if(H.semStunPvp)st=0;
  const pen=tp==='taijutsu'&&clan==='hyuga'?+BAL.cc.jukenPen||0:tp==='genjutsu'&&EYE.on==='mgk'?+BAL.cc.mangekyoPen||0:0;
- gsSend({t:'pvp',to:e.pvp,j:tpJ(HTP),d:Math.max(1,Math.round(lastCrit?x*critPvp():x)),st:st||0,g:st&&tp==='genjutsu'?1:undefined,pen:pen||undefined,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec),pj:H.pj?1:0,cc:cc||undefined,vn:H.veneno?1:undefined});pe.hitT=.12;ONL.pvpT=performance.now();return true}
+ gsSend({t:'pvp',to:e.pvp,j:tpJ(HTP),d:Math.max(1,Math.round(lastCrit?x*critPvp():x)),st:st||0,g:st&&tp==='genjutsu'?1:undefined,pen:pen||undefined,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec),pj:H.pj?1:0,cc:cc||undefined,vn:H.veneno?1:undefined,dr:drenoOn()?1:undefined});pe.hitT=.12;ONL.pvpT=performance.now();return true}
 function pvpShow(m){const pe=ONL.peers[m.to];if(m.safe){pvpSafeMsg(pe);return}
  if(m.to===ONL.uid||!pe||pe.sc!==(scene|0))return; // quem apanhou já viu o próprio número
  const me=m.by===ONL.uid,y=pe.y-60;
@@ -1365,6 +1365,23 @@ async function itensLoad(){if(!ONL.ok||!BAL.itensPainel||typeof ITR==='undefined
  catch(e){ONL.itDb=(e.status===404||/PGRST205|Could not find the table/.test(String(e.code)+e.message))?false:null;return 0}}
 /* drop de um item que este aparelho ainda não conhece (publicado agora há pouco): busca os itens e depois entrega */
 {const g=gsMsg;gsMsg=function(m){if(m&&m.t==='reward'&&(m.items||[]).some(i=>!ITEMS[i])){itensLoad().then(()=>g(m));return}return g(m)}}
+/* passiva "drenar chakra" (ex.: Samehada): em jogador o servidor confere e avisa os dois lados; em monstro você recupera um pouco */
+function drenoOn(){for(const s in EQ){const it=ITEMS[EQ[s]];if(it&&it.passiva&&it.passiva.k==='drena')return it.passiva}return null}
+const drenoTxt=P=>'cada golpe que acerta: em jogador, ele perde '+nf(+P.pvp||0)+'% do chakra máximo e você recupera '+nf(+P.pvp||0)+'% do seu; em monstro, você recupera '+nf(+P.pve||0)+'% do seu chakra (no máximo '+nf(1/Math.max(.2,+P.intervalo||.5))+' vezes por segundo)';
+function drenoGanha(pct){const v=Math.round(p.mpMax*pct/100);if(v<1)return;p.mp=Math.min(p.mpMax,p.mp+v);FT.push({x:p.x+14,y:p.y-66,t:'+'+v+' chakra',txt:1,life:.8,col:'#ff9a3a'})}
+{const g=gsMsg;gsMsg=function(m){const r=g(m);
+  if(m&&m.t==='hurt'&&m.dr>0&&!m.miss&&!m.blk&&!(scene|0)&&p){const v=Math.round(p.mpMax*m.dr/100);if(v>0){p.mp=Math.max(0,p.mp-v);FT.push({x:p.x-14,y:p.y-80,t:'−'+v+' chakra',txt:1,life:.9,col:'#ff9a3a'});onlReg('🦈 '+(m.src||'Alguém')+' drenou '+v+' do seu chakra.')}}
+  if(m&&m.t==='ph'&&m.by===ONL.uid&&m.dr>0&&!m.miss&&!m.blk){const P=drenoOn();if(P)drenoGanha(+P.pvp||0)}
+  return r}}
+{let last=0;const _h=hitE;hitE=function(e,d,st,kx,ky){const vivo=e&&!e.dead&&!e.pvp;const r=_h(e,d,st,kx,ky);const P=vivo&&drenoOn(),t=performance.now();
+  if(P&&t-last>=Math.max(.2,+P.intervalo||.5)*1000){last=t;drenoGanha(+P.pve||0)}return r}}
+/* arma nas costas com aura laranja (fx.arma): o ícone do item, tremulando, com faíscas subindo; os outros jogadores também veem */
+const ARMIM={};function armaImg(u){if(!u)return null;let i=ARMIM[u];if(!i){i=new Image();i.src=u;ARMIM[u]=i}return i.complete&&i.naturalWidth?i:null}
+function armaDraw(c,x,y,ts,f,front,o){const im=armaImg(f.icon);if(!im)return;const fl=o&&o.fl?-1:1,H=46,w=H*im.width/im.height,pu=.5+.5*Math.sin(ts/140),cx=x-fl*7,cy=y-40,col=f.glow||'#ff8a1a';
+ if(!front){c.save();c.globalCompositeOperation='lighter';const g=c.createRadialGradient(cx,cy,2,cx,cy,30);g.addColorStop(0,hexA(col,.35+.15*pu));g.addColorStop(1,hexA(col,0));c.fillStyle=g;c.beginPath();c.ellipse(cx,cy,24,30,0,0,7);c.fill();c.restore();
+  c.save();c.translate(cx,cy);c.scale(fl,1);c.shadowColor=col;c.shadowBlur=6+6*pu;c.drawImage(im,-w/2,-H/2,w,H);c.globalCompositeOperation='lighter';c.globalAlpha=.18+.14*pu;c.drawImage(im,-w/2-1,-H/2-1,w+2,H+2);c.restore();return}
+ c.save();c.globalCompositeOperation='lighter';for(let i=0;i<5;i++){const ph=((ts/900)+i/5)%1,ax=cx+fl*(-10+i*5)+Math.sin(ts/200+i)*3,ay=cy+12-ph*34,r=2.2*(1-ph)+.6;c.fillStyle=hexA(col,.75*(1-ph));c.beginPath();c.arc(ax,ay,r,0,7);c.fill()}c.restore()}
+{const _fd=fxDraw;fxDraw=function(c,x,y,ts,list,front,o){if(list&&!front)list.forEach(f=>{if(f.arma)armaDraw(c,x,y,ts,f,0,o)});_fd(c,x,y,ts,list,front,o);if(list&&front)list.forEach(f=>{if(f.arma)armaDraw(c,x,y,ts,f,1,o)})}}
 /* nível do item: só equipa a partir do nível dele */
 {const _eq=equipItem;equipItem=function(id){const it=ITEMS[id];if(it&&it.nivel>1&&CH&&(CH.lv|0)<it.nivel){toast('🔒 '+it.name+': precisa do Nv '+it.nivel+' para equipar.');return}return _eq(id)}}
 // ---------- Retrato do HUD: o rosto do personagem dentro da moldura (arte/ui) ----------
@@ -1491,7 +1508,7 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
  $('#ivAct').onclick=()=>{if(on)unequipItem(id);else{equipItem(id);toggleBag(true,'bag');invSel=id;bagRefresh()}}
  portraitStart()};
 /* itens do painel: mostra o nível exigido no detalhe */
-{const _br=bagRefresh;bagRefresh=function(){_br();{const id=invSel,it=id&&ITEMS[id],dn=document.querySelector('#ivDet .dn');if(it&&it.nivel>1&&dn&&!dn.nextElementSibling?.classList.contains('dnv'))dn.insertAdjacentHTML('afterend','<div class="dnv'+((CH.lv|0)<it.nivel?' lk':'')+'">'+((CH.lv|0)<it.nivel?'🔒 ':'')+'Precisa do Nv '+it.nivel+'</div>')}}}
+{const _br=bagRefresh;bagRefresh=function(){_br();{const it=invSel&&ITEMS[invSel],dt=document.querySelector('#ivDet .dt'),P=it&&it.passiva;if(P&&P.k==='drena'&&dt&&!dt.querySelector('.dpas')){const bt=dt.querySelector('.dbt'),h='<div class="dsp dpas">🦈 <b>Passiva: Drenar chakra</b> — '+drenoTxt(P)+'.</div>';if(bt)bt.insertAdjacentHTML('beforebegin',h);else dt.insertAdjacentHTML('beforeend',h)}}{const id=invSel,it=id&&ITEMS[id],dn=document.querySelector('#ivDet .dn');if(it&&it.nivel>1&&dn&&!dn.nextElementSibling?.classList.contains('dnv'))dn.insertAdjacentHTML('afterend','<div class="dnv'+((CH.lv|0)<it.nivel?' lk':'')+'">'+((CH.lv|0)<it.nivel?'🔒 ':'')+'Precisa do Nv '+it.nivel+'</div>')}}}
 (function(){
  const goOff=$('#go1').onclick;
  $('#goOff').onclick=()=>{ONL.on=false;$('#err').textContent='';goOff()};

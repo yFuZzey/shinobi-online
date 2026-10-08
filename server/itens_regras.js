@@ -9,13 +9,17 @@
     for (const k of it.atributos || []) { const a = cfg.atributos[k]; if (!a) continue; const v = (a.base + a.porNivel * (lv(it) - 1)) * R; o[k] = Math.max(1, Math.round(v)); }
     return o;
   }
-  // habilidade que já existe no jogo (hoje: raio = investida do Chidori); o dano cresce com o nível e a raridade
+  // habilidade do item: a escolhida no painel ou, para "habilidade nova", a que o Claude já programou (itensPainel.prontas)
+  function itHab(cfg, it) { const id = it.tipo === 'habilidade' ? it.habilidade : it.tipo === 'nova' ? (cfg.prontas || {})[it.id] : null; return id && (cfg.habilidades || {})[id] ? id : null; }
+  // habilidade de botão (hoje: raio = investida do Chidori); o dano cresce com o nível e a raridade
   function itAtk(cfg, it) {
-    if (it.tipo !== 'habilidade') return null; const h = (cfg.habilidades || {})[it.habilidade]; if (!h) return null;
-    const R = cfg.raridade[it.raridade] || 1, a = Object.assign({ kind: it.habilidade }, h.base);
+    const hid = itHab(cfg, it), h = hid && cfg.habilidades[hid]; if (!h || h.passiva) return null;
+    const R = cfg.raridade[it.raridade] || 1, a = Object.assign({ kind: hid }, h.base);
     for (const k in h.porNivel || {}) a[k] = Math.round((h.base[k] + h.porNivel[k] * (lv(it) - 1)) * (k === 'dmg' ? R : 1));
     return a;
   }
+  // habilidade passiva (funciona sozinha): hoje drena = drenar chakra a cada golpe que acerta
+  function itPassiva(cfg, it) { const hid = itHab(cfg, it), h = hid && cfg.habilidades[hid]; return h && h.passiva ? Object.assign({ k: hid, n: h.n }, h.base) : null; }
   // confere tudo antes de gravar (o banco também confere); devolve a lista de problemas (vazia = ok)
   function itValida(cfg, it) {
     const e = [];
@@ -37,10 +41,10 @@
   }
   // linha do banco → item do jogo (mesmo formato dos itens feitos no editor)
   function itParaJogo(cfg, r) {
-    const atk = itAtk(cfg, r), h = atk && cfg.habilidades[r.habilidade];
+    const atk = itAtk(cfg, r), pas = itPassiva(cfg, r), hid = itHab(cfg, r), h = hid && cfg.habilidades[hid], pronta = r.tipo === 'nova' && !!hid;
     return { id: r.id, name: r.nome, rarity: r.raridade, slot: r.slot, nivel: lv(r), painel: 1, icon: r.icone,
-      desc: (r.descricao || '') + (r.tipo === 'nova' ? (r.descricao ? '\n' : '') + '(cinza)Habilidade em preparo: por enquanto o item só dá os atributos.(cinza)' : ''),
-      stats: itStats(cfg, r), atk: atk || undefined, fx: h && h.fx ? Object.assign({}, h.fx) : undefined, aguardando: r.tipo === 'nova' ? 1 : 0 };
+      desc: (r.descricao || '') + (r.tipo === 'nova' && !pronta ? (r.descricao ? '\n' : '') + '(cinza)Habilidade em preparo: por enquanto o item só dá os atributos.(cinza)' : ''),
+      stats: itStats(cfg, r), atk: atk || undefined, passiva: pas || undefined, fx: h && h.fx ? Object.assign({ icon: r.icone }, h.fx) : undefined, aguardando: r.tipo === 'nova' && !pronta ? 1 : 0 };
   }
   // descrição com cor e quebra de linha: (red)Passiva: Drenar(red) ou (vermelho)…(vermelho); Enter vira nova linha
   const CORES = { vermelho: '#c0301a', red: '#c0301a', azul: '#1f5fc4', blue: '#1f5fc4', verde: '#2d7a3e', green: '#2d7a3e', amarelo: '#b07a00', yellow: '#b07a00',
@@ -52,6 +56,6 @@
   }
   // nome → código (p_espada_do_zabuza)
   function itId(nome) { return 'p_' + String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30); }
-  G.ITR = { RAR, SLOTS, TIPOS, CORES, itStats, itAtk, itValida, itParaJogo, itId, descHtml };
+  G.ITR = { RAR, SLOTS, TIPOS, CORES, itStats, itHab, itAtk, itPassiva, itValida, itParaJogo, itId, descHtml };
   if (typeof module !== 'undefined' && module.exports) module.exports = G.ITR;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

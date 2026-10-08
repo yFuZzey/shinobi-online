@@ -131,7 +131,7 @@ $('#sair').onclick=()=>{store('painel',null);location.reload()};
 // ---------- lista ----------
 async function lista(){$('#listaErr').textContent='';try{ITENS=(await api('/rest/v1/itens?select=*&order=atualizado_em.desc'))||[]}catch(e){ITENS=[];$('#listaErr').textContent=erroTxt(e)}
  $('#lista').innerHTML=ITENS.length?ITENS.map(r=>'<button class="it r-'+r.raridade+'" data-id="'+esc(r.id)+'"><div class="ic" style="background-image:url('+esc(r.icone)+')"></div><div><b>'+esc(r.nome)+'</b><small>Nv '+r.nivel+' · '+RN[r.raridade]+' · '+SN[r.slot]+'</small><br>'
-  +(r.publicado?'<span class="tag pub">No jogo</span>':'<span class="tag ras">Rascunho</span>')+(r.tipo==='nova'?' <span class="tag nova">Aguardando habilidade</span>':'')+'<br><span class="code">'+esc(r.id)+'</span></div></button>').join('')
+  +(r.publicado?'<span class="tag pub">No jogo</span>':'<span class="tag ras">Rascunho</span>')+(r.tipo==='nova'?((CFG.prontas||{})[r.id]?' <span class="tag pub">Habilidade pronta</span>':' <span class="tag nova">Aguardando habilidade</span>'):'')+'<br><span class="code">'+esc(r.id)+'</span></div></button>').join('')
   :'<p style="margin:0;color:var(--mute)">Nenhum item ainda. Toque em <b>+ Novo item</b>.</p>';
  document.querySelectorAll('#lista [data-id]').forEach(b=>b.onclick=()=>editar(ITENS.find(r=>r.id===b.dataset.id)))}
 
@@ -162,7 +162,8 @@ function desenhaLeve(){const st=ITR.itStats(CFG,{...valores(),atributos:Object.k
 function previa(){const it=valores(),s=ITR.itStats(CFG,it),a=ITR.itAtk(CFG,it);
  const L=Object.entries(s).map(([k,v])=>'<li>+'+v+(CFG.atributos[k].u||'')+' de '+esc(CFG.atributos[k].n.toLowerCase())+'</li>');
  if(a)L.push('<li>Habilidade: '+esc(CFG.habilidades[it.habilidade].n)+' — dano '+a.dmg+', chakra '+a.mp+', recarga '+a.cd+' s</li>');
- if(it.tipo==='nova')L.push('<li>Habilidade nova: aguardando o Claude programar. Até lá, o item só dá os atributos.</li>');
+ const pas=ITR.itPassiva(CFG,it);if(pas)L.push('<li>'+esc(pas.n)+': em jogador tira '+pas.pvp+'% do chakra e você recupera '+pas.pvp+'%; em monstro você recupera '+pas.pve+'%</li>');
+ if(it.tipo==='nova'&&!pas)L.push('<li>Habilidade nova: aguardando o Claude programar. Até lá, o item só dá os atributos.</li>');
  $('#prev').className='prev r-'+it.raridade;
  $('#prev').innerHTML='<div class="ic r-'+it.raridade+'" style="background-image:'+(it.icone?'url('+it.icone+')':'none')+'"></div><div><b>'+esc(it.nome||'Sem nome')+'</b><div class="sub">'+RN[it.raridade]+' · '+SN[it.slot]+' · precisa do Nv '+it.nivel+'</div>'
   +(it.descricao?'<div style="margin-top:4px;font-size:14px">'+ITR.descHtml(it.descricao)+'</div>':'')+'<ul>'+(L.join('')||'<li style="color:var(--mute)">Escolha os atributos</li>')+'</ul></div>'}
@@ -202,6 +203,15 @@ function iconeLimpo(im,tira){
    for(let pass=0;pass<2;pass++){const kill=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const p=y*W+x,o=p*4;if(!a[o+3])continue;
      const viz=(x>0&&!a[o-1])||(x<W-1&&!a[o+7])||(y>0&&!a[o-W*4+3])||(y<H-1&&!a[o+W*4+3]);if(viz&&dist(o)<170)kill.push(o)}kill.forEach(o=>a[o+3]=0)}
   }
+  // moldura em linha reta (quadro desenhado em volta do item): tira as linhas/colunas da borda que estão quase cheias
+  if(keyed){let X0=W,Y0=H,X1=-1,Y1=-1;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(a[(y*W+x)*4+3]>=20){if(x<X0)X0=x;if(x>X1)X1=x;if(y<Y0)Y0=y;if(y>Y1)Y1=y}
+   if(X1>X0+8&&Y1>Y0+8){const cheiaL=y=>{let n=0;for(let x=X0;x<=X1;x++)if(a[(y*W+x)*4+3]>=20)n++;return n/(X1-X0+1)},cheiaC=x=>{let n=0;for(let y=Y0;y<=Y1;y++)if(a[(y*W+x)*4+3]>=20)n++;return n/(Y1-Y0+1)};
+    const lim=Math.round(Math.min(W,H)*.06),apaL=y=>{for(let x=X0;x<=X1;x++)a[(y*W+x)*4+3]=0},apaC=x=>{for(let y=Y0;y<=Y1;y++)a[(y*W+x)*4+3]=0};
+    // cada lado: procura uma linha quase cheia perto da borda (a ponta do item pode passar por fora do quadro)
+    const lados=[[Y0,1,cheiaL,apaL],[Y1,-1,cheiaL,apaL],[X0,1,cheiaC,apaC],[X1,-1,cheiaC,apaC]].map(([b,d,f,ap])=>{for(let i=0;i<lim;i++)if(f(b+d*i)>.6)return{b,d,f,ap,i};return null});
+    let dentro=0,tot2=0;for(let y=Y0+lim;y<=Y1-lim;y++)for(let x=X0+lim;x<=X1-lim;x++){tot2++;if(a[(y*W+x)*4+3]>=20)dentro++}
+    // ícone quadrado de verdade (cheio por dentro, ex.: ícone de jutsu com moldura) fica como está; só tira quadro em volta de item "solto"
+    if(lados.filter(Boolean).length>=3&&tot2&&dentro/tot2<.6)lados.forEach(L=>{if(!L)return;for(let i=L.i;i<L.i+lim&&(L.f(L.b+L.d*i)>.45||i<L.i+2);i++)L.ap(L.b+L.d*i)})}}
   // partes soltas: fica a maior; as outras só se estiverem dentro da área dela (some a moldura em volta)
   if(keyed){const lab=new Int32Array(N).fill(-1),comps=[],st=[];
   for(let p0=0;p0<N;p0++){if(lab[p0]>=0||a[p0*4+3]<20)continue;const id=comps.length,C={n:0,x0:W,y0:H,x1:0,y1:0};comps.push(C);lab[p0]=id;st.push(p0);
