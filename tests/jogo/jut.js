@@ -31,7 +31,7 @@ const TOM_DR=x=>Math.round(x*10)/10,EYES_ESC=35;const {chromium}=require(process
  ok(s1.st[0]>.8&&s1.st[1]>.3&&s1.st[1]<.5&&s1.st[2]===0&&s1.st[3]===0,'paralisa só quem está na frente: 1 s (esquiva 0) e 0,5 s (esquiva 50); atrás e longe, nada ('+s1.st.join(', ')+')');
  const T1=await U.evaluate(()=>TOM[1]);ok(Math.abs(s1.prec-r0.prec-T1.prec)<.01&&Math.abs(s1.esq-r0.esq-T1.esq)<.01,'ligado: +'+T1.prec+' de precisão e +'+T1.esq+' de esquiva');
  ok(Math.abs(s1.raw/r0.raw-(1+T1.cdmg/100))<.001&&Math.abs(s1.it/r0.it-1)<.001,'+'+T1.cdmg+'% de dano nos jutsus do clã (o item da mão não ganha)');
- ok(Math.abs(mp0-s1.mp-10)<1.5&&/Sharingan ligado/.test(s1.chip),'gasta 10 de chakra para ligar; chip "Sharingan ligado"');
+ ok(Math.abs(mp0-s1.mp-10)<1.5&&/Sharingan ativado/.test(s1.chip),'gasta 10 de chakra para ligar; chip "Sharingan ligado"');
  await U.screenshot({path:__dirname+'/ju_shar.png'});
  const dr1=await U.evaluate(()=>eyeDr(TOM[1]));const m1=await U.evaluate(()=>p.mp);await W(1000);const m2=await U.evaluate(()=>p.mp);ok(Math.abs((m1-m2)-dr1)<dr1*.35+.3,'ligado gasta '+TOM_DR(dr1)+' de chakra por segundo (2% do máximo) e o chakra não volta ('+(m1-m2).toFixed(1)+'/s)');
  b1=await btn(U,1);ok(b1.on,'botão do meio fica aceso enquanto o olho está ligado');
@@ -63,7 +63,7 @@ const TOM_DR=x=>Math.round(x*10)/10,EYES_ESC=35;const {chromium}=require(process
  // Nv 60: Susanoo libera (só com a Mangekyō ligada)
  await lvTo(U,60);await W(250);b2=await btn(U,2);const rg60=await U.evaluate(()=>ONL.reg.map(r=>r.t).join('|'));console.log('   b2:',JSON.stringify(b2),'| registro:',rg60.slice(-160));ok(!b2.lock&&/Susanoo/.test(b2.t)&&b2.off&&/Jutsu liberado no Nv 60: Susanoo/.test(rg60),'Nv 60: Susanoo libera (apagado até ligar a Mangekyō) e avisa');
  await U.waitForFunction(()=>jtBtnTick.lv===CH.lv,null,{timeout:5000});await W(100); // o aviso de jutsu novo já saiu
- await U.evaluate(()=>{cd[1]=0;cd[2]=0;p.mp=p.mpMax;useBtn(2)});await W(150);ok(await U.evaluate(()=>!SUS&&/Mangekyō ligada/.test($('#toast').textContent)),'Susanoo sem a Mangekyō ligada: não sai e explica');
+ await U.evaluate(()=>{cd[1]=0;cd[2]=0;p.mp=p.mpMax;useBtn(2)});await W(150);ok(await U.evaluate(()=>!SUS&&/Mangekyō ativada/.test($('#toast').textContent)),'Susanoo sem a Mangekyō ligada: não sai e explica');
  await mobs(U,[[70,0,0],[0,70,0]]);await U.evaluate(()=>{cd[1]=0;p.mp=p.mpMax;useBtn(1)});await W(200);
  await U.evaluate(()=>{p.mp=p.mpMax;useBtn(2)});await W(1150);
  const su=await U.evaluate(()=>({on:susOn(),red:D().red,au:fx.some(f=>f.sus&&f.bh),hp:E[0].hp,b2:$('#b2').classList.contains('eyeon'),shd:SHD&&SHD.v,esp:Math.round(EYES.itachi.sus.escudo/100*p.max),spd:bufSum().spd,lento:BAL.olhos.susanooLento}));

@@ -46,6 +46,6 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
  await pg.screenshot({path:__dirname+'/uchiha_tsuku.png'});
  // aba Jutsus
  await pg.evaluate(()=>{toggleBag(true,'ju');juSel='amat';juDraw()});await W(200);const tx=await pg.evaluate(()=>$('#paneJu .jdet').textContent);
- ok(/Só com a Mangekyō ligada/.test(tx)&&/queimas/.test(tx),'aba Jutsus explica a Amaterasu (só com a Mangekyō, queimas por segundo)');
+ ok(/Só com a Mangekyō ativada/.test(tx)&&/queimas/.test(tx),'aba Jutsus explica a Amaterasu (só com a Mangekyō, queimas por segundo)');
  await pg.screenshot({path:__dirname+'/uchiha_tab.png'});
  ok(!errs.length,'sem erros na página');console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();
