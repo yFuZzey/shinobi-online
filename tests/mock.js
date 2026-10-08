@@ -1,7 +1,7 @@
 // Servidor simulado (subconjunto do Supabase: Auth, REST de "personagens" e Realtime/Phoenix) para testes locais.
 const http=require('http'),crypto=require('crypto');
 const PORT=+process.argv[2]||54321;
-const users={},rows={},INV={},PATCHES=[],TROCAS=[],BANS={};let RPCS=0;let n=0;const log=[];
+const users={},rows={},INV={},PATCHES=[],TROCAS=[],BANS={},ITENS={};let RPCS=0;let n=0;const log=[];
 function J(res,code,obj){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});res.end(obj===undefined?'':JSON.stringify(obj))}
 function sess(u){const r='ref-'+u.id+'-'+(++n);u.refresh=r;return {access_token:'tok-'+u.id,refresh_token:r,expires_in:3600,token_type:'bearer',user:{id:u.id,email:u.email,user_metadata:u.meta}}}
 function uidOf(req){const a=req.headers.authorization||'';const m=/^Bearer tok-(.+)$/.exec(a);return m?m[1]:null}
@@ -63,6 +63,17 @@ const srv=http.createServer((req,res)=>{
    if(req.method==='GET'){if(!SVC&&pid!==uid)return J(res,200,[]);return J(res,200,(INV[pid]||[]).map(r=>({...r})))}
    if(req.method==='DELETE'){if(!SVC)return J(res,403,{message:'permission denied for table inventario'});INV[pid]=[];return J(res,204)}
    return J(res,403,{message:'permission denied for table inventario'})}
+  // itens do painel (SQL 09); NOITENS=1 simula o banco sem a tabela
+  if(u.pathname==='/__itens')return J(res,200,ITENS);
+  if(u.pathname==='/rest/v1/itens'){if(process.env.NOITENS)return J(res,404,{code:'PGRST205',message:"Could not find the table 'public.itens' in the schema cache"});
+   const uid=uidOf(req),adm=SVC||!!(uid&&rows[uid]&&rows[uid].admin),idf=(u.searchParams.get('id')||'').replace(/^eq\./,'');
+   if(req.method==='GET'){let L=Object.values(ITENS).filter(r=>r.publicado||adm);if(idf)L=L.filter(r=>r.id===idf);if(u.searchParams.get('publicado')==='eq.true')L=L.filter(r=>r.publicado);return J(res,200,L.map(r=>({...r})))}
+   if(!uid&&!SVC)return J(res,401,{message:'JWT required'});
+   if(!adm)return J(res,403,{code:'42501',message:'new row violates row-level security policy for table "itens"'});
+   if(req.method==='POST'){if(ITENS[body.id])return J(res,409,{code:'23505',message:'duplicate key value violates unique constraint "itens_pkey"'});if(!/^p_[a-z0-9_]{2,36}$/.test(body.id||''))return J(res,400,{code:'23514',message:'new row violates check constraint "itens_id_check"'});
+    ITENS[body.id]={publicado:false,descricao:'',...body,criado_em:new Date().toISOString(),atualizado_em:new Date().toISOString()};return J(res,201,[ITENS[body.id]])}
+   if(req.method==='PATCH'){const r=ITENS[idf];if(!r)return J(res,200,[]);Object.assign(r,body,{atualizado_em:new Date().toISOString()});return J(res,200,[r])}
+   if(req.method==='DELETE'){const r=ITENS[idf];delete ITENS[idf];return J(res,200,r?[r]:[])}}
   if(u.pathname==='/__admin'){const r=Object.values(rows).find(r=>r.nome.toLowerCase()===String(u.searchParams.get('nome')).toLowerCase());if(r)r.admin=true;return J(res,200,{ok:!!r})}
   if(u.pathname==='/__state')return J(res,200,{users:Object.keys(users),rows,inv:INV,patches:PATCHES.slice(-20),rpcs:RPCS,log:log.slice(-60),topics:Object.fromEntries(Object.entries(topics).map(([k,v])=>[k,[...v].map(c=>c.pres&&c.pres[k]&&c.pres[k].nome)]))});
   J(res,404,{message:'not found'})})});

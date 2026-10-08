@@ -53,7 +53,7 @@ async function onlLoadChar(){const q=c=>onlFetch('/rest/v1/personagens?select='+
 // uma informação por coluna (dá para editar cada uma no banco)
 function onlCols(){const c={cla:clan,nivel:CH.lv,xp:CH.xp,pontos:CH.pts,forca:CH.st.str,agilidade:CH.st.agi,vitalidade:CH.st.vit,inteligencia:CH.st.int,destreza:CH.st.dex,sorte:CH.st.luk,mapa:CURMAP,pele:look.skin,cabelo:look.hair,roupa:look.cloth};
  if(ONL.profDb){const P=CH.prof||{};c.proficiencia=P.k||null;c.prof_xp=P.k?P.xp|0:0}if(ONL.mgkDb)c.mangekyo=EYES[CH.mgk]?CH.mgk:null;if(ONL.verDb)c.versao=Math.max(1,CH.v|0);if(ONL.ctDb){const t=CH.ct||{};c.contrato=t.k||null;c.contrato_em=t.k&&t.t?new Date(t.t).toISOString():null}return c}
-function onlInv(){return INV.map(i=>({item:i,equipado:false})).concat(Object.values(EQ).map(i=>({item:i,equipado:true})))}
+function onlInv(){return INV.map(i=>({item:i,equipado:false})).concat(Object.values(EQ).map(i=>({item:i,equipado:true})),ONL.unk||[])}
 async function onlSaveInv(rows){await onlFetch('/rest/v1/rpc/salvar_inventario',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({itens:rows})})}
 async function onlCreateChar(){const c=onlCols(),inv=onlInv();
  await onlFetch('/rest/v1/personagens',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(Object.assign({id:ONL.uid,nome:ONL.nome},c))});
@@ -578,8 +578,8 @@ function grpDraw(){const pt=ONL.party,h=$('#phud');
 function tradeBtn(r,id){if(!ONL.inv)return;const tb=document.createElement('button');tb.className='sec';const sent=ONL.tSent&&ONL.tSent[id]&&performance.now()-ONL.tSent[id]<30000;tb.textContent=sent?'Pedido enviado':'🤝 Trocar';tb.disabled=sent||!!ONL.trade;tb.onclick=()=>{gsSend({t:'tinv',to:id});(ONL.tSent=ONL.tSent||{})[id]=performance.now();tb.disabled=true;tb.textContent='Pedido enviado'};r.appendChild(tb)}
 setInterval(()=>{if(ONL.on&&!$('#grp').hidden)grpDraw()},1000);
 // ---------- mochila vinda do banco (o servidor é quem cria/move itens; o app só lê) ----------
-async function invReload(){if(!ONL.on||!ONL.uid)return;try{const rows=await onlFetch('/rest/v1/inventario?select=item,equipado&personagem_id=eq.'+ONL.uid);
- INV=[];EQ={};(rows||[]).forEach(r=>{const it=ITEMS[r.item];if(!it)return;if(r.equipado&&!EQ[it.slot])EQ[it.slot]=r.item;else INV.push(r.item)});
+async function invReload(){if(!ONL.on||!ONL.uid)return;try{await itensLoad();const rows=await onlFetch('/rest/v1/inventario?select=item,equipado&personagem_id=eq.'+ONL.uid);
+ INV=[];EQ={};ONL.unk=[];(rows||[]).forEach(r=>{const it=ITEMS[r.item];if(!it){ONL.unk.push({item:r.item,equipado:!!r.equipado});return}if(r.equipado&&!EQ[it.slot])EQ[it.slot]=r.item;else INV.push(r.item)});
  if(invSel&&!hasItem(invSel))invSel=null;invSave();stats();if(ONL.last)ONL.last.inv=JSON.stringify(onlInv());if(!$('#inv').hidden)bagRefresh();tradeDraw()}
  catch(e){onlReg('⚠️ Não consegui recarregar a mochila: '+onlErr(e))}}
 // ---------- Trocas: cada um escolhe quais itens e quantas unidades manda (pode ser só de um lado, como presente).
@@ -1336,7 +1336,9 @@ function onlFail(e){$('#err').textContent=e.gs?e.message:onlErr(e);ONL.on=false;
 // todo mundo começa na Vila da Areia (a escolha de vila vem depois)
 function onlStartMap(){const k=MAPS[START_MAP]?START_MAP:CURMAP;if(k!==CURMAP){CURMAP=k;applyMap(MAPS[k])}}
 async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;name=ONL.nome;
+ await itensLoad();
  const row=await onlLoadChar();
+ if(ONL.adm&&ONL.itDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem a tabela dos itens do painel: rode o arquivo sql/09_itens.sql no Supabase. O jogo funciona sem ela.'),2300);
  try{await gsReady()}catch(e){e.gs=1;throw e}
  if(ONL.adm&&INV_ON&&ONL.ctDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem as colunas do contrato de invocação: rode o arquivo sql/08_contrato.sql no Supabase. Até lá o contrato fica salvo só neste aparelho.'),2100);
  if(ONL.adm&&ONL.verDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem a coluna da versão do personagem: rode o arquivo sql/07_versao.sql no Supabase. O jogo funciona sem ela.'),1900);
@@ -1346,7 +1348,7 @@ async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;
   ['pele','cabelo','roupa'].forEach((k,i)=>{if(row[k])look[['skin','hair','cloth'][i]]=row[k]});
   const ch={lv:row.nivel,xp:row.xp,pts:row.pontos,st:{str:row.forca,agi:row.agilidade,vit:row.vitalidade,int:row.inteligencia,dex:row.destreza,luk:row.sorte},prof:{k:row.proficiencia||null,xp:row.prof_xp|0},mgk:row.mangekyo||null,v:ONL.verDb?+row.versao||1:1,ct:ONL.ctDb?ctNorm({k:row.contrato,t:row.contrato_em?Date.parse(row.contrato_em):0}):{k:null,t:0}};
   if(!ONL.profDb||!ONL.mgkDb||!ONL.verDb||!ONL.ctDb){try{const o=JSON.parse(localStorage.getItem(chKey())||'null');if(o&&o.prof&&!ONL.profDb)ch.prof=o.prof;if(o&&o.mgk&&!ONL.mgkDb)ch.mgk=o.mgk;if(o&&o.v&&!ONL.verDb)ch.v=o.v;if(o&&o.ct&&!ONL.ctDb)ch.ct=ctNorm(o.ct)}catch(_){}} // sem as colunas no banco: mantém o que estava no aparelho
-  const inv={inv:[],eq:{}};(row.inventario||[]).forEach(r=>{const it=ITEMS[r.item];if(!it)return;if(r.equipado&&!inv.eq[it.slot])inv.eq[it.slot]=r.item;else inv.inv.push(r.item)});
+  const inv={inv:[],eq:{}};ONL.unk=[];(row.inventario||[]).forEach(r=>{const it=ITEMS[r.item];if(!it){ONL.unk.push({item:r.item,equipado:!!r.equipado});return}if(r.equipado&&!inv.eq[it.slot])inv.eq[it.slot]=r.item;else inv.inv.push(r.item)});
   try{localStorage.setItem(chKey(),JSON.stringify(ch));localStorage.setItem(invKey(),JSON.stringify(inv))}catch(_){}
   onlStartMap();
   if(typeof mark==='function')mark();er.textContent='';goFull();ONL.loading=true;start(row.cla);ONL.loading=false;
@@ -1355,6 +1357,16 @@ async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;
 function onlBusy(b){['#go1','#goNew','#tabIn','#tabNew'].forEach(s=>{const e=$(s);if(e)e.disabled=b||!!OTA.gate})}
 function onlLogout(){ONL.closing=true;const fin=()=>{try{localStorage.removeItem(ONL_SESS)}catch(_){}location.reload()};
  const pr=ONL.on?onlSave():Promise.resolve();Promise.resolve(pr).finally(()=>{try{ONL.ws&&ONL.ws.close()}catch(_){}if(ONL.tok)onlFetch('/auth/v1/logout',{method:'POST'}).catch(()=>{}).finally(fin);else fin()})}
+// ---------- Itens criados no painel (/painel no servidor; tabela "itens", SQL 09) ----------
+/*__ITR__*/
+async function itensLoad(){if(!ONL.ok||!BAL.itensPainel||typeof ITR==='undefined')return 0;
+ try{const L=await onlFetch('/rest/v1/itens?select=*&publicado=eq.true')||[];let n=0;
+  for(const r of L){if(!/^p_[a-z0-9_]+$/.test(r.id||''))continue;try{ITEMS[r.id]=ITR.itParaJogo(BAL.itensPainel,r);n++}catch(_){}}ONL.itDb=true;return n}
+ catch(e){ONL.itDb=(e.status===404||/PGRST205|Could not find the table/.test(String(e.code)+e.message))?false:null;return 0}}
+/* drop de um item que este aparelho ainda não conhece (publicado agora há pouco): busca os itens e depois entrega */
+{const g=gsMsg;gsMsg=function(m){if(m&&m.t==='reward'&&(m.items||[]).some(i=>!ITEMS[i])){itensLoad().then(()=>g(m));return}return g(m)}}
+/* nível do item: só equipa a partir do nível dele */
+{const _eq=equipItem;equipItem=function(id){const it=ITEMS[id];if(it&&it.nivel>1&&CH&&(CH.lv|0)<it.nivel){toast('🔒 '+it.name+': precisa do Nv '+it.nivel+' para equipar.');return}return _eq(id)}}
 // ---------- Retrato do HUD: o rosto do personagem dentro da moldura (arte/ui) ----------
 function hudFace(){const cv=$('#hudFaceCv');if(!cv||cur!=='game'||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);c.imageSmoothingEnabled=false;
  const k=H/HFACE.z;c.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);try{if(HERO)drawHero(c,0,0,{fl:0,t:0,mv:0,run:0,aura:-1,th:-1,act:null});else drawChar(c,0,0,{...look,clan,dir:0,t:0,mv:0,run:0})}catch(_){}}
@@ -1374,9 +1386,6 @@ function pfBadge(){const n=CH&&CH.pts>0?CH.pts:0;[['#hfBadge'],['#pfBadge']].for
  setInterval(()=>{['#mapbtn','#bagbtn','#grpbtn'].forEach(q=>{const b=$(q);if(!b)return;const t=b.textContent.replace(EMO,'').trim();if(b.dataset.n!==t)b.dataset.n=t})},500);
  document.querySelectorAll('.card canvas[data-k]').forEach(c=>{const d=c.closest('.card'),k=c.dataset.k;if(!d||!UIJ['rolo_'+k])return;d.dataset.k=k;
   d.insertAdjacentHTML('afterbegin','<i class="rolo" style="--rl:url('+UIJ['rolo_'+k]+');--rlon:url('+UIJ['rolo_'+k+'_on']+')"></i>')})}
-{const _br=bagRefresh;bagRefresh=function(){_br();const eq=document.querySelectorAll('#ivEq .es .sl');
-  SLOT_DEFS.forEach(([s2],i)=>{const b=eq[i];if(!b)return;const id=EQ[s2];b.style.backgroundImage=id?'var(--ui-rar_'+((ITEMS[id]||{}).rarity||'comum')+'),var(--ui-'+(id==invSel?'slot_sel':'slot')+')':'var(--ui-eq_'+s2+')'});
-  document.querySelectorAll('#ivGrid .sl').forEach((b,i)=>{const id=INV[i];if(id)b.style.backgroundImage='var(--ui-rar_'+((ITEMS[id]||{}).rarity||'comum')+'),var(--ui-'+(id==invSel?'slot_sel':'slot')+')'})}}
 {const _sr=stRefresh,DK={'Vida máxima':'hp','Chakra máximo':'mp','Poder físico':'pf','Poder de chakra':'pc','Crítico':'crit','Esquiva':'esq','Precisão':'prec','Redução de dano':'red','Velocidade':'spd','Recarga':'cdr','Regeneração de chakra':'mpr'};
  stRefresh=function(){_sr();document.querySelectorAll('#stRows .strow').forEach((r,i)=>{const b=r.querySelector('.sn>b');if(b&&AT[i]&&!b.classList.contains('aic')){b.className='aic';b.title=AT[i][1];b.style.backgroundImage='var(--ui-at_'+AT[i][0]+')';b.textContent=''}});
   document.querySelectorAll('#stDer>div>span:first-child').forEach(sp=>{const k=DK[sp.textContent];if(k&&!sp.querySelector('.aic'))sp.insertAdjacentHTML('afterbegin','<i class="aic" style="background-image:var(--ui-at_'+k+')"></i>')})}}
@@ -1458,10 +1467,10 @@ const SLOT_IC={cabeca:'🪖',capa:'🧥',arma:'🗡️',mao:'✋',acessorio:'�
 const STX={};STAT_DEFS.forEach(([k,n,u])=>STX[k]=['de '+n.toLowerCase(),u]);
 const stLine=(k,v)=>(v>0?'+':'−')+Math.abs(v)+STX[k][1]+' '+STX[k][0];
 function rarOf(it){return RAR_DEFS[it.rarity]||RAR_DEFS.comum}
-function bagSlot(id,cls,on){const b=slotBtn(id,cls,on);if(id){const c=rarOf(ITEMS[id])[1];b.style.background='radial-gradient(circle at 50% 38%,'+hexA(c,.38)+',#150a08 72%)'}return b}
+function bagSlot(id,cls,on){const b=slotBtn(id,cls,on);if(id){const r=(ITEMS[id]||{}).rarity;b.style.backgroundImage='var(--ui-rar_'+(RAR_DEFS[r]?r:'comum')+'),var(--ui-'+(id==invSel?'slot_sel':'slot')+')'}return b} /* moldura da raridade (arte/ui) */
 bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#dollR');if(!g||!L)return;L.innerHTML='';R.innerHTML='';
  ['cabeca','capa','arma','mao','acessorio'].forEach((s,j)=>{const n=(SLOT_DEFS.find(x=>x[0]===s)||[s,s])[1],id=EQ[s],w=document.createElement('div');w.className='es';
-  const b=bagSlot(id,' big',()=>{invSel=id;bagRefresh()});if(!id)b.innerHTML='<span class="ph">'+(SLOT_IC[s]||'')+'</span>';w.appendChild(b);
+  const b=bagSlot(id,' big',()=>{invSel=id;bagRefresh()});if(!id){b.innerHTML='';b.style.backgroundImage='var(--ui-eq_'+s+')'}w.appendChild(b);
   const l=document.createElement('small');l.textContent=n;w.appendChild(l);(j<3?L:R).appendChild(w)});
  const sum=Object.keys(STX).filter(k=>AG[k]).map(k=>stLine(k,AG[k]));
  $('#eqSum').innerHTML=sum.length?'<b>Bônus dos equipamentos</b>'+sum.map(x=>'<span>'+x+'</span>').join(''):'<span class="z">Nenhum equipamento com bônus.</span>';
@@ -1481,6 +1490,8 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
   +'<div class="dbt"><button id="ivAct" class="'+(on?'sec':'')+'">'+(on?'Desequipar':cur?'Trocar pelo equipado':'Equipar')+'</button></div></div>';
  $('#ivAct').onclick=()=>{if(on)unequipItem(id);else{equipItem(id);toggleBag(true,'bag');invSel=id;bagRefresh()}}
  portraitStart()};
+/* itens do painel: mostra o nível exigido no detalhe */
+{const _br=bagRefresh;bagRefresh=function(){_br();{const id=invSel,it=id&&ITEMS[id],dn=document.querySelector('#ivDet .dn');if(it&&it.nivel>1&&dn&&!dn.nextElementSibling?.classList.contains('dnv'))dn.insertAdjacentHTML('afterend','<div class="dnv'+((CH.lv|0)<it.nivel?' lk':'')+'">'+((CH.lv|0)<it.nivel?'🔒 ':'')+'Precisa do Nv '+it.nivel+'</div>')}}}
 (function(){
  const goOff=$('#go1').onclick;
  $('#goOff').onclick=()=>{ONL.on=false;$('#err').textContent='';goOff()};

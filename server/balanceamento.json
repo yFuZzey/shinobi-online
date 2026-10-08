@@ -1,6 +1,6 @@
 {
  "_leia": "Números de balanceamento do Shinobi Online. O servidor lê este arquivo ao iniciar (o Render reinicia sozinho quando ele muda no GitHub) e o jogo leva uma cópia na montagem (src/build.sh). Se algum valor faltar ou vier errado, o servidor usa o valor padrão do código e avisa no log. Tempos em segundos, distâncias em pixels (1 tile = 32 px), chances em %.",
- "versao": 13,
+ "versao": 14,
  "flags": {
   "_leia": "Liga (true) ou desliga (false) cada sistema.",
   "pvp": true,
@@ -1093,6 +1093,123 @@
     "t": 8,
     "escudo": 30,
     "dmgb": 10
+   }
+  }
+ },
+ "itensPainel": {
+  "_leia": "Itens criados no painel (/painel no servidor). O valor de cada atributo é automático: (base + porNivel × (nível − 1)) × raridade. maxAtributos = quantos atributos cada raridade pode ter. habilidades = as que já existem no jogo (o item usa no botão do item); base e porNivel valem como os atributos (o dano também multiplica pela raridade). nivelMax = maior nível de item. iconeMaxKb = tamanho máximo do ícone.",
+  "nivelMax": 99,
+  "iconeMaxKb": 40,
+  "raridade": {
+   "comum": 1,
+   "raro": 1.35,
+   "epico": 1.8,
+   "lendario": 2.4
+  },
+  "maxAtributos": {
+   "comum": 1,
+   "raro": 2,
+   "epico": 3,
+   "lendario": 4
+  },
+  "atributos": {
+   "str": {
+    "n": "Força",
+    "base": 2,
+    "porNivel": 0.2
+   },
+   "agi": {
+    "n": "Agilidade",
+    "base": 2,
+    "porNivel": 0.2
+   },
+   "vit": {
+    "n": "Vitalidade",
+    "base": 2,
+    "porNivel": 0.2
+   },
+   "int": {
+    "n": "Inteligência",
+    "base": 2,
+    "porNivel": 0.2
+   },
+   "dex": {
+    "n": "Destreza",
+    "base": 2,
+    "porNivel": 0.2
+   },
+   "luk": {
+    "n": "Sorte",
+    "base": 2,
+    "porNivel": 0.2
+   },
+   "hp_max": {
+    "n": "Vida máxima",
+    "base": 20,
+    "porNivel": 4
+   },
+   "mp_max": {
+    "n": "Chakra máximo",
+    "base": 10,
+    "porNivel": 2
+   },
+   "dmg_flat": {
+    "n": "Poder fixo",
+    "base": 2,
+    "porNivel": 0.3
+   },
+   "dmg_pct": {
+    "n": "Poder",
+    "u": "%",
+    "base": 2,
+    "porNivel": 0.1
+   },
+   "hp_pct": {
+    "n": "Vida máxima",
+    "u": "%",
+    "base": 2,
+    "porNivel": 0.08
+   },
+   "mp_pct": {
+    "n": "Chakra máximo",
+    "u": "%",
+    "base": 2,
+    "porNivel": 0.08
+   },
+   "regen_pct": {
+    "n": "Regeneração de vida e chakra",
+    "u": "%",
+    "base": 3,
+    "porNivel": 0.1
+   },
+   "speed_pct": {
+    "n": "Velocidade",
+    "u": "%",
+    "base": 3,
+    "porNivel": 0.15
+   }
+  },
+  "habilidades": {
+   "raio": {
+    "n": "Investida de raio (como o Chidori)",
+    "base": {
+     "dmg": 8,
+     "mp": 15,
+     "cd": 1,
+     "area": 64,
+     "reach": 260
+    },
+    "porNivel": {
+     "dmg": 0.4
+    },
+    "fx": {
+     "kind": "raio",
+     "glow": "#4fc3ff",
+     "hand": true,
+     "impact": true,
+     "orbit": false,
+     "tails": false
+    }
    }
   }
  }

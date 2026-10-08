@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Painel · Shinobi Online</title>
+<style>
+:root{--bg:#1b1424;--pap:#f0deaa;--pap2:#e6cf94;--ink:#2a1a14;--mute:#7a5a3c;--wood:#5c3424;--wood2:#3a201a;--acc:#d64020;--ok:#2d7a3e;--bad:#b0301a;
+ --comum:#9aa3ad;--raro:#3a8ee6;--epico:#9b55e6;--lendario:#e89a1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:12px 12px calc(24px + env(safe-area-inset-bottom,0px))}
+h1{margin:0;font-size:20px;color:var(--pap)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 auto 12px;max-width:980px}
+.top small{color:#c9b98f}
+.box{background:var(--pap);border:4px solid var(--wood);outline:2px solid var(--wood2);border-radius:6px;padding:14px;margin:0 auto 14px;max-width:980px;box-shadow:0 6px 18px #0008}
+.box h2{margin:0 0 10px;font-size:17px}
+label.f{display:block;margin:10px 0 4px;font-weight:700;font-size:13px;color:var(--wood2)}
+input[type=text],input[type=password],input[type=number],textarea,select{width:100%;padding:10px 12px;border:2px solid var(--wood);border-radius:4px;background:#fff8de;color:var(--ink);font:inherit}
+textarea{min-height:64px;resize:vertical}
+button{font:inherit;font-weight:700;border:2px solid var(--wood2);border-radius:4px;padding:10px 14px;background:#fff8de;color:var(--ink);cursor:pointer}
+button.p{background:var(--acc);color:#fff;border-color:#681616;text-shadow:0 1px 0 #681616}
+button.ok{background:var(--ok);color:#fff;border-color:#174a22}
+button:disabled{opacity:.5}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:7px 10px;border:2px solid var(--wood);background:#fff8de;border-radius:999px;font-size:13px;font-weight:600}
+.chip.on{background:var(--wood);color:var(--pap)}
+.chip:disabled{opacity:.4}
+.chip small{font-weight:800;margin-left:4px}
+.r-comum{--c:var(--comum)}.r-raro{--c:var(--raro)}.r-epico{--c:var(--epico)}.r-lendario{--c:var(--lendario)}
+.chip.rar.on{background:var(--c);border-color:var(--c);color:#fff}
+.err{color:var(--bad);font-weight:700;margin:8px 0 0;white-space:pre-line}
+.msg{color:var(--ok);font-weight:700;margin:8px 0 0}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:760px){.grid{grid-template-columns:1.2fr 1fr}}
+.ic{width:72px;height:72px;border:3px solid var(--c,var(--wood));border-radius:6px;background:#1e1212 center/contain no-repeat;image-rendering:pixelated;flex:0 0 auto}
+.prev{display:flex;gap:12px;align-items:flex-start;background:#fff8de;border:2px solid var(--wood);border-radius:6px;padding:10px}
+.prev b{font-size:17px;color:var(--c,var(--ink))}
+.prev ul{margin:6px 0 0;padding-left:18px;font-size:14px}
+.prev .sub{font-size:12px;color:var(--mute)}
+.list{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.it{display:flex;gap:10px;align-items:center;background:#fff8de;border:2px solid var(--wood);border-radius:6px;padding:8px;text-align:left;font-weight:400}
+.it .ic{width:48px;height:48px}
+.it b{display:block;color:var(--c)}
+.tag{display:inline-block;font-size:11px;font-weight:800;padding:1px 6px;border-radius:3px;margin-top:2px}
+.tag.pub{background:#d6efd9;color:var(--ok)}.tag.ras{background:#efe1b8;color:var(--mute)}.tag.nova{background:#e9d9ff;color:#5a2aa6}
+.code{font-family:ui-monospace,Menlo,monospace;background:#efe1b8;padding:1px 5px;border-radius:3px}
+.hide{display:none!important}
+.drop{border:2px dashed var(--wood);border-radius:6px;padding:10px;display:flex;gap:12px;align-items:center;background:#fff8de}
+.drop input{max-width:100%}
+.bar{position:sticky;bottom:0;background:var(--pap2);border-top:3px solid var(--wood);margin:14px -14px -14px;padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap}
+</style></head>
+<body>
+<div class="top"><div><h1>⚙️ Painel · Shinobi Online</h1><small id="quem">Itens</small></div><button id="sair" class="hide">Sair</button></div>
+
+<div id="vLogin" class="box" style="max-width:420px">
+ <h2>Entrar como admin</h2>
+ <label class="f" for="u">Usuário do jogo</label><input id="u" type="text" autocomplete="username" autocapitalize="off" spellcheck="false">
+ <label class="f" for="p">Senha</label><input id="p" type="password" autocomplete="current-password">
+ <div class="row" style="margin-top:12px"><button id="entrar" class="p">Entrar</button></div>
+ <p id="lErr" class="err"></p>
+</div>
+
+<div id="vApp" class="hide">
+ <div class="box">
+  <div class="row" style="justify-content:space-between"><h2 style="margin:0">Itens</h2><button id="novo" class="p">+ Novo item</button></div>
+  <p class="sub" style="font-size:13px;color:var(--mute);margin:6px 0 10px">Publicados aparecem no jogo. Rascunhos só você vê. Para o item cair de um monstro, use o <b>código</b> dele nos drops do editor.</p>
+  <div id="lista" class="list"></div>
+  <p id="listaErr" class="err"></p>
+ </div>
+
+ <div id="ed" class="box hide">
+  <h2 id="edT">Novo item</h2>
+  <div class="grid">
+   <div>
+    <label class="f" for="nome">Nome</label><input id="nome" type="text" maxlength="40" placeholder="Ex.: Espada do Zabuza">
+    <div class="sub" id="codigo" style="font-size:12px;color:var(--mute);margin-top:4px"></div>
+
+    <label class="f">Ícone</label>
+    <div class="drop"><div id="icPrev" class="ic"></div><div><input id="icone" type="file" accept="image/png,image/webp,image/jpeg"><div class="sub" style="font-size:12px;color:var(--mute)">PNG de preferência, fundo transparente. O painel reduz para 96 px.</div></div></div>
+
+    <label class="f" for="nivel">Nível para equipar: <span id="nivelV">1</span></label>
+    <div class="row"><input id="nivel" type="range" min="1" max="99" value="1" style="flex:1"><input id="nivelN" type="number" min="1" max="99" value="1" style="width:84px"></div>
+
+    <label class="f">Raridade</label><div id="rar" class="chips"></div>
+    <label class="f">Onde vai</label><div id="slot" class="chips"></div>
+    <label class="f">Tipo</label><div id="tipo" class="chips"></div>
+    <div id="habW" class="hide"><label class="f" for="hab">Habilidade (já existe no jogo)</label><select id="hab"></select></div>
+    <div id="pedW" class="hide"><label class="f" for="pedido">Habilidade nova: o que ela faz? (para o Claude programar)</label><textarea id="pedido" maxlength="600" placeholder="Ex.: corta em linha reta 4 tiles à frente, com água em volta da lâmina"></textarea></div>
+
+    <label class="f">Atributos <span id="atrMax" style="font-weight:400"></span></label><div id="atr" class="chips"></div>
+
+    <label class="f" for="desc">Descrição (opcional)</label><textarea id="desc" maxlength="300" placeholder="Aparece na mochila"></textarea>
+   </div>
+   <div>
+    <label class="f">Como fica no jogo</label>
+    <div id="prev" class="prev"></div>
+    <p id="eErr" class="err"></p><p id="eMsg" class="msg"></p>
+   </div>
+  </div>
+  <div class="bar">
+   <button id="salvar">Salvar rascunho</button><button id="publicar" class="ok">Publicar</button>
+   <button id="despub" class="hide">Tirar do jogo</button><button id="apagar" class="hide">Apagar</button><span style="flex:1"></span><button id="fechar">Fechar</button>
+  </div>
+ </div>
+</div>
+
+<script>
+const SB='__SB_URL__',KEY='__SB_KEY__',CFG=__ITCFG__,DOM='@jogadores.shinobi-online.app';
+/*__ITR__*/
+const $=s=>document.querySelector(s),esc=t=>String(t==null?'':t).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const RN={comum:'Comum',raro:'Raro',epico:'Épico',lendario:'Lendário'},SN={capa:'Capa',arma:'Arma',mao:'Mão',cabeca:'Cabeça',acessorio:'Acessório'},
+ TN={status:'Só atributos',habilidade:'Com habilidade que já existe',nova:'Com habilidade nova'};
+let S={tok:null,uid:null,nome:''},ITENS=[],ED=null;
+function store(k,v){try{if(v===undefined)return sessionStorage.getItem(k);if(v===null)sessionStorage.removeItem(k);else sessionStorage.setItem(k,v)}catch(_){}return null}
+async function api(p,o={}){const h={apikey:KEY,'Content-Type':'application/json',...(o.headers||{})};if(S.tok)h.Authorization='Bearer '+S.tok;
+ const r=await fetch(SB+p,{...o,headers:h});const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(_){}
+ if(!r.ok){const e=new Error((j&&(j.message||j.msg||j.error_description))||('Erro '+r.status));e.status=r.status;e.code=j&&j.code;throw e}return j}
+function erroTxt(e){const m=String(e&&e.message||e);if(/invalid login|invalid_credentials/i.test(m))return 'Usuário ou senha incorretos.';
+ if(e&&(e.code==='PGRST205'||/Could not find the table/i.test(m)))return 'O banco ainda não tem a tabela de itens: rode o arquivo sql/09_itens.sql no Supabase.';
+ if(/row-level security|permission denied/i.test(m))return 'O banco recusou: só admin pode criar ou mudar itens.';
+ if(e&&e.status===401||/JWT expired|invalid JWT/i.test(m)){store('painel',null);return 'A sessão expirou: toque em Sair e entre de novo.'}
+ if(/duplicate key/i.test(m))return 'Já existe um item com esse código. Mude o nome.';return m}
+
+// ---------- entrar ----------
+async function entrar(u,p){const j=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:u.trim().toLowerCase()+DOM,password:p})});
+ S.tok=j.access_token;S.uid=j.user.id;const r=(await api('/rest/v1/personagens?select=nome,admin&id=eq.'+S.uid))||[];
+ if(!r[0]||!r[0].admin){S.tok=null;throw new Error('Esta conta não é admin.')}S.nome=r[0].nome;store('painel',JSON.stringify(S))}
+async function abrir(){$('#vLogin').classList.add('hide');$('#vApp').classList.remove('hide');$('#sair').classList.remove('hide');$('#quem').textContent='Itens · admin '+S.nome;await lista()}
+$('#entrar').onclick=async()=>{const b=$('#entrar');b.disabled=true;$('#lErr').textContent='';try{await entrar($('#u').value,$('#p').value);await abrir()}catch(e){$('#lErr').textContent=erroTxt(e)}b.disabled=false};
+$('#p').addEventListener('keydown',e=>{if(e.key==='Enter')$('#entrar').click()});
+$('#sair').onclick=()=>{store('painel',null);location.reload()};
+
+// ---------- lista ----------
+async function lista(){$('#listaErr').textContent='';try{ITENS=(await api('/rest/v1/itens?select=*&order=atualizado_em.desc'))||[]}catch(e){ITENS=[];$('#listaErr').textContent=erroTxt(e)}
+ $('#lista').innerHTML=ITENS.length?ITENS.map(r=>'<button class="it r-'+r.raridade+'" data-id="'+esc(r.id)+'"><div class="ic" style="background-image:url('+esc(r.icone)+')"></div><div><b>'+esc(r.nome)+'</b><small>Nv '+r.nivel+' · '+RN[r.raridade]+' · '+SN[r.slot]+'</small><br>'
+  +(r.publicado?'<span class="tag pub">No jogo</span>':'<span class="tag ras">Rascunho</span>')+(r.tipo==='nova'?' <span class="tag nova">Aguardando habilidade</span>':'')+'<br><span class="code">'+esc(r.id)+'</span></div></button>').join('')
+  :'<p style="margin:0;color:var(--mute)">Nenhum item ainda. Toque em <b>+ Novo item</b>.</p>';
+ document.querySelectorAll('#lista [data-id]').forEach(b=>b.onclick=()=>editar(ITENS.find(r=>r.id===b.dataset.id)))}
+
+// ---------- editor ----------
+const vazio=()=>({id:'',nome:'',icone:'',nivel:1,raridade:'comum',slot:'arma',tipo:'status',habilidade:Object.keys(CFG.habilidades||{})[0]||'',pedido:'',atributos:[],descricao:'',publicado:false,_novo:1});
+function chips(el,lista,nomes,cls,sel,cb){el.innerHTML=lista.map(k=>'<button type="button" class="chip '+cls+(cls==='rar'?' r-'+k:'')+(k===sel?' on':'')+'" data-k="'+k+'">'+nomes[k]+'</button>').join('');el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>cb(b.dataset.k))}
+function editar(r){ED=r?JSON.parse(JSON.stringify(r)):vazio();ED.atributos=ED.atributos||[];$('#ed').classList.remove('hide');$('#edT').textContent=ED._novo?'Novo item':'Editar: '+ED.nome;
+ $('#nome').value=ED.nome;$('#desc').value=ED.descricao||'';$('#pedido').value=ED.pedido||'';$('#icone').value='';
+ $('#hab').innerHTML=Object.entries(CFG.habilidades||{}).map(([k,h])=>'<option value="'+k+'">'+esc(h.n)+'</option>').join('');$('#hab').value=ED.habilidade||'';
+ $('#eErr').textContent='';$('#eMsg').textContent='';desenha();$('#ed').scrollIntoView({behavior:'smooth'})}
+function valores(){return{...ED,nome:$('#nome').value.trim(),descricao:$('#desc').value.trim(),pedido:$('#pedido').value.trim(),habilidade:$('#hab').value}}
+function desenha(){const it=valores(),mx=CFG.maxAtributos[it.raridade]||1;
+ ED.atributos=ED.atributos.slice(0,mx);
+ $('#nivel').max=$('#nivelN').max=CFG.nivelMax||99;$('#nivel').value=$('#nivelN').value=ED.nivel;$('#nivelV').textContent=ED.nivel;
+ chips($('#rar'),ITR.RAR,RN,'rar',ED.raridade,k=>{ED.raridade=k;desenha()});
+ chips($('#slot'),ITR.SLOTS,SN,'',ED.slot,k=>{ED.slot=k;desenha()});
+ chips($('#tipo'),ITR.TIPOS,TN,'',ED.tipo,k=>{ED.tipo=k;desenha()});
+ $('#habW').classList.toggle('hide',ED.tipo!=='habilidade');$('#pedW').classList.toggle('hide',ED.tipo!=='nova');
+ $('#atrMax').textContent='(até '+mx+' para '+RN[ED.raridade]+'; o valor é automático)';
+ const st=ITR.itStats(CFG,{...valores(),atributos:Object.keys(CFG.atributos)});
+ $('#atr').innerHTML=Object.entries(CFG.atributos).map(([k,a])=>{const on=ED.atributos.includes(k);return '<button type="button" class="chip'+(on?' on':'')+'" data-k="'+k+'"'+(!on&&ED.atributos.length>=mx?' disabled':'')+'>'+esc(a.n)+'<small>+'+st[k]+(a.u||'')+'</small></button>'}).join('');
+ $('#atr').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k,i=ED.atributos.indexOf(k);if(i>=0)ED.atributos.splice(i,1);else if(ED.atributos.length<mx)ED.atributos.push(k);desenha()});
+ const id=ED._novo?livre(ITR.itId(it.nome)):ED.id;$('#codigo').innerHTML=it.nome?'Código: <span class="code">'+esc(id)+'</span>':'';
+ $('#icPrev').style.backgroundImage=ED.icone?'url('+ED.icone+')':'';$('#icPrev').className='ic r-'+ED.raridade;
+ previa()}
+/* muda só os números (sem redesenhar os botões: um toque logo depois não se perde) */
+function desenhaLeve(){const st=ITR.itStats(CFG,{...valores(),atributos:Object.keys(CFG.atributos)});document.querySelectorAll('#atr [data-k] small').forEach(e=>{const k=e.parentNode.dataset.k;e.textContent='+'+st[k]+(CFG.atributos[k].u||'')});previa()}
+function previa(){const it=valores(),s=ITR.itStats(CFG,it),a=ITR.itAtk(CFG,it);
+ const L=Object.entries(s).map(([k,v])=>'<li>+'+v+(CFG.atributos[k].u||'')+' de '+esc(CFG.atributos[k].n.toLowerCase())+'</li>');
+ if(a)L.push('<li>Habilidade: '+esc(CFG.habilidades[it.habilidade].n)+' — dano '+a.dmg+', chakra '+a.mp+', recarga '+a.cd+' s</li>');
+ if(it.tipo==='nova')L.push('<li>Habilidade nova: aguardando o Claude programar. Até lá, o item só dá os atributos.</li>');
+ $('#prev').className='prev r-'+it.raridade;
+ $('#prev').innerHTML='<div class="ic r-'+it.raridade+'" style="background-image:'+(it.icone?'url('+it.icone+')':'none')+'"></div><div><b>'+esc(it.nome||'Sem nome')+'</b><div class="sub">'+RN[it.raridade]+' · '+SN[it.slot]+' · precisa do Nv '+it.nivel+'</div>'
+  +(it.descricao?'<div style="margin-top:4px;font-size:14px">'+esc(it.descricao)+'</div>':'')+'<ul>'+(L.join('')||'<li style="color:var(--mute)">Escolha os atributos</li>')+'</ul></div>'}
+function livre(id){if(!id||id==='p_')return id;let k=id,n=2;while(ITENS.some(r=>r.id===k))k=id.slice(0,34)+'_'+(n++);return k}
+['#nome','#desc','#pedido'].forEach(s=>$(s).addEventListener('input',()=>{const it=valores(),id=ED._novo?livre(ITR.itId(it.nome)):ED.id;$('#codigo').innerHTML=it.nome?'Código: <span class="code">'+esc(id)+'</span>':'';previa()}));$('#hab').addEventListener('change',previa);
+$('#nivel').oninput=e=>{ED.nivel=+e.target.value;$('#nivelN').value=ED.nivel;$('#nivelV').textContent=ED.nivel;desenhaLeve()};$('#nivelN').oninput=e=>{const v=Math.round(+e.target.value);if(!(v>=1))return;ED.nivel=Math.min(CFG.nivelMax||99,v);$('#nivel').value=ED.nivel;$('#nivelV').textContent=ED.nivel;desenhaLeve()};
+$('#novo').onclick=()=>editar(null);$('#fechar').onclick=()=>{ED=null;$('#ed').classList.add('hide')};
+
+// ícone: reduz para no máximo 96 px (pixel art fica nítida) e guarda como imagem dentro do item
+$('#icone').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{
+ const m=96,k=Math.min(1,m/Math.max(im.width,im.height)),w=Math.max(1,Math.round(im.width*k)),h=Math.max(1,Math.round(im.height*k)),c=document.createElement('canvas');c.width=w;c.height=h;
+ const g=c.getContext('2d');g.imageSmoothingEnabled=k<1;g.imageSmoothingQuality='high';g.drawImage(im,0,0,w,h);let u=c.toDataURL('image/png');
+ if(u.length>(CFG.iconeMaxKb||40)*1400)u=c.toDataURL('image/webp',.9);ED.icone=u;desenha()};im.onerror=()=>{$('#eErr').textContent='Não consegui abrir essa imagem.'};im.src=rd.result};rd.readAsDataURL(f)};
+
+// ---------- gravar ----------
+async function gravar(pub){const v=valores(),it={...v,id:ED._novo?livre(ITR.itId(v.nome)):ED.id,publicado:pub===undefined?!!ED.publicado:pub};
+ const e=ITR.itValida(CFG,it);$('#eErr').textContent=e.length?'Falta arrumar:\n· '+e.join('\n· '):'';$('#eMsg').textContent='';if(e.length)return;
+ const row={id:it.id,nome:it.nome,icone:it.icone,nivel:it.nivel,raridade:it.raridade,slot:it.slot,tipo:it.tipo,habilidade:it.tipo==='habilidade'?it.habilidade:null,pedido:it.tipo==='nova'?it.pedido:null,atributos:it.atributos,descricao:it.descricao,publicado:it.publicado};
+ const bs=document.querySelectorAll('.bar button');bs.forEach(b=>b.disabled=true);
+ try{if(ED._novo)await api('/rest/v1/itens',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(row)});
+  else await api('/rest/v1/itens?id=eq.'+encodeURIComponent(it.id),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(row)});
+  fetch(location.origin+'/painel/recarregar',{method:'POST'}).catch(()=>{});
+  await lista();editar(ITENS.find(r=>r.id===it.id)||null);$('#eMsg').textContent=it.publicado?'✅ Publicado: o item já vale no jogo (quem estiver online vê ao entrar de novo ou quando o item cair).':'💾 Rascunho salvo. Só você vê.'}
+ catch(err){$('#eErr').textContent=erroTxt(err)}bs.forEach(b=>b.disabled=false);botoes()}
+function botoes(){if(!ED)return;$('#salvar').classList.toggle('hide',!!ED.publicado);$('#despub').classList.toggle('hide',!!ED._novo||!ED.publicado);$('#apagar').classList.toggle('hide',!!ED._novo||!!ED.publicado);$('#publicar').textContent=ED.publicado?'Salvar no jogo':'Publicar'}
+$('#salvar').onclick=()=>gravar(ED&&ED.publicado?true:false);$('#publicar').onclick=()=>gravar(true);$('#despub').onclick=()=>{if(confirm('Tirar este item do jogo? Quem já tem fica com ele guardado, mas ele some da mochila até você publicar de novo.'))gravar(false)};
+$('#apagar').onclick=async()=>{if(!ED||ED._novo||!confirm('Apagar o rascunho "'+ED.nome+'"?'))return;try{await api('/rest/v1/itens?id=eq.'+encodeURIComponent(ED.id),{method:'DELETE'});ED=null;$('#ed').classList.add('hide');await lista()}catch(e){$('#eErr').textContent=erroTxt(e)}};
+const _ed=editar;editar=function(r){_ed(r);botoes()};
+
+// sessão guardada nesta aba
+(async()=>{if(!CFG){$('#lErr').textContent='O servidor não tem a seção itensPainel no balanceamento.';return}try{const o=JSON.parse(store('painel')||'null');if(o&&o.tok){S=o;try{await api('/rest/v1/personagens?select=admin&id=eq.'+S.uid);await abrir()}catch(_){store('painel',null);S={tok:null}}}}catch(_){}})();
+</script>
+</body></html>

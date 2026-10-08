@@ -129,3 +129,6 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 /* escala do dano (como no LoL): azul = Inteligência, laranja = Força */
 .esc{font-weight:800}.esc.int{color:#2a6fd6}.esc.str{color:#c0501a}
 #sbTip .esc.int{color:#1f5fc4}
+
+/* nível exigido do item (itens do painel) */
+.dnv{font-size:12px;font-weight:700;color:#7a5a3c;margin:2px 0 4px}.dnv.lk{color:#b0301a}

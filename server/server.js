@@ -227,6 +227,21 @@ async function invCheck() {
   log('inventário pelo servidor: ' + (INV_OK ? 'ligado' : 'desligado — ' + INV_WHY));
 }
 setTimeout(invCheck, 500); setInterval(invCheck, 5 * 60 * 1000);
+// itens criados no painel (tabela "itens", SQL 09): o servidor lê os publicados para drops, trocas e o botão do item
+let ITR = null; try { ITR = require('./itens_regras.js'); } catch (e) { log('itens_regras.js não encontrado: itens do painel desligados'); }
+let IT_DB = { n: 0, quando: 0, motivo: 'iniciando' };
+async function itensDb() {
+  if (!ITR || !SB_URL || !SB_SVC || !BALJ || !BALJ.itensPainel) { IT_DB.motivo = 'sem chave secreta ou sem itensPainel'; return; }
+  try {
+    const L = await svc('/rest/v1/itens?select=id,nome,nivel,raridade,slot,tipo,habilidade,atributos&publicado=eq.true') || [], ok = new Set();
+    for (const r of L) { if (!/^p_[a-z0-9_]+$/.test(r.id || '')) continue; const a = ITR.itAtk(BALJ.itensPainel, r); ITEMS[r.id] = { id: r.id, name: r.nome, painel: 1, cd: a ? a.cd : undefined }; ok.add(r.id); }
+    for (const id in ITEMS) if (ITEMS[id].painel && !ok.has(id)) delete ITEMS[id]; // despublicado: não cai mais nem troca
+    if (ok.size !== IT_DB.n || IT_DB.motivo) log('itens do painel: ' + ok.size + ' publicado(s)');
+    IT_DB = { n: ok.size, quando: Date.now(), motivo: '' };
+  } catch (e) { IT_DB.motivo = e.status === 404 ? 'falta rodar o SQL 09 (itens) no Supabase' : e.message; }
+}
+setTimeout(itensDb, 800); setInterval(itensDb, 60 * 1000);
+let itensPedido = 0, itensTimer = 0;
 async function invOf(uid) { const rows = await svc('/rest/v1/inventario?select=item,equipado&personagem_id=eq.' + encodeURIComponent(uid)); return rows || []; }
 // dá itens (drop/admin); cada nome = 1 unidade; devolve o que entrou de fato
 async function giveDb(uid, items) { if (!items.length) return []; const got = await rpc('dar_itens', { p_personagem: uid, p_itens: items }); return Array.isArray(got) ? got : []; }
@@ -879,7 +894,21 @@ const server = http.createServer((req, res) => {
   const cors = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
   const u = req.url.split('?')[0];
   if (u === '/health' || u === '/') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true, jogo: 'Shinobi Online', v: PROTO, commit: COMMIT, online: players.size, balanceamento: BAL_INFO.v, trocas: INV_OK ? 1 : 0, trocasMotivo: INV_OK ? '' : INV_WHY, mapas: Object.fromEntries(Object.entries(rooms).map(([k, r]) => [k, r.players.size])) })); }
+    return res.end(JSON.stringify({ ok: true, jogo: 'Shinobi Online', v: PROTO, commit: COMMIT, online: players.size, balanceamento: BAL_INFO.v, trocas: INV_OK ? 1 : 0, trocasMotivo: INV_OK ? '' : INV_WHY, itensPainel: IT_DB.n, itensMotivo: IT_DB.motivo, mapas: Object.fromEntries(Object.entries(rooms).map(([k, r]) => [k, r.players.size])) })); }
+  // painel de itens (só admin consegue gravar: o banco confere); a página vem com o endereço do Supabase e as regras dos itens
+  if (u === '/painel' || u === '/painel/') {
+    try {
+      const h = fs.readFileSync(path.join(__dirname, 'painel.html'), 'utf8').replace('__SB_URL__', SB_URL).replace('__SB_KEY__', SB_KEY)
+        .replace('__ITCFG__', JSON.stringify((BALJ && BALJ.itensPainel) || null)).replace('/*__ITR__*/', fs.readFileSync(path.join(__dirname, 'itens_regras.js'), 'utf8'));
+      res.writeHead(200, { ...cors, 'Content-Type': 'text/html; charset=utf-8' }); return res.end(h);
+    } catch (e) { res.writeHead(500, cors); return res.end('painel indisponível'); }
+  }
+  // o painel avisa que publicou algo: o servidor relê os itens na hora (no máximo 1 vez por segundo; o último pedido sempre vale)
+  if (u === '/painel/recarregar' && req.method === 'POST') {
+    const t = Date.now(); if (t - itensPedido > 1000) { itensPedido = t; itensDb(); } else if (!itensTimer) itensTimer = setTimeout(() => { itensTimer = 0; itensPedido = Date.now(); itensDb(); }, 1000 - (t - itensPedido));
+    res.writeHead(204, cors); return res.end();
+  }
+  if (u === '/painel/recarregar' && req.method === 'OPTIONS') { res.writeHead(204, { ...cors, 'Access-Control-Allow-Methods': 'POST' }); return res.end(); }
   res.writeHead(404, cors); res.end('nada aqui');
 });
 server.on('upgrade', (req, sock) => {

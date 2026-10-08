@@ -25,6 +25,12 @@ MMORPG 2D no universo Naruto (protótipo).
 - `versao` (`sql/07_versao.sql`): versão do formato do personagem. Quando o formato mudar, o jogo converte os saves antigos (função `chMigra` em `src/online/online2.js`); sem a coluna o jogo funciona e guarda a versão no aparelho.
 - `contrato`, `contrato_em` (`sql/08_contrato.sql`): contrato de invocação escolhido (Sapos/Gamabunta, Lesmas/Katsuyu, Cobras/Manda) e quando foi escolhido (troca só a cada 24 h). Sem as colunas o jogo funciona e guarda no aparelho.
 
+## Painel de itens (admin)
+- Endereço: `https://shinobi-server-gdhx.onrender.com/painel` (entra com o usuário e a senha do jogo; só contas admin).
+- Cria o item do zero: ícone, nome, nível para equipar, raridade, parte do corpo, tipo (só atributos, habilidade que já existe ou habilidade nova para o Claude programar) e atributos. O valor dos atributos é automático: `server/balanceamento.json` → `itensPainel`.
+- Rascunho só o admin vê; **Publicar** coloca no jogo (o servidor relê na hora). O código do item (`p_…`) é o que vai nos drops do editor.
+- Banco: `sql/09_itens.sql` (tabela `itens`; todos leem os publicados, só admin grava). Regras iguais no jogo, servidor e painel: `server/itens_regras.js`. Teste: `tests/online/t41.js`.
+
 ## Arte da interface (tema pixel)
 - Folhas enviadas em `arte/ui/` (fundo do login, logo, ícone do app, kit de painéis/botões, HUD). `python3 arte/ferramentas/recortar_ui.py` recorta, volta ao tamanho real do pixel e grava `src/ui/ui.json` e os ícones do Android (`arte/ui/android/res`, copiados no build do APK pelo `ajustar-android.js`).
 - Regras de CSS em `src/ui/tema.css` (login, janelas, botão X, HUD com retrato, plaquinha e barras).
