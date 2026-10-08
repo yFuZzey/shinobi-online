@@ -30,7 +30,7 @@ button:disabled{opacity:.5}
 .msg{color:var(--ok);font-weight:700;margin:8px 0 0}
 .grid{display:grid;grid-template-columns:1fr;gap:14px}
 @media(min-width:760px){.grid{grid-template-columns:1.2fr 1fr}}
-.ic{width:72px;height:72px;border:3px solid var(--c,var(--wood));border-radius:6px;background:#1e1212 center/contain no-repeat;image-rendering:pixelated;flex:0 0 auto}
+.ic{width:72px;height:72px;border:3px solid var(--c,var(--wood));border-radius:6px;background-color:#2a2030;background-position:center;background-size:contain;background-repeat:no-repeat;image-rendering:pixelated;flex:0 0 auto}
 .prev{display:flex;gap:12px;align-items:flex-start;background:#fff8de;border:2px solid var(--wood);border-radius:6px;padding:10px}
 .prev b{font-size:17px;color:var(--c,var(--ink))}
 .prev ul{margin:6px 0 0;padding-left:18px;font-size:14px}
@@ -74,7 +74,7 @@ button:disabled{opacity:.5}
     <div class="sub" id="codigo" style="font-size:12px;color:var(--mute);margin-top:4px"></div>
 
     <label class="f">Ícone</label>
-    <div class="drop"><div id="icPrev" class="ic"></div><div><input id="icone" type="file" accept="image/png,image/webp,image/jpeg"><div class="sub" style="font-size:12px;color:var(--mute)">PNG de preferência, fundo transparente. O painel reduz para 96 px.</div></div></div>
+    <div class="drop"><div id="icPrev" class="ic"></div><div><input id="icone" type="file" accept="image/png,image/webp,image/jpeg"><label style="display:flex;gap:6px;align-items:center;font-size:13px;margin-top:6px"><input id="tiraFundo" type="checkbox" checked> Tirar o fundo (cor única, ex.: magenta) e a moldura solta</label><div class="sub" style="font-size:12px;color:var(--mute)">O painel recorta o item e reduz para 96 px.</div></div></div>
 
     <label class="f" for="nivel">Nível para equipar: <span id="nivelV">1</span></label>
     <div class="row"><input id="nivel" type="range" min="1" max="99" value="1" style="flex:1"><input id="nivelN" type="number" min="1" max="99" value="1" style="width:84px"></div>
@@ -173,9 +173,45 @@ $('#novo').onclick=()=>editar(null);$('#fechar').onclick=()=>{ED=null;$('#ed').c
 
 // ícone: reduz para no máximo 96 px (pixel art fica nítida) e guarda como imagem dentro do item
 $('#icone').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{
- const m=96,k=Math.min(1,m/Math.max(im.width,im.height)),w=Math.max(1,Math.round(im.width*k)),h=Math.max(1,Math.round(im.height*k)),c=document.createElement('canvas');c.width=w;c.height=h;
- const g=c.getContext('2d');g.imageSmoothingEnabled=k<1;g.imageSmoothingQuality='high';g.drawImage(im,0,0,w,h);let u=c.toDataURL('image/png');
- if(u.length>(CFG.iconeMaxKb||40)*1400)u=c.toDataURL('image/webp',.9);ED.icone=u;desenha()};im.onerror=()=>{$('#eErr').textContent='Não consegui abrir essa imagem.'};im.src=rd.result};rd.readAsDataURL(f)};
+ try{ED.icone=iconeLimpo(im,$('#tiraFundo').checked);$('#eErr').textContent='';desenha()}catch(err){$('#eErr').textContent='Não consegui preparar o ícone: '+err.message}};
+ im.onerror=()=>{$('#eErr').textContent='Não consegui abrir essa imagem.'};im.src=rd.result};rd.readAsDataURL(f)};
+$('#tiraFundo').onchange=()=>{const f=$('#icone').files[0];if(f)$('#icone').onchange({target:$('#icone')})};
+/* ícone: tira o fundo de uma cor só (ex.: magenta), some com contornos soltos (moldura desenhada pela IA), recorta o item e reduz para no máximo 96 px */
+function iconeLimpo(im,tira){
+ let W=im.width,H=im.height,k0=Math.min(1,512/Math.max(W,H));W=Math.max(1,Math.round(W*k0));H=Math.max(1,Math.round(H*k0));
+ const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d',{willReadFrequently:true});g.imageSmoothingEnabled=false;g.drawImage(im,0,0,W,H);
+ const D=g.getImageData(0,0,W,H),a=D.data,N=W*H;
+ if(tira){
+  // cor do fundo = a cor que mais aparece na borda da imagem
+  const cnt=new Map();let tot=0,trans=0;const add=(x,y)=>{const o=(y*W+x)*4;tot++;if(a[o+3]<20){trans++;return}const q=(a[o]>>4)<<8|(a[o+1]>>4)<<4|(a[o+2]>>4);cnt.set(q,(cnt.get(q)||0)+1)};
+  for(let x=0;x<W;x++){add(x,0);add(x,H-1)}for(let y=1;y<H-1;y++){add(0,y);add(W-1,y)}
+  let best=-1,bn=0;cnt.forEach((n,q)=>{if(n>bn){bn=n;best=q}});
+  let R=0,G=0,B=0,n=0,keyed=false;if(best>=0)for(let p=0;p<N;p++){const o=p*4,q=(a[o]>>4)<<8|(a[o+1]>>4)<<4|(a[o+2]>>4);if(q===best&&a[o+3]>=20){R+=a[o];G+=a[o+1];B+=a[o+2];n++}}if(n){R/=n;G/=n;B/=n}
+  // só tira fundo de "tela" (cor forte como magenta/verde) ou branco liso; contorno escuro de pixel art nunca é fundo
+  const sat=Math.max(R,G,B)-Math.min(R,G,B),claro=(R+G+B)/3;
+  if(n&&trans<tot*.5&&((sat>=100&&bn>=tot*.35)||(claro>=225&&bn>=tot*.85))){keyed=true;
+   const dist=o=>Math.abs(a[o]-R)+Math.abs(a[o+1]-G)+Math.abs(a[o+2]-B);
+   for(let p=0;p<N;p++){const o=p*4;if(dist(o)<90)a[o+3]=0}
+   // borda borrada (cor do fundo misturada): 2 passadas nos pixels encostados no transparente
+   for(let pass=0;pass<2;pass++){const kill=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const p=y*W+x,o=p*4;if(!a[o+3])continue;
+     const viz=(x>0&&!a[o-1])||(x<W-1&&!a[o+7])||(y>0&&!a[o-W*4+3])||(y<H-1&&!a[o+W*4+3]);if(viz&&dist(o)<170)kill.push(o)}kill.forEach(o=>a[o+3]=0)}
+  }
+  // partes soltas: fica a maior; as outras só se estiverem dentro da área dela (some a moldura em volta)
+  if(keyed){const lab=new Int32Array(N).fill(-1),comps=[],st=[];
+  for(let p0=0;p0<N;p0++){if(lab[p0]>=0||a[p0*4+3]<20)continue;const id=comps.length,C={n:0,x0:W,y0:H,x1:0,y1:0};comps.push(C);lab[p0]=id;st.push(p0);
+   while(st.length){const p=st.pop(),x=p%W,y=(p-x)/W;C.n++;if(x<C.x0)C.x0=x;if(x>C.x1)C.x1=x;if(y<C.y0)C.y0=y;if(y>C.y1)C.y1=y;
+    for(const q of [x>0?p-1:-1,x<W-1?p+1:-1,y>0?p-W:-1,y<H-1?p+W:-1])if(q>=0&&lab[q]<0&&a[q*4+3]>=20){lab[q]=id;st.push(q)}}}
+  if(comps.length>1){let m=0;comps.forEach((C,i)=>{if(C.n>comps[m].n)m=i});const M=comps[m],mx=(M.x1-M.x0)*.1,my=(M.y1-M.y0)*.1;
+   const keep=comps.map((C,i)=>i===m||(C.n>=4&&C.x0>=M.x0-mx&&C.x1<=M.x1+mx&&C.y0>=M.y0-my&&C.y1<=M.y1+my));
+   for(let p=0;p<N;p++)if(lab[p]>=0&&!keep[lab[p]])a[p*4+3]=0}}
+  g.putImageData(D,0,0)}
+ // recorta no item
+ let x0=W,y0=H,x1=-1,y1=-1;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(a[(y*W+x)*4+3]>=20){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+ if(x1<0)throw new Error('a imagem ficou vazia (tire a marca de "Tirar o fundo")');
+ const cw=x1-x0+1,ch=y1-y0+1,m=96,k=Math.min(1,m/Math.max(cw,ch)),w=Math.max(1,Math.round(cw*k)),h=Math.max(1,Math.round(ch*k));
+ const o=document.createElement('canvas');o.width=w;o.height=h;const og=o.getContext('2d',{willReadFrequently:true});og.imageSmoothingEnabled=k<1;og.imageSmoothingQuality='high';og.drawImage(c,x0,y0,cw,ch,0,0,w,h);
+ if(tira){const Q=og.getImageData(0,0,w,h),q=Q.data;for(let i=3;i<q.length;i+=4)q[i]=q[i]>=110?255:0;og.putImageData(Q,0,0)} // contorno nítido (pixel art)
+ let u=o.toDataURL('image/png');if(u.length>(CFG.iconeMaxKb||40)*1400)u=o.toDataURL('image/webp',.9);return u}
 
 // ---------- gravar ----------
 async function gravar(pub){const v=valores(),it={...v,id:ED._novo?livre(ITR.itId(v.nome)):ED.id,publicado:pub===undefined?!!ED.publicado:pub};
