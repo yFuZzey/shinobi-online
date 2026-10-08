@@ -65,3 +65,48 @@
 /* contraste no papel: textos que eram dourado claro */
 #inv .ab{color:#a8560a}
 #inv #stPts.has{color:#a8560a}
+/* ---- pacotes 5 a 9 ---- */
+/* botões do canto: ícone quadrado com o nome embaixo (Grupo, Mapa, Mochila, da esquerda para a direita) */
+#s-game #mapbtn,#s-game #bagbtn,#s-game #grpbtn{top:6px;width:46px;height:62px;min-width:0;padding:0;margin:0;border:0!important;border-radius:0;box-shadow:none;font-size:0!important;color:transparent;background:var(--hb) center top/46px 47px no-repeat!important;image-rendering:pixelated;animation:none;overflow:visible}
+#s-game #bagbtn{--hb:var(--ui-hb_mochila);right:calc(8px + env(safe-area-inset-right,0px))}
+#s-game #mapbtn{--hb:var(--ui-hb_mapa);right:calc(62px + env(safe-area-inset-right,0px))}
+#s-game #grpbtn{--hb:var(--ui-hb_grupo);right:calc(116px + env(safe-area-inset-right,0px))}
+#s-game #bagbtn:active{--hb:var(--ui-hb_mochila_press)}#s-game #mapbtn:active{--hb:var(--ui-hb_mapa_press)}#s-game #grpbtn:active{--hb:var(--ui-hb_grupo_press)}
+#s-game #mapbtn:disabled{--hb:var(--ui-hb_mapa_off)}#s-game #bagbtn:disabled{--hb:var(--ui-hb_mochila_off)}#s-game #grpbtn:disabled{--hb:var(--ui-hb_grupo_off)}
+#s-game #mapbtn::after,#s-game #bagbtn::after,#s-game #grpbtn::after{content:attr(data-n);position:absolute;left:-12px;right:-12px;bottom:0;font:700 10px/12px system-ui,sans-serif;color:#fff;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 0 #1e1212,0 0 3px #1e1212}
+#s-game #bagbtn.new{filter:drop-shadow(0 0 6px #ff7a1a)}
+#chatbtn{width:40px!important;height:41px!important;padding:0!important;border:0!important;border-radius:0!important;font-size:0!important;background:var(--ui-hb_chat) center/100% 100% no-repeat!important;image-rendering:pixelated}
+#chatbtn:active{background-image:var(--ui-hb_chat_press)!important}
+/* joystick */
+#jb{border:0!important;border-radius:50%;background:var(--ui-jk_base) center/100% 100% no-repeat!important;image-rendering:pixelated}
+#jk{border-radius:0!important;background:var(--ui-jk_manche) center/contain no-repeat!important;image-rendering:pixelated}
+/* botões de golpe: moldura redonda; brilho quando o olho está ligado; cinza quando travado/sem chakra; tracejado no item vazio */
+#s-game .sb{border:0!important;box-shadow:none!important;background:var(--ui-sk) center/100% 100% no-repeat!important;image-rendering:pixelated;overflow:hidden}
+#s-game #b2{background-image:var(--ui-skg)!important}
+#s-game .sb.lock,#s-game .sb.off{background-image:var(--ui-sk_off)!important}
+#s-game #b2.lock,#s-game #b2.off{background-image:var(--ui-skg_off)!important}
+#s-game .sb.eyeon{background-image:var(--ui-sk_on)!important;background-size:113% 113%!important}
+#s-game #b2.eyeon{background-image:var(--ui-skg_on)!important;background-size:109% 109%!important}
+#s-game .sb.empty{background-image:var(--ui-sk_item)!important;opacity:.9}
+#s-game .sb.ao{filter:drop-shadow(0 0 6px #6fe08a)}
+body #s-game .sb img{width:52%;border-radius:3px}
+body #s-game .sb img.uij{width:50%;border-radius:4px}
+/* ícones das abas e do menu do retrato */
+.tic{display:inline-block;width:20px;height:20px;margin-right:5px;vertical-align:-4px;background:center/contain no-repeat;image-rendering:pixelated}
+#pfMenu .tic{width:22px;height:22px;margin-right:8px;vertical-align:-5px}
+/* slots da mochila e do equipamento; a raridade vem como moldura colorida */
+#inv .sl{border:0!important;border-radius:0;background:var(--ui-slot) 0 0/100% 100% no-repeat;background-size:100% 100%;image-rendering:pixelated;box-shadow:none}
+#inv .sl.sel{box-shadow:none}
+#inv .sl img{width:70%;height:70%;image-rendering:auto}
+/* ícones dos atributos (aba Status) */
+.aic{display:inline-block;width:22px;height:22px;min-width:22px;margin-right:6px;vertical-align:-5px;background:center/100% 100% no-repeat;image-rendering:pixelated}
+#stDer .aic{width:18px;height:18px;min-width:18px;margin-right:4px;vertical-align:-4px}
+/* escolha do clã: estandarte de cada clã (dourado ao tocar), nome e descrição embaixo */
+#s-clan{background:#1b1838 var(--ui-fundo_login) center bottom/cover no-repeat;image-rendering:pixelated}
+#s-clan h2{color:#f3e6c8;text-shadow:0 2px 0 #1e1212,0 0 6px #1e1212}
+#s-clan .card[data-k]{background:none;border:0;box-shadow:none;padding:0 4px;gap:2px;color:#f3e6c8;text-shadow:0 1px 0 #1e1212,0 0 4px #1e1212}
+#s-clan .card[data-k] canvas{display:none}
+#s-clan .card[data-k] small{color:#e8dcc2}
+#s-clan .card[data-k] b{font-size:16px}
+#s-clan .rolo{display:block;width:min(96px,26vh);aspect-ratio:80/200;background:var(--rl) center/contain no-repeat;transition:transform .12s}
+#s-clan .card[data-k]:hover .rolo,#s-clan .card[data-k]:active .rolo{background-image:var(--rlon);transform:scale(1.05)}

@@ -733,14 +733,17 @@ const SLN=['1','2','grande','3'],TPN={ninjutsu:'Ninjutsu',genjutsu:'Genjutsu',ta
 let MGKIC=null;{const U=[null,JU.uchiha&&JU.uchiha.olho];if(U[1]&&SPR.ic&&SPR.ic[U[1].ic]){const a=new Image(),b=new Image();let n=0;
  const go=()=>{if(++n<2)return;try{const c=document.createElement('canvas');c.width=c.height=96;const g=c.getContext('2d');g.drawImage(b,0,0,96,96);g.drawImage(a,18,18,60,60);MGKIC=c.toDataURL();jtBtnTick.l=null}catch(_){}};
  a.onload=go;b.onload=go;a.src=SPR.ic[U[1].ic];b.src=SFXIC.exp}}
-const skIcon=s=>s.imk?'<img src="'+SPR[s.imk]+'" style="image-rendering:auto">':s.im?'<img src="'+s.im+'" style="image-rendering:auto">':s.ic!=null&&SPR.ic&&SPR.ic[s.ic]?'<img src="'+SPR.ic[s.ic]+'">':'<span>'+(s.i||'❔')+'</span>';
+/* ícones novos dos jutsus (arte/ui → src/ui/icones.json). Sem ícone novo, fica o de antes */
+const UIJ=__UIJ__;
+function uiJuIc(s){if(!s||!clan||!CH)return '';let k=s.id;if(s.t==='eye'){const l=eyeLv();k=l===4&&CH.mgk?'mgk_'+CH.mgk:'olho'+Math.max(1,l)}return UIJ[k]?'<img class="uij" src="'+UIJ[k]+'" style="image-rendering:auto">':''}
+const skIcon=s=>uiJuIc(s)||(s.imk?'<img src="'+SPR[s.imk]+'" style="image-rendering:auto">':s.im?'<img src="'+s.im+'" style="image-rendering:auto">':s.ic!=null&&SPR.ic&&SPR.ic[s.ic]?'<img src="'+SPR.ic[s.ic]+'">':'<span>'+(s.i||'❔')+'</span>');
 const imgIc=u=>'<img src="'+u+'" style="image-rendering:auto">';
 function eyeLv(){if(clan!=='uchiha'||!CH)return 0;const l=CH.lv|0;return l>=TOM[4].lv&&EYES[CH.mgk]?4:l>=TOM[3].lv?3:l>=TOM[2].lv?2:l>=TOM[1].lv?1:0}
 const jtNodes=()=>(JT[clan]||[]).flatMap(b=>b.n);
 function jtSlotLv(i){const s=clan&&CLANS[clan].sk[i];return s?(s.t==='eye'?TOM[1].lv:juLv(s)):1} // nível que libera o jutsu que está no botão
 // o que cada botão mostra agora (nome, ícone, trava)
 function jtBtn(i){const s=CLANS[clan].sk[i];if(!s)return{nm:'',ic:'',lk:null,eye:0};let nm=s.n,ic=skIcon(s),lk=null,eye=0,ct=0;
- if(s.t==='eye'){const l=eyeLv();if(l===4){nm='Mangekyō';if(MGKIC)ic=imgIc(MGKIC)}else if(!l)lk=TOM[1].lv}
+ if(s.t==='eye'){const l=eyeLv();if(l===4){nm='Mangekyō';const u=UIJ['mgk_'+CH.mgk]||MGKIC;if(u)ic=imgIc(u)}else if(!l)lk=TOM[1].lv}
  else if(s.t==='sus'){const L2=juLv(s);if((CH.lv|0)<L2)lk=L2;else if(eyeLv()===4){if(SFXIC[CH.mgk])ic=imgIc(SFXIC[CH.mgk])}else eye=1}
  else if(s.t==='kuchi'){const L2=juLv(s);if((CH.lv|0)<L2)lk=L2;else if(!ctFam())ct=1;else if(INVIC[CH.ct.k])ic=imgIc(INVIC[CH.ct.k])}
  else if((CH.lv|0)<juLv(s))lk=juLv(s);
@@ -865,7 +868,7 @@ function barSet(i,id){if(!BAR||!barOkEm(id,i))return false;const j=BAR.indexOf(i
 // ---------- aba Jutsus ----------
 let juSel=null,juPick=null;
 function jtInfo(n){const s=n.j&&JU[clan]?JU[clan][n.j]:null;let nm=n.nm||(s&&s.n)||n.id,sub='',ic=s?skIcon(s):'<span>'+(n.ic||'❔')+'</span>';
- if(n.tm){if(n.tm===4){nm='Mangekyō';if(MGKIC)ic=imgIc(MGKIC);sub=CH.mgk&&EYES[CH.mgk]?'de '+EYES[CH.mgk].n:''}else{nm='Sharingan';sub=n.tm+' tomoe'}}
+ if(n.tm){if(n.tm===4){nm='Mangekyō';{const u=UIJ['mgk_'+CH.mgk]||MGKIC;if(u)ic=imgIc(u)}sub=CH.mgk&&EYES[CH.mgk]?'de '+EYES[CH.mgk].n:''}else{nm='Sharingan';sub=n.tm+' tomoe';if(UIJ['olho'+n.tm])ic=imgIc(UIJ['olho'+n.tm])}}
  if(n.id==='sus'&&EYES[CH.mgk]&&SFXIC[CH.mgk]){ic=imgIc(SFXIC[CH.mgk]);sub='de '+EYES[CH.mgk].n}
  if(n.id==='kuchi'){const f=ctFam();if(f&&INVIC[CH.ct.k])ic=imgIc(INVIC[CH.ct.k]);sub=f?f.n:''}
  const ok=!n.soon&&(CH.lv|0)>=n.lv,cur=n.tm?(n.tm===eyeLv()):false,needCt=ok&&n.id==='kuchi'&&!ctFam(),needEye=ok&&(n.id==='mgk'||n.id==='sus')&&!EYES[CH.mgk]||needCt;
@@ -912,7 +915,7 @@ function juDraw(){const el=$('#paneJu');if(!el||el.hidden||!clan||!CH)return;con
  el.querySelectorAll('[data-bs]').forEach(b=>b.onclick=()=>{const id=BAR&&BAR[+b.dataset.bs];const n=id&&id!=='item'&&jtNodes().find(x=>x.j===id&&(!x.tm||x.tm===Math.max(1,eyeLv())));if(n){juSel=n.id;juDraw()}});
  el.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{const v=+b.dataset.lv;let g=0;while(CH.lv<v&&CH.lv<LVMAX&&g++<200)gainXp(xpNeed(CH.lv)-CH.xp);juDraw()})}
 // barra (4 botões) no topo da aba Jutsus
-function juBarHtml(){if(!BAR)return '';const ic=id=>{if(id==='item'){const it=atkItem();return it&&it.icon?imgIc(it.icon):'<span>✋</span>'}const s=JU[clan][id];return s?(s.t==='eye'&&eyeLv()===4&&MGKIC?imgIc(MGKIC):skIcon(s)):'<span>❔</span>'};
+function juBarHtml(){if(!BAR)return '';const ic=id=>{if(id==='item'){const it=atkItem();return it&&it.icon?imgIc(it.icon):'<span>✋</span>'}const s=JU[clan][id];return s?(s.t==='eye'&&eyeLv()===4&&MGKIC&&!UIJ['mgk_'+CH.mgk]?imgIc(MGKIC):skIcon(s)):'<span>❔</span>'};
  const nm=id=>id==='item'?(atkItem()?atkItem().name:'Item da mão'):(JU[clan][id]&&JU[clan][id].t==='eye'&&eyeLv()===4?'Mangekyō':(JU[clan][id]||{}).n||id);
  return '<div class="jbar"><span class="jbl">Sua barra</span>'+[0,1,3,2].map(i=>'<button class="jbs'+(i===2?' big':'')+'" data-bs="'+i+'"><span class="ji">'+ic(BAR[i])+'</span><small>'+(i===2?'Grande':'Botão '+SLN[i])+'</small><b>'+String(nm(BAR[i])).replace(/[<>&]/g,'')+'</b></button>').join('')+'</div>'}
 // botões "pôr no botão…" no detalhe de um jutsu liberado
@@ -1362,6 +1365,20 @@ function pfBadge(){const n=CH&&CH.pts>0?CH.pts:0;[['#hfBadge'],['#pfBadge']].for
  m.querySelectorAll('[data-pf]').forEach(b=>b.onclick=e=>{e.stopPropagation();pfMenu(false);toggleBag(true,b.dataset.pf)});
  document.addEventListener('click',e=>{if(!m.hidden&&!m.contains(e.target)&&!f.contains(e.target))pfMenu(false)},true)}
  setInterval(pfBadge,500)}
+/* pacotes 5 a 9: ícones nas abas e no menu do retrato, nomes embaixo dos botões do canto, slots, atributos e cartões dos clãs */
+{const TIC={tbBag:['mochila','Mochila'],tbCh:['personagem','Personagem'],tbSt:['status','Status'],tbJu:['jutsus','Jutsus']},PIC={ch:'personagem',st:'status',ju:'jutsus'};
+ for(const id in TIC){const b=$('#'+id);if(b)b.innerHTML='<i class="tic" style="background-image:var(--ui-ab_'+TIC[id][0]+')"></i>'+TIC[id][1]}
+ document.querySelectorAll('#pfMenu [data-pf]').forEach(b=>{const t=b.childNodes[0];if(t&&t.nodeType===3)t.textContent=t.textContent.replace(/^\S+\s*/,'');b.insertAdjacentHTML('afterbegin','<i class="tic" style="background-image:var(--ui-ab_'+PIC[b.dataset.pf]+')"></i>')});
+ const EMO=/[\p{Extended_Pictographic}\uFE0F\u200D]/gu;
+ setInterval(()=>{['#mapbtn','#bagbtn','#grpbtn'].forEach(q=>{const b=$(q);if(!b)return;const t=b.textContent.replace(EMO,'').trim();if(b.dataset.n!==t)b.dataset.n=t})},500);
+ document.querySelectorAll('.card canvas[data-k]').forEach(c=>{const d=c.closest('.card'),k=c.dataset.k;if(!d||!UIJ['rolo_'+k])return;d.dataset.k=k;
+  d.insertAdjacentHTML('afterbegin','<i class="rolo" style="--rl:url('+UIJ['rolo_'+k]+');--rlon:url('+UIJ['rolo_'+k+'_on']+')"></i>')})}
+{const _br=bagRefresh;bagRefresh=function(){_br();const eq=document.querySelectorAll('#ivEq .es .sl');
+  SLOT_DEFS.forEach(([s2],i)=>{const b=eq[i];if(!b)return;const id=EQ[s2];b.style.backgroundImage=id?'var(--ui-rar_'+((ITEMS[id]||{}).rarity||'comum')+'),var(--ui-'+(id==invSel?'slot_sel':'slot')+')':'var(--ui-eq_'+s2+')'});
+  document.querySelectorAll('#ivGrid .sl').forEach((b,i)=>{const id=INV[i];if(id)b.style.backgroundImage='var(--ui-rar_'+((ITEMS[id]||{}).rarity||'comum')+'),var(--ui-'+(id==invSel?'slot_sel':'slot')+')'})}}
+{const _sr=stRefresh,DK={'Vida máxima':'hp','Chakra máximo':'mp','Poder físico':'pf','Poder de chakra':'pc','Crítico':'crit','Esquiva':'esq','Precisão':'prec','Redução de dano':'red','Velocidade':'spd','Recarga':'cdr','Regeneração de chakra':'mpr'};
+ stRefresh=function(){_sr();document.querySelectorAll('#stRows .strow').forEach((r,i)=>{const b=r.querySelector('.sn>b');if(b&&AT[i]&&!b.classList.contains('aic')){b.className='aic';b.title=AT[i][1];b.style.backgroundImage='var(--ui-at_'+AT[i][0]+')';b.textContent=''}});
+  document.querySelectorAll('#stDer>div>span:first-child').forEach(sp=>{const k=DK[sp.textContent];if(k&&!sp.querySelector('.aic'))sp.insertAdjacentHTML('afterbegin','<i class="aic" style="background-image:var(--ui-at_'+k+')"></i>')})}}
 {const _sp=setPanel;setPanel=function(w){_sp(w);const bag=w==='bag';$('#tbBag').hidden=!bag;['#tbCh','#tbSt','#tbJu'].forEach(s=>{$(s).hidden=bag})}}
 // ---------- Retrato do personagem (mochila e aba Personagem), animado enquanto a janela está aberta ----------
 function drawPortrait(cv,ts){if(!cv||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);
