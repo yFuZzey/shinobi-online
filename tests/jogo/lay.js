@@ -29,8 +29,9 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
  await W(350);const fr=await U.evaluate(()=>({hp:E[0].hp,boom:_fb===1,left:P.filter(b=>b.fire).length}));
  ok(fr.hp<5000&&fr.boom&&!fr.left,'acertou o alvo e explodiu ('+(5000-fr.hp)+' de dano)');
  await U.screenshot({path:__dirname+'/lay_fogo2.png'});
- // anda durante a pose: a pose é cortada (sem travar o ninja)
- await setup(U,400);const x0=await U.evaluate(()=>{cast(0);return p.x});await U.keyboard.down('ArrowLeft');await W(250);await U.keyboard.up('ArrowLeft');const mv=await U.evaluate(()=>({dx:p.x,a:ACT&&ACT.a}));ok(x0-mv.dx>15,'pode andar logo depois de soltar: a pose não prende o ninja (andou '+Math.round(x0-mv.dx)+' px)');
+ // anda durante a pose: o ninja para só enquanto faz o selo e depois volta a andar sozinho
+ await setup(U,400);const x0=await U.evaluate(()=>{cast(0);return p.x});await U.keyboard.down('ArrowLeft');await W(200);const m1=await U.evaluate(()=>({dx:p.x,a:ACT&&ACT.a}));await W(800);await U.keyboard.up('ArrowLeft');const mv=await U.evaluate(()=>({dx:p.x,a:ACT&&ACT.a}));
+ ok(Math.abs(x0-m1.dx)<2&&m1.a==='fogo','andando, o ninja para durante o selo (andou '+Math.round(x0-m1.dx)+' px)');ok(x0-mv.dx>15,'depois do selo volta a andar sozinho (andou '+Math.round(x0-mv.dx)+' px)');
  // item da mão
  await U.evaluate(()=>{giveItems(['chidori']);equipItem('chidori')});await W(200);
  ok(await U.evaluate(()=>!$('#b3').classList.contains('empty')&&/Chidori/.test($('#b3').textContent)&&/Bola de Fogo/.test($('#b0').textContent)),'com o Chidori equipado: o 4º botão vira Chidori e a Bola de Fogo continua no 1º');

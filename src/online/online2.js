@@ -407,7 +407,7 @@ function gsMsg(m){
  case 'sys':onlReg('ℹ️ '+m.msg);toast(m.msg);break;
  case 'cmdr':onlReg('🛠️ '+m.msg);toast(m.msg);break;
  case 'adm':ONL.adm=!!m.on;document.body.classList.toggle('adm',ONL.adm);{const t=m.on?'🛡️ Você agora é admin.':'Você não é mais admin.';onlReg(t);toast(t)}onlStatus();chatDraw();break;
- case 'fx':{const pe=ONL.peers[m.id];if(!pe||pe.sc!==(scene|0))break;(m.fx||[]).forEach(f=>{if(f.k==='act'){if(ACTS[f.a])pe.act={a:f.a,t0:performance.now(),root:ACTS[f.a].root||0};return}f.rm=1;f._s=1;f.pid=m.id;f.life=f.max||f.life||.5;if(f.k!=='kfx'||KSEQ[f.q])fx.push(f)});(m.pr||[]).forEach(b=>{b.rm=1;b._s=1;b.dmg=0;b.pid=m.id;P.push(b)});break}
+ case 'fx':{const pe=ONL.peers[m.id];if(!pe||pe.sc!==(scene|0))break;(m.fx||[]).forEach(f=>{if(f.k==='act'){if(ACTS[f.a])pe.act={a:f.a,t0:performance.now(),root:ACTS[f.a].root||0,para:ACTS[f.a].para||0};return}f.rm=1;f._s=1;f.pid=m.id;f.life=f.max||f.life||.5;if(f.k!=='kfx'||KSEQ[f.q])fx.push(f)});(m.pr||[]).forEach(b=>{b.rm=1;b._s=1;b.dmg=0;b.pid=m.id;P.push(b)});break}
  case 'pinvite':grpInvite(m);break;
  case 'tinvite':tradeInvite(m);break;
  case 'trade':ONL.trade=m;tradeDraw();grpDraw();break;
@@ -929,23 +929,26 @@ function juEye(k){if(!EYES[k]||(CH.lv|0)<TOM[4].lv||CH.mgk===k)return;if(CH.mgk&
 // ---------- Hyuga de branco: parado (postura do Punho Gentil), andando, correndo e poses de golpe ----------
 // poses (folha "hya"): 0 guarda · 1 preparo · 2 estocada da palma · 4 guarda · 5 postura das 64 Palmas · 6 giro · 7 agachado
 // 8 concentração · 15/16 golpes com rastro · 18/19 rajada de braços · 20 palmas duplas
-// root = o ninja fica parado durante a pose (Kaiten e 64 Palmas, como no anime); sem root, andar corta a pose na hora
+// root = o ninja fica parado durante a pose e não usa outro golpe (Kaiten e 64 Palmas, como no anime)
+// para = o ninja só para de andar durante a pose (selo do Katon e Palma): andando, ele para, faz a pose e volta a correr; os outros golpes continuam livres
 const ACTS={fogo:{k:'uca',d:.4,s:[[8,.16],[12,.24]]},palma:{d:.3,s:[[1,.06],[2,.14],[0,.1]]},
  kaiten:{d:1,root:1,s:[[8,.1],[7,.1],['spin',.65],[4,.15]]},
  hakke:{d:1.06,root:1.06,s:[[5,.18],[15,.08],[16,.08],['flurry',.52],[20,.2]]}};
 {const U=JU.uchiha.katon,H=JU.hyuga;const tf=U.tel||.16,tp=H.palma.tel||.06,th=Math.max(0,(H.hakke.tel||.26)-.26);
- ACTS.fogo.s[0][1]=tf;ACTS.fogo.d=tf+.24;ACTS.palma.s[0][1]=tp;ACTS.palma.d=tp+.24;ACTS.hakke.s[0][1]+=th;ACTS.hakke.d+=th;ACTS.hakke.root+=th}
+ ACTS.fogo.s[0][1]=tf;ACTS.fogo.d=tf+.24;ACTS.palma.s[0][1]=tp;ACTS.palma.d=tp+.24;ACTS.hakke.s[0][1]+=th;ACTS.hakke.d+=th;ACTS.hakke.root+=th;
+ ACTS.fogo.para=ACTS.fogo.d;ACTS.palma.para=ACTS.palma.d} /* Katon (selo de mãos) e Palma: o boneco para só durante a pose (antes, andar cortava a pose e ele ficava sem animação) */
 let ACT=null,HHAND=null; // HHAND = onde está a mão da frente no quadro que acabou de ser desenhado (Chidori na mão)
 const actEl=A=>(performance.now()-A.t0)/1000;
-function actStart(a){const D=ACTS[a];if(!D)return;ACT={a,t0:performance.now(),root:D.root||0};fx.push({k:'act',a,life:.05,max:.05})}
+function actStart(a){const D=ACTS[a];if(!D)return;ACT={a,t0:performance.now(),root:D.root||0,para:D.para||0};fx.push({k:'act',a,life:.05,max:.05})}
 function actRoot(){return !!(ACT&&ACT.root&&actEl(ACT)<ACT.root)}
+function actPara(){return !!(ACT&&ACT.para&&actEl(ACT)<ACT.para)}
 const kaitenGuard=()=>!!(ACT&&ACT.a==='kaiten'&&actEl(ACT)<BAL.golpes.kaitenBloqueio); // girando: bloqueia os golpes recebidos
 function actFrame(A){const D=A&&ACTS[A.a];if(!D)return null;const t=actEl(A);if(t>=D.d)return null;let acc=0;
  for(const [f,dt] of D.s){if(t<acc+dt){const lt=t-acc;if(f==='spin')return{i:6,flip:(lt/.07|0)%2};if(f==='flurry')return{i:(lt/.065|0)%2?19:18,flip:0};return{i:f,flip:0}}acc+=dt}return null}
 {const _dh=drawHero;drawHero=function(c,x,y,o){
  const HS=o.set||HERO,cl=o.clan!==undefined?o.clan:(o.set?null:clan),A=o.act!==undefined?o.act:(o.set?null:ACT);
  let key=null,fr=0,flip=0;
- if(HS&&A&&(A.root||!o.mv)){const r=actFrame(A),k=(ACTS[A.a]||{}).k||'hya';if(r&&HS[k]){key=k;fr=r.i;flip=r.flip}}
+ if(HS&&A&&(A.root||A.para||!o.mv)){const r=actFrame(A),k=(ACTS[A.a]||{}).k||'hya';if(r&&HS[k]){key=k;fr=r.i;flip=r.flip}}
  if(key===null&&cl==='hyuga'&&HS&&HS.hyw&&!(o.aura>=0)&&!(o.th>=0)){
   if(o.mv){if(o.run){key='hyr';fr=(o.t/60|0)%HS.hyr.length}else{key='hyw';fr=(o.t/95|0)%HS.hyw.length}}else{key='hya';fr=0}}
  if(key===null){HHAND=null;return _dh(c,x,y,o)}
@@ -1391,6 +1394,8 @@ function visCamadas(c,V,tras,im,dx,dy,dw,dh,o){const HS=o.set||HERO,R=HS&&HS.idl
    c.save();c.shadowColor=col;c.shadowBlur=4+5*pu;ITR.itDesenha(c,li,Q,pa);c.restore();
    if(!P.div||!tras){c.save();c.globalCompositeOperation='lighter';for(let i=0;i<5;i++){const ph=((t/900)+i/5)%1,ex=Q.x+(i-2)*Q.w*.18+Math.sin(t/200+i)*2,ey=Q.y+Q.h*.3-ph*Q.h*.8;c.fillStyle=hexA(col,.75*(1-ph));c.beginPath();c.arc(ex,ey,1.8*(1-ph)+.5,0,7);c.fill()}c.restore()}}
   else ITR.itDesenha(c,li,Q,pa)}}
+/* sempre correndo: todo boneco que se mexe usa a animação de corrida (em todos os clãs; não existe mais a de caminhada) */
+{const _dh=drawHero;drawHero=function(c,x,y,o){if(o&&o.mv)o.run=1;return _dh(c,x,y,o)}}
 /* o boneco é desenhado com drawImage dentro do drawHero: no primeiro drawImage, desenha as camadas de trás, o boneco e as da frente (com o mesmo giro/espelho) */
 {const _dh=drawHero;drawHero=function(c,x,y,o){const V=o&&o.vis;if(!V||!V.length||typeof ITR==='undefined')return _dh(c,x,y,o);
  const di=c.drawImage;let done=false;

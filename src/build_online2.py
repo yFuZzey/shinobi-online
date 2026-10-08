@@ -195,7 +195,9 @@ rep("  E.forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hit
 rep("  E.forEach(e=>{if(e.dead)return;const dx=e.x-p.x,dy=e.y-p.y,pr=","  E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-p.x,dy=e.y-p.y,pr=")
 rep("  E.forEach(e=>{if(e.dead)return;const dx=e.x-hx,dy=e.y-hy,dd=","  E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-hx,dy=e.y-hy,dd=")
 # atordoado (PvP): não anda
-rep("if(p.dash){dashStep(dt)}else if(m>.15){","if(p.dash){dashStep(dt)}else if(PST>0){PST-=dt;p.mv=0}else if(PRT>0||actRoot()){p.mv=0}else if(m>.15){if(ACT&&!ACT.root)ACT=null;")
+rep("if(p.dash){dashStep(dt)}else if(m>.15){","if(p.dash){dashStep(dt)}else if(PST>0){PST-=dt;p.mv=0}else if(PRT>0||actRoot()||actPara()){p.mv=0}else if(m>.15){if(ACT&&!ACT.root)ACT=null;")
+# sempre correndo: qualquer toque no joystick já corre (não existe mais andar devagar)
+rep("const run=m>.8||keys.shift;","const run=1;")
 # golpes em área passam por castAoe (os Hyuga usam a folha de efeitos do Kaiten)
 rep(" if(s.t=='aoe'){const cx=p.x+ax*(s.off||0),cy=p.y+ay*(s.off||0);\n  fx.push({k:'ring',x:cx,y:cy-8,r:s.r,col:s.col,life:.45,max:.45,sp:s.fx});\n  E.concat(PVT()).forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hitE(e,s.dmg,s.stun,ax*(s.kb||0),ay*(s.kb||0))});\n  if(s.fx)flash={col:s.col,a:.3}}",
     " if(s.t=='aoe')castAoe(s,ax,ay);else if(JCAST[s.t])JCAST[s.t](s,ax,ay);")
