@@ -33,8 +33,8 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
  ok(r.conf>.5&&r.n===1,'Genjutsu confunde o alvo ('+r.conf.toFixed(1)+' s)');
  await pg.evaluate(()=>{cd[0]=0;cast(0)});await W(700);ok(await pg.evaluate(()=>!(E[0].conf>0)),'… e passa quando ele leva dano');
  // Amaterasu (Mangekyō)
- await lvTo(45);await pg.evaluate(()=>{CH.mgk='itachi';chSave();barSet(3,'amat')});await alvos([[110,0]]);
- r=await pg.evaluate(()=>{const m=p.mp;cast(3);return{cd:cd[3],g:m-p.mp,off:$('#b3').classList.contains('off')}});ok(r.cd===0&&r.g===0&&r.off,'Amaterasu sem a Mangekyō ligada: botão apagado, não sai, não gasta');
+ await lvTo(45);await pg.evaluate(()=>{CH.mgk='itachi';chSave();barSet(3,'amat')});await alvos([[110,0]]);await W(150);
+ r=await pg.evaluate(()=>{const m=p.mp;cast(3);return{cd:cd[3],g:m-p.mp,off:$('#b3').classList.contains('off')}});ok(r.cd===0&&r.g===0&&r.off,'Amaterasu sem a Mangekyō ligada: botão apagado, não sai, não gasta '+JSON.stringify(r));
  await pg.evaluate(()=>{p.mp=p.mpMax;cd[1]=0;useBtn(1)});await W(200);ok(await pg.evaluate(()=>EYE.on==='mgk'),'liga a Mangekyō');
  await pg.evaluate(()=>{p.mp=p.mpMax;cast(3)});await W(3300);r=await pg.evaluate(()=>_hits[0]);ok(r>=3,'Amaterasu: golpe + queimas por segundo ('+r+' acertos em 3,3 s)');
  // Tsukuyomi: de frente atordoa, de costas não

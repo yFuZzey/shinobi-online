@@ -1379,6 +1379,19 @@ function pfBadge(){const n=CH&&CH.pts>0?CH.pts:0;[['#hfBadge'],['#pfBadge']].for
 {const _sr=stRefresh,DK={'Vida máxima':'hp','Chakra máximo':'mp','Poder físico':'pf','Poder de chakra':'pc','Crítico':'crit','Esquiva':'esq','Precisão':'prec','Redução de dano':'red','Velocidade':'spd','Recarga':'cdr','Regeneração de chakra':'mpr'};
  stRefresh=function(){_sr();document.querySelectorAll('#stRows .strow').forEach((r,i)=>{const b=r.querySelector('.sn>b');if(b&&AT[i]&&!b.classList.contains('aic')){b.className='aic';b.title=AT[i][1];b.style.backgroundImage='var(--ui-at_'+AT[i][0]+')';b.textContent=''}});
   document.querySelectorAll('#stDer>div>span:first-child').forEach(sp=>{const k=DK[sp.textContent];if(k&&!sp.querySelector('.aic'))sp.insertAdjacentHTML('afterbegin','<i class="aic" style="background-image:var(--ui-at_'+k+')"></i>')})}}
+/* segurar um botão de golpe mostra o que ele faz (dano, chakra, recarga); soltar esconde. O golpe sai normalmente ao tocar */
+function sbTipHtml(i){if(!clan||!CH)return '';const esc2=t=>String(t).replace(/[<>&]/g,'');
+ if(i===3&&!CLANS[clan].sk[3]){const it=atkItem();if(!it)return '<b class="tt">Item da mão</b><p>Equipe um item de mão com habilidade (ex.: Chidori) para usar aqui.</p>';
+  return '<div class="th">'+(it.icon?imgIc(it.icon):'')+'<div><b class="tt">'+esc2(it.name)+'</b><small>Item da mão</small></div></div>'+(it.desc?'<p>'+esc2(it.desc)+'</p>':'')}
+ const s=CLANS[clan].sk[i];if(!s)return '';const N=jtNodes();let n=s.t==='eye'?N.find(x=>x.tm===Math.max(1,eyeLv())):N.find(x=>x.j===s.id);if(!n)return '';
+ const I=jtInfo(n),L=juStats(n)||[],d=JTD[n.id]||'';
+ return '<div class="th">'+I.ic+'<div><b class="tt">'+esc2(I.nm)+(I.sub?' <small>'+esc2(I.sub)+'</small>':'')+'</b>'+(I.ok?'':'<small class="tl">🔒 Libera no Nv '+n.lv+'</small>')+'</div></div>'
+  +(d?'<p>'+d+'</p>':'')+(L.length?'<ul>'+L.map(x=>'<li>'+x+'</li>').join('')+'</ul>':'')}
+{let tk=0,tip=null;const hide=()=>{clearTimeout(tk);tk=0;if(tip)tip.hidden=true};
+ [0,1,2,3].forEach(i=>{const b=$('#b'+i);if(!b)return;
+  b.addEventListener('pointerdown',()=>{clearTimeout(tk);tk=setTimeout(()=>{const h=sbTipHtml(i);if(!h)return;if(!tip){tip=document.createElement('div');tip.id='sbTip';document.body.appendChild(tip)}tip.innerHTML=h;tip.hidden=false},450)});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,hide))});
+ window.addEventListener('blur',hide)}
 {const _sp=setPanel;setPanel=function(w){_sp(w);const bag=w==='bag';$('#tbBag').hidden=!bag;['#tbCh','#tbSt','#tbJu'].forEach(s=>{$(s).hidden=bag})}}
 // ---------- Retrato do personagem (mochila e aba Personagem), animado enquanto a janela está aberta ----------
 function drawPortrait(cv,ts){if(!cv||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);

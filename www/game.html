@@ -456,6 +456,21 @@ body #s-game .sb img.uij{width:50%;border-radius:4px}
 #s-clan .card[data-k] b{font-size:16px}
 #s-clan .rolo{display:block;width:min(96px,26vh);aspect-ratio:80/200;background:var(--rl) center/contain no-repeat;transition:transform .12s}
 #s-clan .card[data-k]:hover .rolo,#s-clan .card[data-k]:active .rolo{background-image:var(--rlon);transform:scale(1.05)}
+
+/* botões de golpe: sem nome, ícone redondo no centro preenchendo o miolo da moldura */
+#s-game .sb{font-size:0!important}
+body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%;width:86%;height:86%;transform:translate(-50%,-50%);object-fit:cover;border-radius:0;clip-path:circle(41% at 50% 50%);pointer-events:none}
+#s-game #b2 img,#s-game #b2 img.uij{width:84%!important;height:84%!important;clip-path:circle(42% at 50% 50%)}
+#s-game .sb>span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:26px!important;line-height:1}
+#s-game .sb .lk{z-index:2}
+/* detalhes ao segurar o botão */
+#sbTip{position:fixed;right:calc(170px + env(safe-area-inset-right,0px));bottom:14px;z-index:40;width:min(340px,58vw);max-height:80vh;overflow:auto;padding:4px 8px;border:solid transparent;border-width:16px 14px 14px 18px;border-image:var(--ui-painel) 8 7 7 9;background:#f0deaa var(--ui-papel) 0 0/32px 32px;background-clip:padding-box;filter:drop-shadow(0 8px 14px rgba(0,0,0,.55));color:#2a1a14;font:13px/1.35 system-ui,sans-serif;image-rendering:pixelated;pointer-events:none}
+#sbTip[hidden]{display:none}
+#sbTip .th{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+#sbTip .th img,#sbTip .th span{width:44px;height:44px;flex:0 0 44px;border-radius:6px;font-size:30px;text-align:center}
+#sbTip .tt{display:block;font-size:16px;color:#3a201a}#sbTip .tt small{font-size:12px;color:#7a5a3c;font-weight:600}
+#sbTip .tl{display:block;color:#b0301a;font-weight:700;font-size:12px}
+#sbTip p{margin:0 0 6px}#sbTip ul{margin:0;padding-left:16px}#sbTip li{margin:2px 0;font-size:12px}
 </style></head><body>
 
 <div id="s-login" class="scr on">
@@ -2433,7 +2448,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610080021'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610080029'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2547,6 +2562,19 @@ function pfBadge(){const n=CH&&CH.pts>0?CH.pts:0;[['#hfBadge'],['#pfBadge']].for
 {const _sr=stRefresh,DK={'Vida máxima':'hp','Chakra máximo':'mp','Poder físico':'pf','Poder de chakra':'pc','Crítico':'crit','Esquiva':'esq','Precisão':'prec','Redução de dano':'red','Velocidade':'spd','Recarga':'cdr','Regeneração de chakra':'mpr'};
  stRefresh=function(){_sr();document.querySelectorAll('#stRows .strow').forEach((r,i)=>{const b=r.querySelector('.sn>b');if(b&&AT[i]&&!b.classList.contains('aic')){b.className='aic';b.title=AT[i][1];b.style.backgroundImage='var(--ui-at_'+AT[i][0]+')';b.textContent=''}});
   document.querySelectorAll('#stDer>div>span:first-child').forEach(sp=>{const k=DK[sp.textContent];if(k&&!sp.querySelector('.aic'))sp.insertAdjacentHTML('afterbegin','<i class="aic" style="background-image:var(--ui-at_'+k+')"></i>')})}}
+/* segurar um botão de golpe mostra o que ele faz (dano, chakra, recarga); soltar esconde. O golpe sai normalmente ao tocar */
+function sbTipHtml(i){if(!clan||!CH)return '';const esc2=t=>String(t).replace(/[<>&]/g,'');
+ if(i===3&&!CLANS[clan].sk[3]){const it=atkItem();if(!it)return '<b class="tt">Item da mão</b><p>Equipe um item de mão com habilidade (ex.: Chidori) para usar aqui.</p>';
+  return '<div class="th">'+(it.icon?imgIc(it.icon):'')+'<div><b class="tt">'+esc2(it.name)+'</b><small>Item da mão</small></div></div>'+(it.desc?'<p>'+esc2(it.desc)+'</p>':'')}
+ const s=CLANS[clan].sk[i];if(!s)return '';const N=jtNodes();let n=s.t==='eye'?N.find(x=>x.tm===Math.max(1,eyeLv())):N.find(x=>x.j===s.id);if(!n)return '';
+ const I=jtInfo(n),L=juStats(n)||[],d=JTD[n.id]||'';
+ return '<div class="th">'+I.ic+'<div><b class="tt">'+esc2(I.nm)+(I.sub?' <small>'+esc2(I.sub)+'</small>':'')+'</b>'+(I.ok?'':'<small class="tl">🔒 Libera no Nv '+n.lv+'</small>')+'</div></div>'
+  +(d?'<p>'+d+'</p>':'')+(L.length?'<ul>'+L.map(x=>'<li>'+x+'</li>').join('')+'</ul>':'')}
+{let tk=0,tip=null;const hide=()=>{clearTimeout(tk);tk=0;if(tip)tip.hidden=true};
+ [0,1,2,3].forEach(i=>{const b=$('#b'+i);if(!b)return;
+  b.addEventListener('pointerdown',()=>{clearTimeout(tk);tk=setTimeout(()=>{const h=sbTipHtml(i);if(!h)return;if(!tip){tip=document.createElement('div');tip.id='sbTip';document.body.appendChild(tip)}tip.innerHTML=h;tip.hidden=false},450)});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,hide))});
+ window.addEventListener('blur',hide)}
 {const _sp=setPanel;setPanel=function(w){_sp(w);const bag=w==='bag';$('#tbBag').hidden=!bag;['#tbCh','#tbSt','#tbJu'].forEach(s=>{$(s).hidden=bag})}}
 // ---------- Retrato do personagem (mochila e aba Personagem), animado enquanto a janela está aberta ----------
 function drawPortrait(cv,ts){if(!cv||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);
