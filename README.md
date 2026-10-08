@@ -30,6 +30,7 @@ MMORPG 2D no universo Naruto (protótipo).
 - Cria o item do zero: ícone, nome, nível para equipar, raridade, parte do corpo, tipo (só atributos, habilidade que já existe ou habilidade nova para o Claude programar) e atributos. O valor dos atributos é automático: `server/balanceamento.json` → `itensPainel`.
 - Rascunho só o admin vê; **Publicar** coloca no jogo (o servidor relê na hora). O código do item (`p_…`) é o que vai nos drops do editor.
 - Habilidade nova pedida no painel: o Claude programa, põe em `itensPainel.habilidades` e liga o item em `itensPainel.prontas` (código → habilidade). Ex.: Samehada → `drena` (passiva Drenar chakra + arma nas costas com aura laranja; teste `tests/online/t42.js`).
+- **Visual no corpo** (personagem em camadas): no painel, cada item (capa, arma, cabeça, acessório) pode ter o desenho dele vestido no boneco, com ajuste de tamanho, posição e giro e prévia no molde. Capa pode ter um segundo desenho "ao vento" para quando corre. Os pontos de encaixe saem dos pixels de cada quadro do boneco (`itAncora` em `server/itens_regras.js`), então a camada acompanha todas as poses dos 3 clãs. Molde para a IA: `/painel/molde/parado_ia.png` e `correndo_ia.png` (gerados de `server/molde/`). Banco: `sql/10_itens_visual.sql`. Teste: `tests/online/t43.js`.
 - Banco: `sql/09_itens.sql` (tabela `itens`; todos leem os publicados, só admin grava). Regras iguais no jogo, servidor e painel: `server/itens_regras.js`. Teste: `tests/online/t41.js`.
 
 ## Arte da interface (tema pixel)

@@ -448,7 +448,7 @@ function onlDraw(L,ts){if(!ONL.on)return;
   L.push({y:pe.y,d:()=>{const FL=(pe.eq||[]).map(i=>ITEMS[i]).filter(it=>it&&it.fx&&(it.fx.tails||it.fx.orbit||it.fx.glow||it.fx.hand)).map(it=>it.fx);
    fxDraw(ctx,pe.x,pe.y,ts,FL,0);
    if(pe.hitT>0)ctx.globalAlpha=.5;
-   if(HERO)drawHero(ctx,pe.x,pe.y,{fl:pe.fl,t:ts+id.length*97,mv:pe.mv,run:pe.run,aura:pe.au,th:pe.th,set:heroFor(pe.look),clan:pe.clan,act:pe.act&&actFrame(pe.act)?pe.act:null});else drawChar(ctx,pe.x,pe.y,{...(pe.look||look),clan:pe.clan,dir:0,t:ts,mv:pe.mv,run:pe.run});
+   if(HERO)drawHero(ctx,pe.x,pe.y,{fl:pe.fl,t:ts+id.length*97,mv:pe.mv,run:pe.run,aura:pe.au,th:pe.th,set:heroFor(pe.look),clan:pe.clan,act:pe.act&&actFrame(pe.act)?pe.act:null,vis:eqVis(pe.eq||[])});else drawChar(ctx,pe.x,pe.y,{...(pe.look||look),clan:pe.clan,dir:0,t:ts,mv:pe.mv,run:pe.run});
    ctx.globalAlpha=1;
    fxDraw(ctx,pe.x,pe.y,ts,FL,1,{fl:pe.fl});
    const gp=inGrp(id);ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle=gp?'#7dff9a':'#9fe8ff';
@@ -1375,18 +1375,32 @@ function drenoGanha(pct){const v=Math.round(p.mpMax*pct/100);if(v<1)return;p.mp=
   return r}}
 {let last=0;const _h=hitE;hitE=function(e,d,st,kx,ky){const vivo=e&&!e.dead&&!e.pvp;const r=_h(e,d,st,kx,ky);const P=vivo&&drenoOn(),t=performance.now();
   if(P&&t-last>=Math.max(.2,+P.intervalo||.5)*1000){last=t;drenoGanha(+P.pve||0)}return r}}
-/* arma nas costas com aura laranja (fx.arma): o ícone do item, tremulando, com faíscas subindo; os outros jogadores também veem */
-const ARMIM={};function armaImg(u){if(!u)return null;let i=ARMIM[u];if(!i){i=new Image();i.src=u;ARMIM[u]=i}return i.complete&&i.naturalWidth?i:null}
-function armaDraw(c,x,y,ts,f,front,o){const im=armaImg(f.icon);if(!im)return;const fl=o&&o.fl?-1:1,H=46,w=H*im.width/im.height,pu=.5+.5*Math.sin(ts/140),cx=x-fl*7,cy=y-40,col=f.glow||'#ff8a1a';
- if(!front){c.save();c.globalCompositeOperation='lighter';const g=c.createRadialGradient(cx,cy,2,cx,cy,30);g.addColorStop(0,hexA(col,.35+.15*pu));g.addColorStop(1,hexA(col,0));c.fillStyle=g;c.beginPath();c.ellipse(cx,cy,24,30,0,0,7);c.fill();c.restore();
-  c.save();c.translate(cx,cy);c.scale(fl,1);c.shadowColor=col;c.shadowBlur=6+6*pu;c.drawImage(im,-w/2,-H/2,w,H);c.globalCompositeOperation='lighter';c.globalAlpha=.18+.14*pu;c.drawImage(im,-w/2-1,-H/2-1,w+2,H+2);c.restore();return}
- c.save();c.globalCompositeOperation='lighter';for(let i=0;i<5;i++){const ph=((ts/900)+i/5)%1,ax=cx+fl*(-10+i*5)+Math.sin(ts/200+i)*3,ay=cy+12-ph*34,r=2.2*(1-ph)+.6;c.fillStyle=hexA(col,.75*(1-ph));c.beginPath();c.arc(ax,ay,r,0,7);c.fill()}c.restore()}
-{const _fd=fxDraw;fxDraw=function(c,x,y,ts,list,front,o){if(list&&!front)list.forEach(f=>{if(f.arma)armaDraw(c,x,y,ts,f,0,o)});_fd(c,x,y,ts,list,front,o);if(list&&front)list.forEach(f=>{if(f.arma)armaDraw(c,x,y,ts,f,1,o)})}}
+/* ---------- visual no corpo: itens equipados em camadas no boneco (capa e arma atrás, cabeça e acessório na frente) ----------
+   O desenho de cada item vem do painel ("Visual no corpo"); os pontos de encaixe saem dos pixels de cada quadro do boneco,
+   então a camada acompanha todas as poses (parado, correndo, golpes, aura) e vira junto quando ele vira. */
+const VIM={};function visImg(u){if(!u)return null;let i=VIM[u];if(!i){i=new Image();i.src=u;VIM[u]=i}return i.complete&&i.naturalWidth?i:null}
+const ANC=new WeakMap();function ancDe(im){let a=ANC.get(im);if(a!==undefined)return a;a=null;
+ try{const w=im.width,h=im.height,c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0);a=ITR.itAncora(g.getImageData(0,0,w,h).data,w,h)}catch(_){}ANC.set(im,a);return a}
+let visBusca=-1e9;function eqVis(ids){const L=[];for(const id of (ids||Object.values(EQ))){const it=ITEMS[id];if(it&&it.vis&&ITR.CAMADA[it.slot])L.push(it);
+  else if(!it&&/^p_/.test(id)&&ONL.on&&performance.now()-visBusca>15000){visBusca=performance.now();itensLoad()}}return L} /* outro jogador com item publicado depois que você entrou: busca a lista de novo (no máximo 1 vez a cada 15 s) */
+function visCamadas(c,V,tras,im,dx,dy,dw,dh,o){const A=ancDe(im);if(!A)return;const kx=dw/im.width,ky=dh/im.height,t=o.t||0;
+ for(const it of V){const C=ITR.CAMADA[it.slot];if(!C||!!C.tras!==tras)continue;const v=it.vis,src=o.mv&&v.img2?v.img2:v.img,li=visImg(src);if(!li)continue;
+  const P=ITR.itCamada(it.slot,A,v,li.width,li.height,o.mv&&!v.img2,t);if(!P)continue;
+  const Q={x:dx+P.x*kx,y:dy+P.y*ky,w:P.w*kx,h:P.h*ky,rot:P.rot,px:P.px,py:P.py},col=it.fx&&it.fx.arma&&(it.fx.cor||it.fx.glow||'#ff8a1a');
+  if(col){const pu=.5+.5*Math.sin(t/140);c.save();c.globalCompositeOperation='lighter';const g=c.createRadialGradient(Q.x,Q.y,1,Q.x,Q.y,Q.h*.42);g.addColorStop(0,hexA(col,.28+.12*pu));g.addColorStop(1,hexA(col,0));c.fillStyle=g;c.beginPath();c.arc(Q.x,Q.y,Q.h*.42,0,7);c.fill();c.restore();
+   c.save();c.shadowColor=col;c.shadowBlur=4+5*pu;ITR.itDesenha(c,li,Q);c.restore();
+   c.save();c.globalCompositeOperation='lighter';for(let i=0;i<5;i++){const ph=((t/900)+i/5)%1,ex=Q.x+(i-2)*Q.w*.18+Math.sin(t/200+i)*2,ey=Q.y+Q.h*.3-ph*Q.h*.8;c.fillStyle=hexA(col,.75*(1-ph));c.beginPath();c.arc(ex,ey,1.8*(1-ph)+.5,0,7);c.fill()}c.restore()}
+  else ITR.itDesenha(c,li,Q)}}
+/* o boneco é desenhado com drawImage dentro do drawHero: no primeiro drawImage, desenha as camadas de trás, o boneco e as da frente (com o mesmo giro/espelho) */
+{const _dh=drawHero;drawHero=function(c,x,y,o){const V=o&&o.vis;if(!V||!V.length||typeof ITR==='undefined')return _dh(c,x,y,o);
+ const di=c.drawImage;let done=false;
+ c.drawImage=function(im,dx,dy,dw,dh){if(!done&&arguments.length===5&&im&&im.width>8){done=true;try{visCamadas(c,V,true,im,dx,dy,dw,dh,o)}catch(_){}di.apply(c,arguments);try{visCamadas(c,V,false,im,dx,dy,dw,dh,o)}catch(_){}return}return di.apply(c,arguments)};
+ try{return _dh(c,x,y,o)}finally{delete c.drawImage}}}
 /* nível do item: só equipa a partir do nível dele */
 {const _eq=equipItem;equipItem=function(id){const it=ITEMS[id];if(it&&it.nivel>1&&CH&&(CH.lv|0)<it.nivel){toast('🔒 '+it.name+': precisa do Nv '+it.nivel+' para equipar.');return}return _eq(id)}}
 // ---------- Retrato do HUD: o rosto do personagem dentro da moldura (arte/ui) ----------
 function hudFace(){const cv=$('#hudFaceCv');if(!cv||cur!=='game'||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);c.imageSmoothingEnabled=false;
- const k=H/HFACE.z;c.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);try{if(HERO)drawHero(c,0,0,{fl:0,t:0,mv:0,run:0,aura:-1,th:-1,act:null});else drawChar(c,0,0,{...look,clan,dir:0,t:0,mv:0,run:0})}catch(_){}}
+ const k=H/HFACE.z;c.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);try{if(HERO)drawHero(c,0,0,{fl:0,t:0,mv:0,run:0,aura:-1,th:-1,act:null,vis:eqVis()});else drawChar(c,0,0,{...look,clan,dir:0,t:0,mv:0,run:0})}catch(_){}}
 const HFACE={z:22,y:44};setInterval(hudFace,700);
 /* tocar no retrato abre a lista Personagem / Status / Jutsus; a Mochila fica sozinha no botão dela */
 function pfMenu(v){const m=$('#pfMenu');if(!m)return;m.hidden=v===undefined?!m.hidden:!v}
@@ -1424,7 +1438,7 @@ function sbTipHtml(i){if(!clan||!CH)return '';const esc2=t=>String(t).replace(/[
 function drawPortrait(cv,ts){if(!cv||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);
  const g=c.createRadialGradient(W/2,H*.8,4,W/2,H*.62,W*.62);g.addColorStop(0,'rgba(255,201,74,.22)');g.addColorStop(1,'rgba(255,201,74,0)');c.fillStyle=g;c.fillRect(0,0,W,H);
  const k=H/(cv.id==='chCv'?78:96);c.setTransform(k,0,0,k,W/2,H*.93);const FL=eqFx();
- try{fxDraw(c,0,0,ts,FL,0);if(HERO)drawHero(c,0,0,{fl:0,t:ts,mv:0,run:0,aura:-1,th:-1,act:null});else drawChar(c,0,0,{...look,clan,dir:0,t:ts,mv:0,run:0});fxDraw(c,0,0,ts,FL,1,{fl:0})}catch(_){}}
+ try{fxDraw(c,0,0,ts,FL,0);if(HERO)drawHero(c,0,0,{fl:0,t:ts,mv:0,run:0,aura:-1,th:-1,act:null,vis:eqVis()});else drawChar(c,0,0,{...look,clan,dir:0,t:ts,mv:0,run:0});fxDraw(c,0,0,ts,FL,1,{fl:0})}catch(_){}}
 let pfLoop=0;function portraitTick(ts){pfLoop=0;if(!invOpen)return;drawPortrait($('#dollCv'),ts);drawPortrait($('#chCv'),ts);pfLoop=requestAnimationFrame(portraitTick)}
 function portraitStart(){if(!pfLoop)pfLoop=requestAnimationFrame(portraitTick)}
 // ---------- Aba Personagem: mostra cada etapa do cálculo ----------

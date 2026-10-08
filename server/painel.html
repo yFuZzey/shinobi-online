@@ -43,6 +43,8 @@ button:disabled{opacity:.5}
 .tag.pub{background:#d6efd9;color:var(--ok)}.tag.ras{background:#efe1b8;color:var(--mute)}.tag.nova{background:#e9d9ff;color:#5a2aa6}
 .code{font-family:ui-monospace,Menlo,monospace;background:#efe1b8;padding:1px 5px;border-radius:3px}
 .hide{display:none!important}
+.vcv{width:150px;height:190px;background:#3a2c22;border:2px solid var(--wood);border-radius:6px;image-rendering:pixelated}.vcl{text-align:center;font-size:12px;color:var(--mute)}
+a.chip{text-decoration:none;color:var(--ink)}
 .drop{border:2px dashed var(--wood);border-radius:6px;padding:10px;display:flex;gap:12px;align-items:center;background:#fff8de}
 .drop input{max-width:100%}
 .bar{position:sticky;bottom:0;background:var(--pap2);border-top:3px solid var(--wood);margin:14px -14px -14px;padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap}
@@ -92,6 +94,25 @@ button:disabled{opacity:.5}
    <div>
     <label class="f">Como fica no jogo</label>
     <div id="prev" class="prev"></div>
+    <div id="visW">
+     <label class="f">Visual no corpo (opcional)</label>
+     <div class="sub" style="font-size:12px;color:var(--mute);margin-bottom:6px">O desenho do item <b>vestido</b> no boneco, visto de lado. Baixe o molde, mande para a IA junto com o pedido e envie aqui o resultado (o fundo sai sozinho).</div>
+     <div class="row" style="margin-bottom:6px"><a class="chip" href="/painel/molde/parado_ia.png" download="molde_parado.png">⬇ Molde parado</a><a class="chip" href="/painel/molde/correndo_ia.png" download="molde_correndo.png">⬇ Molde correndo</a></div>
+     <div class="row" style="gap:12px;align-items:flex-start">
+      <div><canvas id="vPar" width="150" height="190" class="vcv"></canvas><div class="sub vcl">Parado</div></div>
+      <div><canvas id="vCor" width="150" height="190" class="vcv"></canvas><div class="sub vcl">Correndo</div></div>
+     </div>
+     <label class="f" style="margin-top:8px">Desenho no corpo</label><input id="vis1" type="file" accept="image/png,image/webp,image/jpeg">
+     <div id="vis2W"><label class="f">Capa ao vento (quando corre, opcional)</label><input id="vis2" type="file" accept="image/png,image/webp,image/jpeg"></div>
+     <div id="visAj">
+      <label class="f">Tamanho: <span id="vEscV"></span>%</label><input id="vEsc" type="range" min="40" max="250" value="100" style="width:100%">
+      <label class="f">Esquerda ↔ direita: <span id="vXV"></span></label><input id="vX" type="range" min="-60" max="60" value="0" style="width:100%">
+      <label class="f">Cima ↕ baixo: <span id="vYV"></span></label><input id="vY" type="range" min="-60" max="60" value="0" style="width:100%">
+      <label class="f">Giro: <span id="vGV"></span>°</label><input id="vG" type="range" min="-180" max="180" value="0" style="width:100%">
+      <div class="row" style="margin-top:8px"><button type="button" id="vReset">Posição padrão</button><button type="button" id="vTira">Tirar visual</button></div>
+     </div>
+    </div>
+    <p id="vMao" class="sub" style="font-size:12px;color:var(--mute)">Itens da mão não têm visual no corpo: usam efeito (ex.: o raio do Chidori).</p>
     <p id="eErr" class="err"></p><p id="eMsg" class="msg"></p>
    </div>
   </div>
@@ -117,6 +138,7 @@ function erroTxt(e){const m=String(e&&e.message||e);if(/invalid login|invalid_cr
  if(e&&(e.code==='PGRST205'||/Could not find the table/i.test(m)))return 'O banco ainda não tem a tabela de itens: rode o arquivo sql/09_itens.sql no Supabase.';
  if(/row-level security|permission denied/i.test(m))return 'O banco recusou: só admin pode criar ou mudar itens.';
  if(e&&e.status===401||/JWT expired|invalid JWT/i.test(m)){store('painel',null);return 'A sessão expirou: toque em Sair e entre de novo.'}
+ if(/visual|'vis'|column .*vis/i.test(m)&&/does not exist|Could not find/i.test(m))return 'O banco ainda não tem as colunas do visual no corpo: rode o arquivo sql/10_itens_visual.sql no Supabase.';
  if(/duplicate key/i.test(m))return 'Já existe um item com esse código. Mude o nome.';return m}
 
 // ---------- entrar ----------
@@ -141,13 +163,13 @@ function chips(el,lista,nomes,cls,sel,cb){el.innerHTML=lista.map(k=>'<button typ
 function editar(r){ED=r?JSON.parse(JSON.stringify(r)):vazio();ED.atributos=ED.atributos||[];$('#ed').classList.remove('hide');$('#edT').textContent=ED._novo?'Novo item':'Editar: '+ED.nome;
  $('#nome').value=ED.nome;$('#desc').value=ED.descricao||'';$('#descN').textContent='('+$('#desc').value.length+'/300)';$('#pedido').value=ED.pedido||'';$('#icone').value='';
  $('#hab').innerHTML=Object.entries(CFG.habilidades||{}).map(([k,h])=>'<option value="'+k+'">'+esc(h.n)+'</option>').join('');$('#hab').value=ED.habilidade||'';
- $('#eErr').textContent='';$('#eMsg').textContent='';desenha();$('#ed').scrollIntoView({behavior:'smooth'})}
+ $('#eErr').textContent='';$('#eMsg').textContent='';$('#vis1').value='';$('#vis2').value='';desenha();visUI();$('#ed').scrollIntoView({behavior:'smooth'})}
 function valores(){return{...ED,nome:$('#nome').value.trim(),descricao:$('#desc').value.trim(),pedido:$('#pedido').value.trim(),habilidade:$('#hab').value}}
 function desenha(){const it=valores(),mx=CFG.maxAtributos[it.raridade]||1;
  ED.atributos=ED.atributos.slice(0,mx);
  $('#nivel').max=$('#nivelN').max=CFG.nivelMax||99;$('#nivel').value=$('#nivelN').value=ED.nivel;$('#nivelV').textContent=ED.nivel;
  chips($('#rar'),ITR.RAR,RN,'rar',ED.raridade,k=>{ED.raridade=k;desenha()});
- chips($('#slot'),ITR.SLOTS,SN,'',ED.slot,k=>{ED.slot=k;desenha()});
+ chips($('#slot'),ITR.SLOTS,SN,'',ED.slot,k=>{ED.slot=k;desenha();visUI()});
  chips($('#tipo'),ITR.TIPOS,TN,'',ED.tipo,k=>{ED.tipo=k;desenha()});
  $('#habW').classList.toggle('hide',ED.tipo!=='habilidade');$('#pedW').classList.toggle('hide',ED.tipo!=='nova');
  $('#atrMax').textContent='(até '+mx+' para '+RN[ED.raridade]+'; o valor é automático)';
@@ -176,6 +198,22 @@ $('#nivel').oninput=e=>{ED.nivel=+e.target.value;$('#nivelN').value=ED.nivel;$('
  $('#cores').querySelectorAll('[data-cor]').forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>{const t=$('#desc'),k=b.dataset.cor,a=t.selectionStart,z=t.selectionEnd,v=t.value,sel=v.slice(a,z)||'texto';
   t.value=v.slice(0,a)+'('+k+')'+sel+'('+k+')'+v.slice(z);t.focus();t.setSelectionRange(a+k.length+2,a+k.length+2+sel.length);t.dispatchEvent(new Event('input'))}})}
 $('#desc').addEventListener('input',()=>{$('#descN').textContent='('+$('#desc').value.length+'/300)'});
+/* ---------- visual no corpo: prévia no molde (mesmas regras do jogo: itens_regras.js) ---------- */
+const MOLDE={};['parado','correndo'].forEach(k=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=i.width;c.height=i.height;const g=c.getContext('2d');g.drawImage(i,0,0);MOLDE[k]={im:i,A:ITR.itAncora(g.getImageData(0,0,i.width,i.height).data,i.width,i.height)}};i.src='/painel/molde/'+k+'.png'});
+const VI={};const vImg=u=>{if(!u)return null;let i=VI[u];if(!i){i=new Image();i.src=u;VI[u]=i}return i.complete&&i.naturalWidth?i:null};
+function visV(){return ED.vis||(ED.vis={esc:100,x:0,y:0,giro:0})}
+function visUI(){if(!ED)return;const mao=ED.slot==='mao';$('#visW').classList.toggle('hide',mao);$('#vMao').classList.toggle('hide',!mao);$('#vis2W').classList.toggle('hide',ED.slot!=='capa');
+ $('#visAj').classList.toggle('hide',!ED.visual);const v=visV();[['vEsc','esc'],['vX','x'],['vY','y'],['vG','giro']].forEach(([id,k])=>{$('#'+id).value=v[k];$('#'+id+'V').textContent=v[k]})}
+function visDraw(t){requestAnimationFrame(visDraw);if(!ED||$('#ed').classList.contains('hide'))return;
+ for(const [cv,k,mv] of [['#vPar','parado',0],['#vCor','correndo',1]]){const c=$(cv).getContext('2d'),M=MOLDE[k];c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,150,190);c.imageSmoothingEnabled=false;if(!M||!M.A)continue;
+  const z=Math.min(150/M.im.width,182/M.im.height)*.92,ox=(150-M.im.width*z)/2,oy=190-M.im.height*z-4;c.setTransform(z,0,0,z,ox,oy);
+  const li=ED.visual&&vImg(mv&&ED.visual2?ED.visual2:ED.visual),P=li&&CFG&&ITR.CAMADA[ED.slot]?ITR.itCamada(ED.slot,M.A,visV(),li.width,li.height,mv&&!ED.visual2,t):null;
+  if(P&&P.tras)ITR.itDesenha(c,li,P);c.drawImage(M.im,0,0);if(P&&!P.tras)ITR.itDesenha(c,li,P)}}
+requestAnimationFrame(visDraw);
+const visLe=(inp,campo)=>{const f=inp.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{try{ED[campo]=iconeLimpo(im,$('#tiraFundo').checked,160);$('#eErr').textContent='';visUI()}catch(err){$('#eErr').textContent='Não consegui preparar o desenho: '+err.message}};im.src=rd.result};rd.readAsDataURL(f)};
+$('#vis1').onchange=e=>visLe(e.target,'visual');$('#vis2').onchange=e=>visLe(e.target,'visual2');
+[['vEsc','esc'],['vX','x'],['vY','y'],['vG','giro']].forEach(([id,k])=>$('#'+id).oninput=e=>{visV()[k]=+e.target.value;$('#'+id+'V').textContent=e.target.value});
+$('#vReset').onclick=()=>{ED.vis={esc:100,x:0,y:0,giro:0};visUI()};$('#vTira').onclick=()=>{ED.visual=null;ED.visual2=null;$('#vis1').value='';$('#vis2').value='';visUI()};
 $('#novo').onclick=()=>editar(null);$('#fechar').onclick=()=>{ED=null;$('#ed').classList.add('hide')};
 
 // ícone: reduz para no máximo 96 px (pixel art fica nítida) e guarda como imagem dentro do item
@@ -184,7 +222,7 @@ $('#icone').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new Fil
  im.onerror=()=>{$('#eErr').textContent='Não consegui abrir essa imagem.'};im.src=rd.result};rd.readAsDataURL(f)};
 $('#tiraFundo').onchange=()=>{const f=$('#icone').files[0];if(f)$('#icone').onchange({target:$('#icone')})};
 /* ícone: tira o fundo de uma cor só (ex.: magenta), some com contornos soltos (moldura desenhada pela IA), recorta o item e reduz para no máximo 96 px */
-function iconeLimpo(im,tira){
+function iconeLimpo(im,tira,mx){
  let W=im.width,H=im.height,k0=Math.min(1,512/Math.max(W,H));W=Math.max(1,Math.round(W*k0));H=Math.max(1,Math.round(H*k0));
  const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d',{willReadFrequently:true});g.imageSmoothingEnabled=false;g.drawImage(im,0,0,W,H);
  const D=g.getImageData(0,0,W,H),a=D.data,N=W*H;
@@ -224,15 +262,16 @@ function iconeLimpo(im,tira){
  // recorta no item
  let x0=W,y0=H,x1=-1,y1=-1;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(a[(y*W+x)*4+3]>=20){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
  if(x1<0)throw new Error('a imagem ficou vazia (tire a marca de "Tirar o fundo")');
- const cw=x1-x0+1,ch=y1-y0+1,m=96,k=Math.min(1,m/Math.max(cw,ch)),w=Math.max(1,Math.round(cw*k)),h=Math.max(1,Math.round(ch*k));
+ const cw=x1-x0+1,ch=y1-y0+1,m=mx||96,k=Math.min(1,m/Math.max(cw,ch)),w=Math.max(1,Math.round(cw*k)),h=Math.max(1,Math.round(ch*k));
  const o=document.createElement('canvas');o.width=w;o.height=h;const og=o.getContext('2d',{willReadFrequently:true});og.imageSmoothingEnabled=k<1;og.imageSmoothingQuality='high';og.drawImage(c,x0,y0,cw,ch,0,0,w,h);
  if(tira){const Q=og.getImageData(0,0,w,h),q=Q.data;for(let i=3;i<q.length;i+=4)q[i]=q[i]>=110?255:0;og.putImageData(Q,0,0)} // contorno nítido (pixel art)
- let u=o.toDataURL('image/png');if(u.length>(CFG.iconeMaxKb||40)*1400)u=o.toDataURL('image/webp',.9);return u}
+ let u=o.toDataURL('image/png');if(u.length>((mx?CFG.visualMaxKb:CFG.iconeMaxKb)||40)*1400)u=o.toDataURL('image/webp',.9);return u}
 
 // ---------- gravar ----------
 async function gravar(pub){const v=valores(),it={...v,id:ED._novo?livre(ITR.itId(v.nome)):ED.id,publicado:pub===undefined?!!ED.publicado:pub};
- const e=ITR.itValida(CFG,it);$('#eErr').textContent=e.length?'Falta arrumar:\n· '+e.join('\n· '):'';$('#eMsg').textContent='';if(e.length)return;
+ it.visual=ED.visual;it.visual2=ED.visual2;const e=ITR.itValida(CFG,it);$('#eErr').textContent=e.length?'Falta arrumar:\n· '+e.join('\n· '):'';$('#eMsg').textContent='';if(e.length)return;
  const row={id:it.id,nome:it.nome,icone:it.icone,nivel:it.nivel,raridade:it.raridade,slot:it.slot,tipo:it.tipo,habilidade:it.tipo==='habilidade'?it.habilidade:null,pedido:it.tipo==='nova'?it.pedido:null,atributos:it.atributos,descricao:it.descricao,publicado:it.publicado};
+ if('visual' in ED){row.visual=ED.slot==='mao'?null:(ED.visual||null);row.visual2=ED.slot==='capa'&&ED.visual?ED.visual2||null:null;row.vis=ED.visual?visV():{}}
  const bs=document.querySelectorAll('.bar button');bs.forEach(b=>b.disabled=true);
  try{if(ED._novo)await api('/rest/v1/itens',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(row)});
   else await api('/rest/v1/itens?id=eq.'+encodeURIComponent(it.id),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(row)});

@@ -1097,7 +1097,7 @@
   }
  },
  "itensPainel": {
-  "_leia": "Itens criados no painel (/painel no servidor). O valor de cada atributo é automático: (base + porNivel × (nível − 1)) × raridade. maxAtributos = quantos atributos cada raridade pode ter. habilidades = as que já existem no jogo (o item usa no botão do item); base e porNivel valem como os atributos (o dano também multiplica pela raridade). nivelMax = maior nível de item. iconeMaxKb = tamanho máximo do ícone. Habilidade passiva (passiva: true) funciona sozinha, sem botão. prontas = itens do painel com 'habilidade nova' que o Claude já programou (código do item → habilidade); eles passam a usar sem mexer no painel.",
+  "_leia": "Itens criados no painel (/painel no servidor). O valor de cada atributo é automático: (base + porNivel × (nível − 1)) × raridade. maxAtributos = quantos atributos cada raridade pode ter. habilidades = as que já existem no jogo (o item usa no botão do item); base e porNivel valem como os atributos (o dano também multiplica pela raridade). nivelMax = maior nível de item. iconeMaxKb = tamanho máximo do ícone. Habilidade passiva (passiva: true) funciona sozinha, sem botão. prontas = itens do painel com 'habilidade nova' que o Claude já programou (código do item → habilidade); eles passam a usar sem mexer no painel. visualMaxKb = tamanho máximo do desenho do item no corpo. fx.cor (arma: true) = cor da aura em volta da arma desenhada no corpo.",
   "nivelMax": 99,
   "iconeMaxKb": 40,
   "raridade": {
@@ -1223,13 +1223,14 @@
     "fx": {
      "kind": "drena",
      "arma": true,
-     "glow": "#ff8a1a"
+     "cor": "#ff8a1a"
     },
     "_leia": "Cada golpe que acerta: em jogador, ele perde pvp% do chakra máximo dele e você recupera pvp% do seu; em monstro, você recupera pve% do seu. No máximo 1 vez a cada 'intervalo' s. O servidor confere que o item está equipado."
    }
   },
   "prontas": {
    "p_samehada": "drena"
-  }
+  },
+  "visualMaxKb": 80
  }
 }
