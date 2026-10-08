@@ -39,11 +39,19 @@
   function itParaJogo(cfg, r) {
     const atk = itAtk(cfg, r), h = atk && cfg.habilidades[r.habilidade];
     return { id: r.id, name: r.nome, rarity: r.raridade, slot: r.slot, nivel: lv(r), painel: 1, icon: r.icone,
-      desc: (r.descricao || '') + (r.tipo === 'nova' ? (r.descricao ? ' ' : '') + 'Habilidade em preparo: por enquanto o item só dá os atributos.' : ''),
+      desc: (r.descricao || '') + (r.tipo === 'nova' ? (r.descricao ? '\n' : '') + '(cinza)Habilidade em preparo: por enquanto o item só dá os atributos.(cinza)' : ''),
       stats: itStats(cfg, r), atk: atk || undefined, fx: h && h.fx ? Object.assign({}, h.fx) : undefined, aguardando: r.tipo === 'nova' ? 1 : 0 };
+  }
+  // descrição com cor e quebra de linha: (red)Passiva: Drenar(red) ou (vermelho)…(vermelho); Enter vira nova linha
+  const CORES = { vermelho: '#c0301a', red: '#c0301a', azul: '#1f5fc4', blue: '#1f5fc4', verde: '#2d7a3e', green: '#2d7a3e', amarelo: '#b07a00', yellow: '#b07a00',
+    dourado: '#b07a00', gold: '#b07a00', roxo: '#7a3ec0', purple: '#7a3ec0', laranja: '#c0601a', orange: '#c0601a', rosa: '#c0307a', pink: '#c0307a', cinza: '#6a6a6a', gray: '#6a6a6a' };
+  function descHtml(t) {
+    let h = String(t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    for (let i = 0; i < 3; i++) h = h.replace(/\(([a-z]+)\)([\s\S]*?)\(\/?\1\)/gi, (m, k, x) => { const c = CORES[k.toLowerCase()]; return c ? '<b style="color:' + c + '">' + x + '</b>' : m; });
+    return h.replace(/\r?\n/g, '<br>');
   }
   // nome → código (p_espada_do_zabuza)
   function itId(nome) { return 'p_' + String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30); }
-  G.ITR = { RAR, SLOTS, TIPOS, itStats, itAtk, itValida, itParaJogo, itId };
+  G.ITR = { RAR, SLOTS, TIPOS, CORES, itStats, itAtk, itValida, itParaJogo, itId, descHtml };
   if (typeof module !== 'undefined' && module.exports) module.exports = G.ITR;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

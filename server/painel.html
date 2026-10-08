@@ -87,7 +87,7 @@ button:disabled{opacity:.5}
 
     <label class="f">Atributos <span id="atrMax" style="font-weight:400"></span></label><div id="atr" class="chips"></div>
 
-    <label class="f" for="desc">Descrição (opcional)</label><textarea id="desc" maxlength="300" placeholder="Aparece na mochila"></textarea>
+    <label class="f" for="desc">Descrição (opcional) <span id="descN" style="font-weight:400"></span></label><div class="row" id="cores" style="margin-bottom:6px"></div><textarea id="desc" maxlength="300" placeholder="Aparece na mochila. Enter = nova linha. Cor: selecione o texto e toque numa cor, ou escreva (red)Passiva: Drenar(red)"></textarea>
    </div>
    <div>
     <label class="f">Como fica no jogo</label>
@@ -139,7 +139,7 @@ async function lista(){$('#listaErr').textContent='';try{ITENS=(await api('/rest
 const vazio=()=>({id:'',nome:'',icone:'',nivel:1,raridade:'comum',slot:'arma',tipo:'status',habilidade:Object.keys(CFG.habilidades||{})[0]||'',pedido:'',atributos:[],descricao:'',publicado:false,_novo:1});
 function chips(el,lista,nomes,cls,sel,cb){el.innerHTML=lista.map(k=>'<button type="button" class="chip '+cls+(cls==='rar'?' r-'+k:'')+(k===sel?' on':'')+'" data-k="'+k+'">'+nomes[k]+'</button>').join('');el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>cb(b.dataset.k))}
 function editar(r){ED=r?JSON.parse(JSON.stringify(r)):vazio();ED.atributos=ED.atributos||[];$('#ed').classList.remove('hide');$('#edT').textContent=ED._novo?'Novo item':'Editar: '+ED.nome;
- $('#nome').value=ED.nome;$('#desc').value=ED.descricao||'';$('#pedido').value=ED.pedido||'';$('#icone').value='';
+ $('#nome').value=ED.nome;$('#desc').value=ED.descricao||'';$('#descN').textContent='('+$('#desc').value.length+'/300)';$('#pedido').value=ED.pedido||'';$('#icone').value='';
  $('#hab').innerHTML=Object.entries(CFG.habilidades||{}).map(([k,h])=>'<option value="'+k+'">'+esc(h.n)+'</option>').join('');$('#hab').value=ED.habilidade||'';
  $('#eErr').textContent='';$('#eMsg').textContent='';desenha();$('#ed').scrollIntoView({behavior:'smooth'})}
 function valores(){return{...ED,nome:$('#nome').value.trim(),descricao:$('#desc').value.trim(),pedido:$('#pedido').value.trim(),habilidade:$('#hab').value}}
@@ -165,10 +165,16 @@ function previa(){const it=valores(),s=ITR.itStats(CFG,it),a=ITR.itAtk(CFG,it);
  if(it.tipo==='nova')L.push('<li>Habilidade nova: aguardando o Claude programar. Até lá, o item só dá os atributos.</li>');
  $('#prev').className='prev r-'+it.raridade;
  $('#prev').innerHTML='<div class="ic r-'+it.raridade+'" style="background-image:'+(it.icone?'url('+it.icone+')':'none')+'"></div><div><b>'+esc(it.nome||'Sem nome')+'</b><div class="sub">'+RN[it.raridade]+' · '+SN[it.slot]+' · precisa do Nv '+it.nivel+'</div>'
-  +(it.descricao?'<div style="margin-top:4px;font-size:14px">'+esc(it.descricao)+'</div>':'')+'<ul>'+(L.join('')||'<li style="color:var(--mute)">Escolha os atributos</li>')+'</ul></div>'}
+  +(it.descricao?'<div style="margin-top:4px;font-size:14px">'+ITR.descHtml(it.descricao)+'</div>':'')+'<ul>'+(L.join('')||'<li style="color:var(--mute)">Escolha os atributos</li>')+'</ul></div>'}
 function livre(id){if(!id||id==='p_')return id;let k=id,n=2;while(ITENS.some(r=>r.id===k))k=id.slice(0,34)+'_'+(n++);return k}
 ['#nome','#desc','#pedido'].forEach(s=>$(s).addEventListener('input',()=>{const it=valores(),id=ED._novo?livre(ITR.itId(it.nome)):ED.id;$('#codigo').innerHTML=it.nome?'Código: <span class="code">'+esc(id)+'</span>':'';previa()}));$('#hab').addEventListener('change',previa);
 $('#nivel').oninput=e=>{ED.nivel=+e.target.value;$('#nivelN').value=ED.nivel;$('#nivelV').textContent=ED.nivel;desenhaLeve()};$('#nivelN').oninput=e=>{const v=Math.round(+e.target.value);if(!(v>=1))return;ED.nivel=Math.min(CFG.nivelMax||99,v);$('#nivel').value=ED.nivel;$('#nivelV').textContent=ED.nivel;desenhaLeve()};
+/* cores da descrição: selecione o texto e toque na cor (vira (vermelho)texto(vermelho)) */
+{const C=[['vermelho','#c0301a'],['azul','#1f5fc4'],['verde','#2d7a3e'],['dourado','#b07a00'],['roxo','#7a3ec0'],['laranja','#c0601a'],['rosa','#c0307a'],['cinza','#6a6a6a']];
+ $('#cores').innerHTML=C.map(([k,c])=>'<button type="button" class="chip" data-cor="'+k+'" style="color:#fff;background:'+c+';border-color:'+c+';padding:5px 9px">'+k+'</button>').join('');
+ $('#cores').querySelectorAll('[data-cor]').forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>{const t=$('#desc'),k=b.dataset.cor,a=t.selectionStart,z=t.selectionEnd,v=t.value,sel=v.slice(a,z)||'texto';
+  t.value=v.slice(0,a)+'('+k+')'+sel+'('+k+')'+v.slice(z);t.focus();t.setSelectionRange(a+k.length+2,a+k.length+2+sel.length);t.dispatchEvent(new Event('input'))}})}
+$('#desc').addEventListener('input',()=>{$('#descN').textContent='('+$('#desc').value.length+'/300)'});
 $('#novo').onclick=()=>editar(null);$('#fechar').onclick=()=>{ED=null;$('#ed').classList.add('hide')};
 
 // ícone: reduz para no máximo 96 px (pixel art fica nítida) e guarda como imagem dentro do item

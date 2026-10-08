@@ -1392,7 +1392,7 @@ function pfBadge(){const n=CH&&CH.pts>0?CH.pts:0;[['#hfBadge'],['#pfBadge']].for
 /* segurar um botão de golpe mostra o que ele faz (dano, chakra, recarga); soltar esconde. O golpe sai normalmente ao tocar */
 function sbTipHtml(i){if(!clan||!CH)return '';const esc2=t=>String(t).replace(/[<>&]/g,'');
  if(i===3&&!CLANS[clan].sk[3]){const it=atkItem();if(!it)return '<b class="tt">Item da mão</b><p>Equipe um item de mão com habilidade (ex.: Chidori) para usar aqui.</p>';
-  return '<div class="th">'+(it.icon?imgIc(it.icon):'')+'<div><b class="tt">'+esc2(it.name)+'</b><small>Item da mão</small></div></div>'+(it.desc?'<p>'+esc2(it.desc)+'</p>':'')}
+  return '<div class="th">'+(it.icon?imgIc(it.icon):'')+'<div><b class="tt">'+esc2(it.name)+'</b><small>Item da mão</small></div></div>'+(it.desc?'<p>'+(typeof ITR!=='undefined'?ITR.descHtml(it.desc):esc2(it.desc))+'</p>':'')}
  const s=CLANS[clan].sk[i];if(!s)return '';const N=jtNodes();let n=s.t==='eye'?N.find(x=>x.tm===Math.max(1,eyeLv())):N.find(x=>x.j===s.id);if(!n)return '';
  const I=jtInfo(n),L=juStats(n)||[],d=JTD[n.id]||'';
  return '<div class="th">'+I.ic+'<div><b class="tt">'+esc2(I.nm)+(I.sub?' <small>'+esc2(I.sub)+'</small>':'')+'</b>'+(I.ok?'':'<small class="tl">🔒 Libera no Nv '+n.lv+'</small>')+'</div></div>'
@@ -1486,7 +1486,7 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
  const atk=it.atk&&it.atk.kind?'<div class="dsp">⚡ <b>Habilidade do item</b> (4º botão, ao lado dos golpes): '+itemSkTxt(it)+' Conta como Ninjutsu.</div>':'';
  det.innerHTML='<div class="dt" style="--rc:'+rc[1]+'"><div class="dth"><div class="dti" style="background:radial-gradient(circle at 50% 38%,'+hexA(rc[1],.42)+',#150a08 72%)">'+(it.icon?'<img src="'+it.icon+'" alt="">':'?')+'</div><div><div class="dn" style="color:'+rc[1]+'">'+esc(it.name)+'</div>'
   +'<div class="chips"><span class="chip rc">'+rc[0]+'</span><span class="chip">'+(SLOT_IC[it.slot]||'')+' '+sl+'</span>'+(on?'<span class="chip on">Equipado</span>':'')+(freeN(id)>(on?0:1)?'<span class="chip">×'+freeN(id)+' na mochila</span>':'')+'</div></div></div>'
-  +(it.desc?'<p class="dd">'+esc(it.desc)+'</p>':'')+(lines?(cur?'<div class="dcmp">Comparando com <b>'+esc(cur.name)+'</b> (equipado)</div>':'')+'<ul class="dst">'+lines+'</ul>':'')+atk
+  +(it.desc?'<p class="dd">'+(typeof ITR!=='undefined'?ITR.descHtml(it.desc):esc(it.desc))+'</p>':'')+(lines?(cur?'<div class="dcmp">Comparando com <b>'+esc(cur.name)+'</b> (equipado)</div>':'')+'<ul class="dst">'+lines+'</ul>':'')+atk
   +'<div class="dbt"><button id="ivAct" class="'+(on?'sec':'')+'">'+(on?'Desequipar':cur?'Trocar pelo equipado':'Equipar')+'</button></div></div>';
  $('#ivAct').onclick=()=>{if(on)unequipItem(id);else{equipItem(id);toggleBag(true,'bag');invSel=id;bagRefresh()}}
  portraitStart()};

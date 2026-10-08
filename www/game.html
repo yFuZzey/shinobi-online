@@ -2456,7 +2456,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610080241'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610080334'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2589,12 +2589,20 @@ function onlLogout(){ONL.closing=true;const fin=()=>{try{localStorage.removeItem
   function itParaJogo(cfg, r) {
     const atk = itAtk(cfg, r), h = atk && cfg.habilidades[r.habilidade];
     return { id: r.id, name: r.nome, rarity: r.raridade, slot: r.slot, nivel: lv(r), painel: 1, icon: r.icone,
-      desc: (r.descricao || '') + (r.tipo === 'nova' ? (r.descricao ? ' ' : '') + 'Habilidade em preparo: por enquanto o item só dá os atributos.' : ''),
+      desc: (r.descricao || '') + (r.tipo === 'nova' ? (r.descricao ? '\n' : '') + '(cinza)Habilidade em preparo: por enquanto o item só dá os atributos.(cinza)' : ''),
       stats: itStats(cfg, r), atk: atk || undefined, fx: h && h.fx ? Object.assign({}, h.fx) : undefined, aguardando: r.tipo === 'nova' ? 1 : 0 };
+  }
+  // descrição com cor e quebra de linha: (red)Passiva: Drenar(red) ou (vermelho)…(vermelho); Enter vira nova linha
+  const CORES = { vermelho: '#c0301a', red: '#c0301a', azul: '#1f5fc4', blue: '#1f5fc4', verde: '#2d7a3e', green: '#2d7a3e', amarelo: '#b07a00', yellow: '#b07a00',
+    dourado: '#b07a00', gold: '#b07a00', roxo: '#7a3ec0', purple: '#7a3ec0', laranja: '#c0601a', orange: '#c0601a', rosa: '#c0307a', pink: '#c0307a', cinza: '#6a6a6a', gray: '#6a6a6a' };
+  function descHtml(t) {
+    let h = String(t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    for (let i = 0; i < 3; i++) h = h.replace(/\(([a-z]+)\)([\s\S]*?)\(\/?\1\)/gi, (m, k, x) => { const c = CORES[k.toLowerCase()]; return c ? '<b style="color:' + c + '">' + x + '</b>' : m; });
+    return h.replace(/\r?\n/g, '<br>');
   }
   // nome → código (p_espada_do_zabuza)
   function itId(nome) { return 'p_' + String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30); }
-  G.ITR = { RAR, SLOTS, TIPOS, itStats, itAtk, itValida, itParaJogo, itId };
+  G.ITR = { RAR, SLOTS, TIPOS, CORES, itStats, itAtk, itValida, itParaJogo, itId, descHtml };
   if (typeof module !== 'undefined' && module.exports) module.exports = G.ITR;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
@@ -2631,7 +2639,7 @@ function pfBadge(){const n=CH&&CH.pts>0?CH.pts:0;[['#hfBadge'],['#pfBadge']].for
 /* segurar um botão de golpe mostra o que ele faz (dano, chakra, recarga); soltar esconde. O golpe sai normalmente ao tocar */
 function sbTipHtml(i){if(!clan||!CH)return '';const esc2=t=>String(t).replace(/[<>&]/g,'');
  if(i===3&&!CLANS[clan].sk[3]){const it=atkItem();if(!it)return '<b class="tt">Item da mão</b><p>Equipe um item de mão com habilidade (ex.: Chidori) para usar aqui.</p>';
-  return '<div class="th">'+(it.icon?imgIc(it.icon):'')+'<div><b class="tt">'+esc2(it.name)+'</b><small>Item da mão</small></div></div>'+(it.desc?'<p>'+esc2(it.desc)+'</p>':'')}
+  return '<div class="th">'+(it.icon?imgIc(it.icon):'')+'<div><b class="tt">'+esc2(it.name)+'</b><small>Item da mão</small></div></div>'+(it.desc?'<p>'+(typeof ITR!=='undefined'?ITR.descHtml(it.desc):esc2(it.desc))+'</p>':'')}
  const s=CLANS[clan].sk[i];if(!s)return '';const N=jtNodes();let n=s.t==='eye'?N.find(x=>x.tm===Math.max(1,eyeLv())):N.find(x=>x.j===s.id);if(!n)return '';
  const I=jtInfo(n),L=juStats(n)||[],d=JTD[n.id]||'';
  return '<div class="th">'+I.ic+'<div><b class="tt">'+esc2(I.nm)+(I.sub?' <small>'+esc2(I.sub)+'</small>':'')+'</b>'+(I.ok?'':'<small class="tl">🔒 Libera no Nv '+n.lv+'</small>')+'</div></div>'
@@ -2725,7 +2733,7 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
  const atk=it.atk&&it.atk.kind?'<div class="dsp">⚡ <b>Habilidade do item</b> (4º botão, ao lado dos golpes): '+itemSkTxt(it)+' Conta como Ninjutsu.</div>':'';
  det.innerHTML='<div class="dt" style="--rc:'+rc[1]+'"><div class="dth"><div class="dti" style="background:radial-gradient(circle at 50% 38%,'+hexA(rc[1],.42)+',#150a08 72%)">'+(it.icon?'<img src="'+it.icon+'" alt="">':'?')+'</div><div><div class="dn" style="color:'+rc[1]+'">'+esc(it.name)+'</div>'
   +'<div class="chips"><span class="chip rc">'+rc[0]+'</span><span class="chip">'+(SLOT_IC[it.slot]||'')+' '+sl+'</span>'+(on?'<span class="chip on">Equipado</span>':'')+(freeN(id)>(on?0:1)?'<span class="chip">×'+freeN(id)+' na mochila</span>':'')+'</div></div></div>'
-  +(it.desc?'<p class="dd">'+esc(it.desc)+'</p>':'')+(lines?(cur?'<div class="dcmp">Comparando com <b>'+esc(cur.name)+'</b> (equipado)</div>':'')+'<ul class="dst">'+lines+'</ul>':'')+atk
+  +(it.desc?'<p class="dd">'+(typeof ITR!=='undefined'?ITR.descHtml(it.desc):esc(it.desc))+'</p>':'')+(lines?(cur?'<div class="dcmp">Comparando com <b>'+esc(cur.name)+'</b> (equipado)</div>':'')+'<ul class="dst">'+lines+'</ul>':'')+atk
   +'<div class="dbt"><button id="ivAct" class="'+(on?'sec':'')+'">'+(on?'Desequipar':cur?'Trocar pelo equipado':'Equipar')+'</button></div></div>';
  $('#ivAct').onclick=()=>{if(on)unequipItem(id);else{equipItem(id);toggleBag(true,'bag');invSel=id;bagRefresh()}}
  portraitStart()};

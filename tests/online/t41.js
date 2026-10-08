@@ -17,7 +17,10 @@ const darItens=(uid,it)=>fetch(MOCK+'/rest/v1/rpc/dar_itens',{method:'POST',head
  ok(/não é admin/.test(await P.textContent('#lErr')),'conta que não é admin não entra no painel');
  await P.fill('#u',adm);await P.fill('#p','12345678');await P.click('#entrar');await P.waitForSelector('#vApp:not(.hide)',{timeout:8000});
  ok(/Nenhum item/.test(await P.textContent('#lista')),'admin entra e vê a lista vazia');
- await P.click('#novo');await P.fill('#nome','Espada do Zabuza');await P.click('#salvar');await W(200);
+ await P.click('#novo');await P.fill('#nome','Espada do Zabuza');await P.fill('#desc','A espada que se regenera.\nPassiva: Drenar cura 5%');
+ await P.evaluate(()=>{const d=document.querySelector('#desc');d.setSelectionRange(26,41)});await P.click('#cores [data-cor=vermelho]');
+ ok(await P.inputValue('#desc')==='A espada que se regenera.\n(vermelho)Passiva: Drenar(vermelho) cura 5%'&&/<br>/.test(await P.innerHTML('#prev'))&&/color:#c0301a/.test(await P.innerHTML('#prev')),'descrição: botão de cor envolve o texto escolhido e a prévia mostra cor e quebra de linha');
+ await P.click('#salvar');await W(200);
  ok(/envie o ícone/.test(await P.textContent('#eErr'))&&/pelo menos 1 atributo/.test(await P.textContent('#eErr')),'sem ícone e sem atributo não grava e explica');
  await P.setInputFiles('#icone',path.join(__dirname,'..','..','arte','ui','icone_app.png'));await W(500);
  ok(await P.evaluate(()=>ED.icone.startsWith('data:image/')&&(()=>{const i=new Image();i.src=ED.icone;return true})()),'ícone enviado e reduzido');
@@ -54,7 +57,8 @@ const darItens=(uid,it)=>fetch(MOCK+'/rest/v1/rpc/dar_itens',{method:'POST',head
  ok(!e1.eq&&/precisa do Nv 10/.test(e1.toast),'Nv 1 não equipa item de Nv 10 e explica');
  const e2=await J.evaluate(()=>{let g=0;while(CH.lv<10&&g++<50)gainXp(xpNeed(CH.lv)-CH.xp);stats();const a=calcChar(1,1).at.pf.fin;equipItem('p_espada_do_zabuza');stats();return{eq:EQ.arma,a,b:calcChar(1,1).at.pf.fin}});
  ok(e2.eq==='p_espada_do_zabuza'&&e2.b>e2.a,'Nv 10 equipa e a Força do item entra no poder físico ('+e2.a+' → '+e2.b+')');
- await J.evaluate(()=>{toggleBag(true,'bag');invSel='p_espada_do_zabuza';bagRefresh()});await W(200);await J.screenshot({path:path.join(__dirname,'painel_jogo.png')});
+ await J.evaluate(()=>{toggleBag(true,'bag');invSel='p_espada_do_zabuza';bagRefresh()});await W(200);
+ ok(await J.evaluate(()=>{const h=$('#ivDet .dd').innerHTML;return /<br>/.test(h)&&/color:#c0301a/.test(h)&&/Passiva: Drenar/.test(h)}),'no jogo a descrição mostra a cor e a quebra de linha');await J.screenshot({path:path.join(__dirname,'painel_jogo.png')});
  // tirar do jogo
  await P.click('#lista [data-id=p_lamina_raio]');await W(200);P.once('dialog',d=>d.accept());await P.click('#despub');await W(2200);
  ok((await (await fetch(GS+'/health')).json()).itensPainel===2,'tirar do jogo: o servidor para de usar o item');
