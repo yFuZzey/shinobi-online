@@ -19,4 +19,8 @@ if(!s.includes('windowFullscreen')){
   for(const f of fs.readdirSync(path.join(src,d)))if(fs.existsSync(path.join(o,f))){fs.copyFileSync(path.join(src,d,f),path.join(o,f));n++}}
  const bg=path.join(dst,'values','ic_launcher_background.xml');
  if(fs.existsSync(bg)){fs.writeFileSync(bg,fs.readFileSync(bg,'utf8').replace(/(<color name="ic_launcher_background">)[^<]*(<\/color>)/,'$1#3A201A$2'))}
+ /* o Android novo (8+) usa o ícone "adaptive": o modelo do Capacitor aponta para um desenho padrão (vetor); aqui aponta para a nossa arte */
+ for(const f of ['ic_launcher.xml','ic_launcher_round.xml']){const o=path.join(dst,'mipmap-anydpi-v26',f);
+  if(fs.existsSync(o))fs.writeFileSync(o,'<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n <background android:drawable="@color/ic_launcher_background"/>\n <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n</adaptive-icon>\n')}
+ for(const f of ['drawable-v24/ic_launcher_foreground.xml','drawable/ic_launcher_background.xml']){const o=path.join(dst,f);if(fs.existsSync(o))fs.unlinkSync(o)}
  console.log('OK: ícone do app ('+n+' arquivos)')}
