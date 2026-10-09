@@ -533,7 +533,7 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 <div id="s-login" class="scr on">
 <svg class="lgdune" viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 C120 70 230 80 330 115 S560 150 800 95 V200 H0Z" fill="#7a4a2c"/><path d="M0 155 C150 115 300 125 420 150 S650 170 800 140 V200 H0Z" fill="#a8693a"/><path d="M0 185 C200 160 380 168 520 182 S700 192 800 178 V200 H0Z" fill="#c98b4f"/></svg>
 <div class="lgwrap">
- <div class="lgbrand"><div class="lgseal">忍</div><div class="lglogo" role="img" aria-label="Shinobi Online"></div><h1>Shinobi Online</h1><p>Mundo ninja online · comece na Vila da Areia</p></div>
+ <div class="lgbrand"><div class="lgseal">忍</div><div class="lglogo" role="img" aria-label="Shinobi Online"></div><h1>Shinobi Online</h1></div>
  <div class="lgcard">
   <div class="lgtabs" role="tablist"><button id="tabIn" class="on" role="tab">Entrar</button><button id="tabNew" role="tab">Criar conta</button></div>
   <form id="fIn" class="lgf" autocomplete="on" novalidate onsubmit="return false">
@@ -550,7 +550,6 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
   </form>
   <p id="err" class="m" role="status"></p>
   <button id="goOff" class="lnk" type="button">Jogar offline</button>
-  <p id="lgVer" class="lgver"></p>
  </div>
 </div>
 <div id="maps" class="m" style="display:none"></div>
@@ -1228,8 +1227,8 @@ function switchMap(k){
 function mmDraw(){const L=$('#mmList');L.innerHTML='';Object.keys(MAPS).forEach(k=>{const b=document.createElement('button');b.textContent=mapNm(k);b.className=k==CURMAP?'on':'';b.onclick=()=>{$('#mapmenu').hidden=true;if(k!=CURMAP)switchMap(k)};L.appendChild(b)})}
 $('#mapbtn').onclick=()=>{mmDraw();$('#mapmenu').hidden=false};$('#mmX').onclick=()=>{$('#mapmenu').hidden=true};
 let pickK='';
-function skIc(s){return s.imk?`<img src="${SPR[s.imk]}">`:s.im?`<img src="${s.im}">`:s.ic!=null?`<img src="${SPR.ic[s.ic]}">`:`<span>${s.i}</span>`}
-function custInfo(k){const C=CLANS[k];$('#cinfo').style.setProperty('--c',C.col);$('#cinfo').innerHTML=`<b>${C.n}</b><small>${C.d}</small><div class="csk">${C.sk.map(s=>`<span class="ski">${skIc(s)}<em>${s.n}</em></span>`).join('')}</div>`}
+function skIc(s,k){try{const e=Object.entries(JU[k]||{}).find(([i,v])=>v.n===s.n),id=e&&(e[0]==='olho'?'olho1':e[0]);if(id&&UIJ[id])return `<img src="${UIJ[id]}" style="image-rendering:auto">`}catch(_){}return s.imk?`<img src="${SPR[s.imk]}">`:s.im?`<img src="${s.im}">`:s.ic!=null?`<img src="${SPR.ic[s.ic]}">`:`<span>${s.i}</span>`}
+function custInfo(k){const C=CLANS[k];$('#cinfo').style.setProperty('--c',C.col);$('#cinfo').innerHTML=`<b>${C.n}</b><small>${C.d}</small><div class="csk">${C.sk.map(s=>`<span class="ski">${skIc(s,k)}<em>${s.n}</em></span>`).join('')}</div>`}
 $('#go2').onclick=()=>{if(!pickK)return show('clan');goFull();start(pickK);setTimeout(rs,350)};
 $('#cback').onclick=()=>show('clan');
 (function(){const ks=Object.keys(MAPS),el=$('#maps');if(ks.length<2){el.style.display='none';return}
@@ -2561,7 +2560,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610091920'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610091925'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}

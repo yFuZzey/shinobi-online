@@ -141,8 +141,8 @@ rep('drawHero(g,25,c.height/s-6,{fl:0,t:ts,mv:k?0:(ts/2500|0)%2,run:0,aura:-1})'
 rep(" if(cur=='cust')pv(ts,$('#pv'));"," if(cur=='cust')pv(ts,$('#pv'),pickK);")
 rep(" show('cust')};\nfunction sw("," show('clan')};\nfunction sw(")
 rep("$('#go2').onclick=()=>show('clan');","""let pickK='';
-function skIc(s){return s.imk?`<img src="${SPR[s.imk]}">`:s.im?`<img src="${s.im}">`:s.ic!=null?`<img src="${SPR.ic[s.ic]}">`:`<span>${s.i}</span>`}
-function custInfo(k){const C=CLANS[k];$('#cinfo').style.setProperty('--c',C.col);$('#cinfo').innerHTML=`<b>${C.n}</b><small>${C.d}</small><div class="csk">${C.sk.map(s=>`<span class="ski">${skIc(s)}<em>${s.n}</em></span>`).join('')}</div>`}
+function skIc(s,k){try{const e=Object.entries(JU[k]||{}).find(([i,v])=>v.n===s.n),id=e&&(e[0]==='olho'?'olho1':e[0]);if(id&&UIJ[id])return `<img src="${UIJ[id]}" style="image-rendering:auto">`}catch(_){}return s.imk?`<img src="${SPR[s.imk]}">`:s.im?`<img src="${s.im}">`:s.ic!=null?`<img src="${SPR.ic[s.ic]}">`:`<span>${s.i}</span>`}
+function custInfo(k){const C=CLANS[k];$('#cinfo').style.setProperty('--c',C.col);$('#cinfo').innerHTML=`<b>${C.n}</b><small>${C.d}</small><div class="csk">${C.sk.map(s=>`<span class="ski">${skIc(s,k)}<em>${s.n}</em></span>`).join('')}</div>`}
 $('#go2').onclick=()=>{if(!pickK)return show('clan');goFull();start(pickK);setTimeout(rs,350)};
 $('#cback').onclick=()=>show('clan');""")
 rep("d.onclick=()=>{goFull();start(k);setTimeout(rs,350)};","d.onclick=()=>{pickK=k;custInfo(k);show('cust')};")

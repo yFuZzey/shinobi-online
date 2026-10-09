@@ -72,7 +72,7 @@ rep("function chLoad(){CH=chNew();try{const j=JSON.parse(localStorage.getItem(ch
 LOGIN='''<div id="s-login" class="scr on">
 <svg class="lgdune" viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120 C120 70 230 80 330 115 S560 150 800 95 V200 H0Z" fill="#7a4a2c"/><path d="M0 155 C150 115 300 125 420 150 S650 170 800 140 V200 H0Z" fill="#a8693a"/><path d="M0 185 C200 160 380 168 520 182 S700 192 800 178 V200 H0Z" fill="#c98b4f"/></svg>
 <div class="lgwrap">
- <div class="lgbrand"><div class="lgseal">忍</div><div class="lglogo" role="img" aria-label="Shinobi Online"></div><h1>Shinobi Online</h1><p>Mundo ninja online · comece na Vila da Areia</p></div>
+ <div class="lgbrand"><div class="lgseal">忍</div><div class="lglogo" role="img" aria-label="Shinobi Online"></div><h1>Shinobi Online</h1></div>
  <div class="lgcard">
   <div class="lgtabs" role="tablist"><button id="tabIn" class="on" role="tab">Entrar</button><button id="tabNew" role="tab">Criar conta</button></div>
   <form id="fIn" class="lgf" autocomplete="on" novalidate onsubmit="return false">
@@ -89,7 +89,6 @@ LOGIN='''<div id="s-login" class="scr on">
   </form>
   <p id="err" class="m" role="status"></p>
   <button id="goOff" class="lnk" type="button">Jogar offline</button>
-  <p id="lgVer" class="lgver"></p>
  </div>
 </div>
 <div id="maps" class="m" style="display:none"></div>

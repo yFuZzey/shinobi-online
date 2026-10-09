@@ -16,6 +16,8 @@ const path=require('path');
  ok(cl[0]>0&&cl[1],'a prévia desenha o clã escolhido ('+cl[2]+')');
  await pg.screenshot({path:path.join(__dirname,'criar_cust.png')});
  await pg.click('#cback');await pg.click('.card >> nth='+await pg.evaluate(()=>Object.keys(CLANS).indexOf('nara')));await pg.waitForFunction(()=>cur==='cust');await W(300);
+ ok(await pg.evaluate(()=>[...document.querySelectorAll('#cinfo .ski img')].map(i=>i.src).join()===[UIJ.shuri,UIJ.sombra,UIJ.poss].join()),'ícones do Nara na criação (os mesmos dos jutsus)');
+ ok(await pg.evaluate(()=>!document.querySelector('#lgVer')&&!/Mundo ninja/.test(document.body.innerText.slice(0,0)+document.getElementById('s-login').textContent)),'login sem o texto "Mundo ninja online" e sem a versão');
  ok(await pg.evaluate(()=>!!(HERO&&HERO.nra&&HERO.nra.length>=16)),'Nara tem o boneco próprio (poses da folha)');
  await pg.click('#o-cloth b >> nth=3');await W(100);ok(await pg.evaluate(()=>pickK==='nara'),'personalização funciona no Nara');
  await pg.click('#cback');ok(await pg.evaluate(()=>cur)==='clan','voltar leva à escolha do clã');
