@@ -1177,7 +1177,7 @@ function cast(i){
  cd[i]=cdOf(i,s);p.mp-=mpOf(i,s);if(s.aura){p.au=0;p.aud=1.8}if(s.th)p.th=0;
  let ax=p.ax,ay=p.ay,best=300,tg=null;
  TGL(best).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});
- if(tg){const d=best||1;ax=(tg.x-p.x)/d;ay=(tg.y-p.y)/d;p.ax=ax;p.ay=ay;p.dir=Math.abs(ax)>Math.abs(ay)?(ax<0?2:3):(ay<0?1:0)}
+ if(AIM){ax=AIM.ax;ay=AIM.ay;p.ax=ax;p.ay=ay;p.dir=Math.abs(ax)>Math.abs(ay)?(ax<0?2:3):(ay<0?1:0)}else if(tg){const d=best||1;ax=(tg.x-p.x)/d;ay=(tg.y-p.y)/d;p.ax=ax;p.ay=ay;p.dir=Math.abs(ax)>Math.abs(ay)?(ax<0?2:3):(ay<0?1:0)}
   if(s.t=='proj'&&clan==='nara')actStart('nshu');
   if(s.t=='proj'&&s.fire)castFire(s,ax,ay);else if(s.t=='proj'){const n=s.fan||1;for(let q=0;q<n;q++){const a=Math.atan2(ay,ax)+(q-(n-1)/2)*.22,sp=s.sp||320;P.push({x:p.x+(s.spin?Math.cos(a)*12:0),y:p.y-(s.spin?24:16),vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:s.col,dmg:s.dmg,life:1,big:s.dmg>10,spin:s.spin,tp:HTP})}}
  if(s.t=='aoe')castAoe(s,ax,ay);else if(JCAST[s.t])JCAST[s.t](s,ax,ay);
@@ -1769,7 +1769,7 @@ function onlStep(dt){kfxStep(dt);if(!ONL.on)return;perfTick(dt);
   if(pe.hitT>0)pe.hitT-=dt;if(pe.th>=0)pe.th+=dt;if(pe.th>.35)pe.th=-1;if(pe.au>=0)pe.au+=dt;if(pe.sayT>0)pe.sayT-=dt}
  if(myT>0)myT-=dt}
 const inGrp=id=>!!(ONL.party&&ONL.party.members.some(x=>x.id===id));
-function onlDraw(L,ts){{const t=tgCur();if(t)L.push({y:t.y-.35,d:()=>tgRing(t,ts)})}if(!ONL.on)return;
+function onlDraw(L,ts){{const t=tgCur();if(t)L.push({y:t.y-.35,d:()=>tgRing(t,ts)})}if(AIMS.on&&AIMS.a)L.push({y:p.y-.5,d:aimDraw});if(!ONL.on)return;
  for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.x===null||pe.sc!==(scene|0))continue;
   L.push({y:pe.y,d:()=>{const FL=(pe.eq||[]).map(i=>ITEMS[i]).filter(it=>it&&it.fx&&(it.fx.tails||it.fx.orbit||it.fx.glow||it.fx.hand)).map(it=>it.fx);
    fxDraw(ctx,pe.x,pe.y,ts,FL,0);
@@ -2402,7 +2402,7 @@ function castHosenka(s,ax,ay){actStart('fogo');const tp=HTP,n=Math.max(1,(s.tiro
  KDEL.push({t:s.tel||.3,fn:()=>{const a0=Math.atan2(ay,ax);for(let q=0;q<n;q++){const a=a0+(q-(n-1)/2)*.08+(Math.random()-.5)*.05,sp=(s.sp||330)*(.9+Math.random()*.2);
   P.push({x:p.x+Math.cos(a)*12,y:p.y-24,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:s.col,dmg:s.dmg,life:.95,big:1,mini:1,fire:1,hm:(+s.pot||1)/n,tp})}}})}
 // Gōryūka: o chão avisa onde o dragão vai cair (todo mundo vê); depois explode em área
-function castGoryu(s,ax,ay){actStart('fogo');const tp=HTP,t=+s.tel||.6,tg=alvoPerto(+s.alcance||5),x=tg?tg.x:p.x+ax*3*T,y=tg?tg.y:p.y+ay*3*T,r=s.r||2.2*T;
+function castGoryu(s,ax,ay){actStart('fogo');const tp=HTP,t=+s.tel||.6,tg=AIM?null:alvoPerto(+s.alcance||5),x=AIM?p.x+ax*AIM.d:tg?tg.x:p.x+ax*3*T,y=AIM?p.y+ay*AIM.d:tg?tg.y:p.y+ay*3*T,r=s.r||2.2*T;
  fx.push({k:'aviso',x,y,r,col:'#ff5a1a',life:t+.6,max:t+.6,tel:t}); /* o círculo fica mais 0,6 s, sumindo durante a explosão */
  KDEL.push({t,fn:()=>{HTP=tp;try{alvosEm(x,y,r).forEach(e=>{const d=Math.hypot(e.x-x,e.y-y)||1;hitCom(e,s,+s.pot||1,null,0,(e.x-x)/d*14,(e.y-y)/d*14)})}finally{HTP=null}
   fx.push({k:'boom',x,y:y-10,life:.5,max:.5});fx.push({k:'ring',x,y:y-4,r,col:'#ff8a2a',life:.45,max:.45,sp:1});fx.push({k:'chama',x,y,r,life:.9,max:.9});flash={col:'#ff6a1a',a:.25};shk=Math.max(shk,.35)}})}
@@ -2608,7 +2608,7 @@ function castItem(){const it=atkItem();if(!it){toast('Equipe um item que dá hab
  if(seloBloqueia(mpOf(3)))return seloAviso();if(p.mp<mpOf(3)){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
  cd[3]=cdOf(3);p.mp-=mpOf(3);let ax=p.ax,ay=p.ay,best=300,tg=null;
  TGL(300).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});
- if(tg){const d=best||1;ax=(tg.x-p.x)/d;ay=(tg.y-p.y)/d;p.ax=ax;p.ay=ay}
+ if(AIM){ax=AIM.ax;ay=AIM.ay;p.ax=ax;p.ay=ay}else if(tg){const d=best||1;ax=(tg.x-p.x)/d;ay=(tg.y-p.y)/d;p.ax=ax;p.ay=ay}
  HTP='@ninjutsu#item';try{castAtk(ax,ay)}finally{HTP=null}}
 
 // golpes em área: os Hyuga usam a folha; os outros continuam com o círculo
@@ -2643,7 +2643,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610092335'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610092350'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2926,9 +2926,46 @@ function sbTipHtml(i){if(!clan||!CH)return '';const esc2=t=>String(t).replace(/[
   +(d?'<p>'+d+'</p>':'')+(L.length?'<ul>'+L.map(x=>'<li>'+x+'</li>').join('')+'</ul>':'')}
 {let tk=0,tip=null;const hide=()=>{clearTimeout(tk);tk=0;if(tip)tip.hidden=true};
  [0,1,2,3].forEach(i=>{const b=$('#b'+i);if(!b)return;
-  b.addEventListener('pointerdown',()=>{clearTimeout(tk);tk=setTimeout(()=>{const h=sbTipHtml(i);if(!h)return;if(!tip){tip=document.createElement('div');tip.id='sbTip';document.body.appendChild(tip)}tip.innerHTML=h;tip.hidden=false},450)});
+  b.addEventListener('pointerdown',()=>{clearTimeout(tk);tk=setTimeout(()=>{if(AIMS.mv)return;const h=sbTipHtml(i);if(!h)return;if(!tip){tip=document.createElement('div');tip.id='sbTip';document.body.appendChild(tip)}tip.innerHTML=h;tip.hidden=false},450)});
   ['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,hide))});
  window.addEventListener('blur',hide)}
+/* ---- mirar arrastando a habilidade: arraste o botão na direção desejada; a área aparece no chão e o golpe sai ao soltar.
+   Só tocar = como antes (alvo escolhido / mais próximo; no PC, a direção do cursor). Segurar sem arrastar = informações ---- */
+let AIM=null;const AIMS={mv:0,on:0,id:-1,i:-1,x0:0,y0:0,t0:0,a:null,sh:null,mx:0,my:0,mok:0};
+function aimShape(i){const s=clan&&CH&&CLANS[clan].sk[i];if(!s||s.auto)return null;const o=jtBtn(i);if(o.eye||o.ct||o.lk)return null;const col=s.col||'#ffd23f',T2=s.t;
+ if(T2==='proj')return s.fan>1?{k:'cone',len:(s.sp||320)*.9,half:s.fan*.11,col}:{k:'line',len:Math.min(430,(s.sp||320)*1.05),w:18,col};
+ if(T2==='goka')return{k:'line',len:Math.min(430,(s.sp||250)*1.2),w:(s.r||45)*.9,col:'#ff7a2a'};
+ if(T2==='hosenka')return{k:'cone',len:(s.sp||330)*.9,half:.2,col:'#ff7a2a'};
+ if(T2==='nui')return{k:'line',len:(s.sp||290),w:20,col:'#7b5cc4'};
+ if(T2==='line')return{k:'line',len:s.len||210,w:36,col:'#7b5cc4'};
+ if(T2==='yose')return{k:'line',len:s.len||240,w:36,col:'#7b5cc4'};
+ if(T2==='aoe'&&s.off&&!s.alvos)return{k:'off',off:s.off,r:s.r,col};
+ if(T2==='goryuka')return{k:'ground',r:s.r||70,rng:(+s.alcance||5)*T,col:'#ff5a1a'};
+ return null}
+function aimDraw(){const S=AIMS,sh=S.sh,a=S.a;if(!sh||!a)return;const ts=performance.now(),ang=Math.atan2(a.ay,a.ax),pulse=.5+.5*Math.sin(ts/160);
+ ctx.save();ctx.translate(p.x,p.y-4);ctx.fillStyle=sh.col;ctx.strokeStyle=sh.col;ctx.lineWidth=2;ctx.globalAlpha=.28+.12*pulse;
+ const ell=(x,y,r)=>{ctx.beginPath();ctx.ellipse(x,y,r,r*.55,0,0,7)};
+ if(sh.k==='line'){ctx.save();ctx.rotate(ang);ctx.fillRect(0,-sh.w/2,sh.len,sh.w);ctx.globalAlpha=.9;ctx.setLineDash([8,5]);ctx.strokeRect(0,-sh.w/2,sh.len,sh.w);ctx.restore()}
+ else if(sh.k==='cone'){ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,sh.len,ang-sh.half,ang+sh.half);ctx.closePath();ctx.fill();ctx.globalAlpha=.9;ctx.setLineDash([8,5]);ctx.stroke()}
+ else if(sh.k==='off'){const x=a.ax*sh.off,y=a.ay*sh.off;ell(x,y,sh.r);ctx.fill();ctx.globalAlpha=.9;ctx.setLineDash([8,5]);ell(x,y,sh.r);ctx.stroke()}
+ else if(sh.k==='ground'){const d=a.d,x=a.ax*d,y=a.ay*d;ctx.globalAlpha=.35;ctx.setLineDash([3,6]);ell(0,0,sh.rng);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(x,y);ctx.stroke();
+  ctx.globalAlpha=.28+.12*pulse;ell(x,y,sh.r);ctx.fill();ctx.globalAlpha=.9;ctx.setLineDash([8,5]);ell(x,y,sh.r);ctx.stroke()}
+ ctx.restore()}
+function aimCast(i,a){AIM=a;try{useBtn(i)}finally{AIM=null}}
+{const dead=14,far=120;
+ document.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||cur!=='game'||!p||e.target!==$('#cv'))return;const c=$('#cv'),r=c.getBoundingClientRect(),sx=cv.width/dpr/r.width;AIMS.mx=(e.clientX-r.left)*sx/z+CAM.x;AIMS.my=(e.clientY-r.top)*sx/z+CAM.y;AIMS.mok=1});
+ [0,1,2,3].forEach(i=>{const b=$('#b'+i);if(!b)return;
+  b.onpointerdown=e=>{e.preventDefault();const sh=aimShape(i);if(!sh){useBtn(i);return}
+   const r=b.getBoundingClientRect();Object.assign(AIMS,{id:e.pointerId,i,sh,x0:r.left+r.width/2,y0:r.top+r.height/2,t0:performance.now(),a:null,mv:0,on:1});try{b.setPointerCapture(e.pointerId)}catch(_){}};
+  b.addEventListener('pointermove',e=>{if(!AIMS.on||e.pointerId!==AIMS.id)return;const dx=e.clientX-AIMS.x0,dy=e.clientY-AIMS.y0,L=Math.hypot(dx,dy);
+   if(L<dead){AIMS.a=null;return}AIMS.mv=1;const sh=AIMS.sh,f=Math.min(1,(L-dead)/(far-dead));AIMS.a={ax:dx/L,ay:dy/L,d:sh.k==='ground'?Math.max(T,f*sh.rng):0}});
+  const fim=(e,ok)=>{if(!AIMS.on||e.pointerId!==AIMS.id)return;const A=AIMS,a=A.a,moved=A.mv,held=performance.now()-A.t0>450;AIMS.on=0;AIMS.a=null;AIMS.mv=0;AIMS.sh=null;try{b.releasePointerCapture(e.pointerId)}catch(_){}
+   if(!ok)return;
+   if(a){aimCast(i,a);return}      /* arrastou e soltou apontando: sai na direção/área mostrada */
+   if(moved||held)return;           /* voltou ao centro = cancela · segurou = só mostrou as informações */
+   if(e.pointerType==='mouse'&&AIMS.mok&&!tgAtk()){const dx=AIMS.mx-p.x,dy=AIMS.my-p.y,L=Math.hypot(dx,dy);if(L>4){aimCast(i,{ax:dx/L,ay:dy/L,d:Math.min(L,A.sh.rng||L)});return}}
+   useBtn(i)};
+  b.addEventListener('pointerup',e=>fim(e,true));b.addEventListener('pointercancel',e=>fim(e,false))})}
 {const _sp=setPanel;setPanel=function(w){_sp(w);const bag=w==='bag';$('#tbBag').hidden=!bag;['#tbCh','#tbSt','#tbJu'].forEach(s=>{$(s).hidden=bag})}}
 // ---------- Retrato do personagem (mochila e aba Personagem), animado enquanto a janela está aberta ----------
 function drawPortrait(cv,ts){if(!cv||!cv.offsetParent)return;const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);
@@ -3119,12 +3156,12 @@ function tgPick(wx,wy){let best=null,bd=1e9;
 function tgRing(t,ts){const r=((t.rad||14)*(t.boss?.8:1)+8)+Math.sin(ts/180)*1.5;ctx.save();ctx.strokeStyle='#ffd23f';ctx.lineWidth=2;ctx.globalAlpha=.9;ctx.beginPath();ctx.ellipse(t.x,t.y,r,r*.38,0,0,7);ctx.stroke();
  ctx.strokeStyle='rgba(0,0,0,.45)';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(t.x,t.y,r+2,r*.38+1,0,0,7);ctx.stroke();ctx.restore()}
 function tgFace(){const cvf=$('#tgFaceCv');const t=tgCur();if(!cvf||!t)return;const c=cvf.getContext('2d'),W=cvf.width,H=cvf.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);c.imageSmoothingEnabled=false;
- const head=(fn)=>{const k=H/HFACE.z;c.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);fn()},fit=im=>{const k=Math.min(W/im.naturalWidth,H/im.naturalHeight)*.92;c.drawImage(im,(W-im.naturalWidth*k)/2,(H-im.naturalHeight*k)/2,im.naturalWidth*k,im.naturalHeight*k)};
+ const head=(fn)=>{const k=H/HFACE.z;c.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);fn()},fit=im=>{const w=im.naturalWidth,h=im.naturalHeight,q=Math.min(w,h*.78)*.9,sx=(w-q)/2,sy=h*.04;c.drawImage(im,sx,sy,q,Math.min(q,h-sy),0,0,W,H)}; /* só o rosto: recorta o alto da imagem */
  try{if(TGT.peer)head(()=>{if(HERO)drawHero(c,0,0,{fl:0,t:0,mv:0,run:0,aura:-1,th:-1,set:heroFor(t.look),clan:t.clan,act:null,vis:eqVis(t.eq||[])});else drawChar(c,0,0,{...(t.look||look),clan:t.clan,dir:0,t:0,mv:0,run:0})});
   else{const d=MOBS[t.t]||{},a=d.ap||{tipo:'ninja'};
    if(a.tipo==='imagem'){const im=MOBIMG[t.t];if(im&&im.complete&&im.naturalWidth)fit(im)}
    else if(a.tipo==='sprite'){const r=sprFrame(t,a,performance.now());if(r&&r.im&&r.im.naturalWidth)fit(r.im)}
-   else if(a.tipo==='raposa'&&fxOK){const k=H/150;c.setTransform(k,0,0,k,W/2,H*.95);drawFoxSpr(c,0,0,{t:0,mv:0,fl:0,lunge:0,ch:0,hurt:0,stun:0,dead:0,dt:0})}
+   else if(a.tipo==='raposa'&&fxOK){const k=H/44;c.setTransform(k,0,0,k,W/2-42*k,H/2+78*k);drawFoxSpr(c,0,0,{t:0,mv:0,fl:0,lunge:0,ch:0,hurt:0,stun:0,dead:0,dt:0})}
    else head(()=>drawChar(c,0,0,{skin:a.skin||'#d9a97f',hair:a.hair||'#222',cloth:a.cloth||'#6a3030',band:a.band||'#8b1e1e',dir:0,t:0,mv:0,run:0}))}}catch(_){}}
 function tgUi(){const el=$('#tgt');if(!el)return;const t=tgCur();if(!t){if(!el.hidden){el.hidden=true;el._o=null}return}
  let nm=t.nome||'?',lv=t.lv||1,col='#fff',fx=[];

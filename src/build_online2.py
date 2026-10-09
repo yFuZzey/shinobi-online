@@ -188,7 +188,7 @@ rep("function hurt(n){if(Math.random()*100<dodgeChance(HPREC)){FT.push({x:p.x,y:
     "function hurt(n){HRES={miss:0,d:0,dead:0};if(kaitenGuard()){HRES.miss=1;FT.push({x:p.x,y:p.y-62,t:'defendeu',txt:1,life:.8});return}if(Math.random()*100<dodgeChance(HPREC)){HRES.miss=1;FT.push({x:p.x,y:p.y-56,t:'esquivou',txt:1,life:.8});return}n=Math.max(1,Math.round(n*(1-D().red/100)));n=shieldAbsorb(n);p.hp-=n;HRES.d=n;")
 rep(" if(p.hp<=0){p.hp=p.max;scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:.6}}}"," if(p.hp<=0){HRES.dead=1;p.hp=p.max;scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:.6}}}")
 # PvP: jogadores fora do grupo entram nas mesmas contas de mira e acerto dos golpes
-rep(" E.forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});\n if(tg){const d=best||1;ax="," TGL(best).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});\n if(tg){const d=best||1;ax=")
+rep(" E.forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});\n if(tg){const d=best||1;ax="," TGL(best).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});\n if(AIM){ax=AIM.ax;ay=AIM.ay;p.ax=ax;p.ay=ay;p.dir=Math.abs(ax)>Math.abs(ay)?(ax<0?2:3):(ay<0?1:0)}else if(tg){const d=best||1;ax=")
 rep("let tg=null,best=reach;E.forEach(","let tg=null,best=reach;TGL(reach).forEach(")
 rep("  E.forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hitE(","  E.concat(PVT()).forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hitE(")
 rep("  E.forEach(e=>{if(e.dead)return;const dx=e.x-p.x,dy=e.y-p.y,pr=","  E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-p.x,dy=e.y-p.y,pr=")
