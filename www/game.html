@@ -664,7 +664,8 @@ function tintSet(look){const sk=look.skin==SKIN[0]?0:hx(look.skin),hr=look.hair=
    else if(k[0]=='h'&&k[1]=='y'&&mx>100&&s<.34){const y=p/W|0;if(y>=(SPR.hyc&&SPR.hyc[k]?SPR.hyc[k][i]:SPR.hy))K[p]=4} /* Hyuga: roupa clara também recebe a cor */
    else if(mx<95&&s<.4){const x=p%W,y=p/W|0;
     if(k=='throw'){const q=THR[i];if(q.sx&&(q.sl?(x<q.sx&&y<30):x>=q.sx))continue;K[p]=(x>=q.x0&&x<=q.x1&&y<q.y1)?2:3;continue}
-    const cut=SPR.nrc&&SPR.nrc[k]?SPR.nrc[k][i]:SPR.hyc&&SPR.hyc[k]?SPR.hyc[k][i]:SPR.ucc&&SPR.ucc[k]?SPR.ucc[k][i]:k=='arun'?SPR.hy2:(k=='run'&&x<53)?31:SPR.hy;K[p]=y<cut-3?2:3}} /* -3: o colarinho das costas não pega a cor do cabelo */
+    const cut=SPR.nrc&&SPR.nrc[k]?SPR.nrc[k][i]:SPR.hyc&&SPR.hyc[k]?SPR.hyc[k][i]:SPR.ucc&&SPR.ucc[k]?SPR.ucc[k][i]:k=='arun'?SPR.hy2:(k=='run'&&x<53)?31:SPR.hy;if(y<cut-3&&mx>38&&b>r+14)continue; /* bandana azulada não é cabelo */
+    K[p]=y<cut-3?2:3}} /* -3: o colarinho das costas não pega a cor do cabelo */
   const sk1=p=>K[p]==1;
   for(let p=0;p<W*H;p++){const m=K[p];if(!m)continue;const x=p%W,y=p/W|0;let t=m==1?sk:m==2?hr:(m<4&&SPR.hyc&&SPR.hyc[k]?0:cl),rf=m==1?SREF:m==4?[225,222,205]:m==5?[38,46,78]:m==6?[75,70,62]:REF;
    if(m>1&&m!=6){let nb=0;for(let dy=-1;dy<=1&&!nb;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<W&&Y<H&&sk1(Y*W+X)){nb=1;break}}if(nb)t=0}
@@ -2233,11 +2234,11 @@ function actFrame(A){const D=A&&ACTS[A.a];if(!D)return null;const t=actEl(A);if(
  const HS=o.set||HERO,cl=o.clan!==undefined?o.clan:(o.set?null:clan),A=o.act!==undefined?o.act:(o.set?null:ACT);
  let key=null,fr=0,flip=0;
  if(cl==='nara'&&HS&&HS.nra&&!(o.th>=0)){ /* Nara: boneco próprio (parado, correndo e poses das sombras) */
-  const rr=A&&String(A.a)[0]==='n'&&!o.mv?actFrame(A):null,IDL=[0,4],RUN=[0,2,4,2];let f;
-  if(rr)f=rr.i;else if(o.mv)f=RUN[(o.t/100|0)%4];else f=IDL[(o.t/700|0)%2];
+  const rr=A&&String(A.a)[0]==='n'&&!o.mv?actFrame(A):null,RUN=[0,2,4,2];let f,sy=1;
+  if(rr)f=rr.i;else if(o.mv)f=RUN[(o.t/100|0)%4];else{f=0;sy=1+.014*Math.sin(o.t/380)} /* parado: um só quadro (o rosto não muda) com respiração leve */
   const im=HS.nra[f],an=SPR.nrx.nra[f],sc=SPR.sc,bob=o.mv?((o.t/95|0)%2?-1:0):0;HHAND=[(o.fl?-1:1)*30*sc,-70*sc/2+bob];
   c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,0,10,4,0,0,7);c.fill();
-  if(o.fl)c.scale(-1,1);c.drawImage(im,-an[0]*sc,-an[1]*sc+bob,im.width*sc,im.height*sc);c.restore();return}
+  if(o.fl)c.scale(-1,1);c.drawImage(im,-an[0]*sc,-an[1]*sc*sy+bob,im.width*sc,im.height*sc*sy);c.restore();return}
  if(HS&&A&&(A.root||A.para||!o.mv)){const r=actFrame(A),k=(ACTS[A.a]||{}).k||'hya';if(r&&HS[k]){key=k;fr=r.i;flip=r.flip}}
  if(key===null&&cl==='hyuga'&&HS&&HS.hyw&&!(o.th>=0)){ /* com aura também (o Hyuga não tem pose de aura própria: não troca de boneco) */
   if(o.mv){if(o.run){key='hyr';fr=(o.t/60|0)%HS.hyr.length}else{key='hyw';fr=(o.t/95|0)%HS.hyw.length}}else{key='hya';fr=0}}
@@ -2560,7 +2561,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610091915'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610091920'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
