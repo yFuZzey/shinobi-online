@@ -528,6 +528,34 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 .cbt{width:100%;align-items:center;justify-content:space-between;margin-top:2px}
 .cbt #go2{flex:1;margin:0}
 #cinfo{padding:2px 8px}
+/* criação de personagem: estandarte, brasão, história do clã e animações */
+#s-cust{isolation:isolate}
+#s-cust .cw{gap:16px;align-items:center}
+#cban{flex:none;width:min(66px,15vw);height:min(190px,50vh);background:var(--cban) center/contain no-repeat;transform-origin:50% 2%;animation:csway 3.6s ease-in-out infinite;filter:drop-shadow(0 6px 8px rgba(0,0,0,.5));image-rendering:pixelated}
+@keyframes csway{0%,100%{transform:rotate(-2.2deg)}50%{transform:rotate(2.2deg)}}
+.cl{display:flex;flex-direction:column;align-items:center;gap:6px}
+.cemb{position:absolute;left:50%;top:50%;width:78%;aspect-ratio:1;margin:-39% 0 0 -39%;background:var(--cem) center/contain no-repeat;opacity:.22;animation:cspin 40s linear infinite,cpul 4s ease-in-out infinite;image-rendering:pixelated;pointer-events:none}
+@keyframes cspin{to{transform:rotate(360deg)}}
+@keyframes cpul{0%,100%{filter:drop-shadow(0 0 4px var(--c))}50%{filter:drop-shadow(0 0 14px var(--c))}}
+.cped{animation:cped 2.6s ease-in-out infinite}
+@keyframes cped{0%,100%{opacity:.6;transform:translateX(-50%) scaleX(.92)}50%{opacity:1;transform:translateX(-50%) scaleX(1.08)}}
+#csk{display:flex;gap:8px;padding:5px 10px 4px;border:solid transparent;border-width:12px 10px 10px 12px;border-image:var(--ui-painel) 8 7 7 9;background:#f0deaa var(--ui-papel) 0 0/32px 32px;background-clip:padding-box;color:#3a201a}
+#csk .ski{width:58px;font-size:10px}
+#csk .ski img,#csk .ski span{width:30px;height:30px;transition:transform .2s}
+#csk .ski:hover img{transform:scale(1.12)}
+#cinfo{text-align:left;gap:4px;padding:2px 10px 4px}
+#cinfo .chd{display:flex;flex-direction:column;align-items:center;border-bottom:1.5px solid #b98b4a88;padding-bottom:3px}
+#cinfo .chd b{font-size:19px;letter-spacing:.03em}
+#cinfo .chd em{font-style:italic;font-size:11.5px;color:#7a4a22}
+#cinfo .clore{margin:2px 0 0;font-size:12px;line-height:1.35;text-align:justify;text-indent:1em;color:#3a201a}
+#cinfo .clore::first-letter{font-size:1.5em;font-weight:700;color:var(--c)}
+.cin #cinfo{animation:cin .5s ease-out both}.cin #csk .ski{animation:cin .45s ease-out both}
+.cin #csk .ski:nth-child(2){animation-delay:.1s}.cin #csk .ski:nth-child(3){animation-delay:.2s}.cin .cpv{animation:cin .45s ease-out both}.cin #capa{animation:cin .5s .12s ease-out both}
+@keyframes cin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#s-cust{background-blend-mode:normal}
+#s-cust::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 30% 55%,color-mix(in srgb,var(--c,#fff) 28%,transparent),transparent 60%);transition:background .4s}
+@media (max-width:600px){#cban{display:none}}
+@media (orientation:landscape) and (max-height:560px){#cinfo .clore{font-size:11.5px;line-height:1.3}#capa{padding-top:0}#capa .row{font-size:12px}#capa .sw b{width:23px;height:23px}}
 </style></head><body>
 
 <div id="s-login" class="scr on">
@@ -556,7 +584,7 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 </div>
 
 <div id="s-cust" class="scr"><h2>Crie seu ninja</h2>
-<div class="cw"><div class="cpv"><canvas id="pv" width="200" height="240"></canvas><i class="cped"></i></div><div class="cc"><div id="cinfo"></div><div id="capa"><b>Aparência</b>
+<div class="cw"><div id="cban"></div><div class="cl"><div class="cpv"><i class="cemb"></i><canvas id="pv" width="200" height="240"></canvas><i class="cped"></i></div><div id="csk"></div></div><div class="cc"><div id="cinfo"></div><div id="capa"><b>Aparência</b>
 <div class="row"><span>Pele</span><span class="sw" id="o-skin"></span></div>
 <div class="row"><span>Cabelo</span><span class="sw" id="o-hair"></span></div>
 <div class="row"><span>Roupa</span><span class="sw" id="o-cloth"></span></div>
@@ -1228,7 +1256,13 @@ function mmDraw(){const L=$('#mmList');L.innerHTML='';Object.keys(MAPS).forEach(
 $('#mapbtn').onclick=()=>{mmDraw();$('#mapmenu').hidden=false};$('#mmX').onclick=()=>{$('#mapmenu').hidden=true};
 let pickK='';
 function skIc(s,k){try{const e=Object.entries(JU[k]||{}).find(([i,v])=>v.n===s.n),id=e&&(e[0]==='olho'?'olho1':e[0]);if(id&&UIJ[id])return `<img src="${UIJ[id]}" style="image-rendering:auto">`}catch(_){}return s.imk?`<img src="${SPR[s.imk]}">`:s.im?`<img src="${s.im}">`:s.ic!=null?`<img src="${SPR.ic[s.ic]}">`:`<span>${s.i}</span>`}
-function custInfo(k){const C=CLANS[k];$('#cinfo').style.setProperty('--c',C.col);$('#cinfo').innerHTML=`<b>${C.n}</b><small>${C.d}</small><div class="csk">${C.sk.map(s=>`<span class="ski">${skIc(s,k)}<em>${s.n}</em></span>`).join('')}</div>`}
+const LORE={uchiha:['Clã do Fogo e da Vontade','Nascido das chamas e da dor, o clã Uchiha desperta o Sharingan diante da perda. Seus olhos leem cada movimento e suas labaredas não perdoam.'],
+ hyuga:['Clã do Punho Gentil','Nobre linhagem de Konoha, os Hyuga enxergam o fluxo de chakra com o Byakugan. Cada palma sela os pontos vitais do inimigo antes mesmo de ele perceber o golpe.'],
+ nara:['Clã das Sombras e do Cervo','Estrategistas silenciosos, os Nara transformam a batalha em um tabuleiro. Suas sombras prendem quem as toca, e uma mente brilhante vale mais que mil golpes.']};
+function custInfo(k){const C=CLANS[k],Lo=LORE[k]||['',C.d],sc=$('#s-cust');sc.style.setProperty('--c',C.col);try{sc.style.setProperty('--cban','url('+UIJ['rolo_'+k+'_on']+')');sc.style.setProperty('--cem','url('+UIJ['emb_'+k]+')')}catch(_){}
+ $('#cinfo').innerHTML=`<div class="chd"><b>Clã ${C.n}</b><em>${Lo[0]}</em></div><p class="clore">${Lo[1]}</p>`;
+ $('#csk').innerHTML=C.sk.map(s=>`<span class="ski">${skIc(s,k)}<em>${s.n}</em></span>`).join('');
+ sc.classList.remove('cin');void sc.offsetWidth;sc.classList.add('cin')}
 $('#go2').onclick=()=>{if(!pickK)return show('clan');goFull();start(pickK);setTimeout(rs,350)};
 $('#cback').onclick=()=>show('clan');
 (function(){const ks=Object.keys(MAPS),el=$('#maps');if(ks.length<2){el.style.display='none';return}
@@ -2560,7 +2594,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610091925'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610091931'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2948,15 +2982,24 @@ const MUS_TELAS=['login','clan','cust']; /* a música segue até o jogo começar
 /* animação de fundo (estrelas cadentes e poeira) só na tela de login */
 {const FX={c:{},st:[],du:[],nx:1,t0:0};
  const mk=id=>{const sc=$('#s-'+id);if(!sc||FX.c[id])return;const c=document.createElement('canvas');c.className='bgfx';sc.insertBefore(c,sc.firstChild);FX.c[id]=c};
- ['login'].forEach(mk);
+ ['login','cust'].forEach(mk);
  FX.tw=[];FX.fg=[{x:0,y:.78,v:6,a:.10},{x:.5,y:.86,v:-0.0+9,a:.08}];FX.lf=[];FX.ff=[];
  for(let i=0;i<34;i++)FX.tw.push({x:Math.random(),y:Math.random(),p:500+Math.random()*900,o:Math.random()*6.3,b:i%9===0});
  for(let i=0;i<9;i++)FX.lf.push({x:Math.random(),y:Math.random(),vx:10+Math.random()*10,vy:12+Math.random()*10,t:Math.random()*9,o:Math.random()*6.3,c:['#6aa84f','#a3c25a','#d98a3a'][i%3]});
  for(let i=0;i<8;i++)FX.ff.push({x:Math.random(),y:.5+Math.random()*.45,t:Math.random()*9,o:Math.random()*6.3});
  for(let i=0;i<46;i++)FX.du.push({x:Math.random(),y:Math.random(),v:.004+Math.random()*.012,a:Math.random()*6.3,s:Math.random()<.2?3:2,w:Math.random()*6.3});
+ /* criação de personagem: partículas na cor do clã (brasas, chakra, folhas) */
+ const CPAL={uchiha:{c:['255,110,40','255,170,60','255,70,40'],d:-1},hyuga:{c:['150,190,255','210,230,255','120,160,255'],d:-.6},nara:{c:['110,190,110','170,220,120','60,140,90'],d:.8}};
+ FX.cp=[];for(let i=0;i<48;i++)FX.cp.push({x:Math.random(),y:Math.random(),v:.02+Math.random()*.05,o:Math.random()*6.3,k:i%3,s:Math.random()<.25?2:1});
+ function custFx(g,W,H,dt,ts){const P=CPAL[pickK]||CPAL.hyuga;
+  FX.cp.forEach(o=>{o.y+=P.d*o.v*dt;o.x+=Math.sin(ts/900+o.o)*.03*dt+(P.d>0?.012*dt:0);if(o.y<-.03)o.y=1.03;if(o.y>1.03)o.y=-.03;if(o.x>1.03)o.x=-.03;
+   const a=.35+.5*Math.abs(Math.sin(ts/500+o.o)),x=(o.x*W)|0,y=(o.y*H)|0,cl=P.c[o.k];
+   if(P.d>0){g.fillStyle='rgba('+cl+','+a.toFixed(2)+')';g.fillRect(x,y,o.s+2,o.s+1);g.fillRect(x+1,y-1,o.s,1)} /* folha */
+   else{g.fillStyle='rgba('+cl+','+(a*.25).toFixed(2)+')';g.fillRect(x-1,y-1,o.s+2,o.s+2);g.fillStyle='rgba('+cl+','+a.toFixed(2)+')';g.fillRect(x,y,o.s,o.s)}})}
  function bgfx(ts){requestAnimationFrame(bgfx);const c=FX.c[cur];if(!c)return;const dt=Math.min(.05,(ts-FX.t0)/1000||0);FX.t0=ts;
   const W=c.clientWidth>>1,H=c.clientHeight>>1;if(!W)return;if(c.width!==W||c.height!==H){c.width=W;c.height=H}
   const g=c.getContext('2d');g.clearRect(0,0,W,H);
+  if(cur==='cust'){custFx(g,W,H,dt,ts);return}
   FX.nx-=dt;if(FX.nx<=0&&FX.st.length<3){FX.nx=1.2+Math.random()*2.6;const sp=130+Math.random()*90;FX.st.push({x:W*(.25+Math.random()*.85),y:-4+Math.random()*H*.3,vx:-sp,vy:sp*.5,l:0,L:.9+Math.random()*.5})}
   /* brilho da lua, estrelas piscando, névoa, folhas e vaga-lumes */
   const mx=W*.44,my=H*.13,pu=.5+.5*Math.sin(ts/1400),gr=g.createRadialGradient(mx,my,H*.04,mx,my,H*.3);gr.addColorStop(0,'rgba(255,240,190,'+(.16+.08*pu).toFixed(3)+')');gr.addColorStop(1,'rgba(255,240,190,0)');g.fillStyle=gr;g.fillRect(0,0,W,H*.6);

@@ -135,14 +135,19 @@ CSS="""
 """
 # criação do personagem: primeiro o clã, depois a aparência (com as informações do clã)
 rep('<button id="go2">Escolher clã</button></div></div></div>','</div><div class="cbt"><button id="cback" class="sec" type="button">‹ Trocar de clã</button><button id="go2">Começar</button></div></div></div></div>')
-rep('<div class="cw"><canvas id="pv" width="200" height="240"></canvas><div class="cc">','<div class="cw"><div class="cpv"><canvas id="pv" width="200" height="240"></canvas><i class="cped"></i></div><div class="cc"><div id="cinfo"></div><div id="capa"><b>Aparência</b>')
-rep('<div class="cw"><canvas id="pv"','<div class="cw"><canvas id="pv"',0) if 0 else None
+rep('<div class="cw"><canvas id="pv" width="200" height="240"></canvas><div class="cc">','<div class="cw"><div id="cban"></div><div class="cl"><div class="cpv"><i class="cemb"></i><canvas id="pv" width="200" height="240"></canvas><i class="cped"></i></div><div id="csk"></div></div><div class="cc"><div id="cinfo"></div><div id="capa"><b>Aparência</b>')
 rep('drawHero(g,25,c.height/s-6,{fl:0,t:ts,mv:k?0:(ts/2500|0)%2,run:0,aura:-1})','drawHero(g,25,c.height/s-6,{fl:0,t:ts,mv:k?0:(ts/2500|0)%2,run:0,aura:-1,clan:k||clan})')
 rep(" if(cur=='cust')pv(ts,$('#pv'));"," if(cur=='cust')pv(ts,$('#pv'),pickK);")
 rep(" show('cust')};\nfunction sw("," show('clan')};\nfunction sw(")
 rep("$('#go2').onclick=()=>show('clan');","""let pickK='';
 function skIc(s,k){try{const e=Object.entries(JU[k]||{}).find(([i,v])=>v.n===s.n),id=e&&(e[0]==='olho'?'olho1':e[0]);if(id&&UIJ[id])return `<img src="${UIJ[id]}" style="image-rendering:auto">`}catch(_){}return s.imk?`<img src="${SPR[s.imk]}">`:s.im?`<img src="${s.im}">`:s.ic!=null?`<img src="${SPR.ic[s.ic]}">`:`<span>${s.i}</span>`}
-function custInfo(k){const C=CLANS[k];$('#cinfo').style.setProperty('--c',C.col);$('#cinfo').innerHTML=`<b>${C.n}</b><small>${C.d}</small><div class="csk">${C.sk.map(s=>`<span class="ski">${skIc(s,k)}<em>${s.n}</em></span>`).join('')}</div>`}
+const LORE={uchiha:['Clã do Fogo e da Vontade','Nascido das chamas e da dor, o clã Uchiha desperta o Sharingan diante da perda. Seus olhos leem cada movimento e suas labaredas não perdoam.'],
+ hyuga:['Clã do Punho Gentil','Nobre linhagem de Konoha, os Hyuga enxergam o fluxo de chakra com o Byakugan. Cada palma sela os pontos vitais do inimigo antes mesmo de ele perceber o golpe.'],
+ nara:['Clã das Sombras e do Cervo','Estrategistas silenciosos, os Nara transformam a batalha em um tabuleiro. Suas sombras prendem quem as toca, e uma mente brilhante vale mais que mil golpes.']};
+function custInfo(k){const C=CLANS[k],Lo=LORE[k]||['',C.d],sc=$('#s-cust');sc.style.setProperty('--c',C.col);try{sc.style.setProperty('--cban','url('+UIJ['rolo_'+k+'_on']+')');sc.style.setProperty('--cem','url('+UIJ['emb_'+k]+')')}catch(_){}
+ $('#cinfo').innerHTML=`<div class="chd"><b>Clã ${C.n}</b><em>${Lo[0]}</em></div><p class="clore">${Lo[1]}</p>`;
+ $('#csk').innerHTML=C.sk.map(s=>`<span class="ski">${skIc(s,k)}<em>${s.n}</em></span>`).join('');
+ sc.classList.remove('cin');void sc.offsetWidth;sc.classList.add('cin')}
 $('#go2').onclick=()=>{if(!pickK)return show('clan');goFull();start(pickK);setTimeout(rs,350)};
 $('#cback').onclick=()=>show('clan');""")
 rep("d.onclick=()=>{goFull();start(k);setTimeout(rs,350)};","d.onclick=()=>{pickK=k;custInfo(k);show('cust')};")

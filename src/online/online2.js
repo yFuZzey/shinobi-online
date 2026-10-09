@@ -1581,15 +1581,24 @@ const MUS_TELAS=['login','clan','cust']; /* a música segue até o jogo começar
 /* animação de fundo (estrelas cadentes e poeira) só na tela de login */
 {const FX={c:{},st:[],du:[],nx:1,t0:0};
  const mk=id=>{const sc=$('#s-'+id);if(!sc||FX.c[id])return;const c=document.createElement('canvas');c.className='bgfx';sc.insertBefore(c,sc.firstChild);FX.c[id]=c};
- ['login'].forEach(mk);
+ ['login','cust'].forEach(mk);
  FX.tw=[];FX.fg=[{x:0,y:.78,v:6,a:.10},{x:.5,y:.86,v:-0.0+9,a:.08}];FX.lf=[];FX.ff=[];
  for(let i=0;i<34;i++)FX.tw.push({x:Math.random(),y:Math.random(),p:500+Math.random()*900,o:Math.random()*6.3,b:i%9===0});
  for(let i=0;i<9;i++)FX.lf.push({x:Math.random(),y:Math.random(),vx:10+Math.random()*10,vy:12+Math.random()*10,t:Math.random()*9,o:Math.random()*6.3,c:['#6aa84f','#a3c25a','#d98a3a'][i%3]});
  for(let i=0;i<8;i++)FX.ff.push({x:Math.random(),y:.5+Math.random()*.45,t:Math.random()*9,o:Math.random()*6.3});
  for(let i=0;i<46;i++)FX.du.push({x:Math.random(),y:Math.random(),v:.004+Math.random()*.012,a:Math.random()*6.3,s:Math.random()<.2?3:2,w:Math.random()*6.3});
+ /* criação de personagem: partículas na cor do clã (brasas, chakra, folhas) */
+ const CPAL={uchiha:{c:['255,110,40','255,170,60','255,70,40'],d:-1},hyuga:{c:['150,190,255','210,230,255','120,160,255'],d:-.6},nara:{c:['110,190,110','170,220,120','60,140,90'],d:.8}};
+ FX.cp=[];for(let i=0;i<48;i++)FX.cp.push({x:Math.random(),y:Math.random(),v:.02+Math.random()*.05,o:Math.random()*6.3,k:i%3,s:Math.random()<.25?2:1});
+ function custFx(g,W,H,dt,ts){const P=CPAL[pickK]||CPAL.hyuga;
+  FX.cp.forEach(o=>{o.y+=P.d*o.v*dt;o.x+=Math.sin(ts/900+o.o)*.03*dt+(P.d>0?.012*dt:0);if(o.y<-.03)o.y=1.03;if(o.y>1.03)o.y=-.03;if(o.x>1.03)o.x=-.03;
+   const a=.35+.5*Math.abs(Math.sin(ts/500+o.o)),x=(o.x*W)|0,y=(o.y*H)|0,cl=P.c[o.k];
+   if(P.d>0){g.fillStyle='rgba('+cl+','+a.toFixed(2)+')';g.fillRect(x,y,o.s+2,o.s+1);g.fillRect(x+1,y-1,o.s,1)} /* folha */
+   else{g.fillStyle='rgba('+cl+','+(a*.25).toFixed(2)+')';g.fillRect(x-1,y-1,o.s+2,o.s+2);g.fillStyle='rgba('+cl+','+a.toFixed(2)+')';g.fillRect(x,y,o.s,o.s)}})}
  function bgfx(ts){requestAnimationFrame(bgfx);const c=FX.c[cur];if(!c)return;const dt=Math.min(.05,(ts-FX.t0)/1000||0);FX.t0=ts;
   const W=c.clientWidth>>1,H=c.clientHeight>>1;if(!W)return;if(c.width!==W||c.height!==H){c.width=W;c.height=H}
   const g=c.getContext('2d');g.clearRect(0,0,W,H);
+  if(cur==='cust'){custFx(g,W,H,dt,ts);return}
   FX.nx-=dt;if(FX.nx<=0&&FX.st.length<3){FX.nx=1.2+Math.random()*2.6;const sp=130+Math.random()*90;FX.st.push({x:W*(.25+Math.random()*.85),y:-4+Math.random()*H*.3,vx:-sp,vy:sp*.5,l:0,L:.9+Math.random()*.5})}
   /* brilho da lua, estrelas piscando, névoa, folhas e vaga-lumes */
   const mx=W*.44,my=H*.13,pu=.5+.5*Math.sin(ts/1400),gr=g.createRadialGradient(mx,my,H*.04,mx,my,H*.3);gr.addColorStop(0,'rgba(255,240,190,'+(.16+.08*pu).toFixed(3)+')');gr.addColorStop(1,'rgba(255,240,190,0)');g.fillStyle=gr;g.fillRect(0,0,W,H*.6);
