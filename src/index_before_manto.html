@@ -129,11 +129,12 @@ function tint(){const sk=look.skin==SKIN[0]?0:hx(look.skin),hr=look.hair==HAIR[0
   const W=c.width,H=c.height,K=new Uint8Array(W*H);
   for(let p=0;p<W*H;p++){const j=p*4;if(a[j+3]<8)continue;const r=a[j],gr=a[j+1],b=a[j+2],mx=Math.max(r,gr,b),mn=Math.min(r,gr,b),s=mx?(mx-mn)/mx:0;
    if(r>85&&gr/r>.45&&gr/r<.9&&b/r>.28&&b/r<.8&&s>.25&&r-b>28)K[p]=1;
+   else if(k[0]=='h'&&k[1]=='y'&&mx>100&&s<.34){const x=p%W,y=p/W|0;if(y>=SPR.hy)K[p]=4} /* Hyuga: roupa clara também recebe a cor */
    else if(mx<95&&s<.4){const x=p%W,y=p/W|0;
     if(k=='throw'){const q=THR[i];if(q.sx&&(q.sl?(x<q.sx&&y<30):x>=q.sx))continue;K[p]=(x>=q.x0&&x<=q.x1&&y<q.y1)?2:3;continue}
-    const cut=k=='arun'?SPR.hy2:(k=='run'&&x<53)?31:SPR.hy;K[p]=y<cut?2:3}}
+    const cut=k=='arun'?SPR.hy2:(k=='run'&&x<53)?31:SPR.hy;K[p]=y<cut-3?2:3}} /* -3: o colarinho das costas não pega a cor do cabelo */
   const sk1=p=>K[p]==1;
-  for(let p=0;p<W*H;p++){const m=K[p];if(!m)continue;const x=p%W,y=p/W|0;let t=m==1?sk:m==2?hr:cl,rf=m==1?SREF:REF;
+  for(let p=0;p<W*H;p++){const m=K[p];if(!m)continue;const x=p%W,y=p/W|0;let t=m==1?sk:m==2?hr:cl,rf=m==1?SREF:m==4?[225,222,205]:REF;
    if(m>1){let nb=0;for(let dy=-1;dy<=1&&!nb;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<W&&Y<H&&sk1(Y*W+X)){nb=1;break}}if(nb)t=0}
    const j=p*4;if(t)for(let q=0;q<3;q++)a[j+q]=Math.min(255,a[j+q]*t[q]/rf[q])}
   g.putImageData(d,0,0);return c})}
