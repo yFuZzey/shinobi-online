@@ -16,4 +16,5 @@ const path=require('path');let ACT_;
  ok(fr.nsom===6&&fr.nkubi===7&&fr.ndom===10&&fr.nyose===12&&fr.nnui===9&&fr.nshu===11,'cada habilidade com a sua pose, mesmo em movimento ('+[fr.nsom,fr.nkubi,fr.ndom,fr.nyose,fr.nnui,fr.nshu]+')');
  ok(['nsom','nkubi','ndom','nyose','nnui','nshu'].every(a=>fr[a+'_para']),'o boneco para de andar durante o lançamento');
  ACT_=await pg.evaluate(()=>{ACT=null;useBtn(0);return ACT&&ACT.a});ok(ACT_==='nshu','o botão da Shuriken faz a pose de lançar ('+ACT_+')');
+ await W(300);ok(await pg.evaluate(()=>{const f={k:'sline',x:p.x,y:p.y-4,ax:1,ay:0,len:120,col:'#120a22',life:2,max:2,tel:.1};ctx.save();const r=sombraLinha(f,100,.5,1);ctx.restore();return r}),'a linha de sombra usa os sprites da folha de efeitos');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();

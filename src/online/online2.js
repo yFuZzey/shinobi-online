@@ -1009,8 +1009,15 @@ function castPoss(s,ax,ay){actStart('nsom');const tp=HTP,t=+s.tel||0,x0=p.x,y0=p
  KDEL.push({t,fn:()=>{HTP=tp;try{const all=E.concat(PVT()).filter(e=>!e.dead&&Math.hypot(e.x-x0,e.y-y0)<s.r+(e.rad||0)*.6).sort((a,b)=>Math.hypot(a.x-x0,a.y-y0)-Math.hypot(b.x-x0,b.y-y0)).slice(0,+s.alvos||3);
    const np=all.filter(e=>e.pvp).length;all.forEach(e=>{const r=e.pvp?root/Math.max(1,np):root;HCC=r?{root:r}:null;hitE(e,s.dmg,ONL.on?+s.stun||0:Math.max(+s.stun||0,r),0,0);HCC=null;if(r)sombraMarca(e,r)});
    if(all.length){flash={col:s.col,a:.3};onlReg('🌑 Kagemane múltiplo prendeu '+all.length+' alvo'+(all.length>1?'s':'')+'.')}}finally{HTP=null;HCC=null}}})}
+/* sprites da sombra do Nara (folha de efeitos): ponta (4 quadros) + faixa repetível */
+const NFX=__NFX__,NFXI={cb:NFX.cabeca.map(h=>{const i=new Image();i.src=h.u;return i}),fx:new Image()};NFXI.fx.src=NFX.faixa;
+function sombraLinha(f,L,el,a){const ft=NFXI.fx,H=NFX.cabeca[3];if(!(ft.naturalWidth&&NFXI.cb[3].naturalWidth))return false;
+ const q=Math.min(3,el/.07|0),qi=q<3?q:(el/.14|0)%2?3:2,ch=NFX.cabeca[qi],ci=NFXI.cb[qi],Tw=ft.naturalWidth,Th=ft.naturalHeight,ph=(el*60)%Tw;
+ ctx.save();ctx.translate(f.x,f.y);ctx.rotate(Math.atan2(f.ay,f.ax));ctx.globalAlpha=a;
+ ctx.save();ctx.beginPath();ctx.rect(-4,-Th,Math.max(0,L-ch.ax*.4)+4,Th*2);ctx.clip();for(let x=-ph;x<L;x+=Tw)ctx.drawImage(ft,x,-Th/2);ctx.restore();
+ ctx.drawImage(ci,L-ch.ax,-ch.ay);ctx.restore();return true}
 function shadowFxDraw(f){const el=f.max-f.life,g=f.tel>0?Math.min(1,el/f.tel):1,a=Math.min(1,f.life/.3);ctx.save();ctx.globalAlpha=.75*a;ctx.fillStyle=f.col;ctx.strokeStyle=f.col;
- if(f.k==='sline'){const L=f.len*g;ctx.lineCap='round';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+f.ax*L,f.y+f.ay*L);ctx.stroke();
+ if(f.k==='sline'){const L=f.len*g;if(sombraLinha(f,L,el,Math.min(1,f.life/.3))){ctx.restore();return}ctx.lineCap='round';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+f.ax*L,f.y+f.ay*L);ctx.stroke();
   ctx.globalAlpha=.35*a;ctx.lineWidth=18;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+f.ax*L,f.y+f.ay*L);ctx.stroke()}
  else{const r=f.r*g;ctx.globalAlpha=.28*a;ctx.beginPath();ctx.ellipse(f.x,f.y,r,r*.55,0,0,7);ctx.fill();ctx.globalAlpha=.7*a;ctx.lineWidth=3;ctx.setLineDash([10,6]);ctx.stroke()}ctx.restore()}
 // ---------- Entrega 7b: jutsus novos do Nara (números no balanceamento.json → golpes.jutsus.nara) ----------
