@@ -79,17 +79,41 @@ $('#ivReset').onclick=()=>{INV=[];EQ={};invSel=null;invSave();stats();fxT=-1;bag
 $('#ivGive').onclick=()=>{Object.keys(ITEMS).forEach(i=>{if(!hasItem(i))INV.push(i)});invSel=INV[0]||null;invSave();bagRefresh()};
 addEventListener('keydown',e=>{if(cur!='game')return;const k=e.key.toLowerCase();if(k=='i')toggleBag(undefined,'bag');else if(k=='c')toggleBag(undefined,'st');else if(e.key=='Escape'&&invOpen)toggleBag(false)});
 // ---- aba de status ----
+// pontos marcados (ainda não gastos): só valem ao tocar em Confirmar
+let PEND={},STEP=1;const atMax=()=>typeof BAL!=='undefined'&&BAL.personagem?BAL.personagem.atributoMax:99;
+const pendSum=()=>{let s=0;for(const k in PEND)s+=PEND[k];return s};
+function pendAdd(k,n){const v=PEND[k]||0;n=n>0?Math.min(n,CH.pts-pendSum(),atMax()-CH.st[k]-v):Math.max(n,-v);if(!n)return 0;PEND[k]=v+n;if(!PEND[k])delete PEND[k];stPendUpd();return n}
+function stPendUpd(){const s=pendSum(),left=CH.pts-s,mx=atMax();
+ $('#stPts').textContent='Pontos disponíveis: '+left;$('#stPts').classList.toggle('has',left>0);
+ document.querySelectorAll('#stRows .strow').forEach(r=>{const k=r.dataset.k,v=PEND[k]||0;r.querySelector('.pd').textContent=v?'+'+v:'';r.querySelector('.sa').disabled=left<1||CH.st[k]+v>=mx;r.querySelector('.sm').disabled=!v});
+ const cf=$('#stCf');if(cf){cf.hidden=!s;$('#stOk').textContent='Confirmar (+'+s+')'}
+ document.querySelectorAll('#stStep button').forEach(b=>b.classList.toggle('on',+b.dataset.n===STEP))}
+// segurar o botão repete e vai acelerando
+function stHold(btn,k,sg){let t=null,n=0;const stop=()=>{clearTimeout(t);t=null};
+ const go=()=>{if(!pendAdd(k,sg*(n>20?STEP*5:STEP))){stop();return}n++;t=setTimeout(go,n===1?380:Math.max(35,150-n*7))};
+ btn.addEventListener('pointerdown',e=>{if(btn.disabled)return;e.preventDefault();stop();n=0;go()});
+ ['pointerup','pointercancel','pointerleave'].forEach(ev=>btn.addEventListener(ev,stop));
+ btn.addEventListener('contextmenu',e=>e.preventDefault());
+ btn.addEventListener('click',e=>{if(e.detail===0&&!btn.disabled)pendAdd(k,sg*STEP)})}
 function stRefresh(){const R=$('#stRows');if(!R||typeof p==='undefined'||!p)return;const d=D();
  $('#stLv').textContent='Nível '+CH.lv;$('#stPts').textContent='Pontos disponíveis: '+CH.pts;$('#stPts').classList.toggle('has',CH.pts>0);
  const need=xpNeed(CH.lv),pc=CH.lv>=LVMAX?100:CH.xp/need*100;$('#stXp').style.width=pc+'%';$('#stXpT').textContent=CH.lv>=LVMAX?'Nível máximo':'XP '+CH.xp+' / '+need;
  R.innerHTML='';AT.forEach(([k,ab,nm,ds])=>{const r=document.createElement('div');r.className='strow';
   r.innerHTML='<div class="sn"><b>'+ab+'</b> '+nm+'<small>'+ds+'</small></div><span class="sv">'+CH.st[k]+'</span>';
-  const b=document.createElement('button');b.className='sp';b.textContent='+';b.setAttribute('aria-label','Aumentar '+nm);b.disabled=CH.pts<1||CH.st[k]>=99;
-  b.onclick=()=>{if(CH.pts<1||CH.st[k]>=99)return;CH.st[k]++;CH.pts--;chSave();stats()};r.appendChild(b);R.appendChild(r)});
+  r.dataset.k=k;const pd=document.createElement('span');pd.className='pd';r.appendChild(pd);
+  const m=document.createElement('button');m.className='sp sm';m.textContent='−';m.setAttribute('aria-label','Tirar de '+nm);stHold(m,k,-1);r.appendChild(m);
+  const b=document.createElement('button');b.className='sp sa';b.textContent='+';b.setAttribute('aria-label','Aumentar '+nm);stHold(b,k,1);r.appendChild(b);R.appendChild(r)});
+ if(!$('#stCf')){R.insertAdjacentHTML('beforebegin','<div id="stStep"><small>Pontos por toque</small><button data-n="1">1</button><button data-n="5">5</button><button data-n="10">10</button><button data-n="999">Máx</button></div>');
+  R.insertAdjacentHTML('afterend','<div id="stCf" hidden><button id="stOk"></button><button id="stNo">Cancelar</button></div>');
+  document.querySelectorAll('#stStep button').forEach(b=>b.onclick=()=>{STEP=+b.dataset.n;stPendUpd()});
+  $('#stOk').onclick=()=>{const s=pendSum();if(!s)return;for(const k in PEND)CH.st[k]+=PEND[k];CH.pts-=s;PEND={};chSave();stats()};
+  $('#stNo').onclick=()=>{PEND={};stPendUpd()}}
+ for(const k in PEND)PEND[k]=Math.max(0,Math.min(PEND[k],atMax()-CH.st[k]));let sm=0;for(const k in PEND){if(!PEND[k])delete PEND[k];else{PEND[k]=Math.min(PEND[k],CH.pts-sm);sm+=PEND[k];if(!PEND[k])delete PEND[k]}}
+ stPendUpd();
  const f=n=>(Math.round(n*10)/10).toString().replace('.',',');
  $('#stDer').innerHTML=[['Vida máxima',d.hp],['Chakra máximo',d.mp],['Dano',(d.dmg>=0?'+':'')+f(d.dmg)+'%'],['Crítico',f(d.crit)+'%'],['Esquiva',f(d.dodge)+'%'],['Redução de dano',f(d.red)+'%'],['Velocidade',(d.spd>=0?'+':'')+f(d.spd)+'%'],['Recarga',f(-d.cdr)+'%']].map(x=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('');
  const bd=$('#stBadge');bd.hidden=CH.pts<1;bd.textContent=CH.pts;$('#statbtn').classList.toggle('new',CH.pts>0)}
 $('#stXpB').onclick=()=>gainXp(100);$('#stLvB').onclick=()=>gainXp(xpNeed(CH.lv)-CH.xp);
-$('#stRed').onclick=()=>{let s=0;for(const k in CH.st){s+=CH.st[k];CH.st[k]=0}CH.pts+=s;chSave();stats()};
-$('#stZero').onclick=()=>{CH=chNew();chSave();stats();p.hp=p.max;p.mp=p.mpMax}
+$('#stRed').onclick=()=>{PEND={};let s=0;for(const k in CH.st){s+=CH.st[k];CH.st[k]=0}CH.pts+=s;chSave();stats()};
+$('#stZero').onclick=()=>{PEND={};CH=chNew();chSave();stats();p.hp=p.max;p.mp=p.mpMax}
 //MANTO-END

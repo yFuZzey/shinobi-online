@@ -210,3 +210,9 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 #s-cust::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 30% 55%,color-mix(in srgb,var(--c,#fff) 28%,transparent),transparent 60%);transition:background .4s}
 @media (max-width:600px){#cban{display:none}}
 @media (orientation:landscape) and (max-height:560px){#cinfo .clore{font-size:11.5px;line-height:1.3}#capa{padding-top:0}#capa .row{font-size:12px}#capa .sw b{width:23px;height:23px}}
+/* status: pontos marcados + confirmar */
+#stStep{display:flex;align-items:center;gap:6px;margin:6px 0}#stStep small{flex:1;color:var(--mute);font-size:12px}
+#stStep button{min-width:38px;height:30px;padding:0 8px;border-radius:8px;font-size:13px;font-weight:700}#stStep button.on{border-color:#ffc94a;color:#ffc94a;background:rgba(255,201,74,.14)}
+.strow .pd{color:#3aa35a;font-weight:800;min-width:28px;text-align:right;font-size:14px}
+.strow .sp{touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#stCf{display:flex;gap:8px;margin:10px 0;position:sticky;bottom:0}#stCf button{flex:1;height:42px;border-radius:10px;font-weight:800}#stCf #stOk{border-color:#ffc94a;color:#1a1208;background:#ffc94a}

@@ -64,8 +64,6 @@ def rep(a,b,n=1):
     s=s.replace(a,b)
 rep("<script>\nconst $=s=>document.querySelector(s);","<script>\nconst BAL="+json.dumps(BAL,ensure_ascii=False,separators=(',',':'))+"; // server/balanceamento.json\nconst SAVE_V=1; // versão do formato do personagem salvo (sobe junto com uma migração em chMigra)\nconst $=s=>document.querySelector(s);")
 rep("const LVMAX=99,PTS_LV=5,xpNeed=l=>Math.round(80*Math.pow(l,1.4));","const LVMAX=BAL.personagem.nivelMax,PTS_LV=BAL.personagem.pontosPorNivel,xpNeed=l=>Math.round(BAL.personagem.xpBase*Math.pow(l,BAL.personagem.xpExpoente));")
-rep("b.disabled=CH.pts<1||CH.st[k]>=99;","b.disabled=CH.pts<1||CH.st[k]>=BAL.personagem.atributoMax;")
-rep("b.onclick=()=>{if(CH.pts<1||CH.st[k]>=99)return;","b.onclick=()=>{if(CH.pts<1||CH.st[k]>=BAL.personagem.atributoMax)return;")
 # save antigo passa pelas migrações (chMigra, em online2.js) antes de ser lido
 rep("function chLoad(){CH=chNew();try{const j=JSON.parse(localStorage.getItem(chKey())||'null');if(j){","function chLoad(){CH=chNew();try{let j=JSON.parse(localStorage.getItem(chKey())||'null');if(j){j=chMigra(j);")
 

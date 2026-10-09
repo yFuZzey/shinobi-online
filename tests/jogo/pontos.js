@@ -1,0 +1,21 @@
+// Status: marca vários pontos (passo 5/10, segurando o +) e só gasta ao Confirmar; Cancelar devolve
+const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/playwright');const W=ms=>new Promise(r=>setTimeout(r,ms));let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
+const path=require('path');
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});
+ const pg=await (await b.newContext({viewport:{width:844,height:390}})).newPage();pg.on('pageerror',e=>{console.log('ERRO',e.message);fails++});
+ await pg.goto('file://'+path.join(__dirname,'..','paginas','off.html'));await pg.fill('#u',"Pontos1");await pg.fill('#p','x');await pg.click('#go1');
+ await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});await pg.click('.card >> nth=0');await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
+ await pg.evaluate(()=>{CH.pts=30;chSave();toggleBag(true,'st')});await W(300);
+ const st=()=>pg.evaluate(()=>({pts:CH.pts,str:CH.st.str,ok:!$('#stCf').hidden,pd:document.querySelector('.strow .pd').textContent,txt:$('#stPts').textContent,okt:$('#stOk').textContent}));
+ let s=await st();ok(!s.ok&&s.pts===30,'sem nada marcado não aparece Confirmar');
+ await pg.click('#stStep button[data-n="5"]');await pg.click('.strow .sa');s=await st();
+ ok(s.ok&&s.pd==='+5'&&s.pts===30&&s.str===0&&/25/.test(s.txt)&&/\+5/.test(s.okt),'tocar + marca 5 e mostra Confirmar, sem gastar ainda ('+JSON.stringify(s)+')');
+ await pg.click('.strow .sm');s=await st();ok(!s.ok&&s.pd==='','− desfaz e esconde o Confirmar');
+ await pg.click('#stStep button[data-n="1"]');
+ const bx=await pg.locator('.strow .sa').first().boundingBox();await pg.mouse.move(bx.x+bx.width/2,bx.y+bx.height/2);await pg.mouse.down();await W(1500);await pg.mouse.up();
+ s=await st();ok(+s.pd.slice(1)>=8,'segurar o + sobe rápido ('+s.pd+' em 1,5s)');
+ await pg.click('#stNo');s=await st();ok(!s.ok&&s.pts===30&&s.str===0&&s.pd==='','Cancelar devolve tudo');
+ await pg.click('#stStep button[data-n="999"]');await pg.click('.strow .sa');s=await st();ok(s.pd==='+30','Máx marca todos os pontos disponíveis');
+ await pg.click('#stOk');s=await st();ok(s.pts===0&&s.str===30&&!s.ok,'Confirmar gasta os pontos e grava ('+JSON.stringify(s)+')');
+ const sv=await pg.evaluate(()=>JSON.parse(localStorage.getItem(chKey())).st.str);ok(sv===30,'salvo no personagem');
+ console.log(fails?'FALHA(S): '+fails:'TUDO OK');await b.close();process.exit(fails?1:0)})();
