@@ -970,6 +970,7 @@ const ACTS={fogo:{k:'uca',d:.4,s:[[8,.16],[12,.24]]},palma:{d:.3,s:[[1,.06],[2,.
 {const U=JU.uchiha.katon,H=JU.hyuga;const tf=U.tel||.16,tp=H.palma.tel||.06,th=Math.max(0,(H.hakke.tel||.26)-.26);
  ACTS.fogo.s[0][1]=tf;ACTS.fogo.d=tf+.24;ACTS.palma.s[0][1]=tp;ACTS.palma.d=tp+.24;ACTS.hakke.s[0][1]+=th;ACTS.hakke.d+=th;ACTS.hakke.root+=th;
  ACTS.fogo.para=ACTS.fogo.d;ACTS.palma.para=ACTS.palma.d} /* Katon (selo de mãos) e Palma: o boneco para só durante a pose (antes, andar cortava a pose e ele ficava sem animação) */
+ACTS.nsom={k:'nra',d:.55,s:[[6,.55]]};ACTS.nnui={k:'nra',d:.45,s:[[15,.45]]};ACTS.nyose={k:'nra',d:.4,s:[[16,.4]]};ACTS.nkubi={k:'nra',d:.55,s:[[7,.55]]};ACTS.ndom={k:'nra',d:.7,s:[[9,.7]]}; /* poses do Nara (folha "nra") */
 let ACT=null,HHAND=null; // HHAND = onde está a mão da frente no quadro que acabou de ser desenhado (Chidori na mão)
 const actEl=A=>(performance.now()-A.t0)/1000;
 function actStart(a){const D=ACTS[a];if(!D)return;ACT={a,t0:performance.now(),root:D.root||0,para:D.para||0};fx.push({k:'act',a,life:.05,max:.05})}
@@ -981,6 +982,12 @@ function actFrame(A){const D=A&&ACTS[A.a];if(!D)return null;const t=actEl(A);if(
 {const _dh=drawHero;drawHero=function(c,x,y,o){
  const HS=o.set||HERO,cl=o.clan!==undefined?o.clan:(o.set?null:clan),A=o.act!==undefined?o.act:(o.set?null:ACT);
  let key=null,fr=0,flip=0;
+ if(cl==='nara'&&HS&&HS.nra&&!(o.th>=0)){ /* Nara: boneco próprio (parado, correndo e poses das sombras) */
+  const rr=A&&String(A.a)[0]==='n'&&!o.mv?actFrame(A):null,IDL=[0,4],RUN=[2,0,2,3];let f;
+  if(rr)f=rr.i;else if(o.mv)f=RUN[(o.t/95|0)%4];else f=IDL[(o.t/700|0)%2];
+  const im=HS.nra[f],an=SPR.nrx.nra[f],sc=SPR.sc,bob=o.mv?((o.t/95|0)%2?-1:0):0;HHAND=[(o.fl?-1:1)*30*sc,-70*sc/2+bob];
+  c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,0,10,4,0,0,7);c.fill();
+  if(o.fl)c.scale(-1,1);c.drawImage(im,-an[0]*sc,-an[1]*sc+bob,im.width*sc,im.height*sc);c.restore();return}
  if(HS&&A&&(A.root||A.para||!o.mv)){const r=actFrame(A),k=(ACTS[A.a]||{}).k||'hya';if(r&&HS[k]){key=k;fr=r.i;flip=r.flip}}
  if(key===null&&cl==='hyuga'&&HS&&HS.hyw&&!(o.th>=0)){ /* com aura também (o Hyuga não tem pose de aura própria: não troca de boneco) */
   if(o.mv){if(o.run){key='hyr';fr=(o.t/60|0)%HS.hyr.length}else{key='hyw';fr=(o.t/95|0)%HS.hyw.length}}else{key='hya';fr=0}}
@@ -997,7 +1004,7 @@ function castLine(s,ax,ay){const tp=HTP,x0=p.x,y0=p.y,t=+s.tel||0,root=+s.root||
    if(Math.hypot(dx-ax*pr,dy-ay*pr)<20+(e.rad||0)*.5){n++;hitE(e,s.dmg,ONL.on?+s.stun||0:Math.max(+s.stun||0,root),0,0);if(root)sombraMarca(e,root)}})}finally{HTP=null;HCC=null}
   if(!n&&s.canal)PRT=0;else if(n)onlReg('🌑 Kagemane prendeu '+n+' alvo'+(n>1?'s':'')+' ('+nf(root)+' s).')}})}
 // Kagemane múltiplo: a sombra se espalha em área por "tel" s e prende os "alvos" mais perto (no PvP o tempo é dividido entre os jogadores presos)
-function castPoss(s,ax,ay){const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,root=+s.root||0;
+function castPoss(s,ax,ay){actStart('nsom');const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,root=+s.root||0;
  fx.push({k:'sarea',x:x0,y:y0-4,r:s.r,col:'#120a22',life:t+.6,max:t+.6,tel:t});
  KDEL.push({t,fn:()=>{HTP=tp;try{const all=E.concat(PVT()).filter(e=>!e.dead&&Math.hypot(e.x-x0,e.y-y0)<s.r+(e.rad||0)*.6).sort((a,b)=>Math.hypot(a.x-x0,a.y-y0)-Math.hypot(b.x-x0,b.y-y0)).slice(0,+s.alvos||3);
    const np=all.filter(e=>e.pvp).length;all.forEach(e=>{const r=e.pvp?root/Math.max(1,np):root;HCC=r?{root:r}:null;hitE(e,s.dmg,ONL.on?+s.stun||0:Math.max(+s.stun||0,r),0,0);HCC=null;if(r)sombraMarca(e,r)});
@@ -1016,7 +1023,7 @@ function sombraPresos(){const n=performance.now(),L=[];for(const [k,o] of SOMBRA
 function hitCom(e,s,mul,cc,st,kx,ky){HCC=cc||null;HMUL=mul||1;try{hitE(e,s.dmg,st||0,kx||0,ky||0)}finally{HCC=null;HMUL=1}}
 const alvosEm=(x,y,r)=>E.concat(PVT()).filter(e=>!e.dead&&Math.hypot(e.x-x,e.y-y)<r+(e.rad||0)*.6);
 // Kage Nui: 3 agulhas de sombra que perseguem (viram devagar: dá para desviar correndo); cada uma vale 1/3 do golpe e deixa lento
-function castNui(s,ax,ay){const tp=HTP,t=+s.tel||0;fx.push({k:'sarea',x:p.x,y:p.y-4,r:26,col:'#120a22',life:t+.3,max:t+.3,tel:t});
+function castNui(s,ax,ay){actStart('nnui');const tp=HTP,t=+s.tel||0;fx.push({k:'sarea',x:p.x,y:p.y-4,r:26,col:'#120a22',life:t+.3,max:t+.3,tel:t});
  KDEL.push({t,fn:()=>{const a0=Math.atan2(ay,ax),n=3,sp=s.sp||290;for(let q=0;q<n;q++){const a=a0+(q-1)*.38;
   P.push({x:p.x+Math.cos(a)*8,y:p.y-14,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:s.col,dmg:s.dmg,life:1.4,sh:1,seek:1,hm:(+s.pot||1)/n,tp,cc:s.lento?{lento:s.lento}:null})}}})}
 function nuiSeek(b,dt){let best=270,tg=null;for(const e of E.concat(PVT())){if(e.dead)continue;const d=Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y);if(d<best){best=d;tg=e}}if(!tg)return;
@@ -1026,25 +1033,25 @@ function nuiDraw(b){const tr=b.tr||(b.tr=[]);tr.push([b.x,b.y]);if(tr.length>10)
  ctx.strokeStyle='#120a22';ctx.globalAlpha=.35;ctx.lineWidth=7;ctx.beginPath();tr.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.stroke();
  ctx.globalAlpha=.9;ctx.lineWidth=3;ctx.stroke();ctx.fillStyle='#2a1747';ctx.beginPath();ctx.arc(b.x,b.y,3.4,0,7);ctx.fill();ctx.restore()}
 // Kubishibari: a sombra sobe em quem está preso nela e aperta: silencia e machuca aos poucos
-function castKubi(s,ax,ay){const tp=HTP,t=+s.tel||0,L=sombraPresos(),D=s.dot||{};
+function castKubi(s,ax,ay){actStart('nkubi');const tp=HTP,t=+s.tel||0,L=sombraPresos(),D=s.dot||{};
  L.forEach(e=>fx.push({k:'sline',x:p.x,y:p.y-4,ax:(e.x-p.x)/(Math.hypot(e.x-p.x,e.y-p.y)||1),ay:(e.y-p.y)/(Math.hypot(e.x-p.x,e.y-p.y)||1),len:Math.hypot(e.x-p.x,e.y-p.y),col:'#120a22',life:t+.5,max:t+.5,tel:t}));
  KDEL.push({t,fn:()=>{HTP=tp;try{L.forEach(e=>{if(e.dead)return;hitCom(e,s,+s.pot||1,s.silencio?{silencio:+s.silencio}:null);fx.push({k:'ring',x:e.x,y:e.y-30,r:16,col:'#5b3a8a',life:.4,max:.4})})}finally{HTP=null}
   if(L.length)onlReg('🫳 Kubishibari em '+L.length+' alvo'+(L.length>1?'s':'')+': silenciado'+(L.length>1?'s':'')+' por '+nf(+s.silencio||0)+' s.')}});
  for(let j=1;j<=(D.n|0);j++)KDEL.push({t:t+j*(+D.int||.5),fn:()=>{HTP=tp;try{L.forEach(e=>{if(!e.dead)hitCom(e,s,+D.pot||.1)})}finally{HTP=null}}})}
 // Kageyose: a sombra estica em linha, agarra o primeiro inimigo e puxa até você (4 puxões)
-function castYose(s,ax,ay){const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,len=s.len||240;
+function castYose(s,ax,ay){actStart('nyose');const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,len=s.len||240;
  fx.push({k:'sline',x:x0,y:y0-4,ax,ay,len,col:'#120a22',life:t+.25,max:t+.25,tel:t});
  KDEL.push({t,fn:()=>{let tg=null,bp=1e9;E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-x0,dy=e.y-y0,pr=dx*ax+dy*ay;if(pr<0||pr>len)return;if(Math.hypot(dx-ax*pr,dy-ay*pr)<22+(e.rad||0)*.5&&pr<bp){bp=pr;tg=e}});
   if(!tg)return;const N=4,step=(+s.puxa||3)*T/N;onlReg('🪝 Kageyose puxou '+(tg.nome||'o alvo')+'.');
   for(let j=0;j<N;j++)KDEL.push({t:j*.1,fn:()=>{if(tg.dead)return;const dx=p.x-tg.x,dy=p.y-tg.y,d=Math.hypot(dx,dy)||1,k=Math.max(0,Math.min(step,d-T*.9));HTP=tp;
    try{hitCom(tg,s,(+s.pot||1)/N,null,0,dx/d*k,dy/d*k)}finally{HTP=null}fx.push({k:'sline',x:p.x,y:p.y-4,ax:-dx/d,ay:-dy/d,len:d,col:'#120a22',life:.18,max:.18,tel:0})}})}})}
 // Campo de Sombras: a sombra cobre o chão por "dur" s; a cada 1 s quem está dentro fica lento (e leva um arranhão); você recebe menos dano enquanto dura
-function castCampo(s,ax,ay){const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,dur=+s.dur||6,r=s.r||3.5*T;
+function castCampo(s,ax,ay){actStart('nsom');const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,dur=+s.dur||6,r=s.r||3.5*T;
  fx.push({k:'sarea',x:x0,y:y0-4,r,col:'#120a22',life:t+dur,max:t+dur,tel:t});
  KDEL.push({t,fn:()=>{if(s.red)bufStart('campo',{red:+s.red,t:dur,nm:'Campo de Sombras: −'+s.red+'% de dano recebido'});onlReg('🌘 Campo de Sombras por '+nf(dur)+' s.')}});
  for(let j=0;j<Math.round(dur);j++)KDEL.push({t:t+j+.05,fn:()=>{HTP=tp;try{alvosEm(x0,y0,r).forEach(e=>hitCom(e,s,+s.pot||.05,s.lento?{lento:s.lento}:null))}finally{HTP=null}}})}
 // Domínio das Sombras (ultimate): a sombra toma a área toda e prende + silencia todo mundo dentro
-function castDominio(s,ax,ay){const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,r=s.r||3.5*T,root=+s.root||0;
+function castDominio(s,ax,ay){actStart('ndom');const tp=HTP,t=+s.tel||0,x0=p.x,y0=p.y,r=s.r||3.5*T,root=+s.root||0;
  fx.push({k:'sarea',x:x0,y:y0-4,r,col:'#120a22',life:t+.9,max:t+.9,tel:t});
  KDEL.push({t,fn:()=>{HTP=tp;let L=[];try{L=alvosEm(x0,y0,r);L.forEach(e=>{hitCom(e,s,+s.pot||1,{root,silencio:+s.silencio||0},ONL.on?0:root);sombraMarca(e,root)})}finally{HTP=null}
   flash={col:s.col,a:.35};shk=Math.max(shk,.3);if(L.length)onlReg('🌑 Domínio das Sombras: '+L.length+' alvo'+(L.length>1?'s':'')+' preso'+(L.length>1?'s':'')+' e silenciado'+(L.length>1?'s':'')+'.')}})}
@@ -1560,12 +1567,13 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
   +'<div class="dbt"><button id="ivAct" class="'+(on?'sec':'')+'">'+(on?'Desequipar':cur?'Trocar pelo equipado':'Equipar')+'</button></div></div>';
  $('#ivAct').onclick=()=>{if(on)unequipItem(id);else{equipItem(id);toggleBag(true,'bag');invSel=id;bagRefresh()}}
  portraitStart()};
-/* música da tela de login: toca em repetição só enquanto o jogador está nela; some ao sair */
+/* música do login: toca em repetição no login, na escolha do clã e na criação; some quando o jogo começa */
+const MUS_TELAS=['login','clan','cust']; /* a música segue até o jogo começar */
 {const M={a:null,fd:0};
  const mus=()=>{if(!M.a){M.a=new Audio('data:audio/mpeg;base64,__LGMUS__');M.a.loop=true;M.a.preload='auto'}return M.a};
- const toca=()=>{if(cur!=='login'||document.hidden)return;clearInterval(M.fd);const a=mus();a.volume=.6;if(a.paused){const p=a.play();if(p&&p.catch)p.catch(()=>{})}};
+ const toca=()=>{if(!MUS_TELAS.includes(cur)||document.hidden)return;clearInterval(M.fd);const a=mus();a.volume=.6;if(a.paused){const p=a.play();if(p&&p.catch)p.catch(()=>{})}};
  const para=()=>{const a=M.a;if(!a||a.paused)return;clearInterval(M.fd);M.fd=setInterval(()=>{if(a.volume>.08)a.volume=Math.max(0,a.volume-.08);else{clearInterval(M.fd);a.pause();a.currentTime=0}},50)};
- {const _sh=show;show=function(id){const r=_sh.apply(this,arguments);if(id==='login')toca();else para();return r}}
+ {const _sh=show;show=function(id){const r=_sh.apply(this,arguments);if(MUS_TELAS.includes(id))toca();else para();return r}}
  /* o celular só deixa tocar depois do primeiro toque: tenta de novo a cada toque enquanto estiver no login */
  ['pointerdown','keydown','touchend'].forEach(e=>document.addEventListener(e,toca,true));
  document.addEventListener('visibilitychange',()=>{if(document.hidden){if(M.a)M.a.pause()}else toca()});

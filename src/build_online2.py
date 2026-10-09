@@ -206,12 +206,12 @@ rep(" if(s.t=='aoe'){const cx=p.x+ax*(s.off||0),cy=p.y+ay*(s.off||0);\n  fx.push
 # desenho dos efeitos da folha
 rep(" fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='ring'){"," fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;\n  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'){shadowFxDraw(f);return}if(f.k=='aviso'||f.k=='chama'||f.k=='genj'||f.k=='amat'||f.k=='tsuku'){uchFxDraw(f);return}if(f.k=='kusho'){hyuFxDraw(f);return}if(f.k=='act'||f.k=='inv'||f.k=='invx')return;\n  if(f.k=='ring'){")
 # Hyuga de branco: quadros novos entram no sprite (o jogo carrega e pinta pele/cabelo igual aos outros; a roupa branca não recebe cor)
-HYS=json.load(open('hyuga/spr_hyuga.json'));UCS=json.load(open('hyuga/spr_uchiha.json'))
+HYS=json.load(open('hyuga/spr_hyuga.json'));UCS=json.load(open('hyuga/spr_uchiha.json'));NRS=json.load(open('hyuga/spr_nara.json'))
 J=lambda o:json.dumps(o,separators=(',',':'))
 # Uchiha: poses da Bola de Fogo (folha "uca"), com corte do cabelo e ponto do pé de cada quadro
-rep('const SPR={"f":{','const SPR={"hyc":'+J(HYS['hyc'])+',"hyx":'+J(HYS['hyx'])+',"hyh":'+J(HYS['hyh'])+',"ucc":'+J(UCS['ucc'])+',"ucx":'+J(UCS['ucx'])+',"f":{'+','.join('"'+k+'":'+json.dumps(v) for k,v in list(HYS['f'].items())+list(UCS['f'].items()))+',')
-rep("const cut=k=='arun'?SPR.hy2:(k=='run'&&x<53)?31:SPR.hy;","const cut=SPR.hyc&&SPR.hyc[k]?SPR.hyc[k][i]:SPR.ucc&&SPR.ucc[k]?SPR.ucc[k][i]:k=='arun'?SPR.hy2:(k=='run'&&x<53)?31:SPR.hy;")
-rep("let t=m==1?sk:m==2?hr:cl,rf=m==1?SREF:m==4?[225,222,205]:REF;","let t=m==1?sk:m==2?hr:(m!=4&&SPR.hyc&&SPR.hyc[k]?0:cl),rf=m==1?SREF:m==4?[225,222,205]:REF;")
+rep('const SPR={"f":{','const SPR={"hyc":'+J(HYS['hyc'])+',"hyx":'+J(HYS['hyx'])+',"hyh":'+J(HYS['hyh'])+',"ucc":'+J(UCS['ucc'])+',"ucx":'+J(UCS['ucx'])+',"nrx":'+J(NRS['nrx'])+',"nrc":'+J(NRS['nrc'])+',"f":{'+','.join('"'+k+'":'+json.dumps(v) for k,v in list(HYS['f'].items())+list(UCS['f'].items())+list(NRS['f'].items()))+',')
+rep("const cut=k=='arun'?SPR.hy2:(k=='run'&&x<53)?31:SPR.hy;","const cut=SPR.nrc&&SPR.nrc[k]?SPR.nrc[k][i]:SPR.hyc&&SPR.hyc[k]?SPR.hyc[k][i]:SPR.ucc&&SPR.ucc[k]?SPR.ucc[k][i]:k=='arun'?SPR.hy2:(k=='run'&&x<53)?31:SPR.hy;")
+rep("let t=m==1?sk:m==2?hr:cl,rf=m==1?SREF:m==4?[225,222,205]:m==5?[38,46,78]:REF;","let t=m==1?sk:m==2?hr:(m<4&&SPR.hyc&&SPR.hyc[k]?0:cl),rf=m==1?SREF:m==4?[225,222,205]:m==5?[38,46,78]:REF;")
 # Chidori na mão: no Hyuga segue a mão da frente de cada quadro (no personagem preto fica no lugar de sempre)
 rep("hx=x+fl*13,hy=y-24,","hx=HHAND?x+HHAND[0]:x+fl*13,hy=HHAND?y+HHAND[1]:y-24,")
 # ---- golpes: 1 inicial + 1 do meio + ultimate (botão grande) + 1 do item da mão (Chidori, Rasengan…) ----

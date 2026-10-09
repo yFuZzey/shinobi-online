@@ -9,9 +9,8 @@ const path=require('path');
  ok(a.pausado===false&&a.tela==='login','toca na tela de login');
  await pg.fill('#u','Shika');await pg.fill('#p','x');await pg.click('#go1');
  await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});await W(1500);
- ok(await pg.evaluate(()=>LGMUS.a.paused),'parou ao sair da tela de login');
- await pg.evaluate(()=>show('login'));await W(500);
- ok(await pg.evaluate(()=>!LGMUS.a.paused),'volta a tocar se o jogador retornar ao login');
- await pg.evaluate(()=>show('clan'));await pg.click('.card >> nth=2');await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});await W(1500);
+ ok(await pg.evaluate(()=>!LGMUS.a.paused),'continua tocando na escolha do clã');
+ 
+ await pg.evaluate(()=>show('clan'));await pg.click('.card >> nth=2');await pg.waitForFunction(()=>cur==='cust');await W(300);ok(await pg.evaluate(()=>!LGMUS.a.paused),'continua tocando na criação do personagem');await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});await W(1500);
  ok(await pg.evaluate(()=>LGMUS.a.paused),'não toca no jogo');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();
