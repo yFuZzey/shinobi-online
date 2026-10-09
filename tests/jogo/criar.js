@@ -12,6 +12,8 @@ const path=require('path');
  await pg.click('.card >> nth=1');await pg.waitForFunction(()=>cur==='cust');await W(800);
  const i=await pg.evaluate(()=>({t:$('#cinfo').textContent,sk:document.querySelectorAll('#cinfo .ski').length,fx:px=0}));
  ok(i.sk===3&&/Hyuga|Uchiha|Nara/.test(i.t),'criação mostra o clã e os 3 golpes ('+i.t.slice(0,40)+')');
+ const cl=await pg.evaluate(()=>new Promise(r=>{const d=drawHero;const v=[];drawHero=function(c,x,y,o){v.push(o.clan);return d.apply(this,arguments)};setTimeout(()=>{drawHero=d;r([v.length,v.every(x=>x===pickK),pickK])},400)}));
+ ok(cl[0]>0&&cl[1],'a prévia desenha o clã escolhido ('+cl[2]+')');
  await pg.screenshot({path:path.join(__dirname,'criar_cust.png')});
  await pg.click('#cback');ok(await pg.evaluate(()=>cur)==='clan','voltar leva à escolha do clã');
  await pg.click('.card >> nth=1');await pg.waitForFunction(()=>cur==='cust');await pg.click('#go2');

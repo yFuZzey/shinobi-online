@@ -137,6 +137,7 @@ CSS="""
 rep('<button id="go2">Escolher clã</button></div></div></div>','</div><div class="cbt"><button id="cback" class="sec" type="button">‹ Trocar de clã</button><button id="go2">Começar</button></div></div></div></div>')
 rep('<div class="cw"><canvas id="pv" width="200" height="240"></canvas><div class="cc">','<div class="cw"><div class="cpv"><canvas id="pv" width="200" height="240"></canvas><i class="cped"></i></div><div class="cc"><div id="cinfo"></div><div id="capa"><b>Aparência</b>')
 rep('<div class="cw"><canvas id="pv"','<div class="cw"><canvas id="pv"',0) if 0 else None
+rep('drawHero(g,25,c.height/s-6,{fl:0,t:ts,mv:k?0:(ts/2500|0)%2,run:0,aura:-1})','drawHero(g,25,c.height/s-6,{fl:0,t:ts,mv:k?0:(ts/2500|0)%2,run:0,aura:-1,clan:k||clan})')
 rep(" if(cur=='cust')pv(ts,$('#pv'));"," if(cur=='cust')pv(ts,$('#pv'),pickK);")
 rep(" show('cust')};\nfunction sw("," show('clan')};\nfunction sw(")
 rep("$('#go2').onclick=()=>show('clan');","""let pickK='';
