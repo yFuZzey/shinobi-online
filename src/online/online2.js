@@ -983,8 +983,8 @@ function actFrame(A){const D=A&&ACTS[A.a];if(!D)return null;const t=actEl(A);if(
  const HS=o.set||HERO,cl=o.clan!==undefined?o.clan:(o.set?null:clan),A=o.act!==undefined?o.act:(o.set?null:ACT);
  let key=null,fr=0,flip=0;
  if(cl==='nara'&&HS&&HS.nra&&!(o.th>=0)){ /* Nara: boneco próprio (parado, correndo e poses das sombras) */
-  const rr=A&&String(A.a)[0]==='n'&&!o.mv?actFrame(A):null,IDL=[0,4],RUN=[2,0,2,3];let f;
-  if(rr)f=rr.i;else if(o.mv)f=RUN[(o.t/95|0)%4];else f=IDL[(o.t/700|0)%2];
+  const rr=A&&String(A.a)[0]==='n'&&!o.mv?actFrame(A):null,IDL=[0,4],RUN=[0,2,4,2];let f;
+  if(rr)f=rr.i;else if(o.mv)f=RUN[(o.t/100|0)%4];else f=IDL[(o.t/700|0)%2];
   const im=HS.nra[f],an=SPR.nrx.nra[f],sc=SPR.sc,bob=o.mv?((o.t/95|0)%2?-1:0):0;HHAND=[(o.fl?-1:1)*30*sc,-70*sc/2+bob];
   c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,0,10,4,0,0,7);c.fill();
   if(o.fl)c.scale(-1,1);c.drawImage(im,-an[0]*sc,-an[1]*sc+bob,im.width*sc,im.height*sc);c.restore();return}

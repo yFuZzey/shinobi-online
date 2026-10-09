@@ -36,7 +36,7 @@ for n,k in enumerate(seq):
     sm=img.resize((nw,nh),Image.BOX)
     arr=np.array(sm);arr[...,3]=np.where(arr[...,3]>110,255,0);sm=Image.fromarray(arr,'RGBA')
     # pé: centro dos pixels do terço de baixo
-    ys,xs=np.nonzero(arr[...,3]);low=ys>ys.max()-max(4,int(nh*.12));ax=float(xs[low].mean());ay=float(nh-1)
+    ys,xs=np.nonzero(arr[...,3]);tr=(ys>nh*.30)&(ys<nh*.62);ax=float(xs[tr].mean());ay=float(nh-1) # x do tronco: mantém a cabeça e o corpo no mesmo lugar entre as poses
     f.append('data:image/png;base64,'+base64.b64encode((lambda b:(sm.save(b,'PNG'),b.getvalue())[1])(io.BytesIO())).decode())
     anc.append([round(ax,1),round(ay,1)]);cut.append(round(nh*(.36 if n==7 else .25),1))
     print(n,(w,h),sm.size)
@@ -44,5 +44,5 @@ json.dump({'f':{'nra':f},'nrx':{'nra':anc},'nrc':{'nra':cut}},open(R+'src/hyuga/
 # conferência
 W=Image.new('RGB',(len(f)*110,130),(90,100,130))
 for i,u in enumerate(f):
-    t=Image.open(io.BytesIO(base64.b64decode(u.split(',')[1])));W.paste(t,(i*110,2),t)
+    t=Image.open(io.BytesIO(base64.b64decode(u.split(',')[1])));W.paste(t,(i*110+55-int(anc[i][0]),2),t)
 W.save('/tmp/claude-0/-home-claude-shinobi-online/a975ef8b-7019-5952-bbf4-fe431642d27d/scratchpad/nara_mont.png')
