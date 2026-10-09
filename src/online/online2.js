@@ -970,7 +970,7 @@ const ACTS={fogo:{k:'uca',d:.4,s:[[8,.16],[12,.24]]},palma:{d:.3,s:[[1,.06],[2,.
 {const U=JU.uchiha.katon,H=JU.hyuga;const tf=U.tel||.16,tp=H.palma.tel||.06,th=Math.max(0,(H.hakke.tel||.26)-.26);
  ACTS.fogo.s[0][1]=tf;ACTS.fogo.d=tf+.24;ACTS.palma.s[0][1]=tp;ACTS.palma.d=tp+.24;ACTS.hakke.s[0][1]+=th;ACTS.hakke.d+=th;ACTS.hakke.root+=th;
  ACTS.fogo.para=ACTS.fogo.d;ACTS.palma.para=ACTS.palma.d} /* Katon (selo de mãos) e Palma: o boneco para só durante a pose (antes, andar cortava a pose e ele ficava sem animação) */
-ACTS.nsom={k:'nra',d:.55,s:[[6,.55]]};ACTS.nnui={k:'nra',d:.45,s:[[15,.45]]};ACTS.nyose={k:'nra',d:.4,s:[[16,.4]]};ACTS.nkubi={k:'nra',d:.55,s:[[7,.55]]};ACTS.ndom={k:'nra',d:.7,s:[[9,.7]]}; /* poses do Nara (folha "nra") */
+ACTS.nsom={k:'nra',d:.55,s:[[6,.55]]};ACTS.nnui={k:'nra',d:.45,s:[[9,.45]]};ACTS.nyose={k:'nra',d:.4,s:[[12,.4]]};ACTS.nkubi={k:'nra',d:.55,s:[[7,.55]]};ACTS.ndom={k:'nra',d:.7,s:[[10,.7]]};ACTS.nshu={k:'nra',d:.3,s:[[11,.3]]};for(const k of ['nsom','nnui','nyose','nkubi','ndom','nshu'])ACTS[k].para=ACTS[k].d; /* poses do Nara (folha "nra"): o boneco para de correr enquanto lança, como os outros clãs */
 let ACT=null,HHAND=null; // HHAND = onde está a mão da frente no quadro que acabou de ser desenhado (Chidori na mão)
 const actEl=A=>(performance.now()-A.t0)/1000;
 function actStart(a){const D=ACTS[a];if(!D)return;ACT={a,t0:performance.now(),root:D.root||0,para:D.para||0};fx.push({k:'act',a,life:.05,max:.05})}
@@ -983,8 +983,8 @@ function actFrame(A){const D=A&&ACTS[A.a];if(!D)return null;const t=actEl(A);if(
  const HS=o.set||HERO,cl=o.clan!==undefined?o.clan:(o.set?null:clan),A=o.act!==undefined?o.act:(o.set?null:ACT);
  let key=null,fr=0,flip=0;
  if(cl==='nara'&&HS&&HS.nra&&!(o.th>=0)){ /* Nara: boneco próprio (parado, correndo e poses das sombras) */
-  const rr=A&&String(A.a)[0]==='n'&&!o.mv?actFrame(A):null,RUN=[17,18,19,20],RBOB=[2,0,-1,0];let f,sy=1;
-  let rb=0;if(rr)f=rr.i;else if(o.mv){const q=(o.t/85|0)%4;f=RUN[q];rb=RBOB[q]}else{f=0;sy=1+.014*Math.sin(o.t/380)} /* parado: um só quadro (o rosto não muda) com respiração leve */
+  const rr=A&&String(A.a)[0]==='n'&&(A.para||!o.mv)?actFrame(A):null,RUN=[13,14,15,17],RBOB=[0,0,0,0];let f,sy=1;
+  let rb=0;if(rr)f=rr.i;else if(o.mv){const q=(o.t/90|0)%4;f=RUN[q];rb=RBOB[q]}else{f=0;sy=1+.014*Math.sin(o.t/380)} /* parado: um só quadro (o rosto não muda) com respiração leve */
   const im=HS.nra[f],an=SPR.nrx.nra[f],sc=SPR.sc,bob=rb;HHAND=[(o.fl?-1:1)*30*sc,-70*sc/2+bob];
   c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,0,10,4,0,0,7);c.fill();
   if(o.fl)c.scale(-1,1);c.drawImage(im,-an[0]*sc,-an[1]*sc*sy+bob,im.width*sc,im.height*sc*sy);c.restore();return}

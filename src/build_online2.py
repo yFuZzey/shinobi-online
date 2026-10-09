@@ -232,7 +232,7 @@ rep("if(cd[i]>0||p.mp<mpOf(i,s)){if(i==0&&atkItem()&&cd[0]<=0&&p.mp<mpOf(0,s))FT
 rep(" if(i==0&&atkItem()){castAtk(ax,ay);return}\n","")
 rep("function refreshAtk(){const it=atkItem(),b=$('#b0');if(!b)return;b.innerHTML=it?'<span>⚡</span>'+it.name+'<div class=\"cd\"></div>':b0orig;b.dataset.atk=it?'1':''}","function refreshAtk(){itemBtn()}")
 # Bola de Fogo: pose de selo, bola com rastro de chamas e explosão
-rep("  if(s.t=='proj'){const n=s.fan||1;","  if(s.t=='proj'&&s.fire)castFire(s,ax,ay);else if(s.t=='proj'){const n=s.fan||1;")
+rep("  if(s.t=='proj'){const n=s.fan||1;","  if(s.t=='proj'&&clan==='nara')actStart('nshu');\n  if(s.t=='proj'&&s.fire)castFire(s,ax,ay);else if(s.t=='proj'){const n=s.fan||1;")
 rep(" P=P.filter(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.life<=0||sol(b.x,b.y+16))return 0;",
     " P=P.filter(b=>{if(b.seek&&!b.rm)nuiSeek(b,dt);b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.life<=0||sol(b.x,b.y+16)||(b.rm&&b.fire&&fireRmHit(b))){if(b.fire)fireBoom(b);return 0}")
 rep("P.forEach(b=>{if(b.spin){","P.forEach(b=>{if(b.fire){fireDraw(b,ts);return}if(b.sh){nuiDraw(b);return}if(b.spin){")
