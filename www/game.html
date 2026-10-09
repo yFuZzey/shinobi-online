@@ -1203,9 +1203,10 @@ function render(ts,dt){
   if(e.dead){}else if(e.boss){ctx.globalAlpha=1;ctx.fillStyle='#000a';const bz=e.jz||0;ctx.fillRect(e.x-45,e.y-124-bz,90,7);ctx.fillStyle='#e0483a';ctx.fillRect(e.x-44,e.y-123-bz,88*e.hp/e.max,5);ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';{const lb=mobName(e);ctx.fillStyle=lvColor(e,'#ffe9a8');ctx.strokeText(lb,e.x,e.y-130-bz);ctx.fillText(lb,e.x,e.y-130-bz)}}
    else mobLabel(e)
   if(e.stun>0&&!e.dead){ctx.fillStyle='#d9b3ff';for(let i=0;i<3;i++){const a=ts/200+i*2.1;ctx.beginPath();ctx.arc(e.x+Math.cos(a)*9,e.y-(e.boss?108:52)+Math.sin(a)*3,2.4,0,7);ctx.fill()}}}})});
+ fx.forEach(f=>{if(f.k=='sline'||f.k=='sarea')shadowFxDraw(f);else if(f.k=='aviso')uchFxDraw(f)}); /* camada do chão */
  L.sort((a,b)=>a.y-b.y).forEach(o=>o.d());
  fx.forEach(f=>{const k=1-f.life/f.max,a=f.life/f.max;
-  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'){shadowFxDraw(f);return}if(f.k=='aviso'||f.k=='chama'||f.k=='genj'||f.k=='amat'||f.k=='tsuku'){uchFxDraw(f);return}if(f.k=='kusho'){hyuFxDraw(f);return}if(f.k=='act'||f.k=='inv'||f.k=='invx')return;
+  if(f.k=='kfx'){kfxDraw(f);return}if(f.k=='cone'){coneDraw(f);return}if(f.k=='sline'||f.k=='sarea'||f.k=='aviso')return;if(f.k=='chama'||f.k=='genj'||f.k=='amat'||f.k=='tsuku'){uchFxDraw(f);return}if(f.k=='kusho'){hyuFxDraw(f);return}if(f.k=='act'||f.k=='inv'||f.k=='invx')return;
   if(f.k=='ring'){const r=f.r*(.3+.7*Math.min(1,k*1.6));
    ctx.globalAlpha=a*.35;ctx.fillStyle=f.col;ctx.beginPath();ctx.arc(f.x,f.y,r,0,7);ctx.fill();
    ctx.globalAlpha=a;ctx.strokeStyle=f.col;ctx.lineWidth=3;ctx.stroke();
@@ -2602,7 +2603,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610092154'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610092200'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
