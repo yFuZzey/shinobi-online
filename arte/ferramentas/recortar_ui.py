@@ -148,7 +148,7 @@ if os.environ.get('PREVIEW'):
 # ícone do APK (Android): normal, redondo e a frente do ícone adaptativo (fundo marrom vem do ajustar-android.js)
 ic = Image.open(os.path.join(D, 'icone_app.png')).convert('RGBA')
 for dpi, sz in [('mdpi', 48), ('hdpi', 72), ('xhdpi', 96), ('xxhdpi', 144), ('xxxhdpi', 192)]:
-    d = os.path.join(D, 'android', 'res', 'mipmap-' + dpi); os.makedirs(d, exist_ok=True)
+    d = os.path.join(D, 'icone_app_res', 'res', 'mipmap-' + dpi); os.makedirs(d, exist_ok=True)
     i = ic.resize((sz, sz), Image.LANCZOS)
     i.save(os.path.join(d, 'ic_launcher.png')); i.save(os.path.join(d, 'ic_launcher_round.png'))
     fg = sz * 108 // 48; inner = round(fg * 0.62)

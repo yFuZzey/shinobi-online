@@ -13,8 +13,8 @@ if(!s.includes('windowFullscreen')){
   s=s.replace(/(<style name="AppTheme.NoActionBarLaunch"[^>]*>)/,'$1\n        <item name="android:windowFullscreen">true</item>');
   fs.writeFileSync(st,s);console.log('OK: tela cheia');
 }
-// Ícone do app (arte/ui/android/res, gerado por arte/ferramentas/recortar_ui.py): só troca arquivos que o modelo já tem
-{const path=require('path'),src='arte/ui/android/res',dst='android/app/src/main/res';let n=0;
+// Ícone do app (arte/ui/icone_app_res/res, gerado por arte/ferramentas/recortar_ui.py): só troca arquivos que o modelo já tem
+{const path=require('path'),src='arte/ui/icone_app_res/res',dst='android/app/src/main/res';let n=0;
  if(fs.existsSync(src)&&fs.existsSync(dst))for(const d of fs.readdirSync(src)){const o=path.join(dst,d);if(!fs.existsSync(o))continue;
   for(const f of fs.readdirSync(path.join(src,d)))if(fs.existsSync(path.join(o,f))){fs.copyFileSync(path.join(src,d,f),path.join(o,f));n++}}
  const bg=path.join(dst,'values','ic_launcher_background.xml');
