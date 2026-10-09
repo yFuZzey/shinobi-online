@@ -1560,6 +1560,16 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
   +'<div class="dbt"><button id="ivAct" class="'+(on?'sec':'')+'">'+(on?'Desequipar':cur?'Trocar pelo equipado':'Equipar')+'</button></div></div>';
  $('#ivAct').onclick=()=>{if(on)unequipItem(id);else{equipItem(id);toggleBag(true,'bag');invSel=id;bagRefresh()}}
  portraitStart()};
+/* música da tela de login: toca em repetição só enquanto o jogador está nela; some ao sair */
+{const M={a:null,fd:0};
+ const mus=()=>{if(!M.a){M.a=new Audio('data:audio/mpeg;base64,__LGMUS__');M.a.loop=true;M.a.preload='auto'}return M.a};
+ const toca=()=>{if(cur!=='login'||document.hidden)return;clearInterval(M.fd);const a=mus();a.volume=.6;if(a.paused){const p=a.play();if(p&&p.catch)p.catch(()=>{})}};
+ const para=()=>{const a=M.a;if(!a||a.paused)return;clearInterval(M.fd);M.fd=setInterval(()=>{if(a.volume>.08)a.volume=Math.max(0,a.volume-.08);else{clearInterval(M.fd);a.pause();a.currentTime=0}},50)};
+ {const _sh=show;show=function(id){const r=_sh.apply(this,arguments);if(id==='login')toca();else para();return r}}
+ /* o celular só deixa tocar depois do primeiro toque: tenta de novo a cada toque enquanto estiver no login */
+ ['pointerdown','keydown','touchend'].forEach(e=>document.addEventListener(e,toca,true));
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){if(M.a)M.a.pause()}else toca()});
+ window.LGMUS=M;toca()}
 /* itens do painel: mostra o nível exigido no detalhe */
 {const _br=bagRefresh;bagRefresh=function(){_br();{const it=invSel&&ITEMS[invSel],dt=document.querySelector('#ivDet .dt'),P=it&&it.passiva;if(P&&P.k==='drena'&&dt&&!dt.querySelector('.dpas')){const bt=dt.querySelector('.dbt'),h='<div class="dsp dpas">🦈 <b>Passiva: Drenar chakra</b> — '+drenoTxt(P)+'.</div>';if(bt)bt.insertAdjacentHTML('beforebegin',h);else dt.insertAdjacentHTML('beforeend',h)}}{const id=invSel,it=id&&ITEMS[id],dn=document.querySelector('#ivDet .dn');if(it&&it.nivel>1&&dn&&!dn.nextElementSibling?.classList.contains('dnv'))dn.insertAdjacentHTML('afterend','<div class="dnv'+((CH.lv|0)<it.nivel?' lk':'')+'">'+((CH.lv|0)<it.nivel?'🔒 ':'')+'Precisa do Nv '+it.nivel+'</div>')}}}
 (function(){
