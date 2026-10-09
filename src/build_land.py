@@ -133,6 +133,18 @@ CSS="""
  #inv .iv{max-height:96%;padding:10px 14px}
 }
 """
+# criação do personagem: primeiro o clã, depois a aparência (com as informações do clã)
+rep('<button id="go2">Escolher clã</button></div></div></div>','</div><div class="cbt"><button id="cback" class="sec" type="button">‹ Trocar de clã</button><button id="go2">Começar</button></div></div></div></div>')
+rep('<div class="cw"><canvas id="pv" width="200" height="240"></canvas><div class="cc">','<div class="cw"><div class="cpv"><canvas id="pv" width="200" height="240"></canvas><i class="cped"></i></div><div class="cc"><div id="cinfo"></div><div id="capa"><b>Aparência</b>')
+rep('<div class="cw"><canvas id="pv"','<div class="cw"><canvas id="pv"',0) if 0 else None
+rep(" if(cur=='cust')pv(ts,$('#pv'));"," if(cur=='cust')pv(ts,$('#pv'),pickK);")
+rep(" show('cust')};\nfunction sw("," show('clan')};\nfunction sw(")
+rep("$('#go2').onclick=()=>show('clan');","""let pickK='';
+function skIc(s){return s.imk?`<img src="${SPR[s.imk]}">`:s.im?`<img src="${s.im}">`:s.ic!=null?`<img src="${SPR.ic[s.ic]}">`:`<span>${s.i}</span>`}
+function custInfo(k){const C=CLANS[k];$('#cinfo').style.setProperty('--c',C.col);$('#cinfo').innerHTML=`<b>${C.n}</b><small>${C.d}</small><div class="csk">${C.sk.map(s=>`<span class="ski">${skIc(s)}<em>${s.n}</em></span>`).join('')}</div>`}
+$('#go2').onclick=()=>{if(!pickK)return show('clan');goFull();start(pickK);setTimeout(rs,350)};
+$('#cback').onclick=()=>show('clan');""")
+rep("d.onclick=()=>{goFull();start(k);setTimeout(rs,350)};","d.onclick=()=>{pickK=k;custInfo(k);show('cust')};")
 i=s.rindex("</style></head>");s=s[:i]+CSS+s[i:]
 open(D,'w').write(s)
 print('land ok',len(s))

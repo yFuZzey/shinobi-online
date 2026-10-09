@@ -3,7 +3,7 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
 let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};const near=(a,b)=>Math.abs(a-b)<1e-6;
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await (await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:2})).newPage();pg.on('pageerror',e=>{console.log('ERRO PÁGINA',e.message);fails++});
  await pg.goto('file://'+require('path').join(__dirname,'..','paginas','online.html'));await pg.click('#tabNew');await pg.fill('#nu','Gai'+suf);await pg.fill('#np','12345678');await pg.fill('#ne','g@g.com');await pg.click('#goNew');
- await pg.waitForFunction(()=>cur==='cust',null,{timeout:20000});await pg.click('#go2');await pg.click('.card >> nth=1');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
+ await pg.waitForFunction(()=>cur==='clan',null,{timeout:20000});await pg.click('.card >> nth=1');await pg.click('#go2');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
  const R=await pg.evaluate(()=>{
   ITEMS.faixa={id:'faixa',name:'Faixa de Treino',rarity:'raro',slot:'cabeca',desc:'teste',icon:ITEMS.manto.icon,stats:{str:10,str_pct:20,vit:5,hp_max:40,hp_pct:10}};
   CH.st.str=20;CH.st.vit=10;CH.st.agi=0;stats();const o={};

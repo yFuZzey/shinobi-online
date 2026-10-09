@@ -2,7 +2,7 @@
 const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/playwright');let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await b.newPage();const errs=[];pg.on('pageerror',e=>errs.push(e.message));
  await pg.goto('file://'+require('path').join(__dirname,'..','paginas','off.html'));await pg.fill('#u','Prof');await pg.fill('#p','x');await pg.click('#go1');
- await pg.waitForFunction(()=>cur==='cust');await pg.click('#go2');await pg.click('.card >> nth=0');await pg.waitForFunction(()=>cur==='game'&&ready);
+ await pg.waitForFunction(()=>cur==='clan');await pg.click('.card >> nth=0');await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready);
  const r=await pg.evaluate(()=>{const o={};CH.prof={k:null,xp:0};o.sem=profTypeMul('ninjutsu');
   CH.st.int=20;CH.prof={k:'ninjutsu',xp:0};o.E=profTypeMul('ninjutsu');CH.prof.xp=1e6;o.S=profTypeMul('ninjutsu');o.outro=profTypeMul('taijutsu');
   // penalidade exagerada (teste): não passa de 0,70

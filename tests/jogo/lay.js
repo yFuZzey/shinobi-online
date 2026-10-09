@@ -3,7 +3,7 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});
  const open=async(clanIdx,nome)=>{const pg=await (await b.newContext({viewport:{width:844,height:390}})).newPage();pg._errs=[];pg.on('pageerror',e=>{pg._errs.push(e.message);console.log('ERRO',e.message)});
   await pg.goto('file://'+require('path').join(__dirname,'..','paginas','off.html'));await pg.fill('#u',nome);await pg.fill('#p','x');await pg.click('#go1');
-  await pg.waitForFunction(()=>cur==='cust',null,{timeout:10000});await pg.click('#go2');await pg.click('.card >> nth='+clanIdx);await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
+  await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});await pg.click('.card >> nth='+clanIdx);await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
   await pg.evaluate(()=>{switchMap('vila_areia')});await W(500);return pg};
  const setup=(pg,dx)=>pg.evaluate(dx=>{autoOn=false;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T+40;p.hp=p.max;p.mp=p.mpMax;cd=[0,0,0,0];
   const mk=(dx,id)=>({id,max:5000,hp:5000,x:p.x+dx,y:p.y,dead:0,dt:0,rt:0,mv:0,fl:0,ch:0,lunge:0,ja:0,jz:0,jc:0,stun:0,hurt:0,hit:0,rad:18,boss:0,t:'',kind:'mob',dir:0,wt:9,atk:9,wm:0,wa:0,bc:9,jcd:9,nome:'alvo'+id});

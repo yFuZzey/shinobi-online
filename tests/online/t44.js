@@ -6,7 +6,7 @@ const path=require('path'),fs=require('fs'),LOG=path.join(__dirname,'..','servid
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const n0=fs.readFileSync(LOG,'utf8').length;
  const mk=async(n,clan)=>{const pg=await (await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:2})).newPage();pg.on('pageerror',e=>{console.log('ERRO PÁGINA',n,e.message);fails++});
   await pg.goto('file://'+path.join(__dirname,'..','paginas','online.html'));await pg.click('#tabNew');await pg.fill('#nu',n);await pg.fill('#np','12345678');await pg.fill('#ne','t@t.com');await pg.click('#goNew');
-  await pg.waitForFunction(()=>cur==='cust',null,{timeout:20000});await pg.click('#go2');await pg.click('.card >> nth='+clan);await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});return pg};
+  await pg.waitForFunction(()=>cur==='clan',null,{timeout:20000});await pg.click('.card >> nth='+clan);await pg.click('#go2');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});return pg};
  const H=await mk('Byak'+suf,1),U=await mk('Olha'+suf,0);
  const spot=await U.evaluate(()=>[SPAWN[0]*T+5*T,SPAWN[1]*T]);
  await H.evaluate(s=>{let g=0;while(CH.lv<5&&g++<50)gainXp(xpNeed(CH.lv)-CH.xp);p.x=s[0];p.y=s[1];gsPos(true);$('#lvup').hidden=true;$('#toast').hidden=true},spot);

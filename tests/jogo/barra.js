@@ -4,7 +4,7 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const errs=[];
  const open=async(ci,nome)=>{const pg=await (await b.newContext({viewport:{width:844,height:390}})).newPage();pg.on('pageerror',e=>{errs.push(e.message);console.log('ERRO',e.message)});
   await pg.goto('file://'+require('path').join(__dirname,'..','paginas','off.html'));await pg.fill('#u',nome);await pg.fill('#p','x');await pg.click('#go1');
-  await pg.waitForFunction(()=>cur==='cust',null,{timeout:10000});await pg.click('#go2');await pg.click('.card >> nth='+ci);await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
+  await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});await pg.click('.card >> nth='+ci);await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
   await pg.evaluate(()=>{switchMap('vila_areia')});await W(300);return pg};
  const btn=(pg,i)=>pg.evaluate(i=>$('#b'+i).textContent.trim(),i);
  const lvTo=(pg,v)=>pg.evaluate(v=>{let g=0;while(CH.lv<v&&g++<200)gainXp(xpNeed(CH.lv)-CH.xp)},v);

@@ -6,7 +6,7 @@ const adminOf=async nome=>{const r=Object.values(await rows()).find(r=>r.nome===
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});
  const mk=async(n,clan)=>{const pg=await (await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:1})).newPage();pg.on('pageerror',e=>{console.log('ERRO PÁGINA',n,e.message);fails++});
   await pg.goto('file://'+require('path').join(__dirname,'..','paginas','online.html'));await pg.click('#tabNew');await pg.fill('#nu',n);await pg.fill('#np','12345678');await pg.fill('#ne','t@t.com');await pg.click('#goNew');
-  await pg.waitForFunction(()=>cur==='cust',null,{timeout:20000});await pg.click('#go2');await pg.click('.card >> nth='+clan);await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
+  await pg.waitForFunction(()=>cur==='clan',null,{timeout:20000});await pg.click('.card >> nth='+clan);await pg.click('#go2');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
   await pg.evaluate(()=>{window.__all=[];const g=gsMsg;gsMsg=function(m){__all.push(JSON.stringify(m));return g(m)}});return pg};
  const nA='Tsunade'+suf,nB='Jiraiya'+suf,nC='Orochi'+suf,nD='Kakuzu'+suf;
  const A=await mk(nA,0),B=await mk(nB,1),C=await mk(nC,2);

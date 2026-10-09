@@ -4,7 +4,7 @@ const file=process.argv[2]||'online.html',MOCK=process.argv[3]||'54333';let fail
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const ctx=await b.newContext({viewport:{width:844,height:390}});
  const pg=await ctx.newPage();pg.on('pageerror',e=>{console.log('ERRO PÁGINA',e.message);fails++});
  const nome='Neji'+suf;await pg.goto('file://'+require('path').join(__dirname,'..','paginas',file));await pg.click('#tabNew');await pg.fill('#nu',nome);await pg.fill('#np','12345678');await pg.fill('#ne','n@n.com');await pg.click('#goNew');
- await pg.waitForFunction(()=>cur==='cust',null,{timeout:20000});await pg.click('#go2');await pg.click('.card >> nth=1');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
+ await pg.waitForFunction(()=>cur==='clan',null,{timeout:20000});await pg.click('.card >> nth=1');await pg.click('#go2');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
  ok(await pg.evaluate(()=>clan)==='hyuga','personagem Hyuga');
  await pg.click('#hudFace');await pg.click('#pfMenu [data-pf=st]');await W(300);
  const st0=await pg.evaluate(()=>({btn:[...document.querySelectorAll('#stProf [data-prof]')].map(b=>[b.dataset.prof,b.disabled,b.textContent]),txt:document.querySelector('#stProf').textContent}));

@@ -1,0 +1,20 @@
+// Criação de personagem: clã primeiro, depois a aparência; fundo animado
+const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/playwright');const W=ms=>new Promise(r=>setTimeout(r,ms));let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
+const path=require('path');
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});
+ const pg=await (await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:2})).newPage();pg.on('pageerror',e=>{console.log('ERRO',e.message);fails++});
+ await pg.goto('file://'+path.join(__dirname,'..','paginas','off.html'));await W(2500);
+ const px=()=>pg.evaluate(()=>{const c=document.querySelector('#s-'+cur+' .bgfx');if(!c)return -1;const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i])n++;return n});
+ ok(await px()>0,'login: estrelas/poeira desenhadas no fundo');
+ await pg.screenshot({path:path.join(__dirname,'criar_login.png')});
+ await pg.fill('#u','Shika');await pg.fill('#p','x');await pg.click('#go1');
+ await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});ok(true,'depois do login vem a escolha do clã');
+ await pg.click('.card >> nth=1');await pg.waitForFunction(()=>cur==='cust');await W(800);
+ const i=await pg.evaluate(()=>({t:$('#cinfo').textContent,sk:document.querySelectorAll('#cinfo .ski').length,fx:px=0}));
+ ok(i.sk===3&&/Hyuga|Uchiha|Nara/.test(i.t),'criação mostra o clã e os 3 golpes ('+i.t.slice(0,40)+')');
+ await pg.screenshot({path:path.join(__dirname,'criar_cust.png')});
+ await pg.click('#cback');ok(await pg.evaluate(()=>cur)==='clan','voltar leva à escolha do clã');
+ await pg.click('.card >> nth=1');await pg.waitForFunction(()=>cur==='cust');await pg.click('#go2');
+ await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
+ ok(await pg.evaluate(()=>clan)===await pg.evaluate(()=>Object.keys(CLANS)[1]),'começa o jogo com o clã escolhido');
+ console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();

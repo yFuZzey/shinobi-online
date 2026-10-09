@@ -11,7 +11,7 @@ const svc=(p,o={})=>fetch(MOCK+p,{...o,headers:{apikey:'svc-test','Content-Type'
  await fetch(GS+'/painel/recarregar',{method:'POST'});await W(1300);
  const mk=async(n,clan)=>{const pg=await (await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:1})).newPage();pg.on('pageerror',e=>{console.log('ERRO PÁGINA',n,e.message);fails++});
   await pg.goto('file://'+path.join(__dirname,'..','paginas','online.html'));await pg.click('#tabNew');await pg.fill('#nu',n);await pg.fill('#np','12345678');await pg.fill('#ne','t@t.com');await pg.click('#goNew');
-  await pg.waitForFunction(()=>cur==='cust',null,{timeout:20000});await pg.click('#go2');await pg.click('.card >> nth='+clan);await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});return pg};
+  await pg.waitForFunction(()=>cur==='clan',null,{timeout:20000});await pg.click('.card >> nth='+clan);await pg.click('#go2');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});return pg};
  const B=await mk('Alvo'+suf,1),A=await mk('Same'+suf,0);await W(900);
  const aid=await A.evaluate(()=>ONL.uid),bid=await B.evaluate(()=>ONL.uid);
  await svc('/rest/v1/rpc/dar_itens',{method:'POST',body:JSON.stringify({p_personagem:aid,p_itens:['p_samehada']})});

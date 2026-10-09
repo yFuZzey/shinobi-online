@@ -4,7 +4,7 @@ const path=require('path');
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});
  const abre=async(nome,card)=>{const pg=await (await b.newContext({viewport:{width:844,height:390}})).newPage();pg.on('pageerror',e=>{console.log('ERRO',e.message);fails++});
   await pg.goto('file://'+path.join(__dirname,'..','paginas','off.html'));await pg.fill('#u',nome);await pg.fill('#p','x');await pg.click('#go1');
-  await pg.waitForFunction(()=>cur==='cust',null,{timeout:10000});await pg.click('#go2');await pg.click('.card >> nth='+card);await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
+  await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});await pg.click('.card >> nth='+card);await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
   await pg.evaluate(()=>{switchMap('vila_areia')});await W(400);
   await pg.evaluate(()=>{autoOn=false;E=[];p.x=SPAWN[0]*T-200;p.y=SPAWN[1]*T+40;p.hp=p.max;p.mp=p.mpMax;cd=[0,0,0,0];ACT=null;$('#lvup').hidden=true});return pg};
  // velocidade com o joystick só um pouco empurrado (antes: andava devagar) e com ele todo empurrado

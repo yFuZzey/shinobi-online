@@ -8,7 +8,7 @@ const SHOT=process.env.SHOT||'';
  const errs=[];pg.on('pageerror',e=>{errs.push(e.message);console.log('ERRO',e.message)});pg.on('console',m=>{if(m.type()==='error'){errs.push(m.text());console.log('ERRO (console)',m.text())}});
  const PAG='file://'+require('path').join(__dirname,'..','paginas','off.html');
  await pg.goto(PAG);await pg.fill('#u','Kuchi');await pg.fill('#p','x');await pg.click('#go1');
- await pg.waitForFunction(()=>cur==='cust',null,{timeout:10000});await pg.click('#go2');await pg.click('.card >> nth=0');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
+ await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});await pg.click('.card >> nth=0');await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
  await pg.evaluate(()=>{switchMap('vila_areia')});await W(400);
  const lvTo=v=>pg.evaluate(v=>{let g=0;while(CH.lv<v&&g++<200)gainXp(xpNeed(CH.lv)-CH.xp)},v);
  const alvos=L=>pg.evaluate(L=>{autoOn=false;INVA=null;SHT=null;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T+40;p.hp=p.max;p.mp=p.mpMax;cd=[0,0,0,0];KDEL=[];

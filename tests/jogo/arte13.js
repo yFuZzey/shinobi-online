@@ -5,7 +5,7 @@ const path=require('path');
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});
  const pg=await (await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:2})).newPage();pg.on('pageerror',e=>{console.log('ERRO',e.message);fails++});
  await pg.goto('file://'+path.join(__dirname,'..','paginas','off.html'));await pg.fill('#u','Shika');await pg.fill('#p','x');await pg.click('#go1');
- await pg.waitForFunction(()=>cur==='cust',null,{timeout:10000});await pg.click('#go2');await pg.click('.card >> nth=2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
+ await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});await pg.click('.card >> nth=2');await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
  await pg.evaluate(()=>{switchMap('vila_areia')});await W(400);
  // Nara: todos os jutsus da árvore com ícone desenhado
  const nr=await pg.evaluate(()=>{let g=0;while(CH.lv<60&&g++<200)gainXp(xpNeed(CH.lv)-CH.xp);$('#lvup').hidden=true;

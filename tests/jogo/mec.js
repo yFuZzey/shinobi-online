@@ -3,7 +3,7 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await (await b.newContext({viewport:{width:844,height:390}})).newPage();
  const errs=[];pg.on('pageerror',e=>errs.push(e.message));
  await pg.goto('file://'+require('path').join(__dirname,'..','paginas','off.html'));await pg.fill('#u','Neji');await pg.fill('#p','x');await pg.click('#go1');
- await pg.waitForFunction(()=>cur==='cust',null,{timeout:10000});await pg.click('#go2');await pg.click('.card >> nth=1');await pg.waitForFunction(()=>cur==='game'&&KFX_OK&&ready,null,{timeout:10000});
+ await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});await pg.click('.card >> nth=1');await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&KFX_OK&&ready,null,{timeout:10000});
  await pg.evaluate(()=>{switchMap('vila_areia')});await W(500);
  // dois "inimigos" de teste parados (um perto, um longe)
  const setup=()=>pg.evaluate(()=>{autoOn=false;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T+40;p.hp=p.max;p.mp=p.mpMax;cd=[0,0,0,0];

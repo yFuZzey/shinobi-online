@@ -1390,7 +1390,7 @@ async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;
   onlStartMap();
   if(typeof mark==='function')mark();er.textContent='';goFull();ONL.loading=true;start(row.cla);ONL.loading=false;
   ONL.last={cols:onlCols(),inv:JSON.stringify(onlInv())};setTimeout(rs,350)}
- else{ONL.hasChar=false;onlStartMap();try{localStorage.removeItem(chKey());localStorage.removeItem(invKey())}catch(_){}er.textContent='';show('cust')}}
+ else{ONL.hasChar=false;onlStartMap();try{localStorage.removeItem(chKey());localStorage.removeItem(invKey())}catch(_){}er.textContent='';show('clan')}}
 function onlBusy(b){['#go1','#goNew','#tabIn','#tabNew'].forEach(s=>{const e=$(s);if(e)e.disabled=b||!!OTA.gate})}
 function onlLogout(){ONL.closing=true;const fin=()=>{try{localStorage.removeItem(ONL_SESS)}catch(_){}location.reload()};
  const pr=ONL.on?onlSave():Promise.resolve();Promise.resolve(pr).finally(()=>{try{ONL.ws&&ONL.ws.close()}catch(_){}if(ONL.tok)onlFetch('/auth/v1/logout',{method:'POST'}).catch(()=>{}).finally(fin);else fin()})}
@@ -1570,6 +1570,20 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
  ['pointerdown','keydown','touchend'].forEach(e=>document.addEventListener(e,toca,true));
  document.addEventListener('visibilitychange',()=>{if(document.hidden){if(M.a)M.a.pause()}else toca()});
  window.LGMUS=M;toca()}
+/* animação de fundo (estrelas cadentes e poeira) só na tela de login */
+{const FX={c:{},st:[],du:[],nx:1,t0:0};
+ const mk=id=>{const sc=$('#s-'+id);if(!sc||FX.c[id])return;const c=document.createElement('canvas');c.className='bgfx';sc.insertBefore(c,sc.firstChild);FX.c[id]=c};
+ ['login'].forEach(mk);
+ for(let i=0;i<46;i++)FX.du.push({x:Math.random(),y:Math.random(),v:.004+Math.random()*.012,a:Math.random()*6.3,s:Math.random()<.2?3:2,w:Math.random()*6.3});
+ function bgfx(ts){requestAnimationFrame(bgfx);const c=FX.c[cur];if(!c)return;const dt=Math.min(.05,(ts-FX.t0)/1000||0);FX.t0=ts;
+  const W=c.clientWidth>>1,H=c.clientHeight>>1;if(!W)return;if(c.width!==W||c.height!==H){c.width=W;c.height=H}
+  const g=c.getContext('2d');g.clearRect(0,0,W,H);
+  FX.nx-=dt;if(FX.nx<=0&&FX.st.length<3){FX.nx=1.2+Math.random()*2.6;const sp=130+Math.random()*90;FX.st.push({x:W*(.25+Math.random()*.85),y:-4+Math.random()*H*.3,vx:-sp,vy:sp*.5,l:0,L:.9+Math.random()*.5})}
+  FX.st=FX.st.filter(o=>{o.l+=dt;o.x+=o.vx*dt;o.y+=o.vy*dt;const f=1-o.l/o.L;if(f<=0)return false;
+   for(let i=0;i<14;i++){const q=i/14,a=(1-q)*f;g.fillStyle='rgba('+(i<2?'255,250,225':'255,226,160')+','+a.toFixed(2)+')';const s=i<3?2:1;g.fillRect((o.x-o.vx*dt*i*1.6)|0,(o.y-o.vy*dt*i*1.6)|0,s,s)}return true});
+  FX.du.forEach(d=>{d.a+=dt*.5;d.w+=dt*1.4;d.x+=(Math.sin(d.a)*.006+d.v*.4)*dt*3;d.y-=d.v*dt*2;if(d.y<-.02){d.y=1.02;d.x=Math.random()}if(d.x>1.02)d.x=-.02;if(d.x<-.02)d.x=1.02;
+   g.fillStyle='rgba(255,226,170,'+(.12+.28*(.5+.5*Math.sin(d.w))).toFixed(2)+')';g.fillRect((d.x*W)|0,(d.y*H)|0,d.s>>1||1,d.s>>1||1)})}
+ requestAnimationFrame(bgfx)}
 /* itens do painel: mostra o nível exigido no detalhe */
 {const _br=bagRefresh;bagRefresh=function(){_br();{const it=invSel&&ITEMS[invSel],dt=document.querySelector('#ivDet .dt'),P=it&&it.passiva;if(P&&P.k==='drena'&&dt&&!dt.querySelector('.dpas')){const bt=dt.querySelector('.dbt'),h='<div class="dsp dpas">🦈 <b>Passiva: Drenar chakra</b> — '+drenoTxt(P)+'.</div>';if(bt)bt.insertAdjacentHTML('beforebegin',h);else dt.insertAdjacentHTML('beforeend',h)}}{const id=invSel,it=id&&ITEMS[id],dn=document.querySelector('#ivDet .dn');if(it&&it.nivel>1&&dn&&!dn.nextElementSibling?.classList.contains('dnv'))dn.insertAdjacentHTML('afterend','<div class="dnv'+((CH.lv|0)<it.nivel?' lk':'')+'">'+((CH.lv|0)<it.nivel?'🔒 ':'')+'Precisa do Nv '+it.nivel+'</div>')}}}
 (function(){

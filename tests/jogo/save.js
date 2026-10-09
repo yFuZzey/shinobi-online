@@ -8,8 +8,8 @@ const CASOS=[
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const errs=[];
  for(const C of CASOS){const pg=await (await b.newContext({viewport:{width:844,height:390}})).newPage();pg.on('pageerror',e=>{errs.push(e.message);console.log('ERRO',e.message)});
   await pg.goto(PAG);await pg.evaluate(([n,s])=>localStorage.setItem('shinobi-char-'+n.toLowerCase(),JSON.stringify(s)),[C.nome,C.save]);
-  await pg.fill('#u',C.nome);await pg.fill('#p','x');await pg.click('#go1');await pg.waitForFunction(()=>cur==='cust',null,{timeout:10000});
-  await pg.click('#go2');await pg.click('.card >> nth=0');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});await W(300);
+  await pg.fill('#u',C.nome);await pg.fill('#p','x');await pg.click('#go1');await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});
+  await pg.click('.card >> nth=0');await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});await W(300);
   const r=await pg.evaluate(()=>({lv:CH.lv,xp:CH.xp,pts:CH.pts,st:CH.st,prof:CH.prof,mgk:CH.mgk,v:CH.v,saved:JSON.parse(localStorage.getItem(chKey()))}));
   const S=C.save,same=r.lv===S.lv&&r.xp===S.xp&&r.pts===S.pts&&JSON.stringify(r.st)===JSON.stringify(S.st);
   ok(same,C.desc+': nível, XP, pontos e atributos iguais (Nv '+r.lv+', '+r.pts+' pontos)');

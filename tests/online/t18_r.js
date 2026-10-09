@@ -3,7 +3,7 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
 let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await (await b.newContext({viewport:{width:844,height:390}})).newPage();pg.on('pageerror',e=>{console.log('ERRO PÁGINA',e.message);fails++});
  await pg.goto('file://'+require('path').join(__dirname,'..','paginas','online.html'));await pg.click('#tabNew');await pg.fill('#nu','Ita'+suf);await pg.fill('#np','12345678');await pg.fill('#ne','i@i.com');await pg.click('#goNew');
- await pg.waitForFunction(()=>cur==='cust',null,{timeout:20000});await pg.click('#go2');await pg.click('.card');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
+ await pg.waitForFunction(()=>cur==='clan',null,{timeout:20000});await pg.click('.card');await pg.click('#go2');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});
  const before=await pg.evaluate(()=>{CH.st.str=10;CH.st.int=10;stats();return{mp:p.mpMax,spd:D().spd,dmg:D().pf,cdS:cdOf(0,CLANS.uchiha.sk[0]),mpS:mpOf(0,CLANS.uchiha.sk[0])}});
  await pg.evaluate(()=>{toggleBag(true,'st')});await W(200);await pg.click('#stProf [data-prof=taijutsu]');await W(150);
  const tai=await pg.evaluate(()=>({mp:p.mpMax,spd:D().spd,dmg:D().pf,int:effSt(1).int,str:effSt(1).str,cdS:cdOf(0,CLANS.uchiha.sk[0]),mul:profTypeMul('ninjutsu'),mpr:D().mpr}));

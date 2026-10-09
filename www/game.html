@@ -493,6 +493,41 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 #toast .ttx b{display:block;font-size:14px;font-weight:800;color:#3a201a}
 #toast.tt-conq .ttx b{font-size:17px;color:#6a1a0a}
 @keyframes tpop{from{opacity:0;transform:translate(-50%,14px) scale(.9)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+/* animação de fundo e tela de criação */
+#s-login{isolation:isolate}
+.bgfx{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;image-rendering:pixelated}
+#s-cust{background:#1b1838 var(--ui-fundo_login) center bottom/cover no-repeat;image-rendering:pixelated;color:#f3e6c8}
+#s-cust h2{color:#f3e6c8;text-shadow:0 2px 0 #1e1212,0 0 6px #1e1212}
+#s-cust .cw{align-items:center}
+.cpv{position:relative;display:flex;justify-content:center}
+.cped{position:absolute;left:50%;bottom:2px;width:70%;height:18px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,rgba(255,226,160,.5),rgba(255,226,160,0) 70%)}
+.cpv canvas{position:relative;z-index:1}
+#s-cust .cc{gap:8px;max-width:min(330px,92vw)}
+#cinfo{width:100%;box-sizing:border-box;padding:8px 12px 8px;border:solid transparent;border-width:16px 14px 14px 18px;border-image:var(--ui-painel) 8 7 7 9;background:#f0deaa var(--ui-papel) 0 0/32px 32px;background-clip:padding-box;color:#3a201a;text-align:center;display:flex;flex-direction:column;gap:3px}
+#cinfo b{font-size:17px;color:var(--c,#3a201a);text-shadow:0 1px 0 #fff6}
+#cinfo small{font-size:12px;line-height:1.3}
+.csk{display:flex;justify-content:center;gap:10px;margin-top:3px}
+.ski{display:flex;flex-direction:column;align-items:center;width:64px;font-size:10px}
+.ski img,.ski span{width:34px;height:34px;object-fit:contain;display:flex;align-items:center;justify-content:center;font-size:22px;image-rendering:auto;background:#1b1838;border-radius:8px;border:2px solid #b98b4a}
+.ski em{font-style:normal;margin-top:2px;line-height:1.1}
+#s-cust .row{color:#f3e6c8;text-shadow:0 1px 0 #1e1212}
+.cbt{display:flex;gap:10px;margin-top:6px}
+@media (orientation:landscape) and (max-height:560px){#s-cust .cw{gap:20px}#cinfo{padding:2px 8px}.csk{gap:6px}.ski img,.ski span{width:28px;height:28px}.ski{width:58px}}
+/* tela de criação: painéis no estilo do jogo */
+#s-cust{display:none}#s-cust.on{display:flex;flex-direction:column;align-items:center;justify-content:center}
+#s-cust h2{margin:0 0 4px;font-size:20px}
+.cpv{padding:12px 10px 8px;border:solid transparent;border-width:16px 14px 14px 18px;border-image:var(--ui-painel) 8 7 7 9;background:#2a2142 radial-gradient(ellipse at 50% 80%,#5a4a8a,#2a2142 70%);background-clip:padding-box;filter:drop-shadow(0 6px 12px rgba(0,0,0,.5))}
+#pv{background:none!important;height:min(200px,46vh)!important;width:auto!important}
+.cped{bottom:10px}
+#capa{width:100%;box-sizing:border-box;padding:2px 10px 6px;border:solid transparent;border-width:16px 14px 14px 18px;border-image:var(--ui-painel) 8 7 7 9;background:#f0deaa var(--ui-papel) 0 0/32px 32px;background-clip:padding-box;color:#3a201a;display:flex;flex-direction:column;gap:5px}
+#capa>b{font-size:12px;letter-spacing:.08em;text-transform:uppercase;text-align:center;color:#7a4a22}
+#capa .row{display:grid;grid-template-columns:54px 1fr;align-items:center;color:#3a201a;text-shadow:none;font-size:13px;margin:0}
+#capa .sw{display:flex;gap:7px;flex-wrap:nowrap}
+#capa .sw b{width:26px;height:26px;flex:none}
+#cback{background:rgba(12,10,20,.6);border:2px solid #b98b4a;color:#f0deaa;border-radius:8px;padding:8px 14px;white-space:nowrap;font-size:13px;box-shadow:none}
+.cbt{width:100%;align-items:center;justify-content:space-between;margin-top:2px}
+.cbt #go2{flex:1;margin:0}
+#cinfo{padding:2px 8px}
 </style></head><body>
 
 <div id="s-login" class="scr on">
@@ -522,11 +557,11 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 </div>
 
 <div id="s-cust" class="scr"><h2>Crie seu ninja</h2>
-<div class="cw"><canvas id="pv" width="200" height="240"></canvas><div class="cc">
+<div class="cw"><div class="cpv"><canvas id="pv" width="200" height="240"></canvas><i class="cped"></i></div><div class="cc"><div id="cinfo"></div><div id="capa"><b>Aparência</b>
 <div class="row"><span>Pele</span><span class="sw" id="o-skin"></span></div>
 <div class="row"><span>Cabelo</span><span class="sw" id="o-hair"></span></div>
 <div class="row"><span>Roupa</span><span class="sw" id="o-cloth"></span></div>
-<button id="go2">Escolher clã</button></div></div></div>
+</div><div class="cbt"><button id="cback" class="sec" type="button">‹ Trocar de clã</button><button id="go2">Começar</button></div></div></div></div>
 
 <div id="s-clan" class="scr"><h2>Escolha seu clã</h2><div id="cards"></div></div>
 
@@ -1165,7 +1200,7 @@ function rs(){if(!cv.clientWidth)return;dpr=Math.min(window.DPRMAX||2,devicePixe
 addEventListener('resize',rs);$('#rotOk').onclick=()=>{rotOk=true;$('#rot').hidden=true};addEventListener('orientationchange',()=>setTimeout(rs,250));
 let last=0;
 function frame(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
- if(cur=='cust')pv(ts,$('#pv'));
+ if(cur=='cust')pv(ts,$('#pv'),pickK);
  else if(cur=='clan')document.querySelectorAll('#cards canvas').forEach(c=>pv(ts,c,c.dataset.k));
  else if(cur=='game'&&!invOpen)step(dt,ts);
  requestAnimationFrame(frame)}
@@ -1173,7 +1208,7 @@ requestAnimationFrame(frame);
 
 $('#go1').onclick=()=>{name=$('#u').value.trim();
  if(name.length<3||!$('#p').value){$('#err').textContent='Digite um usuário com 3 letras ou mais e uma senha.';return}
- show('cust')};
+ show('clan')};
 function sw(id,arr,key){arr.forEach(c=>{const b=document.createElement('b');b.style.background=c;b.dataset.k=key;b.dataset.c=c;
  b.onclick=()=>{look[key]=c;mark()};$(id).appendChild(b)})}
 function mark(){document.querySelectorAll('.sw b').forEach(b=>b.classList.toggle('sel',look[b.dataset.k]==b.dataset.c));if(ready)tint()}
@@ -1185,12 +1220,16 @@ function switchMap(k){
  const h=$('#hint');h.textContent='Mapa: '+k;h.style.opacity=1;clearTimeout(window.__ht);window.__ht=setTimeout(()=>h.style.opacity=0,2500)}
 function mmDraw(){const L=$('#mmList');L.innerHTML='';Object.keys(MAPS).forEach(k=>{const b=document.createElement('button');b.textContent=mapNm(k);b.className=k==CURMAP?'on':'';b.onclick=()=>{$('#mapmenu').hidden=true;if(k!=CURMAP)switchMap(k)};L.appendChild(b)})}
 $('#mapbtn').onclick=()=>{mmDraw();$('#mapmenu').hidden=false};$('#mmX').onclick=()=>{$('#mapmenu').hidden=true};
-$('#go2').onclick=()=>show('clan');
+let pickK='';
+function skIc(s){return s.imk?`<img src="${SPR[s.imk]}">`:s.im?`<img src="${s.im}">`:s.ic!=null?`<img src="${SPR.ic[s.ic]}">`:`<span>${s.i}</span>`}
+function custInfo(k){const C=CLANS[k];$('#cinfo').style.setProperty('--c',C.col);$('#cinfo').innerHTML=`<b>${C.n}</b><small>${C.d}</small><div class="csk">${C.sk.map(s=>`<span class="ski">${skIc(s)}<em>${s.n}</em></span>`).join('')}</div>`}
+$('#go2').onclick=()=>{if(!pickK)return show('clan');goFull();start(pickK);setTimeout(rs,350)};
+$('#cback').onclick=()=>show('clan');
 (function(){const ks=Object.keys(MAPS),el=$('#maps');if(ks.length<2){el.style.display='none';return}
  const draw=()=>{el.innerHTML='Mapa: ';ks.forEach(k=>{const b=document.createElement('button');b.className='mp'+(k==CURMAP?' on':'');b.textContent=mapNm(k);b.onclick=()=>{CURMAP=k;applyMap(MAPS[k]);draw()};el.appendChild(b)})};draw()})();
 Object.entries(CLANS).forEach(([k,c])=>{const d=document.createElement('div');d.className='card';d.style.setProperty('--c',c.col);
  d.innerHTML=`<canvas width="90" height="110" data-k="${k}"></canvas><div><b>${c.n}</b><small>${c.d}</small><small>Ultimate: ${c.sk[2].n}</small></div>`;
- d.onclick=()=>{goFull();start(k);setTimeout(rs,350)};$('#cards').appendChild(d)});
+ d.onclick=()=>{pickK=k;custInfo(k);show('cust')};$('#cards').appendChild(d)});
 
 const jb=$('#jb'),jk=$('#jk');let jp=null;
 function jm(e){const r=jb.getBoundingClientRect(),R=r.width/2;let dx=e.clientX-r.left-R,dy=e.clientY-r.top-R;const m=Math.hypot(dx,dy);
@@ -2508,7 +2547,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610091837'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610091853'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2595,7 +2634,7 @@ async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;
   onlStartMap();
   if(typeof mark==='function')mark();er.textContent='';goFull();ONL.loading=true;start(row.cla);ONL.loading=false;
   ONL.last={cols:onlCols(),inv:JSON.stringify(onlInv())};setTimeout(rs,350)}
- else{ONL.hasChar=false;onlStartMap();try{localStorage.removeItem(chKey());localStorage.removeItem(invKey())}catch(_){}er.textContent='';show('cust')}}
+ else{ONL.hasChar=false;onlStartMap();try{localStorage.removeItem(chKey());localStorage.removeItem(invKey())}catch(_){}er.textContent='';show('clan')}}
 function onlBusy(b){['#go1','#goNew','#tabIn','#tabNew'].forEach(s=>{const e=$(s);if(e)e.disabled=b||!!OTA.gate})}
 function onlLogout(){ONL.closing=true;const fin=()=>{try{localStorage.removeItem(ONL_SESS)}catch(_){}location.reload()};
  const pr=ONL.on?onlSave():Promise.resolve();Promise.resolve(pr).finally(()=>{try{ONL.ws&&ONL.ws.close()}catch(_){}if(ONL.tok)onlFetch('/auth/v1/logout',{method:'POST'}).catch(()=>{}).finally(fin);else fin()})}
@@ -2892,6 +2931,20 @@ bagRefresh=function(){const g=$('#ivGrid'),det=$('#ivDet'),L=$('#dollL'),R=$('#d
  ['pointerdown','keydown','touchend'].forEach(e=>document.addEventListener(e,toca,true));
  document.addEventListener('visibilitychange',()=>{if(document.hidden){if(M.a)M.a.pause()}else toca()});
  window.LGMUS=M;toca()}
+/* animação de fundo (estrelas cadentes e poeira) só na tela de login */
+{const FX={c:{},st:[],du:[],nx:1,t0:0};
+ const mk=id=>{const sc=$('#s-'+id);if(!sc||FX.c[id])return;const c=document.createElement('canvas');c.className='bgfx';sc.insertBefore(c,sc.firstChild);FX.c[id]=c};
+ ['login'].forEach(mk);
+ for(let i=0;i<46;i++)FX.du.push({x:Math.random(),y:Math.random(),v:.004+Math.random()*.012,a:Math.random()*6.3,s:Math.random()<.2?3:2,w:Math.random()*6.3});
+ function bgfx(ts){requestAnimationFrame(bgfx);const c=FX.c[cur];if(!c)return;const dt=Math.min(.05,(ts-FX.t0)/1000||0);FX.t0=ts;
+  const W=c.clientWidth>>1,H=c.clientHeight>>1;if(!W)return;if(c.width!==W||c.height!==H){c.width=W;c.height=H}
+  const g=c.getContext('2d');g.clearRect(0,0,W,H);
+  FX.nx-=dt;if(FX.nx<=0&&FX.st.length<3){FX.nx=1.2+Math.random()*2.6;const sp=130+Math.random()*90;FX.st.push({x:W*(.25+Math.random()*.85),y:-4+Math.random()*H*.3,vx:-sp,vy:sp*.5,l:0,L:.9+Math.random()*.5})}
+  FX.st=FX.st.filter(o=>{o.l+=dt;o.x+=o.vx*dt;o.y+=o.vy*dt;const f=1-o.l/o.L;if(f<=0)return false;
+   for(let i=0;i<14;i++){const q=i/14,a=(1-q)*f;g.fillStyle='rgba('+(i<2?'255,250,225':'255,226,160')+','+a.toFixed(2)+')';const s=i<3?2:1;g.fillRect((o.x-o.vx*dt*i*1.6)|0,(o.y-o.vy*dt*i*1.6)|0,s,s)}return true});
+  FX.du.forEach(d=>{d.a+=dt*.5;d.w+=dt*1.4;d.x+=(Math.sin(d.a)*.006+d.v*.4)*dt*3;d.y-=d.v*dt*2;if(d.y<-.02){d.y=1.02;d.x=Math.random()}if(d.x>1.02)d.x=-.02;if(d.x<-.02)d.x=1.02;
+   g.fillStyle='rgba(255,226,170,'+(.12+.28*(.5+.5*Math.sin(d.w))).toFixed(2)+')';g.fillRect((d.x*W)|0,(d.y*H)|0,d.s>>1||1,d.s>>1||1)})}
+ requestAnimationFrame(bgfx)}
 /* itens do painel: mostra o nível exigido no detalhe */
 {const _br=bagRefresh;bagRefresh=function(){_br();{const it=invSel&&ITEMS[invSel],dt=document.querySelector('#ivDet .dt'),P=it&&it.passiva;if(P&&P.k==='drena'&&dt&&!dt.querySelector('.dpas')){const bt=dt.querySelector('.dbt'),h='<div class="dsp dpas">🦈 <b>Passiva: Drenar chakra</b> — '+drenoTxt(P)+'.</div>';if(bt)bt.insertAdjacentHTML('beforebegin',h);else dt.insertAdjacentHTML('beforeend',h)}}{const id=invSel,it=id&&ITEMS[id],dn=document.querySelector('#ivDet .dn');if(it&&it.nivel>1&&dn&&!dn.nextElementSibling?.classList.contains('dnv'))dn.insertAdjacentHTML('afterend','<div class="dnv'+((CH.lv|0)<it.nivel?' lk':'')+'">'+((CH.lv|0)<it.nivel?'🔒 ':'')+'Precisa do Nv '+it.nivel+'</div>')}}}
 (function(){

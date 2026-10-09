@@ -4,7 +4,7 @@ const OUT=process.argv[2]||__dirname+'/audit_dump.json';
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const res={};
  const open=async(ci,nome)=>{const pg=await (await b.newContext({viewport:{width:844,height:390}})).newPage();pg.on('pageerror',e=>console.log('ERRO',e.message));
   await pg.goto('file://'+require('path').join(__dirname,'..','paginas','off.html'));await pg.fill('#u',nome);await pg.fill('#p','x');await pg.click('#go1');
-  await pg.waitForFunction(()=>cur==='cust',null,{timeout:10000});await pg.click('#go2');await pg.click('.card >> nth='+ci);await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
+  await pg.waitForFunction(()=>cur==='clan',null,{timeout:10000});await pg.click('.card >> nth='+ci);await pg.click('#go2');await pg.waitForFunction(()=>cur==='game'&&ready,null,{timeout:10000});
   await W(300);return pg};
  const dump=pg=>pg.evaluate(()=>{autoOn=false;const C=CLANS[clan];
   const sk=C.sk.map((s,i)=>({slot:i,n:s.n,t:s.t,rk:s.rk||null,tipo:skType(i),dmgBase:s.dmg||0,mp:mpOf(i,s),cd:+cdOf(i,s).toFixed(2),stun:s.stun||0,r:s.r||0,len:s.len||0,kb:s.kb||0,raw:s.dmg?+hitRaw(s.dmg,skType(i)).toFixed(1):0}));

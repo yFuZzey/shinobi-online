@@ -7,7 +7,7 @@ const st=async()=>(await fetch(MOCK+'/__state',{headers:{apikey:'x'}})).json();
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});
  const page=async n=>{const pg=await (await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:1})).newPage();pg.on('pageerror',e=>{console.log('ERRO PÁGINA',n,e.message);fails++});await pg.goto(PAG);return pg};
  const mk=async(n,clan)=>{const pg=await page(n);await pg.click('#tabNew');await pg.fill('#nu',n);await pg.fill('#np','12345678');await pg.fill('#ne','t@t.com');await pg.click('#goNew');
-  await pg.waitForFunction(()=>cur==='cust',null,{timeout:20000});await pg.click('#go2');await pg.click('.card >> nth='+clan);await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});return pg};
+  await pg.waitForFunction(()=>cur==='clan',null,{timeout:20000});await pg.click('.card >> nth='+clan);await pg.click('#go2');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});return pg};
  const nA='Sasori'+suf,nB='Deidara'+suf;const A=await mk(nA,0),B=await mk(nB,2);await W(600);
  for(const pg of [A,B])await pg.evaluate(()=>{autoOn=false;const g=gsMsg;gsMsg=function(m){if(m.t==='hurt'&&!m.by)return;return g(m)}});
  const uA=await A.evaluate(()=>ONL.uid);

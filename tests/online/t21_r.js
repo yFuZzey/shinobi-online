@@ -3,7 +3,7 @@ const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/pl
 let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
 (async()=>{const b=await chromium.launch({args:['--no-sandbox']});const pg=await (await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:2})).newPage();pg.on('pageerror',e=>{console.log('ERRO PÁGINA',e.message);fails++});
  await pg.goto('file://'+require('path').join(__dirname,'..','paginas','online.html'));await pg.click('#tabNew');await pg.fill('#nu','Esq'+suf);await pg.fill('#np','12345678');await pg.fill('#ne','e@e.com');await pg.click('#goNew');
- await pg.waitForFunction(()=>cur==='cust',null,{timeout:20000});await pg.click('#go2');await pg.click('.card');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});await W(800);
+ await pg.waitForFunction(()=>cur==='clan',null,{timeout:20000});await pg.click('.card');await pg.click('#go2');await pg.waitForFunction(()=>ONL.joined,null,{timeout:20000});await W(800);
  const m0=await pg.evaluate(()=>{const fox=E.find(e=>e.boss),w=E.find(e=>e.t==='lobo_cinzento');return{fox:fox&&[fox.lv,fox.max,mobName(fox),lvColor(fox,'x')],wolf:w&&[w.lv,mobName(w),lvColor(w,'x')],sk:CLANS.uchiha.sk.map(s=>[s.n,s.rk,s.dmg,s.mp,s.cd])}});
  ok(m0.fox&&m0.fox[0]===90&&m0.fox[1]===120000&&/☠/.test(m0.fox[2])&&m0.fox[3]==='#ff5a4a','Raposa: Nv 90, 120.000 de vida, nome vermelho com caveira ('+(m0.fox&&m0.fox[2])+')');
  ok(m0.wolf&&m0.wolf[0]===3&&/Nv 3/.test(m0.wolf[1]),'Lobo: Nv 3 no nome ('+(m0.wolf&&m0.wolf[1])+')');
