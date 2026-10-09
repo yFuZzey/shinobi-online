@@ -134,6 +134,8 @@ rep("if(Math.hypot(p.x-b.x,p.y-24-b.y)<22){hurt(30)","if(!b.sv&&Math.hypot(p.x-b
 # câmera anda em pixels reais da tela (antes pulava de 1 em 1 pixel do mundo = ~3 pixels da tela, dando tranco)
 rep("let cx=Math.max(0,Math.min(N*T-w,p.x-w/2))|0,cy=Math.max(0,Math.min(N*T-h,p.y-h/2))|0;if(shk>0){cx+=(Math.random()-.5)*shk*14|0;cy+=(Math.random()-.5)*shk*14|0;",
     "const _q=dpr*z;let cx=Math.round(Math.max(0,Math.min(N*T-w,p.x-w/2))*_q)/_q,cy=Math.round(Math.max(0,Math.min(N*T-h,p.y-h/2))*_q)/_q;if(shk>0){cx+=Math.round((Math.random()-.5)*shk*14*_q)/_q;cy+=Math.round((Math.random()-.5)*shk*14*_q)/_q;")
+# alvo selecionado: guarda a câmera para converter o toque em posição do mundo e usa o alvo escolhido na mira dos golpes
+rep(" ctx.setTransform(dpr*z,0,0,dpr*z,-cx*dpr*z,-cy*dpr*z);"," CAM.x=cx;CAM.y=cy;ctx.setTransform(dpr*z,0,0,dpr*z,-cx*dpr*z,-cy*dpr*z);")
 # resolução máxima ajustável (o modo online baixa sozinho se o aparelho não aguentar)
 rep("function rs(){if(!cv.clientWidth)return;dpr=Math.min(2,devicePixelRatio||1);","function rs(){if(!cv.clientWidth)return;dpr=Math.min(window.DPRMAX||2,devicePixelRatio||1);")
 # laço do jogo
@@ -186,8 +188,8 @@ rep("function hurt(n){if(Math.random()*100<dodgeChance(HPREC)){FT.push({x:p.x,y:
     "function hurt(n){HRES={miss:0,d:0,dead:0};if(kaitenGuard()){HRES.miss=1;FT.push({x:p.x,y:p.y-62,t:'defendeu',txt:1,life:.8});return}if(Math.random()*100<dodgeChance(HPREC)){HRES.miss=1;FT.push({x:p.x,y:p.y-56,t:'esquivou',txt:1,life:.8});return}n=Math.max(1,Math.round(n*(1-D().red/100)));n=shieldAbsorb(n);p.hp-=n;HRES.d=n;")
 rep(" if(p.hp<=0){p.hp=p.max;scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:.6}}}"," if(p.hp<=0){HRES.dead=1;p.hp=p.max;scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:.6}}}")
 # PvP: jogadores fora do grupo entram nas mesmas contas de mira e acerto dos golpes
-rep(" E.forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});\n if(tg){const d=best||1;ax="," E.concat(PVT()).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});\n if(tg){const d=best||1;ax=")
-rep("let tg=null,best=reach;E.forEach(","let tg=null,best=reach;E.concat(PVT()).forEach(")
+rep(" E.forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});\n if(tg){const d=best||1;ax="," TGL(best).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});\n if(tg){const d=best||1;ax=")
+rep("let tg=null,best=reach;E.forEach(","let tg=null,best=reach;TGL(reach).forEach(")
 rep("  E.forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hitE(","  E.concat(PVT()).forEach(e=>{if(!e.dead&&Math.hypot(e.x-cx,e.y-cy)<s.r+(e.rad||0)*.6)hitE(")
 rep("  E.forEach(e=>{if(e.dead)return;const dx=e.x-p.x,dy=e.y-p.y,pr=","  E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-p.x,dy=e.y-p.y,pr=")
 rep("  E.forEach(e=>{if(e.dead)return;const dx=e.x-hx,dy=e.y-hy,dd=","  E.concat(PVT()).forEach(e=>{if(e.dead)return;const dx=e.x-hx,dy=e.y-hy,dd=")

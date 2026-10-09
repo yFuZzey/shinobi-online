@@ -443,7 +443,7 @@ function onlStep(dt){kfxStep(dt);if(!ONL.on)return;perfTick(dt);
   if(pe.hitT>0)pe.hitT-=dt;if(pe.th>=0)pe.th+=dt;if(pe.th>.35)pe.th=-1;if(pe.au>=0)pe.au+=dt;if(pe.sayT>0)pe.sayT-=dt}
  if(myT>0)myT-=dt}
 const inGrp=id=>!!(ONL.party&&ONL.party.members.some(x=>x.id===id));
-function onlDraw(L,ts){if(!ONL.on)return;
+function onlDraw(L,ts){{const t=tgCur();if(t)L.push({y:t.y-.35,d:()=>tgRing(t,ts)})}if(!ONL.on)return;
  for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.x===null||pe.sc!==(scene|0))continue;
   L.push({y:pe.y,d:()=>{const FL=(pe.eq||[]).map(i=>ITEMS[i]).filter(it=>it&&it.fx&&(it.fx.tails||it.fx.orbit||it.fx.glow||it.fx.hand)).map(it=>it.fx);
    fxDraw(ctx,pe.x,pe.y,ts,FL,0);
@@ -1033,7 +1033,7 @@ const alvosEm=(x,y,r)=>E.concat(PVT()).filter(e=>!e.dead&&Math.hypot(e.x-x,e.y-y
 function castNui(s,ax,ay){actStart('nnui');const tp=HTP,t=+s.tel||0;fx.push({k:'sarea',x:p.x,y:p.y-4,r:26,col:'#120a22',life:t+.3,max:t+.3,tel:t});
  KDEL.push({t,fn:()=>{const a0=Math.atan2(ay,ax),n=3,sp=s.sp||290;for(let q=0;q<n;q++){const a=a0+(q-1)*.38;
   P.push({x:p.x+Math.cos(a)*8,y:p.y-14,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:s.col,dmg:s.dmg,life:1.4,sh:1,seek:1,hm:(+s.pot||1)/n,tp,cc:s.lento?{lento:s.lento}:null})}}})}
-function nuiSeek(b,dt){let best=270,tg=null;for(const e of E.concat(PVT())){if(e.dead)continue;const d=Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y);if(d<best){best=d;tg=e}}if(!tg)return;
+function nuiSeek(b,dt){let best=270,tg=null;for(const e of TGL(270,b)){if(e.dead)continue;const d=Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y);if(d<best){best=d;tg=e}}if(!tg)return;
  const want=Math.atan2(tg.y-(tg.boss?44:16)-b.y,tg.x-b.x),cur=Math.atan2(b.vy,b.vx);let da=want-cur;while(da>Math.PI)da-=6.2832;while(da<-Math.PI)da+=6.2832;
  const mx=3.2*dt,na=cur+Math.max(-mx,Math.min(mx,da)),sp=Math.hypot(b.vx,b.vy);b.vx=Math.cos(na)*sp;b.vy=Math.sin(na)*sp}
 function nuiDraw(b){const tr=b.tr||(b.tr=[]);tr.push([b.x,b.y]);if(tr.length>10)tr.shift();ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
@@ -1064,7 +1064,7 @@ function castDominio(s,ax,ay){actStart('ndom');const tp=HTP,t=+s.tel||0,x0=p.x,y
   flash={col:s.col,a:.35};shk=Math.max(shk,.3);if(L.length)onlReg('🌑 Domínio das Sombras: '+L.length+' alvo'+(L.length>1?'s':'')+' preso'+(L.length>1?'s':'')+' e silenciado'+(L.length>1?'s':'')+'.')}})}
 const JCAST={nui:castNui,kubi:castKubi,yose:castYose,campo:castCampo,dominio:castDominio};
 // ---------- Entrega 7c: jutsus novos do Uchiha (números no balanceamento.json → golpes.jutsus.uchiha) ----------
-const alvoPerto=alc=>{let best=alc*T,tg=null;E.concat(PVT()).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});return tg};
+const alvoPerto=alc=>{let best=alc*T,tg=null;TGL(alc*T).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});return tg};
 const JALVO={genj:1,amat:1,tsuku:1}; // precisam de alguém no alcance (sem alvo não gasta nada)
 // bola de fogo que explode em área (Gōkakyū forte): acerta quem estiver no raio da explosão
 function projArea(b,e0){let n=0;E.concat(PVT()).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y);if(e!==e0&&d>=b.area+(e.rad||0)*.6)return;n++;const u=d||1;hitE(e,b.dmg,0,(e.x-b.x)/u*8,(e.y-b.y)/u*8)});return n}
@@ -1281,7 +1281,7 @@ function castItem(){const it=atkItem();if(!it){toast('Equipe um item que dá hab
  if(actRoot()||cd[3]>0)return;if(PST>0){FT.push({x:p.x,y:p.y-70,t:'atordoado',txt:1,life:.7});return}if(PSI>0)return silAviso();
  if(seloBloqueia(mpOf(3)))return seloAviso();if(p.mp<mpOf(3)){FT.push({x:p.x,y:p.y-60,t:'sem chakra',life:.8,txt:1});return}
  cd[3]=cdOf(3);p.mp-=mpOf(3);let ax=p.ax,ay=p.ay,best=300,tg=null;
- E.concat(PVT()).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});
+ TGL(300).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});
  if(tg){const d=best||1;ax=(tg.x-p.x)/d;ay=(tg.y-p.y)/d;p.ax=ax;p.ay=ay}
  HTP='@ninjutsu#item';try{castAtk(ax,ay)}finally{HTP=null}}
 
@@ -1660,4 +1660,44 @@ const MUS_TELAS=['login','clan','cust']; /* a música segue até o jogo começar
  {const lv=$('#lgVer');if(lv)lv.textContent='Versão '+otaVerTxt(OTA.v)}
  {const ob=$('#otabar');document.body.appendChild(ob);ob.querySelector('button').onclick=otaApply} // aparece em qualquer tela
  if(OTA.app){otaGate();setInterval(otaCheck,20*60*1000)}})();
+/* ---- alvo selecionado: tocar num monstro/jogador mira nele; os golpes vão na direção dele; painel com foto, nível, vida e efeitos ---- */
+let TGT=null;const CAM={x:0,y:0};
+function tgCur(){if(!TGT)return null;if(cur!=='game'||!p){TGT=null;return null}
+ if(TGT.mob){const e=TGT.mob;if(e.dead||!E.includes(e)||(scene|0)){TGT=null;return null}return e}
+ const pe=ONL.peers&&ONL.peers[TGT.peer];if(!pe||pe.x===null||pe.sc!==(scene|0)){TGT=null;return null}return pe}
+/* alvo que os golpes podem acertar agora (jogador só vale se o PvP permitir) */
+function tgAtk(){if(!TGT)return null;if(TGT.mob)return tgCur();const id=TGT.peer;return tgCur()?PVT().find(o=>o.pvp===id)||null:null}
+/* lista de candidatos da mira: o alvo escolhido, se estiver no alcance; senão, todos (vale o mais próximo, como antes) */
+function TGL(r,o){o=o||p;const t=tgAtk();return t&&Math.hypot(t.x-o.x,t.y-o.y)<r?[t]:E.concat(PVT())}
+function tgPick(wx,wy){let best=null,bd=1e9;
+ if(!(scene|0))for(const e of E){if(e.dead)continue;const d=Math.hypot(e.x-wx,e.y-(e.boss?44:22)-wy),R=(e.rad||16)*(e.boss?1.2:1)+14;if(d<R&&d<bd){bd=d;best={mob:e}}}
+ if(ONL.on&&ONL.joined)for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.x===null||pe.sc!==(scene|0))continue;const d=Math.hypot(pe.x-wx,pe.y-22-wy);if(d<32&&d<bd){bd=d;best={peer:id}}}
+ return best}
+function tgRing(t,ts){const r=((t.rad||14)*(t.boss?.8:1)+8)+Math.sin(ts/180)*1.5;ctx.save();ctx.strokeStyle='#ffd23f';ctx.lineWidth=2;ctx.globalAlpha=.9;ctx.beginPath();ctx.ellipse(t.x,t.y,r,r*.38,0,0,7);ctx.stroke();
+ ctx.strokeStyle='rgba(0,0,0,.45)';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(t.x,t.y,r+2,r*.38+1,0,0,7);ctx.stroke();ctx.restore()}
+function tgFace(){const cvf=$('#tgFaceCv');const t=tgCur();if(!cvf||!t)return;const c=cvf.getContext('2d'),W=cvf.width,H=cvf.height;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);c.imageSmoothingEnabled=false;
+ const head=(fn)=>{const k=H/HFACE.z;c.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);fn()},fit=im=>{const k=Math.min(W/im.naturalWidth,H/im.naturalHeight)*.92;c.drawImage(im,(W-im.naturalWidth*k)/2,(H-im.naturalHeight*k)/2,im.naturalWidth*k,im.naturalHeight*k)};
+ try{if(TGT.peer)head(()=>{if(HERO)drawHero(c,0,0,{fl:0,t:0,mv:0,run:0,aura:-1,th:-1,set:heroFor(t.look),clan:t.clan,act:null,vis:eqVis(t.eq||[])});else drawChar(c,0,0,{...(t.look||look),clan:t.clan,dir:0,t:0,mv:0,run:0})});
+  else{const d=MOBS[t.t]||{},a=d.ap||{tipo:'ninja'};
+   if(a.tipo==='imagem'){const im=MOBIMG[t.t];if(im&&im.complete&&im.naturalWidth)fit(im)}
+   else if(a.tipo==='sprite'){const r=sprFrame(t,a,performance.now());if(r&&r.im&&r.im.naturalWidth)fit(r.im)}
+   else if(a.tipo==='raposa'&&fxOK){const k=H/150;c.setTransform(k,0,0,k,W/2,H*.95);drawFoxSpr(c,0,0,{t:0,mv:0,fl:0,lunge:0,ch:0,hurt:0,stun:0,dead:0,dt:0})}
+   else head(()=>drawChar(c,0,0,{skin:a.skin||'#d9a97f',hair:a.hair||'#222',cloth:a.cloth||'#6a3030',band:a.band||'#8b1e1e',dir:0,t:0,mv:0,run:0}))}}catch(_){}}
+function tgUi(){const el=$('#tgt');if(!el)return;const t=tgCur();if(!t){if(!el.hidden){el.hidden=true;el._o=null}return}
+ let nm=t.nome||'?',lv=t.lv||1,col='#fff',fx=[];
+ if(TGT.mob){col=lvColor(t,'#fff');nm=(((t.lv||1)-(CH?CH.lv:1))>=10?'☠ ':'')+nm;
+  if(t.stun>0)fx.push(['💫','Atordoado',t.stun]);if(t.root>0)fx.push(['⛓️','Preso',t.root]);if(t.lento>0||t.slw>0)fx.push(['🐌','Lento',Math.max(t.lento||0,t.slw||0)]);if(t.conf>0)fx.push(['🌀','Confuso',t.conf])}
+ else{if(t.adm)col='#ffd23f';if(t.au>=0)fx.push(['✨','Aura']);if(t.ey)fx.push(['👁️',t.ey===2?'Mangekyō':'Sharingan'])}
+ const mx=Math.max(1,t.max||1),hp=Math.max(0,Math.min(mx,Math.round(t.hp))),fh=fx.map(f=>'<span>'+f[0]+' '+f[1]+(f[2]?' <b>'+Math.ceil(f[2])+'s</b>':'')+'</span>').join('');
+ const key=nm+'|'+lv+'|'+hp+'|'+mx+'|'+col+'|'+fh;
+ if(el.hidden||el._o!==TGT){el.hidden=false;el._o=TGT;el._k='';tgFace()}
+ if(el._k!==key){el._k=key;const b=$('#tgNm b');b.textContent=nm;b.style.color=col;$('#tgNm span').textContent='Nv '+lv;$('#tgHp').style.width=(hp/mx*100)+'%';$('#tgHpT').textContent=hp+' / '+mx;$('#tgFx').innerHTML=fh}}
+{const g=$('#s-game');if(g&&!$('#tgt')){g.insertAdjacentHTML('beforeend','<div id="tgt" hidden><div id="tgFace"><canvas id="tgFaceCv" width="68" height="68"></canvas></div><div id="tgNm"><b></b><span></span></div><div class="bar"><i id="tgHp"></i><em id="tgHpT"></em></div><div id="tgFx"></div><button id="tgX" aria-label="Limpar alvo">×</button></div>');
+  $('#tgX').onclick=()=>{TGT=null;tgUi()};
+  const c=$('#cv');let dn=null;
+  c.addEventListener('pointerdown',e=>{dn={x:e.clientX,y:e.clientY,t:performance.now(),id:e.pointerId}});
+  c.addEventListener('pointerup',e=>{if(!dn||e.pointerId!==dn.id)return;const d=dn;dn=null;if(cur!=='game'||!p||Math.hypot(e.clientX-d.x,e.clientY-d.y)>12||performance.now()-d.t>600)return;
+   const r=c.getBoundingClientRect(),sx=cv.width/dpr/r.width,wx=(e.clientX-r.left)*sx/z+CAM.x,wy=(e.clientY-r.top)*sx/z+CAM.y;
+   TGT=tgPick(wx,wy);tgUi()});
+  setInterval(tgUi,120);setInterval(()=>{if(TGT)tgFace()},700)}}
 //ONLINE-END

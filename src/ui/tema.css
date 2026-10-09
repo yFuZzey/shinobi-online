@@ -216,3 +216,13 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 .strow .pd{color:#3aa35a;font-weight:800;min-width:28px;text-align:right;font-size:14px}
 .strow .sp{touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #stCf{display:flex;gap:8px;margin:10px 0;position:sticky;bottom:0}#stCf button{flex:1;height:42px;border-radius:10px;font-weight:800}#stCf #stOk{border-color:#ffc94a;color:#1a1208;background:#ffc94a}
+/* alvo selecionado */
+#tgt{position:absolute;left:292px;top:8px;width:190px;min-height:52px;box-sizing:border-box;padding-left:58px;z-index:5;color:#fff;font:600 12px system-ui,sans-serif;text-shadow:0 1px 2px #000}
+#tgt[hidden]{display:none}
+#tgFace{position:absolute;left:0;top:0;width:52px;height:52px;background:var(--ui-retrato) 0 0/100% 100%;image-rendering:pixelated}
+#tgFace canvas{position:absolute;left:8px;top:8px;width:36px;height:36px;image-rendering:pixelated}
+#tgNm{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;padding-right:18px}#tgNm b{overflow:hidden;text-overflow:ellipsis}#tgNm span{color:#ffe2c4;font-size:11px}
+#tgt .bar{position:relative;margin-top:2px}#tgHp{background:var(--ui-fill_hp) 0 0/100% 100%}
+#tgHpT{position:absolute;left:0;right:0;top:0;font:700 10px/8px system-ui;text-align:center;font-style:normal;color:#fff}
+#tgFx{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}#tgFx span{padding:1px 6px;border-radius:9px;background:rgba(40,8,14,.75);border:1px solid rgba(255,120,120,.45);color:#ffe2c4;font:600 10px/1.4 system-ui}
+#tgX{position:absolute;right:0;top:-3px;width:20px;height:20px;min-width:0;padding:0;margin:0;border-radius:10px;font-size:14px;line-height:1;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);color:#fff}
