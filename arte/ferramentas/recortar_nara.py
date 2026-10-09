@@ -25,7 +25,7 @@ rows.append(cur)
 seq=[k for r in rows for k in sorted(r,key=lambda k:objs[k][0][1].start)]
 print('poses',len(seq),[len(r) for r in rows])
 ALTO=104.0   # altura do boneco parado no jogo (a do Hyuga é ~108)
-f=[];anc=[];cut=[];pl=[]
+f=[];anc=[];cut=[];pl=[];imgs=[]
 hs=[objs[k][0][0].stop-objs[k][0][0].start for k in seq]
 esc=ALTO/np.median(hs)
 for n,k in enumerate(seq):
@@ -37,9 +37,24 @@ for n,k in enumerate(seq):
     arr=np.array(sm);arr[...,3]=np.where(arr[...,3]>110,255,0);sm=Image.fromarray(arr,'RGBA')
     # pé: centro dos pixels do terço de baixo
     ys,xs=np.nonzero(arr[...,3]);tr=(ys>nh*.30)&(ys<nh*.62);ax=float(xs[tr].mean());ay=float(nh-1) # x do tronco: mantém a cabeça e o corpo no mesmo lugar entre as poses
+    imgs.append(sm)
     f.append('data:image/png;base64,'+base64.b64encode((lambda b:(sm.save(b,'PNG'),b.getvalue())[1])(io.BytesIO())).decode())
     anc.append([round(ax,1),round(ay,1)]);cut.append(round(nh*(.36 if n==7 else .25),1))
     print(n,(w,h),sm.size)
+# ---- corrida: a folha não tem quadros de corrida; monta 4 quadros com o tronco da pose 0 (guarda) e as pernas de outras poses (passada larga -> fechando -> larga) ----
+def faixa(im):
+    b=np.array(im).astype(int);h=b.shape[0];ys=[]
+    for y in range(int(h*.38),int(h*.68)):
+        r,g,bl,al=b[y,:,0],b[y,:,1],b[y,:,2],b[y,:,3]
+        if ((al>0)&(g>r+8)&(g>bl+4)).sum()>=3:ys.append(y)
+    return max(ys)+1
+def junta(U,L):
+    bu=faixa(imgs[U]);bl=faixa(imgs[L]);up=imgs[U].crop((0,0,imgs[U].width,bu));lg=imgs[L].crop((0,bl,imgs[L].width,imgs[L].height))
+    ax=anc[U][0];lx=anc[L][0];left=max(ax,lx);right=max(imgs[U].width-ax,imgs[L].width-lx);Wc=int(np.ceil(left+right))+2;Hc=bu+lg.height
+    out=Image.new('RGBA',(Wc,Hc),(0,0,0,0));out.alpha_composite(lg,(int(round(left-lx)),bu));out.alpha_composite(up,(int(round(left-ax)),0));return out,left
+for L in (2,4,12,1):
+    o,lx=junta(0,L);f.append('data:image/png;base64,'+base64.b64encode((lambda b:(o.save(b,'PNG'),b.getvalue())[1])(io.BytesIO())).decode())
+    anc.append([round(lx,1),float(o.height-1)]);cut.append(round(o.height*.25,1))
 json.dump({'f':{'nra':f},'nrx':{'nra':anc},'nrc':{'nra':cut}},open(R+'src/hyuga/spr_nara.json','w'),separators=(',',':'))
 # conferência
 W=Image.new('RGB',(len(f)*110,130),(90,100,130))

@@ -983,9 +983,9 @@ function actFrame(A){const D=A&&ACTS[A.a];if(!D)return null;const t=actEl(A);if(
  const HS=o.set||HERO,cl=o.clan!==undefined?o.clan:(o.set?null:clan),A=o.act!==undefined?o.act:(o.set?null:ACT);
  let key=null,fr=0,flip=0;
  if(cl==='nara'&&HS&&HS.nra&&!(o.th>=0)){ /* Nara: boneco próprio (parado, correndo e poses das sombras) */
-  const rr=A&&String(A.a)[0]==='n'&&!o.mv?actFrame(A):null,RUN=[0,2,4,2];let f,sy=1;
-  if(rr)f=rr.i;else if(o.mv)f=RUN[(o.t/100|0)%4];else{f=0;sy=1+.014*Math.sin(o.t/380)} /* parado: um só quadro (o rosto não muda) com respiração leve */
-  const im=HS.nra[f],an=SPR.nrx.nra[f],sc=SPR.sc,bob=o.mv?((o.t/95|0)%2?-1:0):0;HHAND=[(o.fl?-1:1)*30*sc,-70*sc/2+bob];
+  const rr=A&&String(A.a)[0]==='n'&&!o.mv?actFrame(A):null,RUN=[17,18,19,20],RBOB=[2,0,-1,0];let f,sy=1;
+  let rb=0;if(rr)f=rr.i;else if(o.mv){const q=(o.t/85|0)%4;f=RUN[q];rb=RBOB[q]}else{f=0;sy=1+.014*Math.sin(o.t/380)} /* parado: um só quadro (o rosto não muda) com respiração leve */
+  const im=HS.nra[f],an=SPR.nrx.nra[f],sc=SPR.sc,bob=rb;HHAND=[(o.fl?-1:1)*30*sc,-70*sc/2+bob];
   c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,0,10,4,0,0,7);c.fill();
   if(o.fl)c.scale(-1,1);c.drawImage(im,-an[0]*sc,-an[1]*sc*sy+bob,im.width*sc,im.height*sc*sy);c.restore();return}
  if(HS&&A&&(A.root||A.para||!o.mv)){const r=actFrame(A),k=(ACTS[A.a]||{}).k||'hya';if(r&&HS[k]){key=k;fr=r.i;flip=r.flip}}
