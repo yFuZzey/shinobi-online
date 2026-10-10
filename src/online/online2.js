@@ -1019,7 +1019,7 @@ function sombraLinha(f,L,el,a){const ft=NFXI.fx,H=NFX.cabeca[3];if(!(ft.naturalW
 function shadowFxDraw(f){const el=f.max-f.life,g=f.tel>0?Math.min(1,el/f.tel):1,a=Math.min(1,f.life/.3);ctx.save();ctx.globalAlpha=.75*a;ctx.fillStyle=f.col;ctx.strokeStyle=f.col;
  if(f.k==='sline'){const L=f.len*g;if(sombraLinha(f,L,el,Math.min(1,f.life/.3))){ctx.restore();return}ctx.lineCap='round';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+f.ax*L,f.y+f.ay*L);ctx.stroke();
   ctx.globalAlpha=.35*a;ctx.lineWidth=18;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x+f.ax*L,f.y+f.ay*L);ctx.stroke()}
- else{const r=f.r*g;ctx.globalAlpha=.28*a;ctx.beginPath();ctx.ellipse(f.x,f.y,r,r*.55,0,0,7);ctx.fill();ctx.globalAlpha=.7*a;ctx.lineWidth=3;ctx.setLineDash([10,6]);ctx.stroke()}ctx.restore()}
+ else{const r=f.r*g;ctx.globalAlpha=.34*a;ctx.beginPath();ctx.ellipse(f.x,f.y,r,r*.55,0,0,7);ctx.fill()}ctx.restore()}
 // ---------- Entrega 7b: jutsus novos do Nara (números no balanceamento.json → golpes.jutsus.nara) ----------
 // quem está preso na MINHA sombra agora (Kagemane, Possessão, Domínio): o Kubishibari só pega esses
 const SOMBRA_PRESOS=new Map();
@@ -1100,7 +1100,7 @@ Object.assign(JCAST,{goka:castGoka,hosenka:castHosenka,goryuka:castGoryu,genj:ca
 // desenho dos efeitos do Uchiha (também chegam para quem está vendo)
 function uchFxDraw(f){const k=1-f.life/f.max,a=Math.min(1,f.life/.25),ts=performance.now();ctx.save();
  if(f.k==='aviso'&&runaDraw(f,k,ts)){}
- else if(f.k==='aviso'){ctx.globalAlpha=.25+.35*k;ctx.fillStyle=f.col||'#ff5a1a';ctx.beginPath();ctx.ellipse(f.x,f.y,f.r*k,f.r*k*.55,0,0,7);ctx.fill();ctx.globalAlpha=.85;ctx.strokeStyle=f.col||'#ff5a1a';ctx.lineWidth=2;ctx.setLineDash([8,6]);ctx.beginPath();ctx.ellipse(f.x,f.y,f.r,f.r*.55,0,0,7);ctx.stroke()}
+ else if(f.k==='aviso'){ctx.globalAlpha=.25+.35*k;ctx.fillStyle=f.col||'#ff5a1a';ctx.beginPath();ctx.ellipse(f.x,f.y,f.r*k,f.r*k*.55,0,0,7);ctx.fill()}
  else if(f.k==='chama'){ctx.globalCompositeOperation='lighter';for(let i=0;i<14;i++){const an=i*2.4+ts/300,rr=f.r*(.2+.75*((i*37)%10)/10),x=f.x+Math.cos(an)*rr,y=f.y+Math.sin(an)*rr*.55-(1-a)*10,h=10+8*Math.sin(ts/90+i);
   const g=ctx.createRadialGradient(x,y-h/2,0,x,y-h/2,h);g.addColorStop(0,'rgba(255,220,120,'+(.8*a)+')');g.addColorStop(1,'rgba(255,60,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y-h/2,h,0,7);ctx.fill()}}
  else if(f.k==='genj'){ctx.translate(f.x,f.y-34);ctx.globalAlpha=a;ctx.strokeStyle='#c4143c';ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<40;i++){const an=i*.35+ts/180,rr=2+i*.45;i?ctx.lineTo(Math.cos(an)*rr,Math.sin(an)*rr*.7):ctx.moveTo(Math.cos(an)*rr,Math.sin(an)*rr*.7)}ctx.stroke();
@@ -1257,7 +1257,6 @@ function invDraw(f,ts){const t=f.max-f.life,S=INVS[f.f]||.4,out=f.life<S,ko=out?
 function invChao(f,o,ts){const t=f.max-f.life;
  if(f.f==='lesma'&&o&&t>.6&&f.life>INVS.lesma*.5)ifxDraw('ls_cmp',ts/150,o.x,o.y+4,0,Math.min(.6,(t-.6)*2,f.life));
  if(f.f==='cobra'){const tel=+f.tel||.6;if(t>tel+.3)return;const k=Math.min(1,t/tel),R=T*.95;ctx.save();ctx.globalAlpha=t>tel?Math.max(0,1-(t-tel)/.3):.35+.5*k;
-  ctx.strokeStyle='#b07cff';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.beginPath();ctx.ellipse(f.tx,f.ty,R,R*.55,0,0,7);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle='rgba(126,60,210,'+(.12+.22*k)+')';ctx.beginPath();ctx.ellipse(f.tx,f.ty,R*k,R*k*.55,0,0,7);ctx.fill();
   ctx.strokeStyle='rgba(210,170,255,.8)';ctx.lineWidth=1.5;ctx.beginPath();for(let i=0;i<6;i++){const a=i*1.047+ts/900,r2=R*.62;ctx.lineTo(f.tx+Math.cos(a)*r2,f.ty+Math.sin(a)*r2*.55)}ctx.closePath();ctx.stroke();ctx.restore()}}
 function invL(L){if(scene|0)return;const ts=performance.now();
@@ -1502,11 +1501,11 @@ function aimShape(i){const s=clan&&CH&&CLANS[clan].sk[i];if(!s||s.auto)return nu
 function aimDraw(){const S=AIMS,sh=S.sh,a=S.a;if(!sh||!a)return;const ts=performance.now(),ang=Math.atan2(a.ay,a.ax),pulse=.5+.5*Math.sin(ts/160);
  ctx.save();ctx.translate(p.x,p.y-4);ctx.fillStyle=sh.col;ctx.strokeStyle=sh.col;ctx.lineWidth=2;ctx.globalAlpha=.28+.12*pulse;
  const ell=(x,y,r)=>{ctx.beginPath();ctx.ellipse(x,y,r,r*.55,0,0,7)};
- if(sh.k==='line'){ctx.save();ctx.rotate(ang);ctx.fillRect(0,-sh.w/2,sh.len,sh.w);ctx.globalAlpha=.9;ctx.setLineDash([8,5]);ctx.strokeRect(0,-sh.w/2,sh.len,sh.w);ctx.restore()}
- else if(sh.k==='cone'){ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,sh.len,ang-sh.half,ang+sh.half);ctx.closePath();ctx.fill();ctx.globalAlpha=.9;ctx.setLineDash([8,5]);ctx.stroke()}
- else if(sh.k==='off'){const x=a.ax*sh.off,y=a.ay*sh.off;ell(x,y,sh.r);ctx.fill();ctx.globalAlpha=.9;ctx.setLineDash([8,5]);ell(x,y,sh.r);ctx.stroke()}
- else if(sh.k==='ground'){const d=a.d,x=a.ax*d,y=a.ay*d;ctx.globalAlpha=.35;ctx.setLineDash([3,6]);ell(0,0,sh.rng);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(x,y);ctx.stroke();
-  ctx.globalAlpha=.28+.12*pulse;ell(x,y,sh.r);ctx.fill();ctx.globalAlpha=.9;ctx.setLineDash([8,5]);ell(x,y,sh.r);ctx.stroke()}
+ if(sh.k==='line'){ctx.save();ctx.rotate(ang);ctx.fillRect(0,-sh.w/2,sh.len,sh.w);ctx.restore()}
+ else if(sh.k==='cone'){ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,sh.len,ang-sh.half,ang+sh.half);ctx.closePath();ctx.fill()}
+ else if(sh.k==='off'){const x=a.ax*sh.off,y=a.ay*sh.off;ell(x,y,sh.r);ctx.fill()}
+ else if(sh.k==='ground'){const d=a.d,x=a.ax*d,y=a.ay*d;ctx.globalAlpha=.1;ell(0,0,sh.rng);ctx.fill();
+  ctx.globalAlpha=.3+.12*pulse;ell(x,y,sh.r);ctx.fill()}
  ctx.restore()}
 function aimCast(i,a){AIM=a;try{useBtn(i)}finally{AIM=null}}
 {const dead=14,far=120;
