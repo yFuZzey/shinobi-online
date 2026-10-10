@@ -1736,4 +1736,43 @@ function tgUi(){const el=$('#tgt');if(!el)return;const t=tgCur();if(!t){if(!el.h
    const r=c.getBoundingClientRect(),sx=cv.width/dpr/r.width,wx=(e.clientX-r.left)*sx/z+CAM.x,wy=(e.clientY-r.top)*sx/z+CAM.y;
    TGT=tgPick(wx,wy);tgUi()});
   setInterval(tgUi,120);setInterval(()=>{if(TGT)tgFace()},700)}}
+/* ---- Configurações > Layout: tamanho e posição dos botões de golpe, do HUD (foto, vida, chakra) e do chat; fica salvo neste aparelho ---- */
+const LAYK='so-layout',LAYI=['b0','b1','b2','b3','chatrow','hud'];
+let LAY={sk:1,hud:1,chat:1,pos:{}},LAYED=0;
+function layLoad(){try{const j=JSON.parse(localStorage.getItem(LAYK)||'null');if(j){const n=(v,a,b)=>Math.max(a,Math.min(b,+v||1));LAY.sk=n(j.sk,.6,1.6);LAY.hud=n(j.hud,.7,1.5);LAY.chat=n(j.chat,.7,1.6);LAY.pos={};for(const k of LAYI){const q=j.pos&&j.pos[k];if(Array.isArray(q)&&isFinite(q[0])&&isFinite(q[1]))LAY.pos[k]=[Math.round(q[0]),Math.round(q[1])]}}}catch(_){}}
+function laySave(){try{localStorage.setItem(LAYK,JSON.stringify(LAY))}catch(_){}}
+function layApply(clamp){const h=LAY.hud,P=k=>LAY.pos[k]||[0,0],tr=(e,x,y,sc,o)=>{if(!e)return;e.style.translate=x||y?x+'px '+y+'px':'';e.style.scale=sc!==1?sc:'';if(o)e.style.transformOrigin=o};
+ ['b0','b1','b2','b3'].forEach(id=>tr($('#'+id),P(id)[0],P(id)[1],LAY.sk));
+ tr($('#hud'),P('hud')[0],P('hud')[1],h,'0 0');
+ /* o chat mora dentro do HUD: desconta o tamanho do HUD para o tamanho do chat valer sozinho */
+ tr($('#chatrow'),P('chatrow')[0]/h,P('chatrow')[1]/h,LAY.chat/h,'0 0');
+ if(clamp)for(const k of LAYI){const e=$('#'+k);if(!e)continue;const r=e.getBoundingClientRect();if(!r.width||!r.height)continue;
+  const W=innerWidth,H=innerHeight;let dx=0,dy=0;if(r.left<0)dx=-r.left;else if(r.right>W)dx=W-r.right;if(r.top<0)dy=-r.top;else if(r.bottom>H)dy=H-r.bottom;
+  if(dx||dy){const q=P(k),f=v=>v>0?Math.ceil(v):Math.floor(v);LAY.pos[k]=[q[0]+f(dx),q[1]+f(dy)];layApply()}}}
+function layReset(){LAY={sk:1,hud:1,chat:1,pos:{}};laySave();layApply();layUi()}
+function layUi(){const p=$('#cfgp');if(!p)return;[['sk','laySk'],['hud','layHud'],['chat','layChat']].forEach(([k,id])=>{const r=$('#'+id);r.value=Math.round(LAY[k]*100);$('#'+id+'V').textContent=Math.round(LAY[k]*100)+'%'})}
+function layEdit(v){LAYED=v?1:0;const g=$('#s-game');g.classList.toggle('lay-edit',!!LAYED);$('#layBar').hidden=!LAYED;$('#cfgp').hidden=!!LAYED||$('#cfgp').dataset.open!=='1';if(!LAYED)laySave()}
+function cfgOpen(v){const p=$('#cfgp');p.dataset.open=v?'1':'0';p.hidden=!v;if(v){layUi();pfMenu(false)}}
+layLoad();
+{const g=$('#s-game');if(g&&!$('#cfgp')){
+ g.insertAdjacentHTML('beforeend','<div id="cfgp" hidden data-open="0"><div class="cfh"><b>⚙️ Configurações</b><button id="cfgX" aria-label="Fechar">✕</button></div><h4>Layout</h4>'
+  +'<label>Botões de habilidade <span id="laySkV"></span><input type="range" id="laySk" min="60" max="160" step="5"></label>'
+  +'<label>HUD (foto, vida e chakra) <span id="layHudV"></span><input type="range" id="layHud" min="70" max="150" step="5"></label>'
+  +'<label>Chat <span id="layChatV"></span><input type="range" id="layChat" min="70" max="160" step="5"></label>'
+  +'<div class="cfb"><button id="layMove">✋ Mover elementos</button><button id="layRst">↺ Restaurar padrão</button></div><p>Em "Mover elementos", arraste os botões de golpe, o HUD e o chat para onde preferir.</p></div>'
+  +'<div id="layBar" hidden><span>Arraste os elementos</span><button id="layOk">Concluir</button><button id="layRs2">Restaurar</button></div>');
+ const m=$('#pfMenu');if(m){m.insertAdjacentHTML('beforeend','<button id="pfCfg">⚙️ Configurações</button>');$('#pfCfg').onclick=e=>{e.stopPropagation();cfgOpen(1)}}
+ $('#cfgX').onclick=()=>cfgOpen(0);
+ [['sk','laySk'],['hud','layHud'],['chat','layChat']].forEach(([k,id])=>$('#'+id).oninput=e=>{LAY[k]=+e.target.value/100;$('#'+id+'V').textContent=e.target.value+'%';layApply(1);laySave()});
+ $('#layMove').onclick=()=>layEdit(1);$('#layOk').onclick=()=>layEdit(0);$('#layRst').onclick=layReset;$('#layRs2').onclick=layReset;
+ /* modo mover: o toque não aciona golpes/chat; arrastar move o elemento sob o dedo */
+ let dg=null;const hit=(x,y)=>LAYI.find(k=>{const e=$('#'+k);if(!e)return false;const r=e.getBoundingClientRect();return r.width&&r.height&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom});
+ document.addEventListener('pointerdown',e=>{if(!LAYED||e.target.closest('#layBar'))return;e.stopPropagation();e.preventDefault();const k=hit(e.clientX,e.clientY);if(k){const q=LAY.pos[k]||[0,0];dg={k,id:e.pointerId,x:e.clientX,y:e.clientY,q:[q[0],q[1]]}}},true);
+ document.addEventListener('pointermove',e=>{if(!LAYED||!dg||e.pointerId!==dg.id)return;e.stopPropagation();LAY.pos[dg.k]=[Math.round(dg.q[0]+e.clientX-dg.x),Math.round(dg.q[1]+e.clientY-dg.y)];layApply(1)},true);
+ const up=e=>{if(!LAYED)return;if(dg&&e.pointerId===dg.id){dg=null;laySave()}if(!e.target.closest('#layBar'))e.stopPropagation()};
+ document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',up,true);
+ document.addEventListener('click',e=>{if(LAYED&&!e.target.closest('#layBar')){e.stopPropagation();e.preventDefault()}},true);
+ addEventListener('resize',()=>layApply(1));
+ {const _sh=show;show=function(w){_sh(w);if(w==='game')setTimeout(()=>layApply(1),60)}}
+ layApply()}}
 //ONLINE-END
