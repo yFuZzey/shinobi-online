@@ -1,9 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}#goItems,#goMobs{display:none!important}
-#pubLogin input{width:100%;margin:4px 0}
-#srvList .srow{display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap}
-#srvList .srow b{flex:1;min-width:110px;word-break:break-all}
-#srvList .tag{font-size:12px;opacity:.75}
-</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Editor de Mapas · Painel</title>
 <style>
 :root{
@@ -87,11 +82,6 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke
 .status{color:var(--muted);font-size:13px;margin:0}
 .status.ok{color:var(--ok)}.status.err{color:var(--danger)}
 @media (min-width:760px){.sheet-bg{align-items:center}.sheet{border-radius:18px}#ctx{min-height:120px}}
-#goItems,#goMobs{display:none!important}
-#pubLogin input{width:100%;margin:4px 0}
-#srvList .srow{display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap}
-#srvList .srow b{flex:1;min-width:110px;word-break:break-all}
-#srvList .tag{font-size:12px;opacity:.75}
 </style>
 
 <div id="app">
@@ -126,6 +116,32 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke
   </nav>
 </div>
 
+<div class="sheet-bg" id="imgBg" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="imgT">
+    <div class="row"><h2 id="imgT" style="flex:1">Importar imagem</h2><button class="ib" id="imgX" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <div class="sec">
+      <input type="file" id="imgFile" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Escolher imagem">
+      <canvas id="imgPv" width="300" height="200" hidden></canvas>
+      <p class="hint" id="imgInfo">Escolha um PNG (ou JPG/WebP). Se tiver fundo, ele é removido aqui.</p>
+    </div>
+    <div class="sec" id="imgOpt" hidden>
+      <h3>Fundo</h3>
+      <div class="seg" role="group" aria-label="Remover fundo"><button data-im="borda" aria-pressed="true">Das bordas</button><button data-im="tudo" aria-pressed="false">Em toda a imagem</button><button data-im="nao" aria-pressed="false">Não remover</button></div>
+      <div class="row"><span class="lbl">Tolerância</span><input type="range" id="imgTol" min="0" max="150" value="40"><span class="lbl" id="imgTolV">40</span></div>
+      <p class="hint">Sobrou fundo? Toque nele na imagem: aquela cor sai de toda a imagem.</p>
+      <h3>Tamanho no jogo</h3>
+      <div class="row"><input type="range" id="imgSc" min="10" max="300" value="100"><span class="lbl" id="imgScV">100%</span></div>
+      <label class="row"><input type="checkbox" id="imgPix"> Pixel art (sem suavizar)</label>
+      <h3>Nome e colisão</h3>
+      <input type="text" id="imgNome" maxlength="24" placeholder="Nome (ex.: Barraca)" autocomplete="off">
+      <div class="row"><div class="fld"><span class="lbl">Base: largura</span><input type="number" id="imgFw" min="1" max="8" value="1"></div><div class="fld"><span class="lbl">Base: altura</span><input type="number" id="imgFh" min="1" max="8" value="1"></div></div>
+      <label class="row"><input type="checkbox" id="imgNs"> Sem colisão (dá para atravessar)</label>
+      <button class="big primary" id="imgSave">Salvar imagem</button>
+    </div>
+    <p class="status" id="imgSt"></p>
+    <div class="sec"><h3>Minhas imagens</h3><div id="imgList"></div></div>
+  </div>
+</div>
 <div class="sheet-bg" id="sheetBg" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">
     <div class="row"><h2 id="shT">Menu do mapa</h2><button class="ib" id="shX" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
@@ -228,11 +244,6 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke
 .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
 #iSlot,#iRar{flex-wrap:wrap}
 .bigadd{height:50px;border-radius:14px;border:2px dashed var(--accent);color:var(--accent);font-weight:800;font-size:15px;width:100%}
-#goItems,#goMobs{display:none!important}
-#pubLogin input{width:100%;margin:4px 0}
-#srvList .srow{display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap}
-#srvList .srow b{flex:1;min-width:110px;word-break:break-all}
-#srvList .tag{font-size:12px;opacity:.75}
 </style>
 <div id="itemsApp" hidden>
   <header class="top">
@@ -316,6 +327,13 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke
 .qty{display:flex;align-items:center;gap:4px}.qty b{min-width:26px;text-align:center;font-variant-numeric:tabular-nums}
 .qty button{width:34px;height:34px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);color:var(--fg);font-weight:800}
 #goItems,#goMobs{display:none!important}
+.sheet input[type=password],.sheet input[type=number]{width:100%;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit}
+.sheet input[type=range]{width:100%}
+#imgPv{width:100%;max-height:240px;border-radius:10px;border:1px solid var(--line);background:#888;image-rendering:pixelated;touch-action:manipulation}
+#imgList .srow{display:flex;gap:8px;align-items:center;margin:6px 0}
+#imgList img{width:38px;height:38px;object-fit:contain;background:var(--panel2);border-radius:8px}
+#imgList b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fld{display:flex;flex-direction:column;gap:4px;flex:1}
 #pubLogin input{width:100%;margin:4px 0}
 #srvList .srow{display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap}
 #srvList .srow b{flex:1;min-width:110px;word-break:break-all}
@@ -790,7 +808,7 @@ function buildCtx(){let h='';
   else if(tool=='object'){
     const cats=CATS.slice().sort((a,b)=>(a[2]===theme?0:a[2]==='*'?2:1)-(b[2]===theme?0:b[2]==='*'?2:1));
     h=`<div class="row scroll"><div class="seg" role="tablist">${cats.map(c=>`<button role="tab" data-cat="${c[0]}" aria-selected="${cat===c[0]}">${c[1]}</button>`).join('')}</div>
-      <button class="pill" id="scBtn" aria-pressed="${scatter}" ${cat=='mar'?'disabled':''}>Espalhar</button></div>`;
+      <button class="pill" id="scBtn" aria-pressed="${scatter}" ${cat=='mar'?'disabled':''}>Espalhar</button><button class="pill" id="imgNew">+ Importar PNG</button></div>`;
     if(cat=='mar')h+=`<div class="row scroll"><button class="tile" data-mk="spawn" aria-pressed="${markSel=='spawn'}"><span class="th"><svg viewBox="0 0 24 24" style="color:#38b6ff;width:30px;height:30px"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg></span><span class="n">Início</span></button>
       <button class="tile" data-mk="boss" aria-pressed="${markSel=='boss'}"><span class="th"><img src="${FOXIMG}" alt=""></span><span class="n">Raposa</span></button><p class="hint" style="align-self:center;min-width:180px">Escolha e toque no mapa onde ela deve ficar.</p></div>`;
     else h+=`<div class="row scroll">${LIST.filter(a=>a[2]===cat).map(a=>objTile(a[0])).join('')}</div>`}
@@ -897,7 +915,7 @@ async function srvLogin(){const st=$('#sendSt'),u=$('#pbU').value,p=$('#pbP').va
   try{const j=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:u.trim().toLowerCase()+DOM,password:p})});
     S={tok:j.access_token,uid:j.user.id,nome:''};const r=(await api('/rest/v1/personagens?select=nome,admin&id=eq.'+S.uid))||[];
     if(!r[0]||!r[0].admin){S=null;throw new Error('Esta conta não é admin.')}S.nome=r[0].nome;try{sessionStorage.setItem('painel',JSON.stringify(S))}catch(_){}
-    $('#pbP').value='';st.className='status ok';st.textContent='Pronto. Toque em “Publicar este mapa”.';srvUi();srvList()}
+    $('#pbP').value='';st.className='status ok';st.textContent='Pronto. Toque em “Publicar este mapa”.';srvUi();srvList();imgsSync()}
   catch(e){st.className='status err';st.textContent=srvErro(e)}}
 async function srvList(){const L=$('#srvList');if(!(S&&S.tok))return;L.textContent='Carregando…';
   try{const rows=(await api('/rest/v1/mapas?select=id,nome,publicado,atualizado_em&order=atualizado_em.desc'))||[];L.innerHTML='';
@@ -908,7 +926,7 @@ async function srvList(){const L=$('#srvList');if(!(S&&S.tok))return;L.textConte
 function srvAvisa(){fetch('/painel/recarregar',{method:'POST'}).catch(()=>{})}
 $('#srvList').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id,st=$('#sendSt');
   try{
-    if(b.dataset.k==='open'){const r=(await api('/rest/v1/mapas?select=id,mapa&id=eq.'+encodeURIComponent(id)))[0];if(!r)return;autosave();
+    if(b.dataset.k==='open'){await imgsSync();const r=(await api('/rest/v1/mapas?select=id,mapa&id=eq.'+encodeURIComponent(id)))[0];if(!r)return;autosave();
       const j=Object.assign({},r.mapa,{name:r.id});parseMap(j);localStorage.setItem(LSM+r.id,JSON.stringify(j));if(!index.list.includes(r.id))index.list.push(r.id);saveIndex();
       if(openMap(r.id)){sentRev=rev;closeMenu();toast('Mapa “'+r.id+'” aberto do servidor')}}
     else if(b.dataset.k==='tog'){await api('/rest/v1/mapas?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({publicado:!b.dataset.pub})});srvAvisa();toast(b.dataset.pub?'Tirado do jogo':'Colocado no jogo');srvList()}
@@ -931,6 +949,90 @@ $('#sendBig').onclick=sendMap;
 $('#pbIn').onclick=srvLogin;$('#pbP').addEventListener('keydown',e=>{if(e.key==='Enter')srvLogin()});
 $('#pbOut').onclick=()=>{S=null;try{sessionStorage.removeItem('painel')}catch(_){}srvUi()};
 $('#srvRef').onclick=srvList;
+/* ---------- imagens próprias: PNG importado, fundo removido, usado como objeto do mapa (tabela mapa_imagens, SQL 12) ---------- */
+const IMGK='shinobi-imgs-v1';let IMGS=[];
+if(!CATS.some(c=>c[0]==='cus'))CATS.push(['cus','Meus','*']);
+function imgReg(r){if(!r||!/^c_[a-z0-9_]{2,28}$/.test(r.id)||typeof r.png!=='string'||!/^data:image\/png;base64,/.test(r.png))return;
+  const fw=clamp(r.fw|0||1,1,8),fh=clamp(r.fh|0||1,1,8),off=clamp(r.off|0,0,8),ns=r.ns?1:0;TS[r.id]=r.png;
+  const a=LIST.find(x=>x[0]===r.id);if(a){a[1]=r.nome;a[3]=fw;a[4]=fh;a[5]=off;a[6]=ns}else LIST.push([r.id,r.nome,'cus',fw,fh,off,ns]);
+  CAT[r.id]={k:r.id,n:r.nome,c:'cus',fw,fh,off,ns};const i=new Image();i.onload=()=>{TX[r.id]=i;delete masks[r.id];dirty()};i.src=r.png}
+function imgsSet(rows){IMGS=rows.filter(r=>r&&r.id);IMGS.forEach(imgReg);
+  const ids=new Set(IMGS.map(r=>r.id));for(let n=LIST.length-1;n>=0;n--)if(LIST[n][2]==='cus'&&!ids.has(LIST[n][0])){delete CAT[LIST[n][0]];LIST.splice(n,1)}
+  try{localStorage.setItem(IMGK,JSON.stringify(IMGS))}catch(e){}}
+try{const c=JSON.parse(localStorage.getItem(IMGK)||'[]');if(Array.isArray(c))imgsSet(c)}catch(e){}
+async function imgsSync(){try{const rows=await api('/rest/v1/mapa_imagens?select=*&order=criado_em.asc');if(Array.isArray(rows)){imgsSet(rows);if(!$('#imgBg').hidden)imgList();ui()}}catch(e){}}
+function imgList(){const L=$('#imgList');L.innerHTML='';if(!IMGS.length){L.textContent='Nenhuma ainda.';return}
+  IMGS.forEach(r=>{const d=document.createElement('div');d.className='srow';const im=document.createElement('img');im.src=r.png;const b=document.createElement('b');b.textContent=r.nome+' · '+r.w+'×'+r.h;d.append(im,b);
+    const x=document.createElement('button');x.className='pill';x.textContent='Apagar';x.dataset.id=r.id;d.appendChild(x);L.appendChild(d)})}
+$('#imgList').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const st=$('#imgSt');
+  if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='Apagar mesmo? (some dos mapas)';setTimeout(()=>{b.dataset.c='';b.textContent='Apagar'},3500);return}
+  try{await api('/rest/v1/mapa_imagens?id=eq.'+encodeURIComponent(b.dataset.id),{method:'DELETE'});srvAvisa();await imgsSync();st.className='status ok';st.textContent='Imagem apagada.'}
+  catch(err){st.className='status err';st.textContent=imgErro(err)}});
+function imgErro(e){const m=String(e&&e.message||e);if(e&&(e.code==='PGRST205'||/Could not find the table/i.test(m)))return 'O banco ainda não tem a tabela de imagens: rode o arquivo sql/12_mapa_imagens.sql no Supabase.';return srvErro(e)}
+let IM=null;
+function imgOpen(){if(!(S&&S.tok)){closeMenu();openMenu();$('#sendSt').className='status err';$('#sendSt').textContent='Entre com a conta admin para importar imagens.';return}
+  $('#imgBg').hidden=false;$('#imgSt').textContent='';imgList()}
+function imgClose(){$('#imgBg').hidden=true}
+document.addEventListener('click',e=>{if(e.target.closest('#imgNew'))imgOpen()});$('#imgX').onclick=imgClose;$('#imgBg').addEventListener('pointerdown',e=>{if(e.target===$('#imgBg'))imgClose()});
+$('#imgFile').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const url=URL.createObjectURL(f),i=new Image(),st=$('#imgSt');
+  i.onload=()=>{URL.revokeObjectURL(url);const k=Math.min(1,1024/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(i.width*k));c.height=Math.max(1,Math.round(i.height*k));
+    const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(i,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height).data,W=c.width,H=c.height;
+    let transp=0,tot=0;const cnt={};const bp=(x,y)=>{const p=(y*W+x)*4;tot++;if(d[p+3]<200)transp++;else{const q=(d[p]>>4)+','+(d[p+1]>>4)+','+(d[p+2]>>4);cnt[q]=(cnt[q]||0)+1}};
+    for(let x=0;x<W;x++){bp(x,0);bp(x,H-1)}for(let y=1;y<H-1;y++){bp(0,y);bp(W-1,y)}
+    let best=null,bn=0;for(const q in cnt)if(cnt[q]>bn){bn=cnt[q];best=q}
+    // cor do fundo = a cor mais comum nas bordas (ou nenhum, se a imagem já tem transparência)
+    let key=[255,255,255];if(best){let r=0,gg=0,b=0,n=0;for(let x=0;x<W;x++)for(const y of [0,H-1]){const p=(y*W+x)*4;if(d[p+3]>=200&&((d[p]>>4)+','+(d[p+1]>>4)+','+(d[p+2]>>4))===best){r+=d[p];gg+=d[p+1];b+=d[p+2];n++}}
+      for(let y=1;y<H-1;y++)for(const x of [0,W-1]){const p=(y*W+x)*4;if(d[p+3]>=200&&((d[p]>>4)+','+(d[p+1]>>4)+','+(d[p+2]>>4))===best){r+=d[p];gg+=d[p+1];b+=d[p+2];n++}}
+      if(n)key=[r/n|0,gg/n|0,b/n|0]}
+    const jaTransp=transp/tot>.5;IM={src:c,key,mode:jaTransp?'nao':'borda',tol:40,sc:100,pix:false,bx:0,by:0,k:1,pv:1,ox:0,oy:0,out:null};
+    $('#imgNome').value=(f.name||'imagem').replace(/\.[^.]+$/,'').slice(0,24);$('#imgOpt').hidden=false;$('#imgPv').hidden=false;
+    $('#imgTol').value=40;$('#imgSc').value=100;$('#imgPix').checked=false;$('#imgNs').checked=false;
+    // tamanho inicial: se for grande demais para o jogo (árvore ~80×100 px), reduz para caber em ~128 px
+    const m0=Math.max(i.width,i.height);if(m0>128){IM.sc=Math.max(10,Math.floor(12800/m0));$('#imgSc').value=IM.sc}
+    imgModeUi();imgProc();st.className='status';st.textContent=jaTransp?'A imagem já tem fundo transparente.':'Fundo removido automaticamente. Ajuste a tolerância se precisar.'};
+  i.onerror=()=>{URL.revokeObjectURL(url);st.className='status err';st.textContent='Não consegui abrir essa imagem.'};i.src=url};
+function imgModeUi(){document.querySelectorAll('[data-im]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.im===IM.mode))}
+document.querySelectorAll('[data-im]').forEach(b=>b.onclick=()=>{if(!IM)return;IM.mode=b.dataset.im;imgModeUi();imgProc()});
+$('#imgTol').oninput=e=>{if(!IM)return;IM.tol=+e.target.value;$('#imgTolV').textContent=IM.tol;imgProc()};
+$('#imgSc').oninput=e=>{if(!IM)return;IM.sc=+e.target.value;imgProc()};
+$('#imgPix').onchange=e=>{if(!IM)return;IM.pix=e.target.checked;imgProc()};
+function imgProc(){const s0=IM.src,W=s0.width,H=s0.height,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(s0,0,0);
+  if(IM.mode!=='nao'){const id=g.getImageData(0,0,W,H),a=id.data,t2=IM.tol*IM.tol,[kr,kg,kb]=IM.key;
+    const perto=p=>{if(a[p+3]===0)return false;const dr=a[p]-kr,dg=a[p+1]-kg,db=a[p+2]-kb;return dr*dr+dg*dg+db*db<=t2};
+    if(IM.mode==='tudo'){for(let p=0;p<a.length;p+=4)if(perto(p))a[p+3]=0}
+    else{const seen=new Uint8Array(W*H),q=new Int32Array(W*H);let h=0,t=0;const push=(x,y)=>{const i=y*W+x;if(seen[i])return;seen[i]=1;if(perto(i*4)){q[t++]=i}};
+      for(let x=0;x<W;x++){push(x,0);push(x,H-1)}for(let y=0;y<H;y++){push(0,y);push(W-1,y)}
+      while(h<t){const i=q[h++],x=i%W,y=i/W|0;a[i*4+3]=0;if(x>0)push(x-1,y);if(x<W-1)push(x+1,y);if(y>0)push(x,y-1);if(y<H-1)push(x,y+1)}}
+    g.putImageData(id,0,0)}
+  const a=g.getImageData(0,0,W,H).data;let x0=W,y0=H,x1=-1,y1=-1;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(a[(y*W+x)*4+3]>10){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+  if(x1<0){x0=0;y0=0;x1=W-1;y1=H-1}
+  const bw=x1-x0+1,bh=y1-y0+1,k=IM.sc/100,ow=Math.max(1,Math.min(512,Math.round(bw*k))),oh=Math.max(1,Math.min(512,Math.round(bh*k))),o=document.createElement('canvas');o.width=ow;o.height=oh;
+  const og=o.getContext('2d');og.imageSmoothingEnabled=!IM.pix;og.drawImage(c,x0,y0,bw,bh,0,0,ow,oh);IM.out=o;IM.bx=x0;IM.by=y0;IM.k=k;
+  $('#imgScV').textContent=IM.sc+'%';$('#imgTolV').textContent=IM.tol;
+  const fwEl=$('#imgFw');if(!fwEl.dataset.t)fwEl.value=clamp(Math.round(ow/T*.7),1,8);
+  $('#imgInfo').textContent=ow+'×'+oh+' px no jogo (um quadrado do mapa = 32 px)';
+  // prévia em fundo quadriculado, ampliada em número inteiro de vezes quando a imagem é pequena
+  const pv=$('#imgPv'),pg=pv.getContext('2d');pg.clearRect(0,0,pv.width,pv.height);
+  for(let y=0;y<pv.height;y+=10)for(let x=0;x<pv.width;x+=10){pg.fillStyle=((x+y)/10)%2?'#9a9a9a':'#c8c8c8';pg.fillRect(x,y,10,10)}
+  const z=Math.max(1,Math.min(Math.floor(280/ow),Math.floor(180/oh))),sc=ow*z>280||oh*z>180?Math.min(280/ow,180/oh):z;pg.imageSmoothingEnabled=false;
+  const dw=ow*sc,dh=oh*sc,dx=(pv.width-dw)/2,dy=(pv.height-dh)/2;pg.drawImage(o,dx,dy,dw,dh);IM.pv=sc;IM.ox=dx;IM.oy=dy}
+// tocar numa cor que sobrou: ela sai da imagem toda
+$('#imgPv').addEventListener('click',e=>{if(!IM||!IM.out)return;const r=e.target.getBoundingClientRect(),px=(e.clientX-r.left)*e.target.width/r.width,py=(e.clientY-r.top)*e.target.height/r.height;
+  const ox=Math.floor((px-IM.ox)/IM.pv),oy=Math.floor((py-IM.oy)/IM.pv);if(ox<0||oy<0||ox>=IM.out.width||oy>=IM.out.height)return;
+  const sx=clamp(Math.round(IM.bx+(ox+.5)/IM.k),0,IM.src.width-1),sy=clamp(Math.round(IM.by+(oy+.5)/IM.k),0,IM.src.height-1),d=IM.src.getContext('2d').getImageData(sx,sy,1,1).data;
+  if(d[3]<10)return;IM.key=[d[0],d[1],d[2]];IM.mode='tudo';imgModeUi();imgProc();$('#imgSt').className='status';$('#imgSt').textContent='Tirei a cor rgb('+d[0]+', '+d[1]+', '+d[2]+'). Toque em outra cor se precisar.'});
+$('#imgFw').addEventListener('input',e=>{e.target.dataset.t='1'});
+$('#imgSave').onclick=async()=>{const st=$('#imgSt');if(!IM||!IM.out)return;const nome=$('#imgNome').value.trim().slice(0,24);if(!nome){st.className='status err';st.textContent='Dê um nome para a imagem.';return}
+  const png=IM.out.toDataURL('image/png');if(png.length>290000){st.className='status err';st.textContent='A imagem ficou pesada demais: diminua o tamanho (%).';return}
+  const base=nome.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,18)||'img';let id='c_'+base;
+  while(IMGS.some(r=>r.id===id)||id.length<4)id='c_'+base+'_'+(Math.random()*1000|0);
+  const row={id,nome,png,w:IM.out.width,h:IM.out.height,fw:clamp(+$('#imgFw').value||1,1,8),fh:clamp(+$('#imgFh').value||1,1,8),off:0,ns:$('#imgNs').checked};
+  st.className='status';st.textContent='Salvando…';
+  try{await api('/rest/v1/mapa_imagens',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});IMGS.push(row);imgsSet(IMGS);srvAvisa();
+    cat='cus';kindSel=id;markSel=null;tool='object';ui();dirty();st.className='status ok';st.textContent='“'+nome+'” salva. Está na aba Meus dos objetos.';toast('Imagem salva');imgList();
+    IM=null;$('#imgOpt').hidden=true;$('#imgPv').hidden=true;$('#imgFile').value='';$('#imgFw').dataset.t='';$('#imgInfo').textContent='Escolha outra imagem, se quiser.';imgClose()}
+  catch(err){st.className='status err';st.textContent=imgErro(err)}};
+
 $('#copyJ').onclick=async()=>{const t=serialize(),box=$('#jsonBox');
   try{await navigator.clipboard.writeText(t);toast('JSON copiado');$('#jsonSt').textContent=''}
   catch(e){$('#jsonWrap').hidden=false;box.value=t;box.focus();box.select();$('#jsonSt').className='status';$('#jsonSt').textContent='Selecione tudo e copie manualmente.'}};
@@ -956,7 +1058,7 @@ function boot(){
     applyMap(m||parseMap(INIT));autosave()}
   resize();const W=cv.clientWidth,H=cv.clientHeight;s=clamp(W/(16*T),.5,1.2);ox=W/2-25*T*s;oy=H/2-25*T*s;
   resetHistory();ui();dirty();
-  srvUi();srvList()}
+  srvUi();srvList();imgsSync()}
 loadAll(boot);
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',dirty);
 new MutationObserver(dirty).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});

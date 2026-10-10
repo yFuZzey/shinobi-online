@@ -14,3 +14,4 @@ Regras ajustáveis no topo de `server.js` (objeto `CFG`): alcance de perseguiç�
 - O servidor relê os mapas publicados a cada 1 min (ou na hora, quando o editor avisa em `POST /painel/recarregar`): refaz a colisão (`mapas_regras.js` + `mapa_objetos.json`, gerado junto com `maps.json`) e cria os mobs das áreas.
 - `GET /mapas` entrega os publicados ao jogo, que mostra na lista de mapas (por enquanto só admin abre outras vilas).
 - Os mapas que já vêm no jogo (`konoha`, `vila_areia`) não são trocados pelo painel.
+- **Imagens próprias:** no editor, Objetos → **+ Importar PNG** (tira o fundo, corta, ajusta tamanho e base de colisão). Ficam na tabela `mapa_imagens` (`sql/12_mapa_imagens.sql`), aparecem na aba *Meus* e vão para o jogo junto com os mapas que as usam.
