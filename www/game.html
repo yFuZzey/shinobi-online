@@ -588,6 +588,12 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 .lay-edit .sb:active{transform:none!important}
 @media (max-height:480px){#cfgp{padding:8px 14px 10px}#cfgp h4{margin:6px 0 0}#cfgp label{margin:4px 0}#cfgp input[type=range]{margin:2px 0 0}#cfgp .cfb{margin-top:8px}#cfgp .cfb button{height:36px}#cfgp p{display:none}#cfgX{width:30px;height:30px}}
 #cfgp .cfb button{white-space:nowrap;font-size:13px;padding:0 6px;line-height:1}#cfgp label{text-align:left}
+/* ---- tela cheia: nenhuma faixa de cor atrás do jogo; o login rola quando o teclado encolhe a tela ---- */
+:root{padding:0}
+html{background:#000;overscroll-behavior:none}
+html,body{width:100%;height:100%;margin:0}
+#s-login{overflow-x:hidden;overflow-y:auto;justify-content:flex-start;align-items:stretch}
+#s-login .lgwrap{margin:auto}
 </style></head><body>
 
 <div id="s-login" class="scr on">
@@ -2658,7 +2664,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610100053'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610100115'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}

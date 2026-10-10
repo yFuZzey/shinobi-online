@@ -13,6 +13,50 @@ if(!s.includes('windowFullscreen')){
   s=s.replace(/(<style name="AppTheme.NoActionBarLaunch"[^>]*>)/,'$1\n        <item name="android:windowFullscreen">true</item>');
   fs.writeFileSync(st,s);console.log('OK: tela cheia');
 }
+// Tela cheia de verdade na horizontal: (1) o jogo passa por baixo do recorte (notch) em vez de deixar faixa preta nas laterais;
+// (2) modo imersivo: esconde a barra de status e a de navegação (aparecem por um instante ao deslizar da borda)
+{const st2='android/app/src/main/res/values/styles.xml';let t=fs.readFileSync(st2,'utf8');
+ if(!t.includes('windowLayoutInDisplayCutoutMode')){
+  t=t.replace(/(<style name="AppTheme.NoActionBar"[^>]*>)/,'$1\n        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>');
+  t=t.replace(/(<style name="AppTheme.NoActionBarLaunch"[^>]*>)/,'$1\n        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>');
+  fs.writeFileSync(st2,t);console.log('OK: jogo ocupa a área do recorte (notch)')}
+ const ja='android/app/src/main/java/com/shinobi/online/MainActivity.java';
+ if(fs.existsSync(ja)&&!fs.readFileSync(ja,'utf8').includes('WindowInsetsControllerCompat')){
+  fs.writeFileSync(ja,`package com.shinobi.online;
+
+import android.os.Bundle;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        imersivo();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        imersivo();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) imersivo();
+    }
+
+    /* esconde barra de status e de navegação; deslizar da borda mostra por um instante e some sozinha */
+    private void imersivo() {
+        WindowInsetsControllerCompat c = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        c.hide(WindowInsetsCompat.Type.systemBars());
+    }
+}
+`);console.log('OK: modo imersivo (sem barras do Android)')}}
 // Ícone do app (arte/ui/icone_app_res/res, gerado por arte/ferramentas/recortar_ui.py): só troca arquivos que o modelo já tem
 {const path=require('path'),src='arte/ui/icone_app_res/res',dst='android/app/src/main/res';let n=0;
  if(fs.existsSync(src)&&fs.existsSync(dst))for(const d of fs.readdirSync(src)){const o=path.join(dst,d);if(!fs.existsSync(o))continue;

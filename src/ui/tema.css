@@ -242,3 +242,9 @@ body #s-game .sb img,body #s-game .sb img.uij{position:absolute;left:50%;top:50%
 .lay-edit .sb:active{transform:none!important}
 @media (max-height:480px){#cfgp{padding:8px 14px 10px}#cfgp h4{margin:6px 0 0}#cfgp label{margin:4px 0}#cfgp input[type=range]{margin:2px 0 0}#cfgp .cfb{margin-top:8px}#cfgp .cfb button{height:36px}#cfgp p{display:none}#cfgX{width:30px;height:30px}}
 #cfgp .cfb button{white-space:nowrap;font-size:13px;padding:0 6px;line-height:1}#cfgp label{text-align:left}
+/* ---- tela cheia: nenhuma faixa de cor atrás do jogo; o login rola quando o teclado encolhe a tela ---- */
+:root{padding:0}
+html{background:#000;overscroll-behavior:none}
+html,body{width:100%;height:100%;margin:0}
+#s-login{overflow-x:hidden;overflow-y:auto;justify-content:flex-start;align-items:stretch}
+#s-login .lgwrap{margin:auto}
