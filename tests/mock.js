@@ -91,6 +91,7 @@ const srv=http.createServer((req,res)=>{
    if(!uid&&!SVC)return J(res,401,{message:'JWT required'});
    if(!adm)return J(res,403,{code:'42501',message:'new row violates row-level security policy for table "mapa_imagens"'});
    if(req.method==='POST'){if(!/^c_[a-z0-9_]{2,28}$/.test(body.id||''))return J(res,400,{code:'23514',message:'new row violates check constraint'});IMAGENS[body.id]={criado_em:new Date().toISOString(),...body};return J(res,201,[IMAGENS[body.id]])}
+   if(req.method==='PATCH'){const r=IMAGENS[idf];if(!r)return J(res,200,[]);Object.assign(r,body);return J(res,200,[r])}
    if(req.method==='DELETE'){const r=IMAGENS[idf];delete IMAGENS[idf];return J(res,200,r?[r]:[])}}
   if(u.pathname==='/__admin'){const r=Object.values(rows).find(r=>r.nome.toLowerCase()===String(u.searchParams.get('nome')).toLowerCase());if(r)r.admin=true;return J(res,200,{ok:!!r})}
   if(u.pathname==='/__state')return J(res,200,{users:Object.keys(users),rows,inv:INV,patches:PATCHES.slice(-20),rpcs:RPCS,log:log.slice(-60),topics:Object.fromEntries(Object.entries(topics).map(([k,v])=>[k,[...v].map(c=>c.pres&&c.pres[k]&&c.pres[k].nome)]))});

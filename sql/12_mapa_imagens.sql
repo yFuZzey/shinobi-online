@@ -10,6 +10,9 @@ create table if not exists public.mapa_imagens (
   fh        int  not null default 1 check (fh between 1 and 8),
   off       int  not null default 0 check (off between 0 and 8),
   ns        boolean not null default false,
+  dw        int check (dw between 1 and 1024),
+  dh        int check (dh between 1 and 1024),
+  px        boolean not null default false,
   criado_em timestamptz not null default now()
 );
 alter table public.mapa_imagens enable row level security;

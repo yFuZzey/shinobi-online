@@ -1389,8 +1389,11 @@ function mpPut(L){let ch=false;for(const k of Object.keys(L||{})){const m=L[k];i
  for(const k of Object.keys(MAPS))if(!MPX.has(k)&&!(L&&L[k])&&k!==CURMAP){delete MAPS[k];ch=true}return ch}
 // imagens próprias do editor: só passam a existir (TSZ/FPT/TX) depois de carregadas, para o desenho nunca pegar imagem pela metade
 function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!/^c_[a-z0-9_]{2,28}$/.test(k)||!r||typeof r.png!=='string'||!/^data:image\/(png|webp);base64,/.test(r.png))continue;
-  FPT[k]=[Math.max(1,r.fw|0),Math.max(1,r.fh|0),r.off|0];if(TSZ[k]&&TS[k]===r.png)continue;
-  ps.push(new Promise(ok=>{const i=new Image();i.onload=()=>{TS[k]=r.png;TX[k]=i;TSZ[k]=[i.width,i.height];ok()};i.onerror=ok;i.src=r.png}))}
+  FPT[k]=[Math.max(1,r.fw|0),Math.max(1,r.fh|0),r.off|0];
+  // a imagem pode ter mais pixels do que o tamanho em que aparece no mapa (dw×dh): desenhada reduzida, fica nítida
+  const dw=r.dw>0?Math.min(1024,r.dw|0):0,dh=r.dh>0?Math.min(1024,r.dh|0):0,ap=i=>{i.dw=dw&&dh?dw:0;i.dh=dw&&dh?dh:0;i.px=!!r.px;TSZ[k]=[i.dw||i.width,i.dh||i.height]};
+  if(TX[k]&&TS[k]===r.png){ap(TX[k]);continue}
+  ps.push(new Promise(ok=>{const i=new Image();i.onload=()=>{TS[k]=r.png;TX[k]=i;ap(i);ok()};i.onerror=ok;i.src=r.png}))}
  return Promise.all(ps)}
 async function mpApply(j){await mpImg(j.imagens);return mpPut(j.mapas)}
 async function mapasSync(){if(!ONL.ok)return false;let ch=false;

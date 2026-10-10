@@ -249,10 +249,10 @@ async function mapasDb() {
   if (!MR || !MCAT || !SB_URL || !SB_SVC) { MP_DB.motivo = 'sem chave secreta ou sem mapa_objetos.json'; return; }
   try {
     // imagens próprias do editor (tabela "mapa_imagens", SQL 12): entram no catálogo de objetos (colisão da base) e vão junto no /mapas
-    let imgs = []; try { imgs = await svc('/rest/v1/mapa_imagens?select=id,png,w,h,fw,fh,off,ns') || []; } catch (e) { if (e.status !== 404) throw e; }
+    let imgs = []; try { imgs = await svc('/rest/v1/mapa_imagens?select=*') || []; } catch (e) { if (e.status !== 404) throw e; }
     const cat = { fpt: { ...MCAT.fpt }, tsz: [...MCAT.tsz] }, IM = {}, ci = n => Math.max(0, Math.min(8, n | 0));
     for (const r of imgs) { if (!/^c_[a-z0-9_]{2,28}$/.test(r.id || '') || typeof r.png !== 'string') continue;
-      const f = [ci(r.fw) || 1, ci(r.fh) || 1, ci(r.off)]; cat.tsz.push(r.id); cat.fpt[r.id] = f; IM[r.id] = { png: r.png, w: r.w | 0, h: r.h | 0, fw: f[0], fh: f[1], off: f[2], ns: r.ns ? 1 : 0 }; }
+      const f = [ci(r.fw) || 1, ci(r.fh) || 1, ci(r.off)]; cat.tsz.push(r.id); cat.fpt[r.id] = f; IM[r.id] = { png: r.png, w: r.w | 0, h: r.h | 0, dw: r.dw > 0 ? r.dw | 0 : 0, dh: r.dh > 0 ? r.dh | 0 : 0, px: r.px ? 1 : 0, fw: f[0], fh: f[1], off: f[2], ns: r.ns ? 1 : 0 }; }
     const cv = crypto.createHash('sha1').update(JSON.stringify(Object.keys(IM).map(k => [k, cat.fpt[k]]))).digest('hex').slice(0, 10), mudouImg = cv !== MP_CV; MP_CV = cv;
     const L = await svc('/rest/v1/mapas?select=id,nome,mapa&publicado=eq.true') || [], pub = {}, vistos = [];
     for (const r of L) {
@@ -265,7 +265,7 @@ async function mapasDb() {
     for (const id in MP_PUB) if (!pub[id]) { // despublicado: sai da lista; quem está dentro termina a visita, a sala some quando esvaziar
       const rm = rooms[id]; if (rm && rm.players.size) { pub[id] = MP_PUB[id]; continue; } delete MAPS[id]; delete rooms[id]; }
     MP_PUB = pub; MP_IMG = {}; for (const id in pub) for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]];
-    MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].png.length])])).digest('hex').slice(0, 12);
+    MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, MP_IMG[k].png.length])])).digest('hex').slice(0, 12);
     const n = Object.keys(pub).length; if (n !== MP_DB.n || MP_DB.motivo) log('mapas do painel: ' + n + ' publicado(s)');
     MP_DB = { n, quando: Date.now(), motivo: '' };
   } catch (e) { MP_DB.motivo = e.status === 404 ? 'falta rodar o SQL 11 (mapas) no Supabase' : e.message; }

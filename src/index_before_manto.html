@@ -459,7 +459,7 @@ function render(ts,dt){
   if(tsOK&&!scene){
    ctx.fillStyle='#ffffff38';
    for(let ty=Math.max(0,cy/T|0);ty<=Math.min(N-1,(cy+h)/T|0);ty++)for(let tx=Math.max(0,cx/T|0);tx<=Math.min(N-1,(cx+w)/T|0);tx++)if(M[ty*N+tx]==2&&WC[(ty>>1)*25+(tx>>1)]==2)ctx.fillRect(tx*T+6+Math.sin(ts/500+tx+ty)*5,ty*T+10+(ty%2)*10,12,2);
-   for(const o of OB){const s=TSZ[o.k];if(o.x+s[0]/2<cx||o.x-s[0]/2>cx+w||o.y<cy||o.y-s[1]>cy+h)continue;L.push({y:o.y,d:()=>ctx.drawImage(TX[o.k],o.x-s[0]/2|0,o.y-s[1]|0)})}}
+   for(const o of OB){const s=TSZ[o.k];if(o.x+s[0]/2<cx||o.x-s[0]/2>cx+w||o.y<cy||o.y-s[1]>cy+h)continue;L.push({y:o.y,d:()=>{const im=TX[o.k];if(im.dw){const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=!im.px;ctx.drawImage(im,o.x-s[0]/2|0,o.y-s[1]|0,im.dw,im.dh);ctx.imageSmoothingEnabled=sm}else ctx.drawImage(im,o.x-s[0]/2|0,o.y-s[1]|0)}})}}
  L.push({y:p.y,d:()=>{HERO?drawHero(ctx,p.x,p.y,{fl:p.fl,t:ts,mv:p.mv,run:p.run,aura:p.au,th:p.th}):drawChar(ctx,p.x,p.y,{...look,clan,dir:p.dir,t:ts,mv:p.mv,run:p.run});
   ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#fff';
   ctx.strokeText(name,p.x,p.y-62);ctx.fillText(name,p.x,p.y-62)}});
