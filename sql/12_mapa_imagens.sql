@@ -3,9 +3,9 @@
 create table if not exists public.mapa_imagens (
   id        text primary key check (id ~ '^c_[a-z0-9_]{2,28}$'),
   nome      text not null check (char_length(btrim(nome)) between 1 and 24),
-  png       text not null check (png like 'data:image/png;base64,%' and char_length(png) <= 300000),
-  w         int  not null check (w between 1 and 512),
-  h         int  not null check (h between 1 and 512),
+  png       text not null check (png ~ '^data:image/(png|webp);base64,' and char_length(png) <= 1500000),
+  w         int  not null check (w between 1 and 1024),
+  h         int  not null check (h between 1 and 1024),
   fw        int  not null default 1 check (fw between 1 and 8),
   fh        int  not null default 1 check (fh between 1 and 8),
   off       int  not null default 0 check (off between 0 and 8),

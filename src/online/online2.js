@@ -1388,7 +1388,7 @@ const MPK='so-mapas',MPX=new Set(Object.keys(MAPS));let MPV='';
 function mpPut(L){let ch=false;for(const k of Object.keys(L||{})){const m=L[k];if(MPX.has(k)||!m||typeof m.ground!=='string'||!Array.isArray(m.objects))continue;if(JSON.stringify(MAPS[k])!==JSON.stringify(m)){MAPS[k]=m;ch=true}}
  for(const k of Object.keys(MAPS))if(!MPX.has(k)&&!(L&&L[k])&&k!==CURMAP){delete MAPS[k];ch=true}return ch}
 // imagens próprias do editor: só passam a existir (TSZ/FPT/TX) depois de carregadas, para o desenho nunca pegar imagem pela metade
-function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!/^c_[a-z0-9_]{2,28}$/.test(k)||!r||typeof r.png!=='string'||!/^data:image\/png;base64,/.test(r.png))continue;
+function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!/^c_[a-z0-9_]{2,28}$/.test(k)||!r||typeof r.png!=='string'||!/^data:image\/(png|webp);base64,/.test(r.png))continue;
   FPT[k]=[Math.max(1,r.fw|0),Math.max(1,r.fh|0),r.off|0];if(TSZ[k]&&TS[k]===r.png)continue;
   ps.push(new Promise(ok=>{const i=new Image();i.onload=()=>{TS[k]=r.png;TX[k]=i;TSZ[k]=[i.width,i.height];ok()};i.onerror=ok;i.src=r.png}))}
  return Promise.all(ps)}

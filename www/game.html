@@ -2664,7 +2664,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610100215'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610100238'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2736,7 +2736,7 @@ const MPK='so-mapas',MPX=new Set(Object.keys(MAPS));let MPV='';
 function mpPut(L){let ch=false;for(const k of Object.keys(L||{})){const m=L[k];if(MPX.has(k)||!m||typeof m.ground!=='string'||!Array.isArray(m.objects))continue;if(JSON.stringify(MAPS[k])!==JSON.stringify(m)){MAPS[k]=m;ch=true}}
  for(const k of Object.keys(MAPS))if(!MPX.has(k)&&!(L&&L[k])&&k!==CURMAP){delete MAPS[k];ch=true}return ch}
 // imagens próprias do editor: só passam a existir (TSZ/FPT/TX) depois de carregadas, para o desenho nunca pegar imagem pela metade
-function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!/^c_[a-z0-9_]{2,28}$/.test(k)||!r||typeof r.png!=='string'||!/^data:image\/png;base64,/.test(r.png))continue;
+function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!/^c_[a-z0-9_]{2,28}$/.test(k)||!r||typeof r.png!=='string'||!/^data:image\/(png|webp);base64,/.test(r.png))continue;
   FPT[k]=[Math.max(1,r.fw|0),Math.max(1,r.fh|0),r.off|0];if(TSZ[k]&&TS[k]===r.png)continue;
   ps.push(new Promise(ok=>{const i=new Image();i.onload=()=>{TS[k]=r.png;TX[k]=i;TSZ[k]=[i.width,i.height];ok()};i.onerror=ok;i.src=r.png}))}
  return Promise.all(ps)}

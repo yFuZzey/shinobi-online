@@ -28,7 +28,6 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  ok(await P.evaluate(()=>document.querySelector('#sendSt').textContent.includes('não é admin')),'conta que não é admin não entra');
  await P.fill('#pbU',adm);await P.fill('#pbP','12345678');await P.click('#pbIn');await W(1500);
  ok(await P.evaluate(()=>!document.querySelector('#pubBox').hidden&&!document.querySelector('#srvSec').hidden),'admin entra e vê "Publicar este mapa" e a lista do servidor');
- await P.screenshot({path:path.join(__dirname,'mapas_menu.png')});
  // importar PNG: fundo magenta é removido, a imagem é cortada e vira objeto "Meus"
  const png0=await P.evaluate(()=>{const c=document.createElement('canvas');c.width=100;c.height=80;const g=c.getContext('2d');g.fillStyle='#ff00ff';g.fillRect(0,0,100,80);g.fillStyle='#d01010';g.fillRect(30,15,40,50);g.fillStyle='#ff00ff';g.fillRect(45,30,10,10);return c.toDataURL('image/png')});
  await P.evaluate(()=>{closeMenu();tool='object';ui()});await P.click('#imgNew');await P.setInputFiles('#imgFile',{name:'barraca.png',mimeType:'image/png',buffer:Buffer.from(png0.split(',')[1],'base64')});
@@ -36,7 +35,6 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  const im=await P.evaluate(()=>{const o=IM.out,d=o.getContext('2d').getImageData(0,0,o.width,o.height).data,al=(x,y)=>d[(y*o.width+x)*4+3];return{w:o.width,h:o.height,mode:IM.mode,canto:al(0,0),centro:al(5,5),furo:al(o.width/2|0,o.height/2|0),nome:document.querySelector('#imgNome').value}});
  ok(im.w===40&&im.h===50&&im.canto===255&&im.furo===255,'importar: fundo some e a imagem é cortada ('+im.w+'×'+im.h+', modo '+im.mode+')');
  // o fundo magenta que ficou DENTRO do desenho (ilha) só sai tocando nele
- await P.screenshot({path:path.join(__dirname,'mapas_import.png')});
  const al0=await P.evaluate(()=>{const o=IM.out,d=o.getContext('2d').getImageData(0,0,o.width,o.height).data;return d[(20*o.width+20)*4+3]});
  await P.evaluate(()=>{const pv=document.querySelector('#imgPv'),r=pv.getBoundingClientRect(),k=r.width/pv.width;IM._t=[r.left+(IM.ox+20.5*IM.pv)*k,r.top+(IM.oy+20.5*IM.pv)*k]});
  const tp=await P.evaluate(()=>IM._t);await P.mouse.click(tp[0],tp[1]);await W(300);
@@ -46,6 +44,13 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  const IMG=await mget('/__imagens'),iid=Object.keys(IMG)[0];
  ok(iid&&/^c_barraca_teste/.test(iid)&&IMG[iid].w===40&&IMG[iid].h===50&&/^data:image\/png;base64,/.test(IMG[iid].png)&&IMG[iid].fw>=1,'imagem salva no banco ('+iid+')');
  ok(await P.evaluate(i=>cat==='cus'&&kindSel===i&&!!CAT[i]&&CATS.some(c=>c[0]==='cus')&&!!document.querySelector('.tile[data-k="'+i+'"]'),iid),'aparece na aba "Meus" dos objetos e já vem selecionada');
+ // imagem pesada (ruído 700×700, PNG passa de 1,4 MB): em vez de pedir para diminuir, vira WebP com transparência e mantém os pixels
+ await P.click('#imgNew');
+ const big=await P.evaluate(async()=>{const c=document.createElement('canvas');c.width=c.height=700;const g=c.getContext('2d'),d=g.createImageData(700,700);for(let i=0;i<d.data.length;i+=4){d.data[i]=Math.random()*255;d.data[i+1]=Math.random()*255;d.data[i+2]=Math.random()*255;d.data[i+3]=255}g.putImageData(d,0,0);return c.toDataURL('image/png')});
+ await P.setInputFiles('#imgFile',{name:'ruido.png',mimeType:'image/png',buffer:Buffer.from(big.split(',')[1],'base64')});await P.waitForFunction(()=>IM&&IM.src&&IM.src.width>=700,null,{timeout:15000});
+ await P.evaluate(()=>{IM.mode='nao';IM.sc=100;document.querySelector('#imgSc').value=100;imgProc()});await P.fill('#imgNome','Ruido Grande');await P.click('#imgSave');await W(2500);
+ const IM2=await mget('/__imagens'),gr=Object.values(IM2).find(r=>/ruido/.test(r.id));
+ ok(gr&&gr.w===700&&gr.h===700&&/^data:image\/webp/.test(gr.png)&&gr.png.length<=1400000,'imagem pesada não é encolhida: vira WebP e fica com 700×700 ('+(gr&&Math.round(gr.png.length/1024))+' KB)');
  // mapa novo com um objeto de colisão e uma área de mobs
  const nome='prova_'+suf;
  const info=await P.evaluate(([nome,fpt])=>{createMap(nome,'folha');const k=Object.keys(CAT).find(c=>catOK(CAT[c].c)&&fpt[c]&&fpt[c][0]>=2&&fpt[c][1]>=2);OBJ.push({k,x:20.5,y:20.5});OBJ.push({k:Object.keys(CAT).find(c=>CAT[c].c==='cus'),x:26.5,y:26.5});AREAS.push({x:30,y:30,w:8,h:8,mobs:[{m:'lobo_cinzento',n:3}]});rev++;autosave();return{k,mapName,n:OBJ.length}},[nome,cat.fpt]);
