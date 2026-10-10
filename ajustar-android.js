@@ -13,18 +13,27 @@ if(!s.includes('windowFullscreen')){
   s=s.replace(/(<style name="AppTheme.NoActionBarLaunch"[^>]*>)/,'$1\n        <item name="android:windowFullscreen">true</item>');
   fs.writeFileSync(st,s);console.log('OK: tela cheia');
 }
-// Tela cheia de verdade na horizontal: (1) o jogo passa por baixo do recorte (notch) em vez de deixar faixa preta nas laterais;
+// Tela cheia de verdade na horizontal: (1) o jogo passa por baixo do recorte (notch) em vez de deixar faixa nas laterais
+// (a faixa era o próprio Android reservando a área do recorte: o conteúdo "encaixava" nas bordas do sistema);
 // (2) modo imersivo: esconde a barra de status e a de navegação (aparecem por um instante ao deslizar da borda)
 {const st2='android/app/src/main/res/values/styles.xml';let t=fs.readFileSync(st2,'utf8');
  if(!t.includes('windowLayoutInDisplayCutoutMode')){
   t=t.replace(/(<style name="AppTheme.NoActionBar"[^>]*>)/,'$1\n        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>');
   t=t.replace(/(<style name="AppTheme.NoActionBarLaunch"[^>]*>)/,'$1\n        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>');
-  fs.writeFileSync(st2,t);console.log('OK: jogo ocupa a área do recorte (notch)')}
+  fs.writeFileSync(st2,t);console.log('OK: tema aceita a área do recorte (notch)')}
  const ja='android/app/src/main/java/com/shinobi/online/MainActivity.java';
- if(fs.existsSync(ja)&&!fs.readFileSync(ja,'utf8').includes('WindowInsetsControllerCompat')){
+ if(fs.existsSync(ja)&&!fs.readFileSync(ja,'utf8').includes('SHORT_EDGES')){
   fs.writeFileSync(ja,`package com.shinobi.online;
 
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -34,6 +43,24 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Window w = getWindow();
+        /* qualquer fresta que sobrar fica preta (antes aparecia o cinza padrao da janela) */
+        w.setBackgroundDrawable(new ColorDrawable(Color.BLACK));
+        /* a janela usa tambem a area do recorte (notch) */
+        if (Build.VERSION.SDK_INT >= 28) {
+            WindowManager.LayoutParams lp = w.getAttributes();
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            w.setAttributes(lp);
+        }
+        /* o jogo desenha de ponta a ponta; sem isso o Android deixa uma faixa do tamanho do recorte/barras */
+        WindowCompat.setDecorFitsSystemWindows(w, false);
+        /* so o teclado empurra o conteudo para cima (o jogo cuida sozinho das areas seguras pelo CSS) */
+        final View root = findViewById(android.R.id.content);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+            v.setPadding(0, 0, 0, ime.bottom);
+            return insets;
+        });
         imersivo();
     }
 
@@ -49,14 +76,14 @@ public class MainActivity extends BridgeActivity {
         if (hasFocus) imersivo();
     }
 
-    /* esconde barra de status e de navegação; deslizar da borda mostra por um instante e some sozinha */
+    /* esconde barra de status e de navegacao; deslizar da borda mostra por um instante e some sozinha */
     private void imersivo() {
         WindowInsetsControllerCompat c = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
         c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         c.hide(WindowInsetsCompat.Type.systemBars());
     }
 }
-`);console.log('OK: modo imersivo (sem barras do Android)')}}
+`);console.log('OK: modo imersivo + tela de ponta a ponta')}}
 // Ícone do app (arte/ui/icone_app_res/res, gerado por arte/ferramentas/recortar_ui.py): só troca arquivos que o modelo já tem
 {const path=require('path'),src='arte/ui/icone_app_res/res',dst='android/app/src/main/res';let n=0;
  if(fs.existsSync(src)&&fs.existsSync(dst))for(const d of fs.readdirSync(src)){const o=path.join(dst,d);if(!fs.existsSync(o))continue;
