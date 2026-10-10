@@ -241,6 +241,29 @@ async function itensDb() {
   } catch (e) { IT_DB.motivo = e.status === 404 ? 'falta rodar o SQL 09 (itens) no Supabase' : e.message; }
 }
 setTimeout(itensDb, 800); setInterval(itensDb, 60 * 1000);
+// mapas criados no editor do painel (tabela "mapas", SQL 11): entram em MAPS (colisão, mobs) e vão para o jogo em GET /mapas
+let MR = null, MCAT = null; try { MR = require('./mapas_regras.js'); MCAT = JSON.parse(fs.readFileSync(path.join(__dirname, 'mapa_objetos.json'), 'utf8')); } catch (e) { log('mapas do painel desligados: ' + e.message); }
+const MAPAS_BASE = new Set(Object.keys(MAPS)); // os que vêm no jogo não são trocados pelo painel
+let MP_DB = { n: 0, quando: 0, motivo: 'iniciando' }, MP_PUB = {}, MP_V = '0';
+async function mapasDb() {
+  if (!MR || !MCAT || !SB_URL || !SB_SVC) { MP_DB.motivo = 'sem chave secreta ou sem mapa_objetos.json'; return; }
+  try {
+    const L = await svc('/rest/v1/mapas?select=id,nome,mapa&publicado=eq.true') || [], pub = {}, vistos = [];
+    for (const r of L) {
+      if (MAPAS_BASE.has(r.id)) continue;
+      const m = MR.validar(r.id, r.nome, r.mapa, MCAT); if (!m) { log('mapa do painel inválido ignorado: ' + r.id); continue; }
+      pub[r.id] = m; vistos.push(r.id);
+      const ja = MP_PUB[r.id], novo = JSON.stringify(m);
+      if (!ja || JSON.stringify(ja) !== novo) { MAPS[r.id] = MR.compilar(m, MCAT); const rm = rooms[r.id]; if (rm && !rm.players.size) delete rooms[r.id]; }
+    }
+    for (const id in MP_PUB) if (!pub[id]) { // despublicado: sai da lista; quem está dentro termina a visita, a sala some quando esvaziar
+      const rm = rooms[id]; if (rm && rm.players.size) { pub[id] = MP_PUB[id]; continue; } delete MAPS[id]; delete rooms[id]; }
+    MP_PUB = pub; MP_V = crypto.createHash('sha1').update(JSON.stringify(pub)).digest('hex').slice(0, 12);
+    const n = Object.keys(pub).length; if (n !== MP_DB.n || MP_DB.motivo) log('mapas do painel: ' + n + ' publicado(s)');
+    MP_DB = { n, quando: Date.now(), motivo: '' };
+  } catch (e) { MP_DB.motivo = e.status === 404 ? 'falta rodar o SQL 11 (mapas) no Supabase' : e.message; }
+}
+setTimeout(mapasDb, 900); setInterval(mapasDb, 60 * 1000);
 let itensPedido = 0, itensTimer = 0;
 // passiva "drenar chakra" (ex.: Samehada): só vale se o item estiver equipado de verdade
 function drenoDe(p) { for (const id of p.eq || []) { const it = ITEMS[id]; if (it && it.passiva && it.passiva.k === 'drena') return it.passiva; } return null; }
@@ -898,7 +921,7 @@ const server = http.createServer((req, res) => {
   const cors = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
   const u = req.url.split('?')[0];
   if (u === '/health' || u === '/') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true, jogo: 'Shinobi Online', v: PROTO, commit: COMMIT, online: players.size, balanceamento: BAL_INFO.v, trocas: INV_OK ? 1 : 0, trocasMotivo: INV_OK ? '' : INV_WHY, itensPainel: IT_DB.n, itensMotivo: IT_DB.motivo, mapas: Object.fromEntries(Object.entries(rooms).map(([k, r]) => [k, r.players.size])) })); }
+    return res.end(JSON.stringify({ ok: true, jogo: 'Shinobi Online', v: PROTO, commit: COMMIT, online: players.size, balanceamento: BAL_INFO.v, trocas: INV_OK ? 1 : 0, trocasMotivo: INV_OK ? '' : INV_WHY, itensPainel: IT_DB.n, mapasPainel: MP_DB.n, mapasMotivo: MP_DB.motivo, itensMotivo: IT_DB.motivo, mapas: Object.fromEntries(Object.entries(rooms).map(([k, r]) => [k, r.players.size])) })); }
   // painel de itens (só admin consegue gravar: o banco confere); a página vem com o endereço do Supabase e as regras dos itens
   if (u === '/painel' || u === '/painel/') {
     try {
@@ -907,12 +930,23 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { ...cors, 'Content-Type': 'text/html; charset=utf-8' }); return res.end(h);
     } catch (e) { res.writeHead(500, cors); return res.end('painel indisponível'); }
   }
+  // lista dos mapas publicados no painel (o jogo busca ao abrir e ao tocar em Mapa)
+  if (u === '/mapas') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ v: MP_V, mapas: MP_PUB })); }
+  // editor de mapas do painel (mesmo login do /painel; o banco só deixa admin gravar)
+  if (u === '/painel/mapas' || u === '/painel/mapas/') {
+    try {
+      const h = fs.readFileSync(path.join(__dirname, 'editor_mapas.html'), 'utf8').replace('__SB_URL__', SB_URL).replace('__SB_KEY__', SB_KEY);
+      const gz = /\bgzip\b/.test(req.headers['accept-encoding'] || ''), h2 = { ...cors, 'Content-Type': 'text/html; charset=utf-8' };
+      if (gz) { res.writeHead(200, { ...h2, 'Content-Encoding': 'gzip' }); return res.end(require('zlib').gzipSync(h)); }
+      res.writeHead(200, h2); return res.end(h);
+    } catch (e) { res.writeHead(500, cors); return res.end('editor indisponível'); }
+  }
   // molde do boneco para a IA desenhar os itens no corpo (parado/correndo; _ia = grande, fundo magenta; _4 = os 4 quadros da prévia animada)
   const mm = /^\/painel\/molde\/(parado|correndo)(_ia|_4)?\.png$/.exec(u);
   if (mm) { try { const b = fs.readFileSync(path.join(__dirname, 'molde', mm[1] + (mm[2] || '') + '.png')); res.writeHead(200, { ...cors, 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' }); return res.end(b); } catch (e) { res.writeHead(404, cors); return res.end(); } }
   // o painel avisa que publicou algo: o servidor relê os itens na hora (no máximo 1 vez por segundo; o último pedido sempre vale)
   if (u === '/painel/recarregar' && req.method === 'POST') {
-    const t = Date.now(); if (t - itensPedido > 1000) { itensPedido = t; itensDb(); } else if (!itensTimer) itensTimer = setTimeout(() => { itensTimer = 0; itensPedido = Date.now(); itensDb(); }, 1000 - (t - itensPedido));
+    const t = Date.now(); if (t - itensPedido > 1000) { itensPedido = t; itensDb(); mapasDb(); } else if (!itensTimer) itensTimer = setTimeout(() => { itensTimer = 0; itensPedido = Date.now(); itensDb(); mapasDb(); }, 1000 - (t - itensPedido));
     res.writeHead(204, cors); return res.end();
   }
   if (u === '/painel/recarregar' && req.method === 'OPTIONS') { res.writeHead(204, { ...cors, 'Access-Control-Allow-Methods': 'POST' }); return res.end(); }

@@ -1,7 +1,7 @@
 // Servidor simulado (subconjunto do Supabase: Auth, REST de "personagens" e Realtime/Phoenix) para testes locais.
 const http=require('http'),crypto=require('crypto');
 const PORT=+process.argv[2]||54321;
-const users={},rows={},INV={},PATCHES=[],TROCAS=[],BANS={},ITENS={};let RPCS=0;let n=0;const log=[];
+const users={},rows={},INV={},PATCHES=[],TROCAS=[],BANS={},ITENS={},MAPAS={};let RPCS=0;let n=0;const log=[];
 function J(res,code,obj){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});res.end(obj===undefined?'':JSON.stringify(obj))}
 function sess(u){const r='ref-'+u.id+'-'+(++n);u.refresh=r;return {access_token:'tok-'+u.id,refresh_token:r,expires_in:3600,token_type:'bearer',user:{id:u.id,email:u.email,user_metadata:u.meta}}}
 function uidOf(req){const a=req.headers.authorization||'';const m=/^Bearer tok-(.+)$/.exec(a);return m?m[1]:null}
@@ -74,6 +74,16 @@ const srv=http.createServer((req,res)=>{
     ITENS[body.id]={publicado:false,descricao:'',...body,criado_em:new Date().toISOString(),atualizado_em:new Date().toISOString()};return J(res,201,[ITENS[body.id]])}
    if(req.method==='PATCH'){const r=ITENS[idf];if(!r)return J(res,200,[]);Object.assign(r,body,{atualizado_em:new Date().toISOString()});return J(res,200,[r])}
    if(req.method==='DELETE'){const r=ITENS[idf];delete ITENS[idf];return J(res,200,r?[r]:[])}}
+  // mapas do painel (SQL 11)
+  if(u.pathname==='/__mapas')return J(res,200,MAPAS);
+  if(u.pathname==='/rest/v1/mapas'){const uid=uidOf(req),adm=SVC||!!(uid&&rows[uid]&&rows[uid].admin),idf=(u.searchParams.get('id')||'').replace(/^eq\./,'');
+   if(req.method==='GET'){let L=Object.values(MAPAS).filter(r=>r.publicado||adm);if(idf)L=L.filter(r=>r.id===idf);if(u.searchParams.get('publicado')==='eq.true')L=L.filter(r=>r.publicado);return J(res,200,L.map(r=>({...r})))}
+   if(!uid&&!SVC)return J(res,401,{message:'JWT required'});
+   if(!adm)return J(res,403,{code:'42501',message:'new row violates row-level security policy for table "mapas"'});
+   if(req.method==='POST'){if(!/^[a-z0-9_]{2,30}$/.test(body.id||''))return J(res,400,{code:'23514',message:'new row violates check constraint "mapas_id_check"'});
+    MAPAS[body.id]={publicado:false,criado_em:new Date().toISOString(),...(MAPAS[body.id]||{}),...body,atualizado_em:new Date().toISOString()};return J(res,201,[MAPAS[body.id]])}
+   if(req.method==='PATCH'){const r=MAPAS[idf];if(!r)return J(res,200,[]);Object.assign(r,body,{atualizado_em:new Date().toISOString()});return J(res,200,[r])}
+   if(req.method==='DELETE'){const r=MAPAS[idf];delete MAPAS[idf];return J(res,200,r?[r]:[])}}
   if(u.pathname==='/__admin'){const r=Object.values(rows).find(r=>r.nome.toLowerCase()===String(u.searchParams.get('nome')).toLowerCase());if(r)r.admin=true;return J(res,200,{ok:!!r})}
   if(u.pathname==='/__state')return J(res,200,{users:Object.keys(users),rows,inv:INV,patches:PATCHES.slice(-20),rpcs:RPCS,log:log.slice(-60),topics:Object.fromEntries(Object.entries(topics).map(([k,v])=>[k,[...v].map(c=>c.pres&&c.pres[k]&&c.pres[k].nome)]))});
   J(res,404,{message:'not found'})})});

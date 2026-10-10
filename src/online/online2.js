@@ -1383,6 +1383,16 @@ async function onlCreate(){if(OTA.gate)return;const n=$('#nu').value.trim(),s=$(
  er.textContent='Criando conta…';onlBusy(true);
  try{await onlLogin(n,s,true,em);$('#u').value=n;if($('#keep').checked)keepSet(n,s);await onlAfterLogin()}catch(e){onlFail(e)}onlBusy(false)}
 function onlFail(e){$('#err').textContent=e.gs?e.message:onlErr(e);ONL.on=false;ONL.closing=false;try{ONL.ws&&ONL.ws.close()}catch(_){}}
+// ---------- Mapas criados no editor do painel (/painel/mapas): o servidor entrega os publicados em /mapas e entram na lista de mapas ----------
+const MPK='so-mapas',MPX=new Set(Object.keys(MAPS));
+function mpPut(L){let ch=false;for(const k of Object.keys(L||{})){const m=L[k];if(MPX.has(k)||!m||typeof m.ground!=='string'||!Array.isArray(m.objects))continue;if(JSON.stringify(MAPS[k])!==JSON.stringify(m)){MAPS[k]=m;ch=true}}
+ for(const k of Object.keys(MAPS))if(!MPX.has(k)&&!(L&&L[k])&&k!==CURMAP){delete MAPS[k];ch=true}return ch}
+async function mapasSync(){if(!ONL.ok)return false;let ch=false;
+ try{const c=new AbortController(),t=setTimeout(()=>c.abort(),7000);const r=await fetch(GS_URL+'/mapas',{cache:'no-store',signal:c.signal});clearTimeout(t);if(!r.ok)return false;const j=await r.json();
+  ch=mpPut(j.mapas);try{localStorage.setItem(MPK,JSON.stringify(j.mapas||{}))}catch(_){}}catch(_){}return ch}
+try{mpPut(JSON.parse(localStorage.getItem(MPK)||'{}'))}catch(_){}
+setTimeout(mapasSync,1200);
+{const mb=$('#mapbtn'),o=mb&&mb.onclick;if(o)mb.onclick=function(e){o.call(this,e);mapasSync().then(ch=>{if(ch&&!$('#mapmenu').hidden)mmDraw()})}}
 // todo mundo começa na Vila da Areia (a escolha de vila vem depois)
 function onlStartMap(){const k=MAPS[START_MAP]?START_MAP:CURMAP;if(k!==CURMAP){CURMAP=k;applyMap(MAPS[k])}}
 async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;name=ONL.nome;
