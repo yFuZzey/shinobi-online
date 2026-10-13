@@ -12,6 +12,7 @@ OUTS=${TESTE:-$R}/server; [ -n "$TESTE" ] && mkdir -p "$OUTS"
 bash build_all.sh
 SAIDA_SERVER=$OUTS python3 build_mobs.py
 node online/exportmaps.js "$OUTS/maps.json"
+python3 editor_jogo.py "$OUTS"   # imagens/catálogo/mapas do jogo para o editor novo (/painel/editor)
 python3 - "$OUTS" <<'P'
 import json,glob,sys
 items={}

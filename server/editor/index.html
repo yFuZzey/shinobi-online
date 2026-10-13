@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#14171c">
+<title>Editor de Mapas · Shinobi Online</title>
+<link rel="stylesheet" href="/painel/editor/estilo.css">
+</head>
+<body>
+<!-- ========== tela inicial: gerenciador de mapas ========== -->
+<main id="inicio" class="tela">
+  <header class="barra"><h1>Mapas</h1><span class="cresce"></span><span id="quem" class="mudo"></span></header>
+  <div class="rolar">
+    <section class="cartao" id="secLogin">
+      <h2>Entrar (conta admin)</h2>
+      <p class="mudo">Precisa para abrir os mapas do servidor e publicar. Rascunhos no aparelho funcionam sem entrar.</p>
+      <div class="linha"><input id="lgU" placeholder="Usuário" autocomplete="username" autocapitalize="none"><input id="lgP" type="password" placeholder="Senha" autocomplete="current-password"></div>
+      <button class="btn pri" id="lgIn">Entrar</button><p class="status" id="lgSt"></p>
+    </section>
+    <button class="btn pri grande" id="novo">+ Novo mapa</button>
+    <section class="cartao"><h2>Neste aparelho</h2><div id="lsLocal" class="lista"></div></section>
+    <section class="cartao" id="secSrv" hidden><div class="linha"><h2 class="cresce">No servidor</h2><button class="btn peq" id="srvAtu">Atualizar</button></div><div id="lsSrv" class="lista"></div></section>
+    <section class="cartao"><h2>Mapas do jogo</h2><p class="mudo">Vêm junto com o jogo. Para mudar, duplique e publique com outro nome.</p><div id="lsBase" class="lista"></div></section>
+    <p class="mudo rodape">Editor novo · Fase 1. O editor antigo continua em <a href="/painel/mapas">/painel/mapas</a> enquanto as ferramentas de pintura chegam aqui.</p>
+  </div>
+</main>
+
+<!-- ========== tela do editor ========== -->
+<main id="editor" class="tela" hidden>
+  <header class="barra ed">
+    <button class="ib" id="voltar" aria-label="Voltar para a lista de mapas">←</button>
+    <div class="titulo"><b id="edNome"></b><small><span id="edEstado" class="estado" aria-live="polite"></span> <span id="edInfo" class="mudo"></span></small></div>
+    <div class="acoes"><button class="ib" id="desf" aria-label="Desfazer">↶</button><button class="ib" id="ref" aria-label="Refazer">↷</button>
+    <button class="btn peq" id="salvar">Salvar</button><button class="btn peq pri" id="publicar">Publicar</button></div>
+  </header>
+  <div id="palco"><canvas id="cv"></canvas>
+    <div id="modoAviso" hidden></div>
+    <div class="zoom"><button class="ib" id="zMenos" aria-label="Diminuir zoom">−</button><span id="zVal">100%</span><button class="ib" id="zMais" aria-label="Aumentar zoom">+</button><button class="ib" id="zAjustar" aria-label="Ajustar à tela">⤢</button></div>
+  </div>
+  <section id="painel" hidden><div class="painelTopo"><b id="pnT"></b><span class="cresce"></span><button class="ib" id="pnX" aria-label="Fechar painel">✕</button></div><div id="pnC" class="rolar"></div></section>
+  <nav class="abas" role="tablist">
+    <button data-aba="mapa">Mapa</button><button data-aba="camadas">Camadas</button><button data-aba="prop">Propriedades</button><button data-aba="conferir">Conferir</button>
+  </nav>
+</main>
+
+<div id="dlg" class="fundo" hidden><div class="caixa" role="dialog" aria-modal="true"><h2 id="dlgT"></h2><div id="dlgC"></div><div id="dlgB" class="botoes"></div></div></div>
+<div id="toast" role="status"></div>
+
+<script>window.EDITOR_SB_URL='__SB_URL__';window.EDITOR_SB_KEY='__SB_KEY__';var module={exports:{}};</script>
+<script src="/painel/editor/mapas_regras.js"></script>
+<script>window.MR=module.exports;module=undefined;</script>
+<script src="/painel/editor/jogo.js"></script>
+<script src="/painel/editor/modelo.js"></script>
+<script src="/painel/editor/persist.js"></script>
+<script src="/painel/editor/render.js"></script>
+<script src="/painel/editor/ui.js"></script>
+</body>
+</html>

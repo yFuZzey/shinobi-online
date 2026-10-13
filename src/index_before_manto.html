@@ -164,11 +164,12 @@ const TSZ={"ts1":[50,60],"ts2":[55,60],"ts3":[52,62],"tb1":[82,106],"tb2":[81,10
 const TX={};let tsOK=false,GC=null;
 (()=>{const ks=Object.keys(TS);let n=0;ks.forEach(k=>{const i=new Image();i.onload=()=>{TX[k]=i;if(++n==ks.length)tsOK=true};i.src=TS[k]})})();
 let seed=7;const R=()=>(seed=seed*16807%2147483647)/2147483647;
-const T=32,N=50,M=new Uint8Array(N*N),OB=[],WC=new Uint8Array(25*25),RD=new Uint8Array(N*N);
+// N = largura do mapa em tiles, NH = altura (mapas do editor podem ter outro tamanho; os do jogo são 50×50). AGW×AGH = blocos de água 2×2
+const T=32,OB=[];let N=50,NH=50,AGW=25,AGH=25,M=new Uint8Array(N*NH),WC=new Uint8Array(AGW*AGH),RD=new Uint8Array(N*NH);
 // M: 0 livre, 1 obstáculo, 2 água, 3 caminho/ponte (livre)
 const zone=(x,y)=>x<=17&&y>=30?'s':(x>=7&&x<=36&&y>=9&&y<=41)?'v':'f';
-const setM=(x,y,v)=>{if(x>=0&&y>=0&&x<N&&y<N)M[y*N+x]=v};
-const getM=(x,y)=>(x<0||y<0||x>=N||y>=N)?1:M[y*N+x];
+const setM=(x,y,v)=>{if(x>=0&&y>=0&&x<N&&y<NH)M[y*N+x]=v};
+const getM=(x,y)=>(x<0||y<0||x>=N||y>=NH)?1:M[y*N+x];
 const free=(x,y,r)=>{for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++)if(getM(x+i,y+j)!==0)return 0;return 1};
 // borda de floresta (2 tiles)
 for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(x<2||y<2||x>=N-2||y>=N-2)M[y*N+x]=1;
@@ -242,15 +243,15 @@ function applyMap(m){
  SPAWN=m.spawn;BOSSP=m.boss}
 {const h=(location.hash||'').slice(1);CURMAP=MAPS[h]?h:(MAPS.konoha?'konoha':Object.keys(MAPS)[0]);applyMap(MAPS[CURMAP])}
 //MAPS-END
-const sol=(x,y)=>{const tx=x/T|0,ty=y/T|0;if(x<0||y<0||tx>=N||ty>=N)return 1;const v=(scene?SM:M)[ty*N+tx];return v==1||v==2};
+const sol=(x,y)=>{const tx=x/T|0,ty=y/T|0;if(scene){if(x<0||y<0||tx>=50||ty>=50)return 1;const v=SM[ty*50+tx];return v==1||v==2}if(x<0||y<0||tx>=N||ty>=NH)return 1;const v=M[ty*N+tx];return v==1||v==2};
 const blk=(x,y)=>sol(x-7,y-3)||sol(x+7,y-3)||sol(x-7,y+3)||sol(x+7,y+3);
 // ---------- Sala do Hokage (interior, teleporte pela porta da torre) ----------
 let scene=0,RC=null;
-const SM=new Uint8Array(N*N).fill(1);
-for(let y=22;y<=29;y++)for(let x=18;x<=31;x++)SM[y*N+x]=0;
-SM[30*N+24]=0;SM[30*N+25]=0;
-for(let y=23;y<=24;y++)for(let x=23;x<=26;x++)SM[y*N+x]=1;
-SM[22*N+18]=1;SM[22*N+31]=1;
+const SM=new Uint8Array(50*50).fill(1); // a sala é sempre 50×50
+for(let y=22;y<=29;y++)for(let x=18;x<=31;x++)SM[y*50+x]=0;
+SM[30*50+24]=0;SM[30*50+25]=0;
+for(let y=23;y<=24;y++)for(let x=23;x<=26;x++)SM[y*50+x]=1;
+SM[22*50+18]=1;SM[22*50+31]=1;
 function buildRoom(){
  RC=document.createElement('canvas');RC.width=16*T;RC.height=12*T;const g=RC.getContext('2d');
  const W=16*T,H=12*T,rx=tx=>(tx-17)*T,ry=ty=>(ty-19)*T,hs=(a,b)=>((a*73856093)^(b*19349663))>>>0;
@@ -310,16 +311,16 @@ function enterSala(){scene=1;p.x=25*T;p.y=29.6*T;p.ax=0;p.ay=-1;p.dir=1;EP=[];P=
 function leaveSala(){scene=0;p.x=DOOR?DOOR.x:SPAWN[0]*T;p.y=DOOR?DOOR.yOut:SPAWN[1]*T;p.ax=0;p.ay=1;p.dir=0;EP=[];P=[];fx=[];flash={col:'#000',a:1}}
 // chão pré-desenhado: grama, pântano, água com margens, ruas e ponte
 function buildGround(){
- GC=document.createElement('canvas');GC.width=GC.height=N*T;const g=GC.getContext('2d'),A=THEME=='areia';
+ GC=document.createElement('canvas');GC.width=N*T;GC.height=NH*T;const g=GC.getContext('2d'),A=THEME=='areia';
  const G=['g1','g2','g3','g4','g1','g2','g3','g4','g1','g2','g3','g4','g1','g2','g3','g4','g1','g2','g3','g4','g1','g2','g3','gd'];
- if(A){for(let cy=0;cy<25;cy++)for(let cx=0;cx<25;cx++){const h=((cx*73856093)^(cy*19349663))>>>0;g.drawImage(TX['sg'+(h%5+1)],cx*64,cy*64)}}
- else for(let y=0;y<N;y++)for(let x=0;x<N;x++){const h=((x*73856093)^(y*19349663))>>>0;g.drawImage(TX[G[h%G.length]],x*T,y*T)}
- for(let cy=0;cy<25;cy++)for(let cx=0;cx<25;cx++){
-  if(SWC[cy*25+cx])g.drawImage(TX[A?((cx+cy)%2?'sd1':'sd2'):((cx+cy)%2?'sw1':'sw2')],cx*64,cy*64)}
- for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(RD[y*N+x]){const h=((x*83492791)^(y*29765729))>>>0;g.drawImage(TX[A?(h%3?'sp1':'sp2'):(h%3?'p1':'p2')],x*T,y*T)}
- for(let cy=0;cy<25;cy++)for(let cx=0;cx<25;cx++){const v=WC[cy*25+cx];if(!v)continue;
+ if(A){for(let cy=0;cy<AGH;cy++)for(let cx=0;cx<AGW;cx++){const h=((cx*73856093)^(cy*19349663))>>>0;g.drawImage(TX['sg'+(h%5+1)],cx*64,cy*64)}}
+ else for(let y=0;y<NH;y++)for(let x=0;x<N;x++){const h=((x*73856093)^(y*19349663))>>>0;g.drawImage(TX[G[h%G.length]],x*T,y*T)}
+ for(let cy=0;cy<AGH;cy++)for(let cx=0;cx<AGW;cx++){
+  if(SWC[cy*AGW+cx])g.drawImage(TX[A?((cx+cy)%2?'sd1':'sd2'):((cx+cy)%2?'sw1':'sw2')],cx*64,cy*64)}
+ for(let y=0;y<NH;y++)for(let x=0;x<N;x++)if(RD[y*N+x]){const h=((x*83492791)^(y*29765729))>>>0;g.drawImage(TX[A?(h%3?'sp1':'sp2'):(h%3?'p1':'p2')],x*T,y*T)}
+ for(let cy=0;cy<AGH;cy++)for(let cx=0;cx<AGW;cx++){const v=WC[cy*AGW+cx];if(!v)continue;
   g.drawImage(TX[v==1?(A?'sriver':'river'):(A?'swater':'water')],cx*64,cy*64);
-  if(v==2){const land=(a,b)=>a<0||b<0||a>=25||b>=25||WC[b*25+a]==0,B=TX[A?'sbank':'bank'],X=cx*64,Y=cy*64;
+  if(v==2){const land=(a,b)=>a<0||b<0||a>=AGW||b>=AGH||WC[b*AGW+a]==0,B=TX[A?'sbank':'bank'],X=cx*64,Y=cy*64;
    if(land(cx,cy-1))g.drawImage(B,X,Y,64,10);
    if(land(cx,cy+1)){g.save();g.translate(X,Y+64);g.scale(1,-1);g.drawImage(B,0,0,64,10);g.restore()}
    if(land(cx-1,cy)){g.save();g.translate(X,Y+64);g.rotate(-Math.PI/2);g.drawImage(B,0,0,64,10);g.restore()}
@@ -332,7 +333,7 @@ function go(o,vx,vy,sp,dt){o.mv=(vx||vy)?1:0;if(!o.mv)return;
 // ---------- estado do jogo ----------
 let autoOn=true,p,E,P,fx,FT,cd,kills,flash,keys={},jx=0,jy=0,dpr=1,z=1;
 const cv=$('#cv'),ctx=cv.getContext('2d');
-function place(e){if(BOSSP){e.x=BOSSP[0]*T;e.y=BOSSP[1]*T;e.hp=e.max;e.dead=0;return}do{e.x=(2+Math.random()*46|0)*T+16;e.y=(2+Math.random()*46|0)*T+16}while(blk(e.x,e.y)||Math.hypot(e.x-800,e.y-800)<220);e.hp=e.max;e.dead=0}
+function place(e){if(BOSSP){e.x=BOSSP[0]*T;e.y=BOSSP[1]*T;e.hp=e.max;e.dead=0;return}do{e.x=(2+Math.random()*(N-4)|0)*T+16;e.y=(2+Math.random()*(NH-4)|0)*T+16}while(blk(e.x,e.y)||Math.hypot(e.x-800,e.y-800)<220);e.hp=e.max;e.dead=0}
 function start(k){
  clan=k;const C=CLANS[k];
  p={x:SPAWN[0]*T,y:SPAWN[1]*T,hp:100,max:100,mp:100,dir:0,mv:0,run:0,ax:0,ay:1,t:0,au:-1,aud:0,fl:0,th:-1};
@@ -458,7 +459,7 @@ function render(ts,dt){
   const L=[];
   if(tsOK&&!scene){
    ctx.fillStyle='#ffffff38';
-   for(let ty=Math.max(0,cy/T|0);ty<=Math.min(N-1,(cy+h)/T|0);ty++)for(let tx=Math.max(0,cx/T|0);tx<=Math.min(N-1,(cx+w)/T|0);tx++)if(M[ty*N+tx]==2&&WC[(ty>>1)*25+(tx>>1)]==2)ctx.fillRect(tx*T+6+Math.sin(ts/500+tx+ty)*5,ty*T+10+(ty%2)*10,12,2);
+   for(let ty=Math.max(0,cy/T|0);ty<=Math.min(NH-1,(cy+h)/T|0);ty++)for(let tx=Math.max(0,cx/T|0);tx<=Math.min(N-1,(cx+w)/T|0);tx++)if(M[ty*N+tx]==2&&WC[(ty>>1)*AGW+(tx>>1)]==2)ctx.fillRect(tx*T+6+Math.sin(ts/500+tx+ty)*5,ty*T+10+(ty%2)*10,12,2);
    for(const o of OB){const s=TSZ[o.k];if(o.x+s[0]/2<cx||o.x-s[0]/2>cx+w||o.y<cy||o.y-s[1]>cy+h)continue;L.push({y:o.y,d:()=>{const im=TX[o.k];if(im.dw){const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=!im.px;ctx.drawImage(im,o.x-s[0]/2|0,o.y-s[1]|0,im.dw,im.dh);ctx.imageSmoothingEnabled=sm}else ctx.drawImage(im,o.x-s[0]/2|0,o.y-s[1]|0)}})}}
  L.push({y:p.y,d:()=>{HERO?drawHero(ctx,p.x,p.y,{fl:p.fl,t:ts,mv:p.mv,run:p.run,aura:p.au,th:p.th}):drawChar(ctx,p.x,p.y,{...look,clan,dir:p.dir,t:ts,mv:p.mv,run:p.run});
   ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#fff';

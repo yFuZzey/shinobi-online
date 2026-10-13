@@ -83,8 +83,9 @@ const srv=http.createServer((req,res)=>{
    if(!uid&&!SVC)return J(res,401,{message:'JWT required'});
    if(!adm)return J(res,403,{code:'42501',message:'new row violates row-level security policy for table "mapas"'});
    if(req.method==='POST'){if(!/^[a-z0-9_]{2,30}$/.test(body.id||''))return J(res,400,{code:'23514',message:'new row violates check constraint "mapas_id_check"'});
+    if(MAPAS[body.id]&&!/merge-duplicates/.test(req.headers.prefer||''))return J(res,409,{code:'23505',message:'duplicate key value violates unique constraint "mapas_pkey"'});
     MAPAS[body.id]={publicado:false,criado_em:new Date().toISOString(),...(MAPAS[body.id]||{}),...body,atualizado_em:new Date().toISOString()};return J(res,201,[MAPAS[body.id]])}
-   if(req.method==='PATCH'){const r=MAPAS[idf];if(!r)return J(res,200,[]);Object.assign(r,body,{atualizado_em:new Date().toISOString()});return J(res,200,[r])}
+   if(req.method==='PATCH'){const r=MAPAS[idf],au=(u.searchParams.get('atualizado_em')||'').replace(/^eq\./,'');if(!r||(au&&r.atualizado_em!==au))return J(res,200,[]);Object.assign(r,body,{atualizado_em:new Date(Math.max(Date.now(),Date.parse(r.atualizado_em)+1)).toISOString()});return J(res,200,[r])}
    if(req.method==='DELETE'){const r=MAPAS[idf];delete MAPAS[idf];return J(res,200,r?[r]:[])}}
   // imagens do editor de mapas (SQL 12): todo mundo lê, só admin grava
   if(u.pathname==='/__imagens')return J(res,200,IMAGENS);

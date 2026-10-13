@@ -27,22 +27,23 @@ cat=json.load(open('ed/catalog.json'))
 fpt={c[0]:[c[3],c[4],c[5]] for c in cat if (c[3],c[4],c[5])!=(1,1,0)}
 block='''//MAPS-BEGIN
 const MAPS=%s;
-const SWC=new Uint8Array(625),BRD=[],FPT=%s;
+let SWC=new Uint8Array(625);const BRD=[],FPT=%s;
 let SPAWN=[25.5,25.5],BOSSP=null,DOOR=null,THEME='folha',CURMAP='konoha';
 function applyMap(m){
+ {const w=m.W||m.N||50,h=m.H||m.N||50;if(w!==N||h!==NH||M.length!==w*h){N=w;NH=h;AGW=Math.ceil(w/2);AGH=Math.ceil(h/2);M=new Uint8Array(N*NH);RD=new Uint8Array(N*NH);WC=new Uint8Array(AGW*AGH);SWC=new Uint8Array(AGW*AGH)}} // tamanho do mapa (largura N × altura NH)
  M.fill(0);OB.length=0;WC.fill(0);RD.fill(0);SWC.fill(0);BRD.length=0;DOOR=null;THEME=m.theme||'folha';GC=null;
- const g=m.ground,gt=(x,y)=>g.charCodeAt(y*N+x)-48,ring=(x,y)=>x<2||y<2||x>=N-2||y>=N-2;
- for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(gt(x,y)==1){RD[y*N+x]=1;M[y*N+x]=3}
- for(let cy=0;cy<25;cy++)for(let cx=0;cx<25;cx++){const t=gt(cx*2,cy*2);if(t<2)continue;
-  if(t==2)SWC[cy*25+cx]=1;
-  else{WC[cy*25+cx]=t==3?2:1;for(let j=0;j<2;j++)for(let i=0;i<2;i++)M[(cy*2+j)*N+cx*2+i]=t==5?3:2;if(t==5)BRD.push([cx,cy])}}
- for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(ring(x,y))M[y*N+x]=1;
+ const g=m.ground,gt=(x,y)=>g.charCodeAt(y*N+x)-48,ring=(x,y)=>x<2||y<2||x>=N-2||y>=NH-2;
+ for(let y=0;y<NH;y++)for(let x=0;x<N;x++)if(gt(x,y)==1){RD[y*N+x]=1;M[y*N+x]=3}
+ for(let cy=0;cy<AGH;cy++)for(let cx=0;cx<AGW;cx++){const t=gt(cx*2,cy*2);if(t<2)continue;
+  if(t==2)SWC[cy*AGW+cx]=1;
+  else{WC[cy*AGW+cx]=t==3?2:1;for(let j=0;j<2;j++)for(let i=0;i<2;i++)setM(cx*2+i,cy*2+j,t==5?3:2);if(t==5)BRD.push([cx,cy])}}
+ for(let y=0;y<NH;y++)for(let x=0;x<N;x++)if(ring(x,y))M[y*N+x]=1;
  for(const r of m.objects){const k=r[0];if(!TSZ[k])continue;const o={k,x:r[1]*T,y:r[2]*T};OB.push(o);
   const f=FPT[k]||[1,1,0],base=Math.floor((o.y-1)/T),x0=Math.round(r[1]-f[0]/2),y1=base-f[2];
   if(Array.isArray(r[4])){const bx=Math.floor(r[1]);for(const a of r[4])setM(bx+a[0],base+a[1],1)}
   else if(!r[3])for(let y=y1-f[1]+1;y<=y1;y++)for(let x=x0;x<x0+f[0];x++)setM(x,y,1);
   if(k=='tower'){for(let x=x0+1;x<=x0+2;x++)setM(x,y1,3);DOOR={x:r[1]*T,yIn:(y1+.55)*T,yOut:(y1+1.7)*T}}}
- if(m.k)for(let y=0;y<N;y++)for(let x=0;x<N;x++){const v=m.k.charCodeAt(y*N+x)-48;if(v==1)setM(x,y,1);else if(v==2&&!ring(x,y))setM(x,y,3)}
+ if(m.k)for(let y=0;y<NH;y++)for(let x=0;x<N;x++){const v=m.k.charCodeAt(y*N+x)-48;if(v==1)setM(x,y,1);else if(v==2&&!ring(x,y))setM(x,y,3)}
  SPAWN=m.spawn;BOSSP=m.boss}
 {const h=(location.hash||'').slice(1);CURMAP=MAPS[h]?h:(MAPS.konoha?'konoha':Object.keys(MAPS)[0]);applyMap(MAPS[CURMAP])}
 //MAPS-END''' % (json.dumps(maps,separators=(',',':'),ensure_ascii=False),json.dumps(fpt,separators=(',',':')))

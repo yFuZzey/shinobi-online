@@ -601,6 +601,7 @@ function serialize(){
   if(AREAS.length)j.areas=AREAS.map(a=>({x:a.x,y:a.y,w:a.w,h:a.h,mobs:a.mobs.filter(e=>e.m&&e.n>0).map(e=>({m:e.m,n:e.n}))}));
   return JSON.stringify(j)}
 function parseMap(j){
+  if(j&&(j.W||j.H))throw Error('Este mapa tem outro tamanho ('+(j.W||N)+'×'+(j.H||N)+'): abra no editor novo, em /painel/editor.');
   if(!j||(j.v!==1&&j.v!==2)||j.N!==N)throw Error('Formato de mapa não reconhecido.');
   if(typeof j.ground!=='string'||j.ground.length!==N*N||/[^0-5]/.test(j.ground))throw Error('Terreno inválido.');
   if(!Array.isArray(j.objects)||j.objects.length>4000)throw Error('Lista de objetos inválida.');

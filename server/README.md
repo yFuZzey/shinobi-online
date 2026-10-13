@@ -9,6 +9,13 @@ Node puro, sem dependências. Roda no Render (plano grátis) via `render.yaml`.
 
 Regras ajustáveis no topo de `server.js` (objeto `CFG`): alcance de perseguição, reset, XP, tamanho do grupo etc.
 
+## Editor novo (`/painel/editor`) — em construção por fases
+- Arquivos em `server/editor/`: `index.html`/`estilo.css` (tela), `ui.js` (interface), `modelo.js` (modelo do mapa: criar, ler/gravar o formato do jogo sem perder campos, redimensionar, conferir), `persist.js` (rascunhos no aparelho em IndexedDB com 5 cópias de segurança + recuperação; publicar no Supabase), `render.js` (desenho igual ao jogo), `jogo.js` (gerado no build por `src/editor_jogo.py`: imagens, catálogo e mapas do jogo). A colisão usa o próprio `mapas_regras.js` do servidor.
+- **Tamanho dos mapas:** largura × altura de 20 a 100 tiles por lado, no máximo 6.400 tiles (memória do celular). Campos `W`/`H` no JSON; sem eles o mapa é 50×50 (os antigos não mudam). O jogo e o servidor leem esse tamanho (borda de 2 tiles sempre bloqueada). Apps antigos não recebem mapas de outro tamanho (`/mapas` sem `dim=1`).
+- **Tile lógico continua 32 px** (movimento, colisão e sprites dependem disso). O “tile da arte” do editor é o tamanho dos tiles dos tilesets, desenhados no tamanho original.
+- **Publicar não sobrescreve em silêncio:** mapa novo = inserção (avisa se o identificador já existe); mapa existente = só grava se ninguém mudou desde que foi aberto (`atualizado_em`); senão pede confirmação.
+- **Limitação conhecida:** o servidor confere a posição dos jogadores só pelos limites do mapa (não refaz o caminho com colisão); a colisão fina é do app, como antes.
+
 ## Editor de mapas (`/painel/mapas`)
 - Abre no navegador do celular, no mesmo login do `/painel` (conta admin). Cria/edita mapas e **Publicar** grava na tabela `mapas` (rode `sql/11_mapas.sql` uma vez no Supabase).
 - O servidor relê os mapas publicados a cada 1 min (ou na hora, quando o editor avisa em `POST /painel/recarregar`): refaz a colisão (`mapas_regras.js` + `mapa_objetos.json`, gerado junto com `maps.json`) e cria os mobs das áreas.

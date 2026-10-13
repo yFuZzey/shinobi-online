@@ -1385,7 +1385,7 @@ async function onlCreate(){if(OTA.gate)return;const n=$('#nu').value.trim(),s=$(
 function onlFail(e){$('#err').textContent=e.gs?e.message:onlErr(e);ONL.on=false;ONL.closing=false;try{ONL.ws&&ONL.ws.close()}catch(_){}}
 // ---------- Mapas criados no editor do painel (/painel/mapas): o servidor entrega os publicados em /mapas e entram na lista de mapas ----------
 const MPK='so-mapas',MPX=new Set(Object.keys(MAPS));let MPV='';
-function mpPut(L){let ch=false;for(const k of Object.keys(L||{})){const m=L[k];if(MPX.has(k)||!m||typeof m.ground!=='string'||!Array.isArray(m.objects))continue;if(JSON.stringify(MAPS[k])!==JSON.stringify(m)){MAPS[k]=m;ch=true}}
+function mpPut(L){let ch=false;for(const k of Object.keys(L||{})){const m=L[k];if(MPX.has(k)||!m||typeof m.ground!=='string'||!Array.isArray(m.objects)||m.ground.length!==(m.W||m.N||50)*(m.H||m.N||50))continue;if(JSON.stringify(MAPS[k])!==JSON.stringify(m)){MAPS[k]=m;ch=true}}
  for(const k of Object.keys(MAPS))if(!MPX.has(k)&&!(L&&L[k])&&k!==CURMAP){delete MAPS[k];ch=true}return ch}
 // imagens próprias do editor: só passam a existir (TSZ/FPT/TX) depois de carregadas, para o desenho nunca pegar imagem pela metade
 function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!/^c_[a-z0-9_]{2,28}$/.test(k)||!r)continue;
@@ -1409,11 +1409,11 @@ function tlDraw(g,nomes){if(!TLM)return;g.save();g.imageSmoothingEnabled=false;
  g.restore()}
 {const _am=applyMap;applyMap=function(m){_am(m);TLM=m&&m.camadas&&m.tilesets?m:null;GA=null}}
 {const _bg=buildGround;buildGround=function(){_bg();if(TLM&&GC)tlDraw(GC.getContext('2d'),['chao','detalhes'])}}
-function tlAcima(){if(scene||!TLM||!tlReady())return;if(!GA){if(!TLM.camadas.some(c=>c.t==='tiles'&&c.n==='acima'&&c.d.length))return;GA=document.createElement('canvas');GA.width=GA.height=N*T;tlDraw(GA.getContext('2d'),['acima'])}
+function tlAcima(){if(scene||!TLM||!tlReady())return;if(!GA){if(!TLM.camadas.some(c=>c.t==='tiles'&&c.n==='acima'&&c.d.length))return;GA=document.createElement('canvas');GA.width=N*T;GA.height=NH*T;tlDraw(GA.getContext('2d'),['acima'])}
  const m=ctx.getTransform(),k=m.a||1,x=Math.floor(-m.e/k),y=Math.floor(-m.f/k),w=Math.ceil(cv.width/k)+2,h=Math.ceil(cv.height/k)+2;ctx.drawImage(GA,x,y,w,h,x,y,w,h)}
 async function mpApply(j){await mpImg(j.imagens);await tlsLoad(j.tilesets);return mpPut(j.mapas)}
 async function mapasSync(){if(!ONL.ok)return false;let ch=false;
- try{const c=new AbortController(),t=setTimeout(()=>c.abort(),9000);const r=await fetch(GS_URL+'/mapas'+(MPV?'?v='+MPV:''),{cache:'no-store',signal:c.signal});clearTimeout(t);if(!r.ok)return false;const j=await r.json();
+ try{const c=new AbortController(),t=setTimeout(()=>c.abort(),9000);const r=await fetch(GS_URL+'/mapas?dim=1'+(MPV?'&v='+MPV:''),{cache:'no-store',signal:c.signal});clearTimeout(t);if(!r.ok)return false;const j=await r.json();
   if(j.igual)return false;ch=await mpApply(j);MPV=j.v||'';try{localStorage.setItem(MPK,JSON.stringify({v:MPV,mapas:j.mapas||{},imagens:j.imagens||{},tilesets:j.tilesets||{}}))}catch(_){}}catch(_){}return ch}
 try{const c=JSON.parse(localStorage.getItem(MPK)||'null');if(c&&c.mapas){MPV=c.v||'';mpApply(c)}}catch(_){}
 setTimeout(mapasSync,1200);

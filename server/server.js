@@ -89,7 +89,7 @@ const BAL_INFO = (() => {
 if (BAL_INFO.ok) log('balanceamento.json versão', BAL_INFO.v, 'carregado'); for (const w of BAL_INFO.avisos) log('AVISO balanceamento:', w);
 
 // ---------------------------------------------------------------- mapa
-function sol(map, x, y) { const m = MAPS[map]; const tx = x / T | 0, ty = y / T | 0; if (x < 0 || y < 0 || tx >= m.N || ty >= m.N) return true; const v = m.M.charCodeAt(ty * m.N + tx) - 48; return v === 1 || v === 2; }
+function sol(map, x, y) { const m = MAPS[map]; const tx = x / T | 0, ty = y / T | 0; if (x < 0 || y < 0 || tx >= m.N || ty >= (m.H || m.N)) return true; const v = m.M.charCodeAt(ty * m.N + tx) - 48; return v === 1 || v === 2; }
 const blk = (map, x, y) => sol(map, x - 7, y - 3) || sol(map, x + 7, y - 3) || sol(map, x - 7, y + 3) || sol(map, x + 7, y + 3);
 function go(map, o, vx, vy, sp, dt) { o.mv = (vx || vy) ? 1 : 0; if (!o.mv) return; const nx = o.x + vx * sp * dt, ny = o.y + vy * sp * dt; if (!blk(map, nx, o.y)) o.x = nx; if (!blk(map, o.x, ny)) o.y = ny; }
 
@@ -244,7 +244,7 @@ setTimeout(itensDb, 800); setInterval(itensDb, 60 * 1000);
 // mapas criados no editor do painel (tabela "mapas", SQL 11): entram em MAPS (colisão, mobs) e vão para o jogo em GET /mapas
 let MR = null, MCAT = null; try { MR = require('./mapas_regras.js'); MCAT = JSON.parse(fs.readFileSync(path.join(__dirname, 'mapa_objetos.json'), 'utf8')); } catch (e) { log('mapas do painel desligados: ' + e.message); }
 const MAPAS_BASE = new Set(Object.keys(MAPS)); // os que vêm no jogo não são trocados pelo painel
-let MP_DB = { n: 0, quando: 0, motivo: 'iniciando' }, MP_PUB = {}, MP_V = '0', MP_IMG = {}, MP_TS = {}, MP_CV = '';
+let MP_DB = { n: 0, quando: 0, motivo: 'iniciando' }, MP_PUB = {}, MP_V = '0', MP_PUB0 = {}, MP_V0 = '0', MP_IMG = {}, MP_TS = {}, MP_CV = '';
 const STORE = () => SB_URL + '/storage/v1/object/public/mapa-recursos/'; // arte do editor (bucket de leitura pública; só admin grava)
 async function mapasDb() {
   if (!MR || !MCAT || !SB_URL || !SB_SVC) { MP_DB.motivo = 'sem chave secreta ou sem mapa_objetos.json'; return; }
@@ -269,6 +269,8 @@ async function mapasDb() {
       const rm = rooms[id]; if (rm && rm.players.size) { pub[id] = MP_PUB[id]; continue; } delete MAPS[id]; delete rooms[id]; }
     MP_PUB = pub; MP_IMG = {}; MP_TS = {}; for (const id in pub) { for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]]; for (const t of pub[id].tilesets || []) if (TSM[t]) MP_TS[t] = TSM[t]; }
     MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, (MP_IMG[k].png || MP_IMG[k].url).length]), MP_TS])).digest('hex').slice(0, 12);
+    MP_PUB0 = {}; for (const id in pub) if (!pub[id].W) MP_PUB0[id] = pub[id]; // apps antigos só sabem desenhar 50×50
+    MP_V0 = crypto.createHash('sha1').update(MP_V + ':' + Object.keys(MP_PUB0).join(',')).digest('hex').slice(0, 12);
     const n = Object.keys(pub).length; if (n !== MP_DB.n || MP_DB.motivo) log('mapas do painel: ' + n + ' publicado(s)');
     MP_DB = { n, quando: Date.now(), motivo: '' };
   } catch (e) { MP_DB.motivo = e.status === 404 ? 'falta rodar o SQL 11 (mapas) no Supabase' : e.message; }
@@ -464,7 +466,7 @@ function onMessage(c, m) {
   switch (m.t) {
     case 'join': return onJoin(p, m);
     case 'pos': if (!p.map) return;
-      p.x = clamp(num(m.x, p.x), 0, 50 * T); p.y = clamp(num(m.y, p.y), 0, 50 * T); p.fl = m.fl ? 1 : 0; p.mv = m.mv ? 1 : 0; p.run = m.run ? 1 : 0;
+      { const mp = MAPS[p.map]; p.x = clamp(num(m.x, p.x), 0, Math.max(50, (mp && mp.N) || 50) * T); p.y = clamp(num(m.y, p.y), 0, Math.max(50, (mp && (mp.H || mp.N)) || 50) * T); } // a sala da torre usa 50×50 p.fl = m.fl ? 1 : 0; p.mv = m.mv ? 1 : 0; p.run = m.run ? 1 : 0;
       p.au = num(m.au, -1); p.th = num(m.th, -1); p.sc = m.sc ? 1 : 0; p.hp = clamp(num(m.hp, p.hp), 0, 1e5); p.max = clamp(num(m.max, p.max), 1, 1e5); p.ct = Number.isFinite(m.c) ? Math.round(m.c) : null; p.dirty = true; return;
     case 'meta': setMeta(p, m); if (p.map) toRoom(room(p.map), { t: 'pm', id: p.id, lv: p.lv, eq: p.eq, look: p.look, clan: p.clan, ey: p.ey || 0 }, p); return;
     case 'gaze': return onGaze(p, m);
@@ -522,7 +524,7 @@ function onJoin(p, m) {
   const map = str(m.map, 40); if (!MAPS[map]) return sys(p, 'Mapa desconhecido.');
   if (p.map) leaveRoom(p);
   setMeta(p, m);
-  p.x = clamp(num(m.x, MAPS[map].spawn[0] * T), 0, 50 * T); p.y = clamp(num(m.y, MAPS[map].spawn[1] * T), 0, 50 * T);
+  p.x = clamp(num(m.x, MAPS[map].spawn[0] * T), 0, Math.max(50, MAPS[map].N) * T); p.y = clamp(num(m.y, MAPS[map].spawn[1] * T), 0, Math.max(50, MAPS[map].H || MAPS[map].N) * T);
   p.hp = num(m.hp, 100); p.max = num(m.max, 100); p.sc = m.sc ? 1 : 0;
   const r = room(map); p.map = map; r.players.add(p);
   p.conn.send({ t: 'room', map, players: [...r.players].filter(q => q !== p).map(pub), mobs: r.mobs.map(e => ({ def: mobDef(e), s: mobState(e) })) });
@@ -942,8 +944,19 @@ const server = http.createServer((req, res) => {
   }
   // lista dos mapas publicados no painel (o jogo busca ao abrir e ao tocar em Mapa)
   if (u === '/mapas') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
-    if ((req.url.split('?v=')[1] || '') === MP_V) return res.end(JSON.stringify({ v: MP_V, igual: 1 })); // o jogo já tem esta versão: não manda tudo de novo
-    return res.end(JSON.stringify({ v: MP_V, mapas: MP_PUB, imagens: MP_IMG, tilesets: MP_TS })); }
+    const q = new URLSearchParams(req.url.split('?')[1] || ''), dim = q.get('dim') === '1', v = dim ? MP_V : MP_V0; // dim=1: o app sabe desenhar mapas de outro tamanho
+    if ((q.get('v') || '') === v) return res.end(JSON.stringify({ v, igual: 1 })); // o jogo já tem esta versão: não manda tudo de novo
+    return res.end(JSON.stringify({ v, mapas: dim ? MP_PUB : MP_PUB0, imagens: MP_IMG, tilesets: MP_TS })); }
+  // editor novo (/painel/editor): a página e os arquivos dele (só nomes simples dentro de server/editor). mapas_regras.js é a mesma regra de colisão do servidor.
+  { const me = /^\/painel\/editor(?:\/([a-z0-9_]+\.(?:js|css)))?\/?$/.exec(u);
+    if (me) { try {
+      const f = !me[1] ? path.join(__dirname, 'editor', 'index.html') : me[1] === 'mapas_regras.js' ? path.join(__dirname, 'mapas_regras.js') : path.join(__dirname, 'editor', me[1]);
+      let b = fs.readFileSync(f, 'utf8'); if (!me[1]) b = b.replace('__SB_URL__', SB_URL).replace('__SB_KEY__', SB_KEY);
+      const tipo = !me[1] ? 'text/html; charset=utf-8' : me[1].endsWith('.css') ? 'text/css; charset=utf-8' : 'application/javascript; charset=utf-8';
+      const h2 = { ...cors, 'Content-Type': tipo, 'Cache-Control': 'no-cache' }, gz = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+      if (gz) { res.writeHead(200, { ...h2, 'Content-Encoding': 'gzip' }); return res.end(require('zlib').gzipSync(b)); }
+      res.writeHead(200, h2); return res.end(b);
+    } catch (e) { res.writeHead(404, cors); return res.end('não encontrado'); } } }
   // editor de mapas do painel (mesmo login do /painel; o banco só deixa admin gravar)
   if (u === '/painel/mapas' || u === '/painel/mapas/') {
     try {
