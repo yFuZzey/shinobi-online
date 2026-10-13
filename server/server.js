@@ -244,16 +244,19 @@ setTimeout(itensDb, 800); setInterval(itensDb, 60 * 1000);
 // mapas criados no editor do painel (tabela "mapas", SQL 11): entram em MAPS (colisão, mobs) e vão para o jogo em GET /mapas
 let MR = null, MCAT = null; try { MR = require('./mapas_regras.js'); MCAT = JSON.parse(fs.readFileSync(path.join(__dirname, 'mapa_objetos.json'), 'utf8')); } catch (e) { log('mapas do painel desligados: ' + e.message); }
 const MAPAS_BASE = new Set(Object.keys(MAPS)); // os que vêm no jogo não são trocados pelo painel
-let MP_DB = { n: 0, quando: 0, motivo: 'iniciando' }, MP_PUB = {}, MP_V = '0', MP_IMG = {}, MP_CV = '';
+let MP_DB = { n: 0, quando: 0, motivo: 'iniciando' }, MP_PUB = {}, MP_V = '0', MP_IMG = {}, MP_TS = {}, MP_CV = '';
+const STORE = () => SB_URL + '/storage/v1/object/public/mapa-recursos/'; // arte do editor (bucket de leitura pública; só admin grava)
 async function mapasDb() {
   if (!MR || !MCAT || !SB_URL || !SB_SVC) { MP_DB.motivo = 'sem chave secreta ou sem mapa_objetos.json'; return; }
   try {
     // imagens próprias do editor (tabela "mapa_imagens", SQL 12): entram no catálogo de objetos (colisão da base) e vão junto no /mapas
     let imgs = []; try { imgs = await svc('/rest/v1/mapa_imagens?select=*') || []; } catch (e) { if (e.status !== 404) throw e; }
     const cat = { fpt: { ...MCAT.fpt }, tsz: [...MCAT.tsz] }, IM = {}, ci = n => Math.max(0, Math.min(8, n | 0));
-    for (const r of imgs) { if (!/^c_[a-z0-9_]{2,28}$/.test(r.id || '') || typeof r.png !== 'string') continue;
-      const f = [ci(r.fw) || 1, ci(r.fh) || 1, ci(r.off)]; cat.tsz.push(r.id); cat.fpt[r.id] = f; IM[r.id] = { png: r.png, w: r.w | 0, h: r.h | 0, dw: r.dw > 0 ? r.dw | 0 : 0, dh: r.dh > 0 ? r.dh | 0 : 0, px: r.px ? 1 : 0, fw: f[0], fh: f[1], off: f[2], ns: r.ns ? 1 : 0 }; }
+    for (const r of imgs) { if (!/^c_[a-z0-9_]{2,28}$/.test(r.id || '') || (typeof r.png !== 'string' && !/^objetos\/[a-f0-9]{12}\.png$/.test(r.arquivo || ''))) continue;
+      const f = [ci(r.fw) || 1, ci(r.fh) || 1, ci(r.off)]; cat.tsz.push(r.id); cat.fpt[r.id] = f; IM[r.id] = { ...(typeof r.png === 'string' ? { png: r.png } : { url: STORE() + r.arquivo }), w: r.w | 0, h: r.h | 0, dw: r.dw > 0 ? r.dw | 0 : 0, dh: r.dh > 0 ? r.dh | 0 : 0, px: r.px ? 1 : 0, fw: f[0], fh: f[1], off: f[2], ns: r.ns ? 1 : 0 }; }
     const cv = crypto.createHash('sha1').update(JSON.stringify(Object.keys(IM).map(k => [k, cat.fpt[k]]))).digest('hex').slice(0, 10), mudouImg = cv !== MP_CV; MP_CV = cv;
+    let tss = []; try { tss = await svc('/rest/v1/mapa_tilesets?select=*') || []; } catch (e) { if (e.status !== 404) throw e; }
+    const TSM = {}; for (const r of tss) if (/^t_[a-z0-9_]{2,28}$/.test(r.id || '') && /^tilesets\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '')) TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: r.tw | 0, th: r.th | 0, mg: r.mg | 0, sp: r.sp | 0, px: r.px === false ? 0 : 1 };
     const L = await svc('/rest/v1/mapas?select=id,nome,mapa&publicado=eq.true') || [], pub = {}, vistos = [];
     for (const r of L) {
       if (MAPAS_BASE.has(r.id)) continue;
@@ -264,8 +267,8 @@ async function mapasDb() {
     }
     for (const id in MP_PUB) if (!pub[id]) { // despublicado: sai da lista; quem está dentro termina a visita, a sala some quando esvaziar
       const rm = rooms[id]; if (rm && rm.players.size) { pub[id] = MP_PUB[id]; continue; } delete MAPS[id]; delete rooms[id]; }
-    MP_PUB = pub; MP_IMG = {}; for (const id in pub) for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]];
-    MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, MP_IMG[k].png.length])])).digest('hex').slice(0, 12);
+    MP_PUB = pub; MP_IMG = {}; MP_TS = {}; for (const id in pub) { for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]]; for (const t of pub[id].tilesets || []) if (TSM[t]) MP_TS[t] = TSM[t]; }
+    MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, (MP_IMG[k].png || MP_IMG[k].url).length]), MP_TS])).digest('hex').slice(0, 12);
     const n = Object.keys(pub).length; if (n !== MP_DB.n || MP_DB.motivo) log('mapas do painel: ' + n + ' publicado(s)');
     MP_DB = { n, quando: Date.now(), motivo: '' };
   } catch (e) { MP_DB.motivo = e.status === 404 ? 'falta rodar o SQL 11 (mapas) no Supabase' : e.message; }
@@ -940,7 +943,7 @@ const server = http.createServer((req, res) => {
   // lista dos mapas publicados no painel (o jogo busca ao abrir e ao tocar em Mapa)
   if (u === '/mapas') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
     if ((req.url.split('?v=')[1] || '') === MP_V) return res.end(JSON.stringify({ v: MP_V, igual: 1 })); // o jogo já tem esta versão: não manda tudo de novo
-    return res.end(JSON.stringify({ v: MP_V, mapas: MP_PUB, imagens: MP_IMG })); }
+    return res.end(JSON.stringify({ v: MP_V, mapas: MP_PUB, imagens: MP_IMG, tilesets: MP_TS })); }
   // editor de mapas do painel (mesmo login do /painel; o banco só deixa admin gravar)
   if (u === '/painel/mapas' || u === '/painel/mapas/') {
     try {

@@ -443,7 +443,7 @@ function onlStep(dt){kfxStep(dt);if(!ONL.on)return;perfTick(dt);
   if(pe.hitT>0)pe.hitT-=dt;if(pe.th>=0)pe.th+=dt;if(pe.th>.35)pe.th=-1;if(pe.au>=0)pe.au+=dt;if(pe.sayT>0)pe.sayT-=dt}
  if(myT>0)myT-=dt}
 const inGrp=id=>!!(ONL.party&&ONL.party.members.some(x=>x.id===id));
-function onlDraw(L,ts){{const t=tgCur();if(t)L.push({y:t.y-.35,d:()=>tgRing(t,ts)})}if(AIMS.on&&AIMS.a)L.push({y:p.y-.5,d:aimDraw});if(!ONL.on)return;
+function onlDraw(L,ts){if(TLM)L.push({y:1e9,d:tlAcima});{const t=tgCur();if(t)L.push({y:t.y-.35,d:()=>tgRing(t,ts)})}if(AIMS.on&&AIMS.a)L.push({y:p.y-.5,d:aimDraw});if(!ONL.on)return;
  for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.x===null||pe.sc!==(scene|0))continue;
   L.push({y:pe.y,d:()=>{const FL=(pe.eq||[]).map(i=>ITEMS[i]).filter(it=>it&&it.fx&&(it.fx.tails||it.fx.orbit||it.fx.glow||it.fx.hand)).map(it=>it.fx);
    fxDraw(ctx,pe.x,pe.y,ts,FL,0);
@@ -1388,17 +1388,33 @@ const MPK='so-mapas',MPX=new Set(Object.keys(MAPS));let MPV='';
 function mpPut(L){let ch=false;for(const k of Object.keys(L||{})){const m=L[k];if(MPX.has(k)||!m||typeof m.ground!=='string'||!Array.isArray(m.objects))continue;if(JSON.stringify(MAPS[k])!==JSON.stringify(m)){MAPS[k]=m;ch=true}}
  for(const k of Object.keys(MAPS))if(!MPX.has(k)&&!(L&&L[k])&&k!==CURMAP){delete MAPS[k];ch=true}return ch}
 // imagens próprias do editor: só passam a existir (TSZ/FPT/TX) depois de carregadas, para o desenho nunca pegar imagem pela metade
-function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!/^c_[a-z0-9_]{2,28}$/.test(k)||!r||typeof r.png!=='string'||!/^data:image\/(png|webp);base64,/.test(r.png))continue;
+function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!/^c_[a-z0-9_]{2,28}$/.test(k)||!r)continue;
+  const src=typeof r.png==='string'&&/^data:image\/(png|webp);base64,/.test(r.png)?r.png:(typeof r.url==='string'&&/^https?:\/\//.test(r.url)?r.url:'');if(!src)continue;
   FPT[k]=[Math.max(1,r.fw|0),Math.max(1,r.fh|0),r.off|0];
   // a imagem pode ter mais pixels do que o tamanho em que aparece no mapa (dw×dh): desenhada reduzida, fica nítida
   const dw=r.dw>0?Math.min(1024,r.dw|0):0,dh=r.dh>0?Math.min(1024,r.dh|0):0,ap=i=>{i.dw=dw&&dh?dw:0;i.dh=dw&&dh?dh:0;i.px=!!r.px;TSZ[k]=[i.dw||i.width,i.dh||i.height]};
-  if(TX[k]&&TS[k]===r.png){ap(TX[k]);continue}
-  ps.push(new Promise(ok=>{const i=new Image();i.onload=()=>{TS[k]=r.png;TX[k]=i;ap(i);ok()};i.onerror=ok;i.src=r.png}))}
+  if(TX[k]&&TS[k]===src){ap(TX[k]);continue}
+  ps.push(new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>{TS[k]=src;TX[k]=i;ap(i);ok()};i.onerror=ok;i.src=src}))}
  return Promise.all(ps)}
-async function mpApply(j){await mpImg(j.imagens);return mpPut(j.mapas)}
+// ---- tilesets e camadas de tiles do editor (Chão e Detalhes entram no chão; Acima desenha por cima do jogador). Mapas sem camadas não passam por aqui.
+const TLS={};let TLM=null,GA=null;
+function tlsLoad(L){const ps=[];for(const id of Object.keys(L||{})){const r=L[id];if(!/^t_[a-z0-9_]{2,28}$/.test(id)||!r||typeof r.url!=='string'||!/^https?:\/\//.test(r.url))continue;
+  const o=TLS[id];if(o&&o.url===r.url){Object.assign(o,{tw:r.tw|0,th:r.th|0,mg:r.mg|0,sp:r.sp|0,px:!!r.px});continue}
+  ps.push(new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>{TLS[id]={img:i,url:r.url,tw:Math.max(1,r.tw|0),th:Math.max(1,r.th|0),mg:r.mg|0,sp:r.sp|0,px:!!r.px};ok()};i.onerror=ok;i.src=r.url}))}
+ return Promise.all(ps).then(()=>{if(ps.length&&TLM){GC=null;GA=null}})}
+function tlReady(){return !!TLM&&TLM.tilesets.every(id=>TLS[id])}
+function tlDraw(g,nomes){if(!TLM)return;g.save();g.imageSmoothingEnabled=false;
+ for(const c of TLM.camadas){if(c.t!=='tiles'||!nomes.includes(c.n))continue;
+  for(const e of c.d){const t=TLS[TLM.tilesets[e[0]]];if(!t)continue;g.drawImage(t.img,t.mg+e[3]*(t.tw+t.sp),t.mg+e[4]*(t.th+t.sp),t.tw,t.th,e[1]*t.tw,e[2]*t.th,t.tw,t.th)}}
+ g.restore()}
+{const _am=applyMap;applyMap=function(m){_am(m);TLM=m&&m.camadas&&m.tilesets?m:null;GA=null}}
+{const _bg=buildGround;buildGround=function(){_bg();if(TLM&&GC)tlDraw(GC.getContext('2d'),['chao','detalhes'])}}
+function tlAcima(){if(scene||!TLM||!tlReady())return;if(!GA){if(!TLM.camadas.some(c=>c.t==='tiles'&&c.n==='acima'&&c.d.length))return;GA=document.createElement('canvas');GA.width=GA.height=N*T;tlDraw(GA.getContext('2d'),['acima'])}
+ const m=ctx.getTransform(),k=m.a||1,x=Math.floor(-m.e/k),y=Math.floor(-m.f/k),w=Math.ceil(cv.width/k)+2,h=Math.ceil(cv.height/k)+2;ctx.drawImage(GA,x,y,w,h,x,y,w,h)}
+async function mpApply(j){await mpImg(j.imagens);await tlsLoad(j.tilesets);return mpPut(j.mapas)}
 async function mapasSync(){if(!ONL.ok)return false;let ch=false;
  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),9000);const r=await fetch(GS_URL+'/mapas'+(MPV?'?v='+MPV:''),{cache:'no-store',signal:c.signal});clearTimeout(t);if(!r.ok)return false;const j=await r.json();
-  if(j.igual)return false;ch=await mpApply(j);MPV=j.v||'';try{localStorage.setItem(MPK,JSON.stringify({v:MPV,mapas:j.mapas||{},imagens:j.imagens||{}}))}catch(_){}}catch(_){}return ch}
+  if(j.igual)return false;ch=await mpApply(j);MPV=j.v||'';try{localStorage.setItem(MPK,JSON.stringify({v:MPV,mapas:j.mapas||{},imagens:j.imagens||{},tilesets:j.tilesets||{}}))}catch(_){}}catch(_){}return ch}
 try{const c=JSON.parse(localStorage.getItem(MPK)||'null');if(c&&c.mapas){MPV=c.v||'';mpApply(c)}}catch(_){}
 setTimeout(mapasSync,1200);
 {const mb=$('#mapbtn'),o=mb&&mb.onclick;if(o)mb.onclick=function(e){o.call(this,e);mapasSync().then(ch=>{if(ch&&!$('#mapmenu').hidden)mmDraw()})}}

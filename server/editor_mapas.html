@@ -112,10 +112,30 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke
     <button data-t="select" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="m5 3 14 7-6 2-2 6L5 3Z"/></svg>Selecionar</button>
     <button data-t="col" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.4 3.1 7.8 7.5 9.5 4.4-1.7 7.5-5.1 7.5-9.5V6L12 3Z"/><path d="M9 12h6"/></svg>Colisão</button>
     <button data-t="mobs" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2" stroke-dasharray="3 2"/><circle cx="9" cy="12" r="1.6" fill="currentColor"/><circle cx="15" cy="12" r="1.6" fill="currentColor"/></svg>Mobs</button>
+    <button data-t="tile" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="3.5" width="7" height="7" rx="1"/><rect x="3.5" y="13.5" width="7" height="7" rx="1"/><path d="m14 20 6-6 1 1-6 6-2 .5z"/></svg>Tiles</button>
     <button data-t="erase" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M20 20H9l-5-5a2 2 0 0 1 0-2.8l8-8a2 2 0 0 1 2.8 0l5 5a2 2 0 0 1 0 2.8L12 20"/><path d="m7 10 7 7"/></svg>Borracha</button>
   </nav>
 </div>
 
+<div class="sheet-bg" id="tsBg" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="tsT">
+    <div class="row"><h2 id="tsT" style="flex:1">Importar tileset</h2><button class="ib" id="tsX" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <div class="sec">
+      <input type="file" id="tsFile" accept="image/png,image/webp,image/jpeg,image/gif" aria-label="Escolher tileset">
+      <div class="tsw"><canvas id="tsPv" hidden></canvas></div>
+      <p class="hint" id="tsInfo">Escolha o PNG do tileset. O arquivo original é guardado sem nenhuma alteração (sem recompressão, sem mudar o tamanho).</p>
+    </div>
+    <div class="sec" id="tsOpt" hidden>
+      <input type="text" id="tsNome" maxlength="40" placeholder="Nome do tileset" autocomplete="off">
+      <div class="row"><div class="fld"><span class="lbl">Tile: largura (px)</span><input type="number" id="tsTw" min="4" max="512" value="32"></div><div class="fld"><span class="lbl">Tile: altura (px)</span><input type="number" id="tsTh" min="4" max="512" value="32"></div></div>
+      <div class="row"><div class="fld"><span class="lbl">Margem (px)</span><input type="number" id="tsMg" min="0" max="256" value="0"></div><div class="fld"><span class="lbl">Espaço entre tiles (px)</span><input type="number" id="tsSp" min="0" max="64" value="0"></div></div>
+      <label class="row"><input type="checkbox" id="tsPx" checked> Pixel art (sem suavizar)</label>
+      <button class="big primary" id="tsSave">Salvar tileset</button>
+    </div>
+    <p class="status" id="tsSt"></p>
+    <div class="sec"><h3>Meus tilesets</h3><div id="tsList"></div></div>
+  </div>
+</div>
 <div class="sheet-bg" id="imgBg" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="imgT">
     <div class="row"><h2 id="imgT" style="flex:1">Importar imagem</h2><button class="ib" id="imgX" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
@@ -328,6 +348,13 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke
 .qty{display:flex;align-items:center;gap:4px}.qty b{min-width:26px;text-align:center;font-variant-numeric:tabular-nums}
 .qty button{width:34px;height:34px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);color:var(--fg);font-weight:800}
 #goItems,#goMobs{display:none!important}
+#dock{grid-template-columns:repeat(8,1fr)!important}
+.tpkw{max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:repeating-conic-gradient(#8a8a8a 0 25%,#b4b4b4 0 50%) 0 0/16px 16px;touch-action:pan-x pan-y}
+.tpkw.area{touch-action:none}
+#tpk{display:block;image-rendering:pixelated}
+#tsPv{max-width:100%;border:1px solid var(--line);border-radius:10px;background:repeating-conic-gradient(#8a8a8a 0 25%,#b4b4b4 0 50%) 0 0/16px 16px;image-rendering:pixelated}
+.tsw{max-height:260px;overflow:auto}
+#tsList .srow{display:flex;gap:8px;align-items:center;margin:6px 0}#tsList b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sheet input[type=password],.sheet input[type=number]{width:100%;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit}
 .sheet input[type=range]{width:100%}
 #imgPv{width:100%;max-height:240px;border-radius:10px;border:1px solid var(--line);background:#888;image-rendering:pixelated;touch-action:manipulation}
@@ -482,8 +509,8 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>e.classList.remove('show'),2400)}
 const cloneO=o=>({...o,c:o.c?o.c.map(a=>[...a]):undefined});
-const snapG=()=>({G:G.slice(),K:K.slice(),O:OBJ.map(cloneO),s:[...spawn],b:[...boss],A:JSON.parse(JSON.stringify(AREAS))});
-function restore(x){G=x.G.slice();K=x.K.slice();OBJ=x.O.map(cloneO);spawn=[...x.s];boss=[...x.b];AREAS=JSON.parse(JSON.stringify(x.A||[]));if(selA>=AREAS.length)selA=-1;sel=null;colEdit=null;orderOK=false}
+const snapG=()=>({G:G.slice(),K:K.slice(),O:OBJ.map(cloneO),s:[...spawn],b:[...boss],A:JSON.parse(JSON.stringify(AREAS)),L:tlClone(),X:JSON.parse(JSON.stringify(EXTRA))});
+function restore(x){G=x.G.slice();K=x.K.slice();OBJ=x.O.map(cloneO);spawn=[...x.s];boss=[...x.b];AREAS=JSON.parse(JSON.stringify(x.A||[]));if(selA>=AREAS.length)selA=-1;sel=null;colEdit=null;orderOK=false;TLY=x.L?tlClone(x.L):tlEmpty();EXTRA=x.X?JSON.parse(JSON.stringify(x.X)):[];tlDirtyAll()}
 function slugify(t){t=String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,32);return t||'mapa'}
 /* ---------- chão pré-renderizado ---------- */
 let GC=null,GG=null;
@@ -559,6 +586,7 @@ function serialize(){
     objects:OBJ.map(o=>{const r=[o.k,+o.x.toFixed(4),+o.y.toFixed(4)];if(o.d||o.c)r.push(o.d?1:0);if(o.c)r.push(o.c);return r}),
     spawn:spawn.map(v=>+v.toFixed(3)),boss:boss.map(v=>+v.toFixed(3))};
   if(K.some(v=>v))j.k=Array.from(K).join('');
+  {const cm=tlSerialize();if(cm.camadas.length){j.tilesets=cm.tilesets;j.camadas=cm.camadas}}
   if(AREAS.length)j.areas=AREAS.map(a=>({x:a.x,y:a.y,w:a.w,h:a.h,mobs:a.mobs.filter(e=>e.m&&e.n>0).map(e=>({m:e.m,n:e.n}))}));
   return JSON.stringify(j)}
 function parseMap(j){
@@ -574,8 +602,8 @@ function parseMap(j){
   const pt=(a,d)=>Array.isArray(a)&&isFinite(a[0])&&isFinite(a[1])?[clamp(+a[0],2,N-2),clamp(+a[1],2,N-2)]:d;
   const A=[];if(Array.isArray(j.areas))for(const a of j.areas.slice(0,60)){if(!a||![a.x,a.y,a.w,a.h].every(isFinite))continue;const x=clamp(Math.round(a.x),0,N-1),y=clamp(Math.round(a.y),0,N-1);
     A.push({x,y,w:clamp(Math.round(a.w),1,N-x),h:clamp(Math.round(a.h),1,N-y),mobs:(Array.isArray(a.mobs)?a.mobs:[]).filter(e=>e&&typeof e.m==='string').slice(0,10).map(e=>({m:e.m,n:clamp(Math.round(+e.n||0),0,40)}))})}
-  return{G:g,K:k,O,A,s:pt(j.spawn,[25.5,25.5]),b:pt(j.boss,[33.5,34.5]),name:slugify(j.name||'mapa'),theme:THEMES[j.theme]?j.theme:'folha'}}
-function applyMap(m){G=m.G;K=m.K;OBJ=m.O;AREAS=m.A||[];selA=-1;spawn=m.s;boss=m.b;mapName=m.name;theme=m.theme;sel=null;colEdit=null;orderOK=false;
+  return{L:tlParse(j),X:tlExtra(j),G:g,K:k,O,A,s:pt(j.spawn,[25.5,25.5]),b:pt(j.boss,[33.5,34.5]),name:slugify(j.name||'mapa'),theme:THEMES[j.theme]?j.theme:'folha'}}
+function applyMap(m){TLY=m.L||tlEmpty();EXTRA=m.X||[];tlDirtyAll();G=m.G;K=m.K;OBJ=m.O;AREAS=m.A||[];selA=-1;spawn=m.s;boss=m.b;mapName=m.name;theme=m.theme;sel=null;colEdit=null;orderOK=false;
   setCatForTheme();buildGround();computeCM()}
 function catOK(c){const e=CATS.find(a=>a[0]===c);return e&&(e[2]===theme||e[2]==='*')}
 function setCatForTheme(){if(!catOK(cat)){cat=THEMES[theme].cat;kindSel=THEMES[theme].kind;markSel=null}}
@@ -604,7 +632,7 @@ function draw(){raf=0;if(!GC)return;
   const W=cv.clientWidth,H=cv.clientHeight;ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.fillStyle=css('--stage');ctx.fillRect(0,0,W,H);
   ctx.save();ctx.translate(ox,oy);ctx.scale(s,s);ctx.imageSmoothingEnabled=s<1;
-  ctx.drawImage(GC,0,0);
+  ctx.drawImage(GC,0,0);tlShow(['chao','detalhes']);
   const vx0=-ox/s,vy0=-oy/s,vx1=(W-ox)/s,vy1=(H-oy)/s;
   ctx.fillStyle='rgba(0,0,0,.30)';const B=2*T,M=N*T;
   ctx.fillRect(0,0,M,B);ctx.fillRect(0,M-B,M,B);ctx.fillRect(0,B,B,M-2*B);ctx.fillRect(M-B,B,B,M-2*B);
@@ -612,6 +640,7 @@ function draw(){raf=0;if(!GC)return;
     for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const v=CM[y*N+x];if(v==1){ctx.fillStyle='rgba(255,70,60,.42)';ctx.fillRect(x*T,y*T,T,T)}else if(v==2){ctx.fillStyle='rgba(60,140,255,.38)';ctx.fillRect(x*T,y*T,T,T)}}}
   for(const o of getOrder()){const im=TX[o.k];if(!im)continue;const w=im.width,h=im.height,px=(o.x*T-w/2)|0,py=(o.y*T-h)|0;
     if(px>vx1||px+w<vx0||py>vy1||py+h<vy0)continue;ctx.drawImage(im,px,py)}
+  tlShow(['acima']);
   if(showGrid&&s>=.4){ctx.strokeStyle=css('--grid');ctx.lineWidth=1/s;ctx.beginPath();
     for(let i=0;i<=N;i++){ctx.moveTo(i*T,0);ctx.lineTo(i*T,M);ctx.moveTo(0,i*T);ctx.lineTo(M,i*T)}ctx.stroke()}
   if(tool=='col'){ctx.fillStyle='rgba(255,170,40,.5)';const x0=Math.max(0,vx0/T|0),y0=Math.max(0,vy0/T|0),x1=Math.min(N-1,vx1/T|0),y1=Math.min(N-1,vy1/T|0);
@@ -660,6 +689,7 @@ function brushRect(tx,ty){
   if(tool=='terrain'&&COARSE(terr)){const n=brush==3?2:1,cx=clamp(tx>>1,0,CELLS-n),cy=clamp(ty>>1,0,CELLS-n);return[cx*2,cy*2,n*2,n*2]}
   const o=(brush-1)>>1;return[tx-o,ty-o,brush,brush]}
 function preview(){
+  if(tool=='tile'){tlPreview();return}
   if(stroke&&stroke.rect&&stroke.mode=='area'&&stroke.moved){const r=stroke.rect;ctx.fillStyle='rgba(255,90,60,.30)';ctx.strokeStyle='#ffd27a';ctx.lineWidth=2/s;
     ctx.fillRect(r[0]*T,r[1]*T,r[2]*T,r[3]*T);ctx.strokeRect(r[0]*T,r[1]*T,r[2]*T,r[3]*T);return}
   if(stroke&&stroke.rect&&stroke.mode!='area'){const r=stroke.rect;ctx.fillStyle='rgba(255,154,60,.28)';ctx.strokeStyle=css('--accent');ctx.lineWidth=2/s;
@@ -728,6 +758,7 @@ function startStroke(p,e){const w=w2(p);setHover(p);
     if(inRange(colEdit,x,y)){stroke.mode='col';stroke.val=!isCell(colEdit,x,y);begin();setCell(colEdit,x,y,stroke.val);orderOK=false}
     dirty();return}
   if(tool=='move'){stroke.mode='pan'}
+  else if(tool=='tile'){tlStart(w)}
   else if(tool=='terrain'||tool=='col'){
     if(shape=='rect'){stroke.mode='rect';stroke.a=[hover.tx,hover.ty];stroke.rect=rectOf(stroke.a,stroke.a)}
     else{stroke.mode='paint';begin();paintAt(hover.tx,hover.ty);flushPaint();stroke.lt=[hover.tx,hover.ty]}}
@@ -746,7 +777,9 @@ function moveStroke(p){const w=w2(p);setHover(p);const st=stroke,dx=p.x-st.last.
   switch(st.mode){
     case'pan':ox+=dx;oy+=dy;st.last=p;break;
     case'col':{const x=Math.floor(w.wx/T),y=Math.floor(w.wy/T);if(inRange(colEdit,x,y)&&isCell(colEdit,x,y)!==st.val)setCell(colEdit,x,y,st.val);break}
-    case'tap':case'tapdesel':if(st.moved){st.mode='pan';st.last=p}break;
+    case'tap':case'tapdesel':case'tf':if(st.moved){st.mode='pan';st.last=p}break;
+    case'tp':tlMove(w);break;
+    case'tr':tlRectMove(w);break;
     case'paint':{const [x,y]=st.lt,tx=hover.tx,ty=hover.ty,n=Math.max(Math.abs(tx-x),Math.abs(ty-y));
       for(let i=1;i<=n;i++){paintAt(Math.round(x+(tx-x)*i/n),Math.round(y+(ty-y)*i/n))}st.lt=[tx,ty];flushPaint();break}
     case'rect':case'area':st.rect=rectOf(st.a,[hover.tx,hover.ty]);break;
@@ -759,6 +792,9 @@ function endStroke(p,cancelled){const st=stroke;stroke=null;const w=w2(p);
   if(cancelled){if(pre){restore(pre);buildGround();pre=null;changed=false}dirty();return}
   switch(st.mode){
     case'rect':{begin();paintRect(st.rect);flushPaint();finish();break}
+    case'tp':finish();break;
+    case'tr':if(st.ta&&st.tb){begin();tlFillRect(st.ta,st.tb);finish()}break;
+    case'tf':if(!st.moved)act(()=>tlFill(w));break;
     case'paint':case'scatter':case'erase':case'col':finish();break;
     case'tap':if(!st.moved){placeAt(w)}break;
     case'tapdesel':if(!st.moved){sel=null;ui()}break;
@@ -813,6 +849,7 @@ function buildCtx(){let h='';
     if(cat=='mar')h+=`<div class="row scroll"><button class="tile" data-mk="spawn" aria-pressed="${markSel=='spawn'}"><span class="th"><svg viewBox="0 0 24 24" style="color:#38b6ff;width:30px;height:30px"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg></span><span class="n">Início</span></button>
       <button class="tile" data-mk="boss" aria-pressed="${markSel=='boss'}"><span class="th"><img src="${FOXIMG}" alt=""></span><span class="n">Raposa</span></button><p class="hint" style="align-self:center;min-width:180px">Escolha e toque no mapa onde ela deve ficar.</p></div>`;
     else h+=`<div class="row scroll">${LIST.filter(a=>a[2]===cat).map(a=>objTile(a[0])).join('')}</div>`}
+  else if(tool=='tile'){h=tlHtml()}
   else if(tool=='select'){
     if(!sel)h=`<p class="hint"><b>Selecionar:</b> toque num objeto (ou no início/raposa) e arraste para mover. Toque no vazio para soltar.</p>`;
     else if(sel==='spawn'||sel==='boss')h=`<p class="hint"><b>${sel=='spawn'?'Início do jogador':'Raposa de Nove Caudas'}</b> · x ${(sel=='spawn'?spawn:boss)[0]-.5} · y ${(sel=='spawn'?spawn:boss)[1]-.5}. Arraste para mover.</p>`;
@@ -832,7 +869,7 @@ function buildCtx(){let h='';
       <div class="row wrap"><button class="pill" id="aAdd">+ Adicionar mob</button><span class="sp"></span><button class="pill danger" id="aDel">Apagar área</button><button class="pill" id="aDone" aria-pressed="true">Pronto</button></div>`}}
   else if(tool=='erase')h=`<p class="hint"><b>Borracha:</b> toque ou arraste sobre objetos para apagar. Para apagar terreno, pinte com <b>${THEMES[theme].terr[0]}</b> na ferramenta Terreno.</p>`;
   const keep=ctxEl.querySelector('.scroll');const sx=keep?keep.scrollLeft:0;
-  ctxEl.innerHTML=h;
+  ctxEl.innerHTML=h;if(tool=='tile')tpkInit();
   const first=ctxEl.querySelector('.scroll');if(first&&buildCtx.last===tool+cat)first.scrollLeft=sx;buildCtx.last=tool+cat}
 ctxEl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.ter!=null){terr=+b.dataset.ter;ui()}
@@ -927,7 +964,7 @@ async function srvList(){const L=$('#srvList');if(!(S&&S.tok))return;L.textConte
 function srvAvisa(){fetch('/painel/recarregar',{method:'POST'}).catch(()=>{})}
 $('#srvList').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id,st=$('#sendSt');
   try{
-    if(b.dataset.k==='open'){await imgsSync();const r=(await api('/rest/v1/mapas?select=id,mapa&id=eq.'+encodeURIComponent(id)))[0];if(!r)return;autosave();
+    if(b.dataset.k==='open'){await imgsSync(true);await tsSync(true);const r=(await api('/rest/v1/mapas?select=id,mapa&id=eq.'+encodeURIComponent(id)))[0];if(!r)return;autosave();
       const j=Object.assign({},r.mapa,{name:r.id});parseMap(j);localStorage.setItem(LSM+r.id,JSON.stringify(j));if(!index.list.includes(r.id))index.list.push(r.id);saveIndex();
       if(openMap(r.id)){sentRev=rev;closeMenu();toast('Mapa “'+r.id+'” aberto do servidor')}}
     else if(b.dataset.k==='tog'){await api('/rest/v1/mapas?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({publicado:!b.dataset.pub})});srvAvisa();toast(b.dataset.pub?'Tirado do jogo':'Colocado no jogo');srvList()}
@@ -937,6 +974,7 @@ $('#srvList').addEventListener('click',async e=>{const b=e.target.closest('butto
 async function sendMap(){
   const st=$('#sendSt');
   if(!(S&&S.tok)){openMenu();st.className='status err';st.textContent='Entre com a conta admin para publicar.';return}
+  {const mi=tlMissing();if(mi.length){st.className='status err';st.textContent='Este mapa usa tileset que não está na biblioteca: '+mi.join(', ')+'. Importe de novo ou apague os tiles dele.';toast('Tileset ausente');return}}
   if(BASEMAPS.includes(mapName)){st.className='status err';st.textContent='“'+mapName+'” já vem no jogo. Use outro nome para o mapa novo (menu → Este mapa).';toast('Mude o nome do mapa');openMenu();return}
   if(!/^[a-z0-9_]{2,30}$/.test(mapName)){st.className='status err';st.textContent='O nome precisa ter 2 a 30 letras minúsculas, números ou _ (sem hífen).';toast('Nome inválido');openMenu();return}
   st.className='status';st.textContent='Publicando…';
@@ -950,21 +988,148 @@ $('#sendBig').onclick=sendMap;
 $('#pbIn').onclick=srvLogin;$('#pbP').addEventListener('keydown',e=>{if(e.key==='Enter')srvLogin()});
 $('#pbOut').onclick=()=>{S=null;try{sessionStorage.removeItem('painel')}catch(_){}srvUi()};
 $('#srvRef').onclick=srvList;
+/* ---------- Storage (arquivos originais) e tilesets ---------- */
+const STORE_URL=SB+'/storage/v1/object/public/mapa-recursos/',EXT={'image/png':'png','image/webp':'webp','image/jpeg':'jpg','image/gif':'gif'};
+async function sha12(buf){try{const d=await crypto.subtle.digest('SHA-256',buf);return [...new Uint8Array(d)].slice(0,6).map(b=>b.toString(16).padStart(2,'0')).join('')}catch(e){return [...crypto.getRandomValues(new Uint8Array(6))].map(b=>b.toString(16).padStart(2,'0')).join('')}}
+async function stUp(path,blob,tipo){const r=await fetch(SB+'/storage/v1/object/mapa-recursos/'+path,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+(S&&S.tok),'Content-Type':tipo,'x-upsert':'true','cache-control':'31536000'},body:blob});
+  if(!r.ok){let m='';try{m=(await r.json()).message}catch(_){}const e=new Error(m||('Erro '+r.status));e.status=r.status;throw e}}
+const escH=t=>String(t==null?'':t).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const TLN=['chao','detalhes','acima'],TLNOME={chao:'Chão',detalhes:'Detalhes',acima:'Acima'};
+let TLY={chao:new Map(),detalhes:new Map(),acima:new Map()},EXTRA=[];
+const tlEmpty=()=>({chao:new Map(),detalhes:new Map(),acima:new Map()});
+const tlClone=L=>{const o=tlEmpty();for(const n of TLN)o[n]=new Map((L||TLY)[n]);return o};
+// formato (compatível com mapas antigos, que simplesmente não têm estes campos):
+//   tilesets:[ids]  camadas:[{n:'chao'|'detalhes'|'acima',t:'tiles',d:[[iTileset,tx,ty,coluna,linha],…]}]  — (tx,ty) na grade do próprio tileset, no tamanho original
+//   camadas de outros tipos (estruturas, colisão, altura) entram na mesma lista e passam intactas
+function tlSerialize(){const used=[],camadas=[];for(const n of TLN){const d=[];for(const [k,v] of TLY[n]){const p=k.split('|');let r=used.indexOf(p[0]);if(r<0){r=used.length;used.push(p[0])}d.push([r,+p[1],+p[2],v[0],v[1]])}if(d.length)camadas.push({n,t:'tiles',d})}
+  return{tilesets:used,camadas:camadas.concat(EXTRA)}}
+function tlParse(j){const L=tlEmpty();if(!Array.isArray(j.tilesets)||!Array.isArray(j.camadas))return L;
+  for(const c of j.camadas){if(!c||c.t!=='tiles'||!TLN.includes(c.n)||!Array.isArray(c.d))continue;
+    for(const e of c.d){if(!Array.isArray(e)||e.length<5||!e.slice(0,5).every(Number.isInteger)||e[1]<0||e[2]<0||e[3]<0||e[4]<0)continue;const id=j.tilesets[e[0]];if(typeof id!=='string')continue;L[c.n].set(id+'|'+e[1]+'|'+e[2],[e[3],e[4]])}}return L}
+function tlExtra(j){return Array.isArray(j.camadas)?j.camadas.filter(c=>c&&typeof c==='object'&&!(c.t==='tiles'&&TLN.includes(c.n))).slice(0,12):[]}
+let TSETS=[],TSOK=false;const TSIM={};
+const tsById=id=>TSETS.find(t=>t.id===id);
+function tsSet(rows){TSETS=rows.filter(r=>r&&/^t_[a-z0-9_]{2,28}$/.test(r.id)&&/^tilesets\//.test(r.arquivo||''));
+  TSETS.forEach(r=>{if(TSIM['u'+r.id]!==r.arquivo){TSIM['u'+r.id]=r.arquivo;const i=new Image();i.crossOrigin='anonymous';i.onload=()=>{TSIM[r.id]=i;tlDirtyAll();dirty();if(tool=='tile')ui()};i.src=STORE_URL+r.arquivo}});
+  if(tlSet&&!tsById(tlSet))tlSet=null;if(!tlSet&&TSETS.length)tlPick(TSETS[0].id,true)}
+async function tsSync(semUi){try{const rows=await api('/rest/v1/mapa_tilesets?select=*&order=criado_em.asc');if(Array.isArray(rows)){TSOK=true;tsSet(rows);tlDirtyAll();if(!$('#tsBg').hidden)tsList();if(!semUi){ui();dirty()}}}catch(e){}}
+function tlMissing(){if(!TSOK)return[];const m=new Set();for(const n of TLN)for(const k of TLY[n].keys()){const id=k.split('|')[0];if(!tsById(id))m.add(id)}return[...m]}
+/* ---------- camadas desenhadas ---------- */
+const TLC={},TLD={chao:1,detalhes:1,acima:1},TLV={chao:true,detalhes:true,acima:true};
+function tlDirtyAll(){for(const n of TLN)TLD[n]=1}
+function tlCanvas(n){if(!TLY[n].size)return null;if(!TLC[n]){TLC[n]=document.createElement('canvas');TLC[n].width=TLC[n].height=N*T;TLD[n]=1}
+  if(TLD[n]){const g=TLC[n].getContext('2d');g.clearRect(0,0,N*T,N*T);g.imageSmoothingEnabled=false;
+    for(const [k,v] of TLY[n]){const p=k.split('|'),r=tsById(p[0]),im=TSIM[p[0]];if(!r||!im)continue;g.drawImage(im,r.mg+v[0]*(r.tw+r.sp),r.mg+v[1]*(r.th+r.sp),r.tw,r.th,p[1]*r.tw,p[2]*r.th,r.tw,r.th)}TLD[n]=0}
+  return TLC[n]}
+function tlShow(nomes){const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=false;for(const n of nomes){if(!TLV[n])continue;const c=tlCanvas(n);if(c)ctx.drawImage(c,0,0)}ctx.imageSmoothingEnabled=sm}
+/* ---------- ferramenta Tiles ---------- */
+let tlLayer='chao',tlSub='pincel',tlSet=null,tlSel=null,tlArea=false;
+const tlCur=()=>tlSet?tsById(tlSet):null;
+function tlPick(id,quieto){tlSet=id;tlSel={c0:0,r0:0,c1:0,r1:0};if(!quieto){ui();dirty()}}
+function tlGrid(r){const im=TSIM[r.id],w=im?im.width:r.w,h=im?im.height:r.h;return{cols:Math.max(1,Math.floor((w-r.mg+r.sp)/(r.tw+r.sp))),rows:Math.max(1,Math.floor((h-r.mg+r.sp)/(r.th+r.sp)))}}
+const tlCell=(wx,wy,r)=>({tx:clamp(Math.floor(wx/r.tw),0,Math.ceil(N*T/r.tw)-1),ty:clamp(Math.floor(wy/r.th),0,Math.ceil(N*T/r.th)-1)});
+function tlHtml(){const r=tlCur(),miss=tlMissing(),
+  subs=[['pincel','Pincel'],['borracha','Borracha'],['balde','Balde'],['ret','Retângulo']];
+  return `<div class="row scroll"><div class="seg" role="group" aria-label="Camada">${TLN.map(n=>`<button data-tly="${n}" aria-pressed="${tlLayer===n}">${TLNOME[n]}</button>`).join('')}</div>${TLN.map(n=>`<button class="pill" data-tvis="${n}" aria-pressed="${TLV[n]}" aria-label="Mostrar ${TLNOME[n]}">${TLV[n]?'👁':'⊘'} ${TLNOME[n]} · ${TLY[n].size}</button>`).join('')}</div>
+  <div class="row scroll"><div class="seg" role="group" aria-label="Ferramenta">${subs.map(a=>`<button data-tsub="${a[0]}" aria-pressed="${tlSub===a[0]}">${a[1]}</button>`).join('')}</div><button class="pill" id="tsArea" aria-pressed="${tlArea}">Escolher área</button></div>
+  <div class="row scroll">${TSETS.map(t=>`<button class="pill" data-tset="${t.id}" aria-pressed="${tlSet===t.id}">${escH(t.nome)}</button>`).join('')}<button class="pill" id="tsNew">+ Tileset</button></div>
+  ${r?`<div class="tpkw${tlArea?' area':''}"><canvas id="tpk"></canvas></div><p class="hint">${r.tw}×${r.th} px por tile${tlArea?' · arraste para escolher vários tiles':' · toque no tile (ligue “Escolher área” para vários)'}</p>`:'<p class="hint">Importe um tileset (+ Tileset) para começar a pintar.</p>'}
+  ${miss.length?`<p class="status err">Tileset ausente neste mapa: ${miss.map(escH).join(', ')}</p>`:''}`}
+let tpkZ=1;
+function tpkDraw(){const c=$('#tpk'),r=tlCur(),im=r&&TSIM[r.id];if(!c||!im)return;const z=tpkZ,g=c.getContext('2d');c.width=im.width*z;c.height=im.height*z;g.imageSmoothingEnabled=false;g.drawImage(im,0,0,c.width,c.height);
+  const q=tlGrid(r);g.lineWidth=1;g.strokeStyle='rgba(255,255,255,.55)';g.beginPath();
+  for(let i=0;i<=q.cols;i++){const x=(r.mg+i*(r.tw+r.sp))*z+.5;g.moveTo(x,0);g.lineTo(x,c.height)}for(let j=0;j<=q.rows;j++){const y=(r.mg+j*(r.th+r.sp))*z+.5;g.moveTo(0,y);g.lineTo(c.width,y)}g.stroke();
+  if(tlSel){const x0=Math.min(tlSel.c0,tlSel.c1),x1=Math.max(tlSel.c0,tlSel.c1),y0=Math.min(tlSel.r0,tlSel.r1),y1=Math.max(tlSel.r0,tlSel.r1);
+    const X=(r.mg+x0*(r.tw+r.sp))*z,Y=(r.mg+y0*(r.th+r.sp))*z,Wd=(x1-x0+1)*(r.tw+r.sp)*z-r.sp*z,Hd=(y1-y0+1)*(r.th+r.sp)*z-r.sp*z;g.fillStyle='rgba(255,154,60,.28)';g.fillRect(X,Y,Wd,Hd);g.strokeStyle='#ff9a3c';g.lineWidth=2;g.strokeRect(X+1,Y+1,Wd-2,Hd-2)}}
+function tpkInit(){const c=$('#tpk'),r=tlCur(),im=r&&TSIM[r.id];if(!c)return;if(!im){c.width=60;c.height=20;return}
+  tpkZ=clamp(Math.floor(320/im.width),1,4);tpkDraw();
+  const cell=e=>{const b=c.getBoundingClientRect(),x=(e.clientX-b.left)*c.width/b.width/tpkZ,y=(e.clientY-b.top)*c.height/b.height/tpkZ,q=tlGrid(r);
+    return{c:clamp(Math.floor((x-r.mg)/(r.tw+r.sp)),0,q.cols-1),r:clamp(Math.floor((y-r.mg)/(r.th+r.sp)),0,q.rows-1)}};
+  let down=false;
+  c.onpointerdown=e=>{const k=cell(e);if(tlArea){down=true;try{c.setPointerCapture(e.pointerId)}catch(_){}}tlSel={c0:k.c,r0:k.r,c1:k.c,r1:k.r};tpkDraw();dirty()};
+  c.onpointermove=e=>{if(!down)return;const k=cell(e);if(tlSel.c1!==k.c||tlSel.r1!==k.r){tlSel.c1=k.c;tlSel.r1=k.r;tpkDraw()}};
+  c.onpointerup=c.onpointercancel=()=>{down=false;dirty()}}
+function tlStamp(r){const a=tlSel||{c0:0,r0:0,c1:0,r1:0};return{c0:Math.min(a.c0,a.c1),r0:Math.min(a.r0,a.r1),sw:Math.abs(a.c1-a.c0)+1,sh:Math.abs(a.r1-a.r0)+1}}
+function tlPut(r,tx,ty,col,row){const mx=Math.ceil(N*T/r.tw),my=Math.ceil(N*T/r.th);if(tx<0||ty<0||tx>=mx||ty>=my)return;const L=TLY[tlLayer],k=r.id+'|'+tx+'|'+ty,o=L.get(k);if(o&&o[0]===col&&o[1]===row)return;L.set(k,[col,row]);TLD[tlLayer]=1;touch()}
+function tlPaintAt(w,r){const c=tlCell(w.wx,w.wy,r),m=tlStamp(r);for(let j=0;j<m.sh;j++)for(let i=0;i<m.sw;i++)tlPut(r,c.tx+i,c.ty+j,m.c0+i,m.r0+j)}
+function tlErase(w){const L=TLY[tlLayer];let n=0;for(const r of TSETS){const k=r.id+'|'+Math.floor(w.wx/r.tw)+'|'+Math.floor(w.wy/r.th);if(L.delete(k))n++}if(n){TLD[tlLayer]=1;touch()}}
+function tlStart(w){const r=tlCur();if(!r||!TSIM[r.id]){toast(r?'O tileset ainda está carregando':'Escolha ou importe um tileset');stroke.mode='pan';return}
+  if(tlSub==='borracha'){stroke.mode='tp';begin();tlErase(w);stroke.lw=w}
+  else if(tlSub==='pincel'){stroke.mode='tp';begin();tlPaintAt(w,r);stroke.lw=w}
+  else if(tlSub==='ret'){const c=tlCell(w.wx,w.wy,r);stroke.mode='tr';stroke.ta=c;stroke.tb=c}
+  else stroke.mode='tf'}
+function tlMove(w){const st=stroke,r=tlCur();if(!r)return;const d=Math.hypot(w.wx-st.lw.wx,w.wy-st.lw.wy),n=Math.max(1,Math.ceil(d/Math.max(4,Math.min(r.tw,r.th)/2)));
+  for(let i=1;i<=n;i++){const q={wx:st.lw.wx+(w.wx-st.lw.wx)*i/n,wy:st.lw.wy+(w.wy-st.lw.wy)*i/n};if(tlSub==='borracha')tlErase(q);else tlPaintAt(q,r)}st.lw=w}
+function tlRectMove(w){const r=tlCur();if(r)stroke.tb=tlCell(w.wx,w.wy,r)}
+function tlFillRect(a,b){const r=tlCur(),m=tlStamp(r),x0=Math.min(a.tx,b.tx),y0=Math.min(a.ty,b.ty),x1=Math.max(a.tx,b.tx),y1=Math.max(a.ty,b.ty);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)tlPut(r,x,y,m.c0+(x-x0)%m.sw,m.r0+(y-y0)%m.sh)}
+function tlFill(w){const r=tlCur();if(!r)return;const L=TLY[tlLayer],c=tlCell(w.wx,w.wy,r),mx=Math.ceil(N*T/r.tw),my=Math.ceil(N*T/r.th),m=tlStamp(r),
+  key=(x,y)=>r.id+'|'+x+'|'+y,val=(x,y)=>{const v=L.get(key(x,y));return v?v[0]+','+v[1]:''},alvo=val(c.tx,c.ty),seen=new Set([c.tx+','+c.ty]),q=[[c.tx,c.ty]];let n=0;
+  while(q.length&&n<8000){const [x,y]=q.pop();n++;tlPut(r,x,y,m.c0+(((x-c.tx)%m.sw)+m.sw)%m.sw,m.r0+(((y-c.ty)%m.sh)+m.sh)%m.sh);
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(nx<0||ny<0||nx>=mx||ny>=my||seen.has(k))continue;seen.add(k);if(val(nx,ny)===alvo)q.push([nx,ny])}}
+  if(n>=8000)toast('Área grande: preenchi só uma parte')}
+function tlPreview(){const r=tlCur();if(!r)return;ctx.save();ctx.imageSmoothingEnabled=false;ctx.strokeStyle=css('--accent');ctx.lineWidth=2/s;
+  if(stroke&&stroke.mode==='tr'){const a=stroke.ta,b=stroke.tb,x0=Math.min(a.tx,b.tx),y0=Math.min(a.ty,b.ty),x1=Math.max(a.tx,b.tx),y1=Math.max(a.ty,b.ty);ctx.fillStyle='rgba(255,154,60,.25)';ctx.fillRect(x0*r.tw,y0*r.th,(x1-x0+1)*r.tw,(y1-y0+1)*r.th);ctx.strokeRect(x0*r.tw,y0*r.th,(x1-x0+1)*r.tw,(y1-y0+1)*r.th);ctx.restore();return}
+  if(!hover){ctx.restore();return}const c=tlCell(hover.wx,hover.wy,r),im=TSIM[r.id];
+  if((tlSub==='pincel'||tlSub==='balde')&&im){const m=tlStamp(r);ctx.globalAlpha=.6;
+    for(let j=0;j<m.sh;j++)for(let i=0;i<m.sw;i++)ctx.drawImage(im,r.mg+(m.c0+i)*(r.tw+r.sp),r.mg+(m.r0+j)*(r.th+r.sp),r.tw,r.th,(c.tx+i)*r.tw,(c.ty+j)*r.th,r.tw,r.th);
+    ctx.globalAlpha=1;ctx.strokeRect(c.tx*r.tw,c.ty*r.th,m.sw*r.tw,m.sh*r.th)}
+  else ctx.strokeRect(c.tx*r.tw,c.ty*r.th,r.tw,r.th);ctx.restore()}
+ctxEl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||tool!=='tile')return;
+  if(b.dataset.tly){tlLayer=b.dataset.tly;ui()}
+  else if(b.dataset.tvis){TLV[b.dataset.tvis]=!TLV[b.dataset.tvis];ui();dirty()}
+  else if(b.dataset.tsub){tlSub=b.dataset.tsub;ui()}
+  else if(b.dataset.tset){tlPick(b.dataset.tset)}
+  else if(b.id==='tsArea'){tlArea=!tlArea;ui()}
+  else if(b.id==='tsNew')tsOpen()});
+/* ---------- importar tileset (o arquivo original vai sem alteração para o Storage) ---------- */
+let TI=null;
+function tsOpen(){if(!(S&&S.tok)){openMenu();$('#sendSt').className='status err';$('#sendSt').textContent='Entre com a conta admin para importar tilesets.';return}$('#tsBg').hidden=false;$('#tsSt').textContent='';tsList()}
+function tsClose(){$('#tsBg').hidden=true;TI=null;$('#tsOpt').hidden=true;$('#tsPv').hidden=true;$('#tsFile').value=''}
+$('#tsX').onclick=tsClose;$('#tsBg').addEventListener('pointerdown',e=>{if(e.target===$('#tsBg'))tsClose()});
+function tsList(){const L=$('#tsList');L.innerHTML='';if(!TSETS.length){L.textContent='Nenhum ainda.';return}
+  TSETS.forEach(r=>{const d=document.createElement('div');d.className='srow';const b=document.createElement('b');b.textContent=r.nome+' · '+r.w+'×'+r.h+' · tile '+r.tw+'×'+r.th;const x=document.createElement('button');x.className='pill';x.textContent='Apagar';x.dataset.id=r.id;d.append(b,x);L.appendChild(d)})}
+$('#tsList').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const st=$('#tsSt');
+  if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='Apagar mesmo? (some dos mapas)';setTimeout(()=>{b.dataset.c='';b.textContent='Apagar'},3500);return}
+  try{await api('/rest/v1/mapa_tilesets?id=eq.'+encodeURIComponent(b.dataset.id),{method:'DELETE'});srvAvisa();await tsSync();st.className='status ok';st.textContent='Tileset apagado.'}catch(err){st.className='status err';st.textContent=imgErro(err)}});
+$('#tsFile').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const st=$('#tsSt');
+  if(!EXT[f.type]){st.className='status err';st.textContent='Use PNG, WebP, JPG ou GIF.';return}
+  const url=URL.createObjectURL(f),i=new Image();
+  i.onload=()=>{URL.revokeObjectURL(url);TI={file:f,img:i};$('#tsOpt').hidden=false;$('#tsPv').hidden=false;$('#tsNome').value=(f.name||'tileset').replace(/\.[^.]+$/,'').slice(0,40);
+    const w=i.width,h=i.height,g=[32,16,48,64,24,8].find(t=>w%t===0&&h%t===0)||32;$('#tsTw').value=g;$('#tsTh').value=g;$('#tsMg').value=0;$('#tsSp').value=0;$('#tsPx').checked=true;
+    st.className='status';st.textContent='';tsPv()};
+  i.onerror=()=>{URL.revokeObjectURL(url);st.className='status err';st.textContent='Não consegui abrir essa imagem.'};i.src=url};
+['tsTw','tsTh','tsMg','tsSp'].forEach(id=>$('#'+id).addEventListener('input',()=>{if(TI)tsPv()}));
+function tsDims(){return{tw:clamp(+$('#tsTw').value||32,4,512),th:clamp(+$('#tsTh').value||32,4,512),mg:clamp(+$('#tsMg').value||0,0,256),sp:clamp(+$('#tsSp').value||0,0,64)}}
+function tsPv(){const im=TI.img,d=tsDims(),c=$('#tsPv'),z=clamp(Math.floor(300/im.width),1,4),g=c.getContext('2d');c.width=im.width*z;c.height=im.height*z;g.imageSmoothingEnabled=false;g.drawImage(im,0,0,c.width,c.height);
+  const cols=Math.max(0,Math.floor((im.width-d.mg+d.sp)/(d.tw+d.sp))),rows=Math.max(0,Math.floor((im.height-d.mg+d.sp)/(d.th+d.sp)));g.strokeStyle='rgba(255,60,60,.8)';g.lineWidth=1;g.beginPath();
+  for(let i=0;i<=cols;i++){const x=(d.mg+i*(d.tw+d.sp))*z+.5;g.moveTo(x,0);g.lineTo(x,c.height)}for(let j=0;j<=rows;j++){const y=(d.mg+j*(d.th+d.sp))*z+.5;g.moveTo(0,y);g.lineTo(c.width,y)}g.stroke();
+  const f=TI.file;$('#tsInfo').textContent=im.width+'×'+im.height+' px · '+cols+'×'+rows+' tiles de '+d.tw+'×'+d.th+' · arquivo '+Math.round(f.size/1024)+' KB ('+EXT[f.type].toUpperCase()+') — vai para o Storage exatamente como está'}
+$('#tsSave').onclick=async()=>{const st=$('#tsSt');if(!TI)return;const nome=$('#tsNome').value.trim().slice(0,40);if(!nome){st.className='status err';st.textContent='Dê um nome para o tileset.';return}
+  const d=tsDims(),im=TI.img,f=TI.file;if(d.tw>im.width||d.th>im.height){st.className='status err';st.textContent='O tile é maior que a imagem.';return}
+  st.className='status';st.textContent='Enviando o arquivo original…';
+  try{const arquivo='tilesets/'+await sha12(await f.arrayBuffer())+'.'+EXT[f.type];await stUp(arquivo,f,f.type);
+    const base=nome.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,18)||'ts';let id='t_'+base;while(TSETS.some(r=>r.id===id)||id.length<4)id='t_'+base+'_'+(Math.random()*1000|0);
+    await api('/rest/v1/mapa_tilesets',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,nome,arquivo,w:im.width,h:im.height,tw:d.tw,th:d.th,mg:d.mg,sp:d.sp,px:$('#tsPx').checked})});
+    srvAvisa();await tsSync(true);tlPick(id,true);tool='tile';ui();dirty();toast('Tileset salvo');tsClose()}
+  catch(err){st.className='status err';st.textContent=imgErro(err)}};
+
 /* ---------- imagens próprias: PNG importado, fundo removido, usado como objeto do mapa (tabela mapa_imagens, SQL 12) ---------- */
 const IMGK='shinobi-imgs-v1';let IMGS=[];
 if(!CATS.some(c=>c[0]==='cus'))CATS.push(['cus','Meus','*']);
-function imgReg(r){if(!r||!/^c_[a-z0-9_]{2,28}$/.test(r.id)||typeof r.png!=='string'||!/^data:image\/(png|webp);base64,/.test(r.png))return;
-  const fw=clamp(r.fw|0||1,1,8),fh=clamp(r.fh|0||1,1,8),off=clamp(r.off|0,0,8),ns=r.ns?1:0;TS[r.id]=r.png;
+const imgSrc=r=>typeof r.png==='string'&&/^data:image\/(png|webp);base64,/.test(r.png)?r.png:(/^objetos\/[a-f0-9]{12}\.png$/.test(r.arquivo||'')?STORE_URL+r.arquivo:'');
+function imgReg(r){if(!r||!/^c_[a-z0-9_]{2,28}$/.test(r.id)||!imgSrc(r))return;
+  const fw=clamp(r.fw|0||1,1,8),fh=clamp(r.fh|0||1,1,8),off=clamp(r.off|0,0,8),ns=r.ns?1:0;TS[r.id]=imgSrc(r);
   const a=LIST.find(x=>x[0]===r.id);if(a){a[1]=r.nome;a[3]=fw;a[4]=fh;a[5]=off;a[6]=ns}else LIST.push([r.id,r.nome,'cus',fw,fh,off,ns]);
-  CAT[r.id]={k:r.id,n:r.nome,c:'cus',fw,fh,off,ns};const dw=r.dw>0?r.dw|0:0,dh=r.dh>0?r.dh|0:0,i=new Image();
-  i.onload=()=>{if(dw&&dh&&(dw!==i.width||dh!==i.height)){const c=document.createElement('canvas');c.width=dw;c.height=dh;const g=c.getContext('2d');g.imageSmoothingEnabled=!r.px;g.drawImage(i,0,0,dw,dh);TX[r.id]=c}else TX[r.id]=i;delete masks[r.id];dirty()};i.src=r.png}
+  CAT[r.id]={k:r.id,n:r.nome,c:'cus',fw,fh,off,ns};const dw=r.dw>0?r.dw|0:0,dh=r.dh>0?r.dh|0:0,i=new Image();i.crossOrigin='anonymous';
+  i.onload=()=>{if(dw&&dh&&(dw!==i.width||dh!==i.height)){const c=document.createElement('canvas');c.width=dw;c.height=dh;const g=c.getContext('2d');g.imageSmoothingEnabled=!r.px;g.drawImage(i,0,0,dw,dh);TX[r.id]=c}else TX[r.id]=i;delete masks[r.id];dirty()};i.src=imgSrc(r)}
 function imgsSet(rows){IMGS=rows.filter(r=>r&&r.id);IMGS.forEach(imgReg);
   const ids=new Set(IMGS.map(r=>r.id));for(let n=LIST.length-1;n>=0;n--)if(LIST[n][2]==='cus'&&!ids.has(LIST[n][0])){delete CAT[LIST[n][0]];LIST.splice(n,1)}
   try{localStorage.setItem(IMGK,JSON.stringify(IMGS))}catch(e){}}
 try{const c=JSON.parse(localStorage.getItem(IMGK)||'[]');if(Array.isArray(c))imgsSet(c)}catch(e){}
 async function imgsSync(semUi){try{const rows=await api('/rest/v1/mapa_imagens?select=*&order=criado_em.asc');if(Array.isArray(rows)){imgsSet(rows);if(!$('#imgBg').hidden)imgList();if(!semUi)ui()}}catch(e){}}
 function imgList(){const L=$('#imgList');L.innerHTML='';if(!IMGS.length){L.textContent='Nenhuma ainda.';return}
-  IMGS.forEach(r=>{const d=document.createElement('div');d.className='srow';const im=document.createElement('img');im.src=r.png;const b=document.createElement('b');b.textContent=r.nome+' · '+(r.dw||r.w)+'×'+(r.dh||r.h);d.append(im,b);
+  IMGS.forEach(r=>{const d=document.createElement('div');d.className='srow';const im=document.createElement('img');im.src=imgSrc(r);const b=document.createElement('b');b.textContent=r.nome+' · '+(r.dw||r.w)+'×'+(r.dh||r.h);d.append(im,b);
     const e=document.createElement('button');e.className='pill';e.textContent='Editar';e.dataset.id=r.id;e.dataset.ed='1';d.appendChild(e);
     const x=document.createElement('button');x.className='pill';x.textContent='Apagar';x.dataset.id=r.id;d.appendChild(x);L.appendChild(d)})}
 $('#imgList').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const st=$('#imgSt');
@@ -973,15 +1138,16 @@ $('#imgList').addEventListener('click',async e=>{const b=e.target.closest('butto
   try{await api('/rest/v1/mapa_imagens?id=eq.'+encodeURIComponent(b.dataset.id),{method:'DELETE'});srvAvisa();await imgsSync();st.className='status ok';st.textContent='Imagem apagada.'}
   catch(err){st.className='status err';st.textContent=imgErro(err)}});
 function imgErro(e){const m=String(e&&e.message||e);if(e&&(e.code==='PGRST205'||/Could not find the table/i.test(m)))return 'O banco ainda não tem a tabela de imagens: rode o arquivo sql/12_mapa_imagens.sql no Supabase.';
+  if(/bucket not found|Bucket not found/i.test(m)||/'(arquivo|original)' column/i.test(m))return 'O banco ainda não tem o Storage dos recursos: rode o arquivo sql/15_mapa_recursos.sql no Supabase.';
   if(/'(dw|dh|px)' column|column .*\b(dw|dh|px)\b/i.test(m))return 'O banco ainda não tem as colunas de tamanho: rode o arquivo sql/14_mapa_imagens_tamanho.sql no Supabase.';return srvErro(e)}
-let IM=null;
+let IM=null,IMFILE=null;
 function imgOpen(){if(!(S&&S.tok)){closeMenu();openMenu();$('#sendSt').className='status err';$('#sendSt').textContent='Entre com a conta admin para importar imagens.';return}
   $('#imgBg').hidden=false;$('#imgSt').textContent='';imgList()}
 function imgReset(){IM=null;$('#imgOpt').hidden=true;$('#imgPv').hidden=true;$('#imgFile').value='';$('#imgFw').dataset.t='';$('#imgBgSec').hidden=false;$('#imgSave').textContent='Salvar imagem';$('#imgInfo').textContent='Escolha um PNG (ou JPG/WebP). Se tiver fundo, ele é removido aqui.'}
 function imgClose(){$('#imgBg').hidden=true;imgReset()}
 document.addEventListener('click',e=>{if(e.target.closest('#imgNew'))imgOpen()});$('#imgX').onclick=imgClose;$('#imgBg').addEventListener('pointerdown',e=>{if(e.target===$('#imgBg'))imgClose()});
-$('#imgFile').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const url=URL.createObjectURL(f),i=new Image(),st=$('#imgSt');$('#imgBgSec').hidden=false;$('#imgSave').textContent='Salvar imagem';
-  i.onload=()=>{URL.revokeObjectURL(url);const k=Math.min(1,1024/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(i.width*k));c.height=Math.max(1,Math.round(i.height*k));
+$('#imgFile').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const url=URL.createObjectURL(f),i=new Image(),st=$('#imgSt');IMFILE=f;$('#imgBgSec').hidden=false;$('#imgSave').textContent='Salvar imagem';
+  i.onload=()=>{URL.revokeObjectURL(url);const k=Math.min(1,4096/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(i.width*k));c.height=Math.max(1,Math.round(i.height*k));
     const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(i,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height).data,W=c.width,H=c.height;
     let transp=0,tot=0;const cnt={};const bp=(x,y)=>{const p=(y*W+x)*4;tot++;if(d[p+3]<200)transp++;else{const q=(d[p]>>4)+','+(d[p+1]>>4)+','+(d[p+2]>>4);cnt[q]=(cnt[q]||0)+1}};
     for(let x=0;x<W;x++){bp(x,0);bp(x,H-1)}for(let y=1;y<H-1;y++){bp(0,y);bp(W-1,y)}
@@ -1038,13 +1204,14 @@ $('#imgSave').onclick=async()=>{const st=$('#imgSt');if(!IM||!IM.out)return;cons
     try{await api('/rest/v1/mapa_imagens?id=eq.'+encodeURIComponent(IM.edit),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(dados)});
       const r=IMGS.find(x=>x.id===IM.edit);Object.assign(r,dados);imgsSet(IMGS);srvAvisa();ui();dirty();imgList();toast('Imagem atualizada');imgClose()}
     catch(err){st.className='status err';st.textContent=imgErro(err)}return}
-  // PNG sem perda; se passar do limite do banco, tenta WebP com transparência em qualidade alta (sem mudar o tamanho em pixels)
-  const LIM=1400000;let png=IM.out.toDataURL('image/png');
-  if(png.length>LIM){for(const q of [.97,.93,.88,.82]){const w=IM.out.toDataURL('image/webp',q);if(/^data:image\/webp/.test(w)&&w.length<=LIM){png=w;break}}}
-  if(png.length>LIM){st.className='status err';st.textContent='Mesmo comprimida ela tem '+Math.round(png.length/1024)+' KB (o limite é '+Math.round(LIM/1024)+' KB). Use uma imagem com menos pixels.';return}
+  // o arquivo de trabalho (já sem fundo, cortado) vai em PNG sem perda para o Storage; o ORIGINAL enviado fica guardado sem nenhuma alteração
+  st.className='status';st.textContent='Enviando arquivos…';let arquivo,original=null;
+  try{const blob=await new Promise(r=>IM.out.toBlob(r,'image/png'));arquivo='objetos/'+await sha12(await blob.arrayBuffer())+'.png';await stUp(arquivo,blob,'image/png');
+    if(IMFILE&&EXT[IMFILE.type]){original='originais/'+await sha12(await IMFILE.arrayBuffer())+'.'+EXT[IMFILE.type];await stUp(original,IMFILE,IMFILE.type)}}
+  catch(err){st.className='status err';st.textContent=imgErro(err);return}
   const base=nome.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,18)||'img';let id='c_'+base;
   while(IMGS.some(r=>r.id===id)||id.length<4)id='c_'+base+'_'+(Math.random()*1000|0);
-  const row=Object.assign({id,png,w:IM.out.width,h:IM.out.height,off:0},dados);
+  const row=Object.assign({id,arquivo,original,w:IM.out.width,h:IM.out.height,off:0},dados);
   st.className='status';st.textContent='Salvando…';
   try{await api('/rest/v1/mapa_imagens',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(row)});IMGS.push(row);imgsSet(IMGS);srvAvisa();
     cat='cus';kindSel=id;markSel=null;tool='object';ui();dirty();toast('Imagem salva');imgList();imgClose()}
@@ -1057,7 +1224,7 @@ function imgEdit(id){const r=IMGS.find(x=>x.id===id);if(!r)return;const i=new Im
     $('#imgNome').value=r.nome;$('#imgFw').value=r.fw||1;$('#imgFh').value=r.fh||1;$('#imgFw').dataset.t='1';$('#imgNs').checked=!!r.ns;$('#imgPix').checked=!!r.px;
     $('#imgSc').value=clamp(Math.round(IM.sc),5,300);imgProc();$('#imgSt').className='status';$('#imgSt').textContent='Mude o tamanho no mapa, a colisão ou o nome e toque em Salvar alterações. Os objetos já colocados ficam no mesmo lugar (pelos pés).';
     $('#imgPv').scrollIntoView({block:'nearest'})};
-  i.src=r.png}
+  i.crossOrigin='anonymous';i.src=imgSrc(r)}
 
 $('#copyJ').onclick=async()=>{const t=serialize(),box=$('#jsonBox');
   try{await navigator.clipboard.writeText(t);toast('JSON copiado');$('#jsonSt').textContent=''}
@@ -1068,7 +1235,7 @@ $('#loadJ').onclick=()=>{try{const m=parseMap(JSON.parse($('#jsonBox').value));b
 let cT=null;
 function confirmReset(){clearTimeout(cT);$('#rClear').textContent='Limpar tudo';$('#rDel').textContent='Excluir este mapa';$('#rClear').dataset.c=$('#rDel').dataset.c=''}
 function twoTap(btn,fn){btn.addEventListener('click',()=>{if(btn.dataset.c){confirmReset();fn();return}confirmReset();btn.dataset.c='1';btn.textContent='Toque de novo para confirmar';cT=setTimeout(confirmReset,3500)})}
-twoTap($('#rClear'),()=>{begin();G=new Uint8Array(N*N);K=new Uint8Array(N*N);OBJ=[];AREAS=[];selA=-1;sel=null;orderOK=false;buildGround();touch();finish();closeMenu();toast('Mapa limpo')});
+twoTap($('#rClear'),()=>{begin();G=new Uint8Array(N*N);K=new Uint8Array(N*N);OBJ=[];AREAS=[];selA=-1;sel=null;orderOK=false;TLY=tlEmpty();EXTRA=[];tlDirtyAll();buildGround();touch();finish();closeMenu();toast('Mapa limpo')});
 twoTap($('#rDel'),()=>{const n=mapName;deleteMap();closeMenu();toast('Mapa “'+n+'” excluído')});
 /* ---------- início ---------- */
 function resize(){const r=$('#stage').getBoundingClientRect();dpr=Math.min(2,devicePixelRatio||1);cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);dirty()}
@@ -1085,7 +1252,7 @@ function boot(){
   resize();const W=cv.clientWidth,H=cv.clientHeight;s=clamp(W/(16*T),.5,1.2);ox=W/2-25*T*s;oy=H/2-25*T*s;
   resetHistory();ui();dirty();
   srvUi();srvList()}
-loadAll(()=>Promise.race([imgsSync(true),new Promise(r=>setTimeout(r,4000))]).then(boot));
+loadAll(()=>Promise.race([Promise.all([imgsSync(true),tsSync(true)]),new Promise(r=>setTimeout(r,4000))]).then(boot));
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',dirty);
 new MutationObserver(dirty).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 

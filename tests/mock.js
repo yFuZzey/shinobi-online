@@ -1,15 +1,17 @@
 // Servidor simulado (subconjunto do Supabase: Auth, REST de "personagens" e Realtime/Phoenix) para testes locais.
 const http=require('http'),crypto=require('crypto');
 const PORT=+process.argv[2]||54321;
-const users={},rows={},INV={},PATCHES=[],TROCAS=[],BANS={},ITENS={},MAPAS={},IMAGENS={};let RPCS=0;let n=0;const log=[];
+const users={},rows={},INV={},PATCHES=[],TROCAS=[],BANS={},ITENS={},MAPAS={},IMAGENS={},TILESETS={},STORE={};let RPCS=0;let n=0;const log=[];
 function J(res,code,obj){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});res.end(obj===undefined?'':JSON.stringify(obj))}
 function sess(u){const r='ref-'+u.id+'-'+(++n);u.refresh=r;return {access_token:'tok-'+u.id,refresh_token:r,expires_in:3600,token_type:'bearer',user:{id:u.id,email:u.email,user_metadata:u.meta}}}
 function uidOf(req){const a=req.headers.authorization||'';const m=/^Bearer tok-(.+)$/.exec(a);return m?m[1]:null}
 const srv=http.createServer((req,res)=>{
- if(req.method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'apikey,authorization,content-type,prefer','Access-Control-Allow-Methods':'GET,POST,PATCH,DELETE,OPTIONS'});return res.end()}
- let b='';req.on('data',c=>b+=c);req.on('end',()=>{
-  const u=new URL(req.url,'http://x');let body={};try{body=b?JSON.parse(b):{}}catch(_){}
+ if(req.method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'apikey,authorization,content-type,prefer,x-upsert,cache-control','Access-Control-Allow-Methods':'GET,POST,PUT,PATCH,DELETE,OPTIONS'});return res.end()}
+ const chunks=[];req.on('data',c=>chunks.push(c));req.on('end',()=>{
+  const raw=Buffer.concat(chunks),u=new URL(req.url,'http://x');let body={};if(!u.pathname.startsWith('/storage/')){try{body=raw.length?JSON.parse(raw.toString()):{}}catch(_){}}
   log.push(req.method+' '+u.pathname+u.search);
+  if(u.pathname.startsWith('/storage/v1/object/public/mapa-recursos/')){const f=decodeURIComponent(u.pathname.slice('/storage/v1/object/public/mapa-recursos/'.length)),o=STORE[f];
+   if(!o){res.writeHead(404,{'Access-Control-Allow-Origin':'*'});return res.end('{}')}res.writeHead(200,{'Content-Type':o.t,'Access-Control-Allow-Origin':'*','Cache-Control':'public, max-age=3600'});return res.end(o.b)}
   if(!req.headers.apikey)return J(res,401,{message:'No API key found in request'});
   if(u.pathname==='/auth/v1/signup'){if(users[body.email])return J(res,422,{code:422,error_code:'user_already_exists',msg:'User already registered'});
    if((body.password||'').length<6)return J(res,422,{code:422,error_code:'weak_password',msg:'Password should be at least 6 characters.'});
@@ -93,6 +95,22 @@ const srv=http.createServer((req,res)=>{
    if(req.method==='POST'){if(!/^c_[a-z0-9_]{2,28}$/.test(body.id||''))return J(res,400,{code:'23514',message:'new row violates check constraint'});IMAGENS[body.id]={criado_em:new Date().toISOString(),...body};return J(res,201,[IMAGENS[body.id]])}
    if(req.method==='PATCH'){const r=IMAGENS[idf];if(!r)return J(res,200,[]);Object.assign(r,body);return J(res,200,[r])}
    if(req.method==='DELETE'){const r=IMAGENS[idf];delete IMAGENS[idf];return J(res,200,r?[r]:[])}}
+  // Storage (SQL 15): leitura pública do bucket; só admin envia/apaga
+  if(u.pathname==='/__store')return J(res,200,Object.fromEntries(Object.entries(STORE).map(([k,v])=>[k,{n:v.b.length,tipo:v.t}])));
+  if(u.pathname.startsWith('/storage/v1/object/mapa-recursos/')){const f=decodeURIComponent(u.pathname.slice('/storage/v1/object/mapa-recursos/'.length)),uid=uidOf(req),adm=!!(uid&&rows[uid]&&rows[uid].admin);
+   if(!uid)return J(res,401,{message:'JWT required'});if(!adm)return J(res,403,{statusCode:'403',error:'Unauthorized',message:'new row violates row-level security policy'});
+   if(req.method==='POST'||req.method==='PUT'){if(STORE[f]&&req.headers['x-upsert']!=='true')return J(res,409,{statusCode:'409',error:'Duplicate',message:'The resource already exists'});
+    STORE[f]={b:raw,t:req.headers['content-type']||'application/octet-stream'};return J(res,200,{Key:'mapa-recursos/'+f})}
+   if(req.method==='DELETE'){delete STORE[f];return J(res,200,{message:'Successfully deleted'})}}
+  // tilesets (SQL 15)
+  if(u.pathname==='/__tilesets')return J(res,200,TILESETS);
+  if(u.pathname==='/rest/v1/mapa_tilesets'){const uid=uidOf(req),adm=SVC||!!(uid&&rows[uid]&&rows[uid].admin),idf=(u.searchParams.get('id')||'').replace(/^eq\./,'');
+   if(req.method==='GET')return J(res,200,Object.values(TILESETS).filter(r=>!idf||r.id===idf).map(r=>({...r})));
+   if(!uid&&!SVC)return J(res,401,{message:'JWT required'});
+   if(!adm)return J(res,403,{code:'42501',message:'new row violates row-level security policy for table "mapa_tilesets"'});
+   if(req.method==='POST'){if(!/^t_[a-z0-9_]{2,28}$/.test(body.id||''))return J(res,400,{code:'23514',message:'new row violates check constraint'});TILESETS[body.id]={criado_em:new Date().toISOString(),...body};return J(res,201,[TILESETS[body.id]])}
+   if(req.method==='PATCH'){const r=TILESETS[idf];if(!r)return J(res,200,[]);Object.assign(r,body);return J(res,200,[r])}
+   if(req.method==='DELETE'){const r=TILESETS[idf];delete TILESETS[idf];return J(res,200,r?[r]:[])}}
   if(u.pathname==='/__admin'){const r=Object.values(rows).find(r=>r.nome.toLowerCase()===String(u.searchParams.get('nome')).toLowerCase());if(r)r.admin=true;return J(res,200,{ok:!!r})}
   if(u.pathname==='/__state')return J(res,200,{users:Object.keys(users),rows,inv:INV,patches:PATCHES.slice(-20),rpcs:RPCS,log:log.slice(-60),topics:Object.fromEntries(Object.entries(topics).map(([k,v])=>[k,[...v].map(c=>c.pres&&c.pres[k]&&c.pres[k].nome)]))});
   J(res,404,{message:'not found'})})});

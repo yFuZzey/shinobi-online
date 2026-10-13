@@ -42,7 +42,8 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  ok(al0===255&&im2.furo===0&&im2.corpo===255&&im2.modo==='tudo','tocar na cor que sobrou dentro do desenho tira só aquela cor ('+JSON.stringify(im2)+')');
  await P.fill('#imgNome','Barraca Teste');await P.click('#imgSave');await W(1500);
  const IMG=await mget('/__imagens'),iid=Object.keys(IMG)[0];
- ok(iid&&/^c_barraca_teste/.test(iid)&&IMG[iid].w===40&&IMG[iid].h===50&&/^data:image\/png;base64,/.test(IMG[iid].png)&&IMG[iid].fw>=1,'imagem salva no banco ('+iid+')');
+ ok(iid&&/^c_barraca_teste/.test(iid)&&IMG[iid].w===40&&IMG[iid].h===50&&/^objetos\/[a-f0-9]{12}\.png$/.test(IMG[iid].arquivo)&&/^originais\/[a-f0-9]{12}\.png$/.test(IMG[iid].original)&&!IMG[iid].png&&IMG[iid].fw>=1,'imagem salva no banco apontando para o Storage ('+iid+')');
+ const ST=await mget('/__store');ok(ST[IMG[iid].original]&&ST[IMG[iid].original].n===Buffer.from(png0.split(',')[1],'base64').length&&ST[IMG[iid].arquivo].tipo==='image/png','o arquivo ORIGINAL foi guardado sem alteração (mesmo tamanho em bytes) e o de trabalho é PNG');
  ok(await P.evaluate(i=>cat==='cus'&&kindSel===i&&!!CAT[i]&&CATS.some(c=>c[0]==='cus')&&!!document.querySelector('.tile[data-k="'+i+'"]'),iid),'aparece na aba "Meus" dos objetos e já vem selecionada');
  // redimensionar depois de salva: tamanho no mapa muda, os pixels do arquivo não
  await P.click('#imgNew');await P.click('#imgList button[data-ed="1"][data-id="'+iid+'"]');await P.waitForFunction(()=>IM&&IM.edit,null,{timeout:5000});
@@ -52,15 +53,16 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  ok(e0.dw===40&&e0.bg&&/Salvar altera/.test(e0.btn)&&e1.dw===80&&e1.dh===100&&e1.sc==='200%'&&/40×50/.test(e1.info),'editar imagem salva: largura 40 → 80 px mostra 200% e o arquivo continua 40×50 ('+JSON.stringify(e1)+')');
  await P.click('#imgSave');await W(1500);
  const IME=(await mget('/__imagens'))[iid];
- ok(IME.dw===80&&IME.dh===100&&IME.w===40&&IME.h===50&&IME.png.length>100,'gravou o novo tamanho sem mexer na imagem (arquivo '+IME.w+'×'+IME.h+', mapa '+IME.dw+'×'+IME.dh+')');
+ ok(IME.dw===80&&IME.dh===100&&IME.w===40&&IME.h===50&&!!IME.arquivo&&!IME.png,'gravou o novo tamanho sem mexer na imagem (arquivo '+IME.w+'×'+IME.h+', mapa '+IME.dw+'×'+IME.dh+')');
  ok(await P.evaluate(i=>TX[i].width===80&&TX[i].height===100&&CAT[i].fw>=1,iid),'no editor o objeto passa a aparecer com o tamanho novo');
  // imagem pesada (ruído 700×700, PNG passa de 1,4 MB): em vez de pedir para diminuir, vira WebP com transparência e mantém os pixels
  await P.click('#imgNew');
  const big=await P.evaluate(async()=>{const c=document.createElement('canvas');c.width=c.height=700;const g=c.getContext('2d'),d=g.createImageData(700,700);for(let i=0;i<d.data.length;i+=4){d.data[i]=Math.random()*255;d.data[i+1]=Math.random()*255;d.data[i+2]=Math.random()*255;d.data[i+3]=255}g.putImageData(d,0,0);return c.toDataURL('image/png')});
- await P.setInputFiles('#imgFile',{name:'ruido.png',mimeType:'image/png',buffer:Buffer.from(big.split(',')[1],'base64')});await P.waitForFunction(()=>IM&&IM.src&&IM.src.width>=700,null,{timeout:15000});
- await P.evaluate(()=>{IM.mode='nao';IM.sc=100;document.querySelector('#imgSc').value=100;imgProc()});await P.fill('#imgNome','Ruido Grande');await P.click('#imgSave');await W(2500);
- const IM2=await mget('/__imagens'),gr=Object.values(IM2).find(r=>/ruido/.test(r.id));
- ok(gr&&gr.w===700&&gr.h===700&&/^data:image\/webp/.test(gr.png)&&gr.png.length<=1400000,'imagem pesada não é encolhida: vira WebP e fica com 700×700 ('+(gr&&Math.round(gr.png.length/1024))+' KB)');
+ const bigBuf=Buffer.from(big.split(',')[1],'base64');
+ await P.setInputFiles('#imgFile',{name:'ruido.png',mimeType:'image/png',buffer:bigBuf});await P.waitForFunction(()=>IM&&IM.src&&IM.src.width>=700,null,{timeout:15000});
+ await P.evaluate(()=>{IM.mode='nao';IM.sc=100;document.querySelector('#imgSc').value=100;imgProc()});await P.fill('#imgNome','Ruido Grande');await P.click('#imgSave');await W(3000);
+ const IM2=await mget('/__imagens'),gr=Object.values(IM2).find(r=>/ruido/.test(r.id)),ST2=await mget('/__store');
+ ok(gr&&gr.w===700&&gr.h===700&&ST2[gr.original].n===bigBuf.length&&ST2[gr.original].tipo==='image/png'&&ST2[gr.arquivo].tipo==='image/png','imagem grande: sem WebP, sem recompressão e sem encolher (700×700, '+Math.round(bigBuf.length/1024)+' KB originais guardados)');
  // mapa novo com um objeto de colisão e uma área de mobs
  const nome='prova_'+suf;
  const info=await P.evaluate(([nome,fpt])=>{createMap(nome,'folha');const k=Object.keys(CAT).find(c=>catOK(CAT[c].c)&&fpt[c]&&fpt[c][0]>=2&&fpt[c][1]>=2);OBJ.push({k,x:20.5,y:20.5});OBJ.push({k:Object.keys(CAT).find(c=>CAT[c].c==='cus'),x:26.5,y:26.5});AREAS.push({x:30,y:30,w:8,h:8,mobs:[{m:'lobo_cinzento',n:3}]});rev++;autosave();return{k,mapName,n:OBJ.length}},[nome,cat.fpt]);
@@ -70,7 +72,7 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  ok(row&&row.publicado===true&&row.nome&&row.mapa&&row.mapa.objects.length===2&&row.mapa.areas&&row.mapa.areas[0].mobs[0].n===3,'gravou no banco já publicado, com o objeto e a área de mobs');
  await W(1500);
  const pub=await (await fetch(GS+'/mapas')).json();
- ok(pub.mapas[nome]&&pub.mapas[nome].title&&pub.mapas[nome].objects.length===2&&pub.imagens[iid]&&pub.imagens[iid].w===40&&pub.imagens[iid].dw===80,'servidor entrega o mapa e a imagem própria em /mapas ('+(pub.mapas[nome]&&pub.mapas[nome].title)+')');
+ ok(pub.mapas[nome]&&pub.mapas[nome].title&&pub.mapas[nome].objects.length===2&&pub.imagens[iid]&&pub.imagens[iid].w===40&&pub.imagens[iid].dw===80&&/^http.*\/mapa-recursos\/objetos\//.test(pub.imagens[iid].url),'servidor entrega o mapa e a imagem própria em /mapas ('+(pub.mapas[nome]&&pub.mapas[nome].title)+')');
  const ig=await (await fetch(GS+'/mapas?v='+pub.v)).json();ok(ig.igual===1&&!ig.mapas,'com a mesma versão o servidor não manda tudo de novo');
  const h=await (await fetch(GS+'/health')).json();ok(h.mapasPainel>=1,'/health conta o mapa do painel ('+h.mapasPainel+')');
  // base não é trocada pelo painel

@@ -32,6 +32,23 @@ function validar(id, nome, m, cat) {
   }
   const out = { v: 2, N, T, name: id, title: String(nome || id).replace(/[\u0000-\u001f<>]/g, '').slice(0, 40) || id, theme: TEMAS[m.theme] ? m.theme : 'folha',
     ground: m.ground, objects: O, spawn: pt(m.spawn, [25.5, 25.5]), boss: pt(m.boss, null) };
+  // camadas de tiles (Chão, Detalhes, Acima…): opcional; mapas antigos não têm. Camadas de tipo desconhecido (estruturas, colisão, altura no futuro) passam adiante sem mexer.
+  const TS = Array.isArray(m.tilesets) ? m.tilesets.filter(t => /^t_[a-z0-9_]{2,28}$/.test(t)).slice(0, 16) : [];
+  if (TS.length && Array.isArray(m.camadas)) {
+    const C = [];
+    for (const c of m.camadas.slice(0, 12)) {
+      if (!c || typeof c.n !== 'string' || !/^[a-z0-9_]{1,20}$/.test(c.n) || typeof c.t !== 'string' || !/^[a-z0-9_]{1,20}$/.test(c.t)) continue;
+      if (c.t === 'tiles') {
+        const d = [];
+        for (const e of (Array.isArray(c.d) ? c.d : [])) {
+          if (!Array.isArray(e) || e.length < 5 || !e.slice(0, 5).every(Number.isInteger) || e[0] < 0 || e[0] >= TS.length || e[1] < 0 || e[2] < 0 || e[1] > 4096 || e[2] > 4096 || e[3] < 0 || e[4] < 0 || e[3] > 4096 || e[4] > 4096) continue;
+          d.push(e.slice(0, 5)); if (d.length >= 20000) break;
+        }
+        C.push({ n: c.n, t: 'tiles', d });
+      } else if (JSON.stringify(c).length <= 200000) C.push(c);
+    }
+    if (C.length) { out.tilesets = TS; out.camadas = C; }
+  }
   if (typeof m.k === 'string' && m.k.length === N * N && !/[^0-2]/.test(m.k)) out.k = m.k;
   if (A.length) out.areas = A;
   return out;
