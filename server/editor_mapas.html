@@ -126,6 +126,17 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke
       <p class="hint" id="tsInfo">Escolha o PNG do tileset. O arquivo original é guardado sem nenhuma alteração (sem recompressão, sem mudar o tamanho).</p>
     </div>
     <div class="sec" id="tsOpt" hidden>
+      <div class="sec" id="tsFundo">
+        <p class="hint" id="tsFundoInfo"></p>
+        <label class="row"><input type="checkbox" id="tsRm"> Remover fundo por cor (cria uma cópia com transparência)</label>
+        <div id="tsRmOpt" hidden>
+          <div class="row scroll"><span class="lbl">Cor do fundo</span><input type="color" id="tsKey" value="#ff00ff" aria-label="Cor do fundo"><button class="pill" id="tsDrop" aria-pressed="false">Conta-gotas</button><button class="pill" id="tsMag">Magenta</button></div>
+          <div class="seg" role="group" aria-label="Onde remover"><button data-tsm="borda" aria-pressed="true">Só o que toca as bordas</button><button data-tsm="tudo" aria-pressed="false">Toda a imagem</button></div>
+          <div class="row"><span class="lbl">Tolerância</span><input type="range" id="tsTol" min="0" max="120" value="24"><span class="lbl" id="tsTolV">24</span></div>
+          <p class="hint" id="tsRmInfo"></p>
+          <button class="pill" id="tsRev">Voltar ao original</button>
+        </div>
+      </div>
       <input type="text" id="tsNome" maxlength="40" placeholder="Nome do tileset" autocomplete="off">
       <div class="row"><div class="fld"><span class="lbl">Tile: largura (px)</span><input type="number" id="tsTw" min="4" max="512" value="32"></div><div class="fld"><span class="lbl">Tile: altura (px)</span><input type="number" id="tsTh" min="4" max="512" value="32"></div></div>
       <div class="row"><div class="fld"><span class="lbl">Margem (px)</span><input type="number" id="tsMg" min="0" max="256" value="0"></div><div class="fld"><span class="lbl">Espaço entre tiles (px)</span><input type="number" id="tsSp" min="0" max="64" value="0"></div></div>
@@ -1085,7 +1096,7 @@ ctxEl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||too
 /* ---------- importar tileset (o arquivo original vai sem alteração para o Storage) ---------- */
 let TI=null;
 function tsOpen(){if(!(S&&S.tok)){openMenu();$('#sendSt').className='status err';$('#sendSt').textContent='Entre com a conta admin para importar tilesets.';return}$('#tsBg').hidden=false;$('#tsSt').textContent='';tsList()}
-function tsClose(){$('#tsBg').hidden=true;TI=null;$('#tsOpt').hidden=true;$('#tsPv').hidden=true;$('#tsFile').value=''}
+function tsClose(){$('#tsBg').hidden=true;TI=null;$('#tsOpt').hidden=true;$('#tsPv').hidden=true;$('#tsFile').value='';$('#tsRm').checked=false;$('#tsRmOpt').hidden=true;$('#tsDrop').setAttribute('aria-pressed','false');$('#tsSave').dataset.c=''}
 $('#tsX').onclick=tsClose;$('#tsBg').addEventListener('pointerdown',e=>{if(e.target===$('#tsBg'))tsClose()});
 function tsList(){const L=$('#tsList');L.innerHTML='';if(!TSETS.length){L.textContent='Nenhum ainda.';return}
   TSETS.forEach(r=>{const d=document.createElement('div');d.className='srow';const b=document.createElement('b');b.textContent=r.nome+' · '+r.w+'×'+r.h+' · tile '+r.tw+'×'+r.th;const x=document.createElement('button');x.className='pill';x.textContent='Apagar';x.dataset.id=r.id;d.append(b,x);L.appendChild(d)})}
@@ -1095,22 +1106,75 @@ $('#tsList').addEventListener('click',async e=>{const b=e.target.closest('button
 $('#tsFile').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const st=$('#tsSt');
   if(!EXT[f.type]){st.className='status err';st.textContent='Use PNG, WebP, JPG ou GIF.';return}
   const url=URL.createObjectURL(f),i=new Image();
-  i.onload=()=>{URL.revokeObjectURL(url);TI={file:f,img:i};$('#tsOpt').hidden=false;$('#tsPv').hidden=false;$('#tsNome').value=(f.name||'tileset').replace(/\.[^.]+$/,'').slice(0,40);
+  i.onload=()=>{URL.revokeObjectURL(url);TI={file:f,img:i,rm:false,mode:'borda',tol:24,key:[255,0,255],res:null,drop:false};$('#tsSave').dataset.c='';$('#tsOpt').hidden=false;$('#tsPv').hidden=false;$('#tsNome').value=(f.name||'tileset').replace(/\.[^.]+$/,'').slice(0,40);
     const w=i.width,h=i.height,g=[32,16,48,64,24,8].find(t=>w%t===0&&h%t===0)||32;$('#tsTw').value=g;$('#tsTh').value=g;$('#tsMg').value=0;$('#tsSp').value=0;$('#tsPx').checked=true;
-    st.className='status';st.textContent='';tsPv()};
+    st.className='status';st.textContent='';tsAnalisa();tsPv()};
   i.onerror=()=>{URL.revokeObjectURL(url);st.className='status err';st.textContent='Não consegui abrir essa imagem.'};i.src=url};
 ['tsTw','tsTh','tsMg','tsSp'].forEach(id=>$('#'+id).addEventListener('input',()=>{if(TI)tsPv()}));
 function tsDims(){return{tw:clamp(+$('#tsTw').value||32,4,512),th:clamp(+$('#tsTh').value||32,4,512),mg:clamp(+$('#tsMg').value||0,0,256),sp:clamp(+$('#tsSp').value||0,0,64)}}
-function tsPv(){const im=TI.img,d=tsDims(),c=$('#tsPv'),z=clamp(Math.floor(300/im.width),1,4),g=c.getContext('2d');c.width=im.width*z;c.height=im.height*z;g.imageSmoothingEnabled=false;g.drawImage(im,0,0,c.width,c.height);
+function tsPv(){const im=TI.img,d=tsDims(),c=$('#tsPv'),z=clamp(Math.floor(300/im.width),1,4),g=c.getContext('2d');c.width=im.width*z;c.height=im.height*z;g.imageSmoothingEnabled=false;g.drawImage(TI.rm&&TI.resCv?TI.resCv:im,0,0,c.width,c.height);
   const cols=Math.max(0,Math.floor((im.width-d.mg+d.sp)/(d.tw+d.sp))),rows=Math.max(0,Math.floor((im.height-d.mg+d.sp)/(d.th+d.sp)));g.strokeStyle='rgba(255,60,60,.8)';g.lineWidth=1;g.beginPath();
   for(let i=0;i<=cols;i++){const x=(d.mg+i*(d.tw+d.sp))*z+.5;g.moveTo(x,0);g.lineTo(x,c.height)}for(let j=0;j<=rows;j++){const y=(d.mg+j*(d.th+d.sp))*z+.5;g.moveTo(0,y);g.lineTo(c.width,y)}g.stroke();
-  const f=TI.file;$('#tsInfo').textContent=im.width+'×'+im.height+' px · '+cols+'×'+rows+' tiles de '+d.tw+'×'+d.th+' · arquivo '+Math.round(f.size/1024)+' KB ('+EXT[f.type].toUpperCase()+') — vai para o Storage exatamente como está'}
+  const f=TI.file;$('#tsInfo').textContent=im.width+'×'+im.height+' px · '+cols+'×'+rows+' tiles de '+d.tw+'×'+d.th+' · arquivo '+Math.round(f.size/1024)+' KB ('+EXT[f.type].toUpperCase()+')'+(TI.rm&&TI.res?' — o original vai intacto; o jogo usa uma cópia PNG com transparência (mesmas dimensões)':' — vai para o Storage exatamente como está')}
+/* ---------- fundo do tileset: detectar transparência real ou fundo sólido; remoção por cor opcional (gera cópia, o original não muda) ---------- */
+const hex2=k=>'#'+k.map(v=>v.toString(16).padStart(2,'0')).join('');
+function tsAnalisa(){const im=TI.img,W=im.width,H=im.height;TI.od=null;TI.transp=false;TI.solido=null;TI.rm=false;TI.res=null;TI.resCv=null;TI.removed=0;
+  $('#tsRm').checked=false;$('#tsRmOpt').hidden=true;$('#tsDrop').setAttribute('aria-pressed','false');TI.drop=false;
+  const info=$('#tsFundoInfo');
+  if(W*H>36e6){TI.grande=true;info.textContent='Imagem muito grande para remover o fundo aqui; ela vai como está.';$('#tsRm').parentElement.hidden=true;return}
+  TI.grande=false;$('#tsRm').parentElement.hidden=false;
+  const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0);TI.od=g.getImageData(0,0,W,H);const a=TI.od.data;
+  let baixo=0;for(let p=3;p<a.length;p+=4)if(a[p]<128)baixo++;
+  let bt=0,bb=0;const cnt=new Map(),bp=(x,y)=>{const p=(y*W+x)*4;bt++;if(a[p+3]<128){bb++;return}const q=a[p]<<16|a[p+1]<<8|a[p+2];cnt.set(q,(cnt.get(q)||0)+1)};
+  for(let x=0;x<W;x++){bp(x,0);if(H>1)bp(x,H-1)}for(let y=1;y<H-1;y++){bp(0,y);if(W>1)bp(W-1,y)}
+  TI.transp=baixo/(W*H)>=.001||bb/bt>=.2;
+  let best=0,bn=0;for(const [q,n] of cnt)if(n>bn){bn=n;best=q}
+  const kc=[best>>16&255,best>>8&255,best&255];
+  if(!TI.transp&&bn/bt>=.6)TI.solido={k:kc,hex:hex2(kc),pc:Math.round(bn/bt*100)};
+  const magenta=k=>k[0]>200&&k[2]>200&&k[1]<90;
+  TI.key=TI.solido?TI.solido.k.slice():[255,0,255];
+  if(TI.transp)info.textContent='Transparência real detectada ('+(baixo/(W*H)*100).toFixed(1)+'% dos pixels). Não removi nada: o arquivo vai como está. (Se ainda sobrou fundo de cor, dá para usar a remoção abaixo.)';
+  else if(TI.solido)info.textContent='Fundo sólido detectado'+(magenta(TI.solido.k)?' (magenta)':'')+': '+TI.solido.hex+' em '+TI.solido.pc+'% da borda. Sem remoção, essa cor aparece no jogo. Marque a opção abaixo para tirar o fundo.';
+  else info.textContent='Imagem toda opaca e sem fundo sólido nas bordas (parece terreno cheio). A remoção de fundo é opcional.';
+  $('#tsKey').value=hex2(TI.key)}
+function tsRmUi(){$('#tsRmOpt').hidden=!TI.rm;$('#tsKey').value=hex2(TI.key);$('#tsTolV').textContent=TI.tol;$('#tsTol').value=TI.tol;
+  document.querySelectorAll('[data-tsm]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tsm===TI.mode));$('#tsDrop').setAttribute('aria-pressed',TI.drop);
+  $('#tsRmInfo').textContent=TI.rm&&TI.res?(TI.removed?'Removidos '+TI.removed.toLocaleString('pt-BR')+' pixels ('+(TI.removed/(TI.img.width*TI.img.height)*100).toFixed(1)+'%). Só a cópia muda; o original fica intacto. Confira a prévia.':'Nenhum pixel dessa cor foi encontrado'+(TI.mode==='borda'?' tocando as bordas':'')+'. Ajuste a cor ou a tolerância.'):''}
+let tsRaf=0;function tsRmProc(){if(!TI||!TI.od)return;if(!TI.rm){TI.res=null;TI.resCv=null;TI.removed=0;tsRmUi();tsPv();return}
+  const W=TI.od.width,H=TI.od.height,out=new ImageData(new Uint8ClampedArray(TI.od.data),W,H),a=out.data,t2=TI.tol*TI.tol,kr=TI.key[0],kg=TI.key[1],kb=TI.key[2];let n=0;
+  const perto=i=>{const p=i*4;if(a[p+3]===0)return false;const dr=a[p]-kr,dg=a[p+1]-kg,db=a[p+2]-kb;return dr*dr+dg*dg+db*db<=t2};
+  if(TI.mode==='tudo'){for(let i=0;i<W*H;i++)if(perto(i)){a[i*4+3]=0;n++}}
+  else{ // só o que se liga às bordas passando por fundo (cor igual ou já transparente): detalhes internos da mesma cor ficam
+    const seen=new Uint8Array(W*H),q=new Int32Array(W*H);let h=0,t=0;
+    const push=(x,y)=>{const i=y*W+x;if(seen[i])return;seen[i]=1;if(a[i*4+3]===0||perto(i))q[t++]=i};
+    for(let x=0;x<W;x++){push(x,0);push(x,H-1)}for(let y=0;y<H;y++){push(0,y);push(W-1,y)}
+    while(h<t){const i=q[h++],x=i%W,y=i/W|0;if(a[i*4+3]!==0){a[i*4+3]=0;n++}if(x>0)push(x-1,y);if(x<W-1)push(x+1,y);if(y>0)push(x,y-1);if(y<H-1)push(x,y+1)}}
+  const c=document.createElement('canvas');c.width=W;c.height=H;c.getContext('2d').putImageData(out,0,0);TI.res=out;TI.resCv=c;TI.removed=n;tsRmUi();tsPv()}
+function tsRmSoon(){cancelAnimationFrame(tsRaf);tsRaf=requestAnimationFrame(tsRmProc)}
+$('#tsRm').onchange=e=>{if(!TI||!TI.od)return;TI.rm=e.target.checked;if(!TI.rm)TI.drop=false;$('#tsSave').dataset.c='';tsRmProc()};
+$('#tsRev').onclick=e=>{e.preventDefault();if(!TI)return;TI.rm=false;TI.drop=false;$('#tsRm').checked=false;$('#tsSave').dataset.c='';tsRmProc()};
+$('#tsKey').oninput=e=>{if(!TI)return;const v=e.target.value;TI.key=[1,3,5].map(i=>parseInt(v.slice(i,i+2),16));tsRmSoon()};
+$('#tsMag').onclick=e=>{e.preventDefault();if(!TI)return;TI.key=[255,0,255];tsRmUi();tsRmSoon()};
+$('#tsTol').oninput=e=>{if(!TI)return;TI.tol=+e.target.value;$('#tsTolV').textContent=TI.tol;tsRmSoon()};
+document.querySelectorAll('[data-tsm]').forEach(b=>b.onclick=()=>{if(!TI)return;TI.mode=b.dataset.tsm;tsRmUi();tsRmSoon()});
+$('#tsDrop').onclick=e=>{e.preventDefault();if(!TI)return;TI.drop=!TI.drop;tsRmUi();if(TI.drop){$('#tsSt').className='status';$('#tsSt').textContent='Toque na imagem de cima, no pixel que tem a cor do fundo.'}};
+// conta-gotas: lê a cor do pixel da imagem ORIGINAL (não da prévia)
+$('#tsPv').addEventListener('click',e=>{if(!TI||!TI.drop||!TI.od)return;const c=$('#tsPv'),b=c.getBoundingClientRect(),z=c.width/TI.img.width,
+  x=clamp(Math.floor((e.clientX-b.left)*c.width/b.width/z),0,TI.img.width-1),y=clamp(Math.floor((e.clientY-b.top)*c.height/b.height/z),0,TI.img.height-1),p=(y*TI.od.width+x)*4,d=TI.od.data;
+  if(d[p+3]<128){$('#tsSt').className='status err';$('#tsSt').textContent='Esse pixel já é transparente. Toque num pixel colorido do fundo.';return}
+  TI.key=[d[p],d[p+1],d[p+2]];TI.drop=false;$('#tsSt').className='status';$('#tsSt').textContent='Cor escolhida: '+hex2(TI.key);tsRmProc()});
 $('#tsSave').onclick=async()=>{const st=$('#tsSt');if(!TI)return;const nome=$('#tsNome').value.trim().slice(0,40);if(!nome){st.className='status err';st.textContent='Dê um nome para o tileset.';return}
   const d=tsDims(),im=TI.img,f=TI.file;if(d.tw>im.width||d.th>im.height){st.className='status err';st.textContent='O tile é maior que a imagem.';return}
-  st.className='status';st.textContent='Enviando o arquivo original…';
-  try{const arquivo='tilesets/'+await sha12(await f.arrayBuffer())+'.'+EXT[f.type];await stUp(arquivo,f,f.type);
+  if(TI.rm&&TI.res&&!TI.removed){st.className='status err';st.textContent='Nenhum pixel foi removido: ajuste a cor ou a tolerância, ou volte ao original.';return}
+  if(TI.solido&&!TI.rm&&!TI.transp&&$('#tsSave').dataset.c!=='1'){$('#tsSave').dataset.c='1';st.className='status err';st.textContent='Esta imagem parece ter fundo sólido ('+TI.solido.hex+') e ficaria com essa cor no jogo. Toque em Salvar de novo para salvar mesmo assim, ou marque "Remover fundo por cor".';return}
+  st.className='status';st.textContent='Enviando o arquivo…';
+  try{let arquivo,original=null;
+    if(TI.rm&&TI.res){const blob=await new Promise(r=>TI.resCv.toBlob(r,'image/png'));if(!blob)throw new Error('Não consegui gerar a cópia com transparência.');
+      original='originais/'+await sha12(await f.arrayBuffer())+'.'+EXT[f.type];await stUp(original,f,f.type);
+      arquivo='tilesets/'+await sha12(await blob.arrayBuffer())+'.png';await stUp(arquivo,blob,'image/png')}
+    else{arquivo='tilesets/'+await sha12(await f.arrayBuffer())+'.'+EXT[f.type];await stUp(arquivo,f,f.type)}
     const base=nome.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,18)||'ts';let id='t_'+base;while(TSETS.some(r=>r.id===id)||id.length<4)id='t_'+base+'_'+(Math.random()*1000|0);
-    await api('/rest/v1/mapa_tilesets',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,nome,arquivo,w:im.width,h:im.height,tw:d.tw,th:d.th,mg:d.mg,sp:d.sp,px:$('#tsPx').checked})});
+    await api('/rest/v1/mapa_tilesets',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(Object.assign({id,nome,arquivo,w:im.width,h:im.height,tw:d.tw,th:d.th,mg:d.mg,sp:d.sp,px:$('#tsPx').checked},original?{original}:{}))});
     srvAvisa();await tsSync(true);tlPick(id,true);tool='tile';ui();dirty();toast('Tileset salvo');tsClose()}
   catch(err){st.className='status err';st.textContent=imgErro(err)}};
 
@@ -1138,6 +1202,7 @@ $('#imgList').addEventListener('click',async e=>{const b=e.target.closest('butto
   try{await api('/rest/v1/mapa_imagens?id=eq.'+encodeURIComponent(b.dataset.id),{method:'DELETE'});srvAvisa();await imgsSync();st.className='status ok';st.textContent='Imagem apagada.'}
   catch(err){st.className='status err';st.textContent=imgErro(err)}});
 function imgErro(e){const m=String(e&&e.message||e);if(e&&(e.code==='PGRST205'||/Could not find the table/i.test(m)))return 'O banco ainda não tem a tabela de imagens: rode o arquivo sql/12_mapa_imagens.sql no Supabase.';
+  if(/'original' column of 'mapa_tilesets'/i.test(m))return 'O banco ainda não tem a coluna do original dos tilesets: rode o arquivo sql/16_mapa_tilesets_original.sql no Supabase.';
   if(/bucket not found|Bucket not found/i.test(m)||/'(arquivo|original)' column/i.test(m))return 'O banco ainda não tem o Storage dos recursos: rode o arquivo sql/15_mapa_recursos.sql no Supabase.';
   if(/'(dw|dh|px)' column|column .*\b(dw|dh|px)\b/i.test(m))return 'O banco ainda não tem as colunas de tamanho: rode o arquivo sql/14_mapa_imagens_tamanho.sql no Supabase.';return srvErro(e)}
 let IM=null,IMFILE=null;
