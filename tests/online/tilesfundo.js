@@ -78,5 +78,9 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.click('#tsSave');await W(2200);
  const TS2=Object.values(await mget('/__tilesets')),r3=TS2.find(x=>x.id!==r.id),shaT=crypto.createHash('sha256').update(TR).digest('hex').slice(0,12),ST2=await mget('/__store');
  ok(r3&&!r3.original&&r3.arquivo==='tilesets/'+shaT+'.png'&&ST2[r3.arquivo].n===TR.length,'imagem com transparência real: salva como está (mesmo arquivo, sem cópia nem original à parte)');
+ // banco recusa (conta deixou de ser admin): o editor diz qual é o problema em vez de só "só admin pode publicar"
+ await mget('/__admin?off=1&nome='+adm); await P.click('#send');await W(1500);
+ const dg=await P.evaluate(()=>document.querySelector('#sendSt').textContent);
+ ok(/só admin pode publicar/.test(dg)&&/NÃO reconhece esta conta como admin/.test(dg),'publicar recusado: o editor diagnostica (eh_admin = false) e indica o SQL');
  const lg=fs.readFileSync(LOG,'utf8').slice(n0);ok(!/erro ignorado|AVISO balanceamento|inválido ignorado/.test(lg),'servidor sem erros');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();

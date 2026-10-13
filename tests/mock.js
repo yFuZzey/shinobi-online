@@ -111,7 +111,8 @@ const srv=http.createServer((req,res)=>{
    if(req.method==='POST'){if(!/^t_[a-z0-9_]{2,28}$/.test(body.id||''))return J(res,400,{code:'23514',message:'new row violates check constraint'});TILESETS[body.id]={criado_em:new Date().toISOString(),...body};return J(res,201,[TILESETS[body.id]])}
    if(req.method==='PATCH'){const r=TILESETS[idf];if(!r)return J(res,200,[]);Object.assign(r,body);return J(res,200,[r])}
    if(req.method==='DELETE'){const r=TILESETS[idf];delete TILESETS[idf];return J(res,200,r?[r]:[])}}
-  if(u.pathname==='/__admin'){const r=Object.values(rows).find(r=>r.nome.toLowerCase()===String(u.searchParams.get('nome')).toLowerCase());if(r)r.admin=true;return J(res,200,{ok:!!r})}
+  if(u.pathname==='/rest/v1/rpc/eh_admin'){const uid=uidOf(req);return J(res,200,!!(uid&&rows[uid]&&rows[uid].admin))}
+  if(u.pathname==='/__admin'){const r=Object.values(rows).find(r=>r.nome.toLowerCase()===String(u.searchParams.get('nome')).toLowerCase());if(r)r.admin=u.searchParams.get('off')?false:true;return J(res,200,{ok:!!r})}
   if(u.pathname==='/__state')return J(res,200,{users:Object.keys(users),rows,inv:INV,patches:PATCHES.slice(-20),rpcs:RPCS,log:log.slice(-60),topics:Object.fromEntries(Object.entries(topics).map(([k,v])=>[k,[...v].map(c=>c.pres&&c.pres[k]&&c.pres[k].nome)]))});
   J(res,404,{message:'not found'})})});
 // ---------- WebSocket mínimo ----------

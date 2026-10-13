@@ -9,9 +9,12 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('mapa-recursos', 'mapa-recursos', true, 20971520, array['image/png','image/webp','image/jpeg','image/gif'])
 on conflict (id) do update set public = true, file_size_limit = 20971520, allowed_mime_types = array['image/png','image/webp','image/jpeg','image/gif'];
 
+drop policy if exists "mapa-recursos ler admin" on storage.objects;
 drop policy if exists "mapa-recursos enviar"  on storage.objects;
 drop policy if exists "mapa-recursos trocar"  on storage.objects;
 drop policy if exists "mapa-recursos apagar"  on storage.objects;
+-- o envio com x-upsert (trocar o mesmo arquivo) também precisa enxergar o objeto: só admin (o jogo baixa pela URL pública, sem política)
+create policy "mapa-recursos ler admin" on storage.objects for select to authenticated using (bucket_id = 'mapa-recursos' and public.eh_admin());
 create policy "mapa-recursos enviar" on storage.objects for insert to authenticated with check (bucket_id = 'mapa-recursos' and public.eh_admin());
 create policy "mapa-recursos trocar" on storage.objects for update to authenticated using (bucket_id = 'mapa-recursos' and public.eh_admin()) with check (bucket_id = 'mapa-recursos' and public.eh_admin());
 create policy "mapa-recursos apagar" on storage.objects for delete to authenticated using (bucket_id = 'mapa-recursos' and public.eh_admin());

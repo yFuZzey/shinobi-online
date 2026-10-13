@@ -993,7 +993,14 @@ async function sendMap(){
     await api('/rest/v1/mapas?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:mapName,nome:prettyNome(mapName),mapa:j,publicado:true})});
     srvAvisa();sentRev=rev;const hh=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     st.className='status ok';st.textContent=`“${mapName}” publicado às ${hh} · ${OBJ.length} objetos. Já está na lista de mapas do jogo (quem está jogando vê ao tocar em Mapa).`;toast('Mapa publicado');ui();srvList()}
-  catch(err){st.className='status err';st.textContent='Não consegui publicar: '+srvErro(err);toast('Falha ao publicar')}}
+  catch(err){st.className='status err';st.textContent='Não consegui publicar: '+srvErro(err);toast('Falha ao publicar');
+    if(/row-level security|permission denied/i.test(String(err&&err.message||err)))diagAdmin(err).then(t=>{if(t){st.textContent+=' — '+t}})}}
+// quando o banco recusa: pergunta ao próprio banco se ele reconhece a conta como admin, para dizer qual SQL falta
+async function diagAdmin(err){const raw=String(err&&err.message||err);
+  try{const r=await api('/rest/v1/rpc/eh_admin',{method:'POST',body:'{}'});
+    return r===true?'Diagnóstico: o banco reconhece sua conta como admin, mas recusou gravar em “mapas” ('+raw+'). Rode de novo o sql/11_mapas.sql inteiro no Supabase (recria as permissões da tabela).'
+      :'Diagnóstico: o banco NÃO reconhece esta conta como admin (eh_admin = false). Rode de novo o sql/09_itens.sql e confira a coluna admin do seu personagem.'}
+  catch(e){return 'Diagnóstico: não consegui consultar eh_admin ('+(e.message||e)+'). Rode de novo o sql/09_itens.sql e depois o sql/11_mapas.sql no Supabase.'}}
 $('#send').onclick=()=>{if(!(S&&S.tok))openMenu();sendMap()};
 $('#sendBig').onclick=sendMap;
 $('#pbIn').onclick=srvLogin;$('#pbP').addEventListener('keydown',e=>{if(e.key==='Enter')srvLogin()});
