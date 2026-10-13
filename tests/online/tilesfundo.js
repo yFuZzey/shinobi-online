@@ -24,13 +24,14 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  const px=(x,y)=>P.evaluate(([x,y])=>{const d=TI.res?TI.res.data:TI.od.data,p=(y*TI.od.width+x)*4;return d[p+3]===0?'0,0,0,0':[...d.slice(p,p+4)].join()},[x,y]);
  const set=(id,v)=>P.evaluate(([id,v])=>{const e=document.querySelector(id);e.value=v;e.dispatchEvent(new Event('input'))},[id,v]);
  const proc=async()=>{await W(250)};
+ const antes=await mget('/__tilesets'),base=Object.keys(antes).length;
  await abre(MG,'sprites.png');
  const d1=await P.evaluate(()=>({solido:!!TI.solido,hex:TI.solido&&TI.solido.hex,rm:TI.rm,transp:TI.transp,info:document.querySelector('#tsFundoInfo').textContent,chk:document.querySelector('#tsRm').checked}));
  ok(d1.solido&&d1.hex==='#ff00ff'&&!d1.transp&&/magenta/i.test(d1.info),'fundo magenta sólido detectado ('+d1.hex+')');
  ok(!d1.rm&&!d1.chk,'a remoção não é aplicada sozinha');
  // salvar sem remover pede confirmação (a cor apareceria no jogo)
  await P.click('#tsSave');await W(300);
- ok(/fundo sólido/i.test(await P.evaluate(()=>document.querySelector('#tsSt').textContent))&&Object.keys(await mget('/__tilesets')).length===0,'salvar sem remover avisa e ainda não grava nada');
+ ok(/fundo sólido/i.test(await P.evaluate(()=>document.querySelector('#tsSt').textContent))&&Object.keys(await mget('/__tilesets')).length===base,'salvar sem remover avisa e ainda não grava nada');
  // remover (borda, tolerância 24)
  await P.click('#tsRm');await proc();
  const r1=await P.evaluate(()=>({rm:TI.rm,n:TI.removed,key:TI.key.join(),mode:TI.mode,tol:TI.tol}));
@@ -59,7 +60,7 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  ok(await P.evaluate(()=>!TI.rm&&!TI.res&&!document.querySelector('#tsRm').checked)&&await px(0,0)==='255,0,255,255','"Voltar ao original" cancela a remoção');
  // aplicar e salvar
  await P.click('#tsRm');await proc();await P.click('#tsSave');await W(2200);
- const TS=await mget('/__tilesets'),ST=await mget('/__store'),r=Object.values(TS)[0],shaO=crypto.createHash('sha256').update(MG).digest('hex').slice(0,12);
+ const TS=await mget('/__tilesets'),ST=await mget('/__store'),r=Object.values(TS).find(x=>!antes[x.id]),shaO=crypto.createHash('sha256').update(MG).digest('hex').slice(0,12);
  ok(r&&r.original==='originais/'+shaO+'.png'&&/^tilesets\/[a-f0-9]{12}\.png$/.test(r.arquivo)&&r.arquivo!==r.original.replace('originais','tilesets'),'gravou original e cópia separados ('+(r&&r.arquivo)+')');
  ok(ST[r.original]&&ST[r.original].n===MG.length,'o arquivo ORIGINAL foi guardado sem nenhuma alteração (mesmos bytes)');
  const baixa=await P.evaluate(async([a,b])=>{const ld=async u=>{const im=new Image();im.crossOrigin='anonymous';await new Promise(k=>{im.onload=k;im.src=u});const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);return{w:im.width,h:im.height,p:(x,y)=>[...g.getImageData(x,y,1,1).data].join()}};
@@ -76,7 +77,7 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  ok(r2.n===0&&r2.p==='255,0,255,255','mesmo ligando a ferramenta, o magenta do sprite (longe da borda) não é apagado');
  await P.click('#tsRev');await proc();
  await P.click('#tsSave');await W(2200);
- const TS2=Object.values(await mget('/__tilesets')),r3=TS2.find(x=>x.id!==r.id),shaT=crypto.createHash('sha256').update(TR).digest('hex').slice(0,12),ST2=await mget('/__store');
+ const TS2=Object.values(await mget('/__tilesets')),r3=TS2.find(x=>!antes[x.id]&&x.id!==r.id),shaT=crypto.createHash('sha256').update(TR).digest('hex').slice(0,12),ST2=await mget('/__store');
  ok(r3&&!r3.original&&r3.arquivo==='tilesets/'+shaT+'.png'&&ST2[r3.arquivo].n===TR.length,'imagem com transparência real: salva como está (mesmo arquivo, sem cópia nem original à parte)');
  // banco recusa (conta deixou de ser admin): o editor diz qual é o problema em vez de só "só admin pode publicar"
  await mget('/__admin?off=1&nome='+adm); await P.click('#send');await W(1500);
