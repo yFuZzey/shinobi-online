@@ -49,6 +49,33 @@
     BRD.forEach(b => { g.drawImage(TX.plank1, b[0] * 64 - 13, b[1] * 64, 90, T); g.drawImage(TX.plank2, b[0] * 64 - 13, b[1] * 64 + T, 90, T); });
     return c; }
 
+  // redesenha só uma parte do chão (enquanto pinta), com a mesma regra do jogo; pega 1 bloco de vizinhos por causa das margens da água e das pontes
+  function chaoParcial(c, m, x0, y0, x1, y1) {
+    const W = m.W, H = m.H, AW = Math.ceil(W / 2), AH = Math.ceil(H / 2), A = m.tema === 'areia', g0 = m.chao, g = c.getContext('2d');
+    const cellT = (cx, cy) => { if (cx < 0 || cy < 0 || cx >= AW || cy >= AH) return -1; const v = g0[cy * 2 * W + cx * 2]; return v >= 2 ? v : 0; };
+    const cx0 = Math.max(0, (x0 >> 1) - 1), cy0 = Math.max(0, (y0 >> 1) - 1), cx1 = Math.min(AW - 1, (x1 >> 1) + 1), cy1 = Math.min(AH - 1, (y1 >> 1) + 1);
+    g.save(); g.beginPath(); g.rect(cx0 * 64, cy0 * 64, (cx1 - cx0 + 1) * 64, (cy1 - cy0 + 1) * 64); g.clip();
+    const yA = cy0 * 2, yB = Math.min(H - 1, cy1 * 2 + 1), xA = cx0 * 2, xB = Math.min(W - 1, cx1 * 2 + 1);
+    if (A) { for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) { const h = ((cx * 73856093) ^ (cy * 19349663)) >>> 0; g.drawImage(TX['sg' + (h % 5 + 1)], cx * 64, cy * 64); } }
+    else for (let y = yA; y <= yB; y++) for (let x = xA; x <= xB; x++) { const h = ((x * 73856093) ^ (y * 19349663)) >>> 0; g.drawImage(TX[GR[h % GR.length]], x * T, y * T); }
+    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) if (cellT(cx, cy) === 2) g.drawImage(TX[A ? ((cx + cy) % 2 ? 'sd1' : 'sd2') : ((cx + cy) % 2 ? 'sw1' : 'sw2')], cx * 64, cy * 64);
+    for (let y = yA; y <= yB; y++) for (let x = xA; x <= xB; x++) if (g0[y * W + x] === 1) { const h = ((x * 83492791) ^ (y * 29765729)) >>> 0; g.drawImage(TX[A ? (h % 3 ? 'sp1' : 'sp2') : (h % 3 ? 'p1' : 'p2')], x * T, y * T); }
+    const land = (a, b) => cellT(a, b) < 3;
+    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) { const t = cellT(cx, cy); if (t < 3) continue;
+      g.drawImage(TX[t === 3 ? (A ? 'swater' : 'water') : (A ? 'sriver' : 'river')], cx * 64, cy * 64);
+      if (t === 3) { const B = TX[A ? 'sbank' : 'bank'], X = cx * 64, Y = cy * 64;
+        if (land(cx, cy - 1)) g.drawImage(B, X, Y, 64, 10);
+        if (land(cx, cy + 1)) { g.save(); g.translate(X, Y + 64); g.scale(1, -1); g.drawImage(B, 0, 0, 64, 10); g.restore(); }
+        if (land(cx - 1, cy)) { g.save(); g.translate(X, Y + 64); g.rotate(-Math.PI / 2); g.drawImage(B, 0, 0, 64, 10); g.restore(); }
+        if (land(cx + 1, cy)) { g.save(); g.translate(X + 64, Y); g.rotate(Math.PI / 2); g.drawImage(B, 0, 0, 64, 10); g.restore(); } } }
+    for (let cy = Math.max(0, cy0 - 1); cy <= Math.min(AH - 1, cy1 + 1); cy++) for (let cx = Math.max(0, cx0 - 1); cx <= Math.min(AW - 1, cx1 + 1); cx++) if (cellT(cx, cy) === 5) { g.drawImage(TX.plank1, cx * 64 - 13, cy * 64, 90, T); g.drawImage(TX.plank2, cx * 64 - 13, cy * 64 + T, 90, T); }
+    g.restore(); }
+  // camada de tiles (objeto da camada) num canvas do tamanho do mapa
+  function camadaCv(m, c) { if (!c || !c.d.length) return null;
+    const cv = document.createElement('canvas'); cv.width = m.W * T; cv.height = m.H * T; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; let falta = 0;
+    for (const e of c.d) { const id = m.tilesets[e[0]], t = TSI[id]; if (!t || !t.ok) { falta++; continue; }
+      g.drawImage(t.img, t.mg + e[3] * (t.tw + t.sp), t.mg + e[4] * (t.th + t.sp), t.tw, t.th, e[1] * t.tw, e[2] * t.th, t.tw, t.th); }
+    cv.falta = falta; return cv; }
   // camada de tiles num canvas do tamanho do mapa (cache por versão)
   function camada(m, nome) {
     const c = (m.camadas || []).find(x => x && x.t === 'tiles' && x.n === nome); if (!c || !c.d.length) return null;
@@ -84,5 +111,5 @@
   // borda de 2 tiles que o jogo sempre bloqueia
   function borda(ctx, m, s) { ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.setLineDash([6 / s, 5 / s]); ctx.lineWidth = 1.5 / s; ctx.strokeRect(2 * T, 2 * T, (m.W - 4) * T, (m.H - 4) * T); ctx.restore(); }
 
-  G.Render = { T, TX, IMG, TSI, carregar, imagens, tilesets, cat, tamanho, chao, camada, objetos, colisao, grade, areas, marcador, borda };
+  G.Render = { T, TX, IMG, TSI, carregar, imagens, tilesets, cat, tamanho, chao, chaoParcial, camadaCv, camada, objetos, colisao, grade, areas, marcador, borda };
 })(window);

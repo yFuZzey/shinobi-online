@@ -53,7 +53,7 @@
     return { id: id || j.name || 'mapa', nome: typeof j.title === 'string' ? j.title : (id || j.name || 'mapa'), W, H, tema: TEMAS[j.theme] ? j.theme : 'folha', chao, col, objetos,
       spawn: Array.isArray(j.spawn) ? j.spawn.slice() : [W / 2 + .5, H / 2 + .5], boss: Array.isArray(j.boss) ? j.boss.slice() : null,
       areas: Array.isArray(j.areas) ? fundo(j.areas) : [], tilesets: Array.isArray(j.tilesets) ? j.tilesets.slice() : [], camadas: Array.isArray(j.camadas) ? fundo(j.camadas) : [],
-      extra, tem: { v: j.v, k: typeof j.k === 'string', title: typeof j.title === 'string', boss: 'boss' in j, areas: 'areas' in j, theme: 'theme' in j, name: j.name }, ed }; }
+      extra, tem: { cn: Array.isArray(j.camadas) ? j.camadas.map(c => c && c.n) : [], v: j.v, k: typeof j.k === 'string', title: typeof j.title === 'string', boss: 'boss' in j, areas: 'areas' in j, theme: 'theme' in j, name: j.name }, ed }; }
 
   /* ---------- modelo -> formato do jogo ---------- */
   function paraJogo(m, semEd) {
@@ -67,7 +67,9 @@
     if (m.boss || m.tem.boss) j.boss = m.boss ? m.boss.slice() : null;
     if (m.tem.k || m.col.some(v => v)) j.k = Array.from(m.col).join('');
     if (m.areas.length || m.tem.areas) j.areas = fundo(m.areas);
-    if (m.tilesets.length || m.camadas.length) { j.tilesets = m.tilesets.slice(); j.camadas = fundo(m.camadas); }
+    // camadas padrão vazias criadas só pelo editor não vão para o arquivo (mapa antigo continua igual se ninguém pintou)
+    const orig = new Set((m.tem && m.tem.cn) || []), cam = m.camadas.filter(c => !(c && c.t === 'tiles' && !c.d.length && !c.nome && !c.z && ['chao', 'detalhes', 'acima'].includes(c.n) && !orig.has(c.n)));
+    if (m.tilesets.length || cam.length) { j.tilesets = m.tilesets.slice(); j.camadas = fundo(cam); }
     for (const k in m.extra) j[k] = fundo(m.extra[k]);
     if (!semEd) j.ed = fundo(m.ed);
     return j; }

@@ -69,7 +69,7 @@
     try { const r = await Rc.ler(id); if (!r) throw new Error('Esse recurso não existe mais.'); const img = await Rc.abrirUrl(Rc.url(r.original)); st.textContent = ''; editar(r, img, null); }
     catch (e) { st.className = 'status err'; st.textContent = Rc.erroSql(e); } }
   function editar(r, img, file) {
-    RS.r = JSON.parse(JSON.stringify(r)); RS.img = img; RS.file = file; RS.novo = !r.id; RS.sujo = RS.novo; RS.des = []; RS.ref = []; RS.gotas = false; RS.arqFundo = r.fundo ? r.arquivo : null;
+    RS.r = JSON.parse(JSON.stringify(r)); RS.gradeOrig = JSON.stringify(r.grade || null); RS.img = img; RS.file = file; RS.novo = !r.id; RS.sujo = RS.novo; RS.des = []; RS.ref = []; RS.gotas = false; RS.arqFundo = r.fundo ? r.arquivo : null;
     RS.od = Rc.pixels(img); RS.an = RS.od ? Rc.analisar(RS.od) : null; RS.fundoCv = null; if (RS.r.fundo && RS.od) refazFundo();
     RS.r.meta = RS.r.meta || {}; RS.seq = Math.max(0, ...RS.r.recortes.map(c => +String(c.id).slice(1) || 0));
     $('#biblio').hidden = true; $('#recurso').hidden = false; vis.pend = null; vis.cand = []; vis.sel = null; $('#rcPend').hidden = true; avisoGotas();
@@ -196,6 +196,8 @@
   /* ---------- salvar ---------- */
   async function salvar() { const r = RS.r; if (!P.sessao()) { U.aviso('Entre primeiro', 'Volte para a lista de mapas e entre com a conta admin.'); return false; }
     if (!r.nome || !r.nome.trim()) { U.aviso('Falta o nome', 'Dê um nome ao recurso (aba Info).'); return false; }
+    if (!RS.novo && JSON.stringify(r.grade || null) !== RS.gradeOrig) { const us = await usos(r.id);
+      if (us.length) { const v = await U.dlg('Grade alterada', '<p>Estes mapas usam este tileset; com a grade nova os tiles deles podem mudar de lugar ou de desenho:</p><ul class="perdas">' + us.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>', [{ t: 'Salvar mesmo assim', v: 1, c: 'perigo' }, { t: 'Cancelar', v: 0 }]); if (!v) return false; } }
     $('#rcSalvar').disabled = true; U.toast('Enviando…');
     try {
       if (RS.novo) { const f = RS.file; r.original = 'originais/' + await Rc.sha12(await f.arrayBuffer()) + '.' + Rc.EXT[f.type]; await Rc.subir(r.original, f, f.type); }
@@ -205,9 +207,14 @@
       if (RS.novo) { r.id = Rc.novoId(r.nome, new Set(B.lista.map(k => k.id))); try { x = await Rc.criar(r); } catch (e) { if (!e.existe) throw e; r.id = Rc.novoId(r.nome + '_' + Date.now() % 1000, new Set()); x = await Rc.criar(r); } }
       else { try { x = await Rc.atualizar(r); }
         catch (e) { if (!e.conflito) throw e; const v = await U.dlg('Alterado em outro lugar', '<p>Este recurso foi salvo por outra tela depois que você abriu. Sobrescrever substitui aquela versão.</p>', [{ t: 'Sobrescrever', v: 1, c: 'perigo' }, { t: 'Cancelar', v: 0 }]); if (!v) return false; x = await Rc.atualizar(r, true); } }
-      RS.r = Object.assign(RS.r, x); RS.novo = false; RS.sujo = false; RS.file = null; sincVisor(); topo(); U.toast('Recurso salvo'); if (RS.aba) painel(RS.aba); return true;
+      RS.r = Object.assign(RS.r, x); RS.gradeOrig = JSON.stringify(RS.r.grade || null); RS.novo = false; RS.sujo = false; RS.file = null; sincVisor(); topo(); U.toast('Recurso salvo'); if (RS.aba) painel(RS.aba); return true;
     } catch (e) { U.aviso('Não consegui salvar', esc(Rc.erroSql(e))); return false; }
     finally { $('#rcSalvar').disabled = false; } }
+  // mapas (rascunhos do aparelho e do servidor) que usam o tileset
+  async function usos(id) { const L = [];
+    for (const x of await P.listar()) { const r = await P.ler(x.id); if (r && r.mapa && (r.mapa.tilesets || []).includes(id)) L.push(x.nome + ' (' + x.id + ', no aparelho)'); }
+    try { for (const r of (await P.api('/rest/v1/mapas?select=id,nome,mapa')) || []) if (r.mapa && (r.mapa.tilesets || []).includes(id) && !L.some(t => t.includes('(' + r.id + ','))) L.push((r.nome || r.id) + ' (' + r.id + ', no servidor)'); } catch (e) { }
+    return L; }
   $('#rcSalvar').onclick = salvar;
   $('#rcVoltar').onclick = async () => { if (RS.sujo) { const v = await U.dlg(RS.novo ? 'Importação não salva' : 'Alterações não salvas', RS.novo ? '<p>A imagem ainda não foi enviada. Salvar agora?</p>' : '<p>Salvar antes de sair?</p>', [{ t: 'Salvar', v: 's', c: 'pri' }, { t: RS.novo ? 'Descartar importação' : 'Descartar alterações', v: 'd', c: 'perigo' }, { t: 'Continuar editando', v: null }]);
       if (!v) return; if (v === 's' && !(await salvar())) return; }

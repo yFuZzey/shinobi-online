@@ -23,7 +23,7 @@
     <section class="cartao"><h2>Neste aparelho</h2><div id="lsLocal" class="lista"></div></section>
     <section class="cartao" id="secSrv" hidden><div class="linha"><h2 class="cresce">No servidor</h2><button class="btn peq" id="srvAtu">Atualizar</button></div><div id="lsSrv" class="lista"></div></section>
     <section class="cartao"><h2>Mapas do jogo</h2><p class="mudo">Vêm junto com o jogo. Para mudar, duplique e publique com outro nome.</p><div id="lsBase" class="lista"></div></section>
-    <p class="mudo rodape">Editor novo · Fases 1 e 2. O editor antigo continua em <a href="/painel/mapas">/painel/mapas</a> enquanto as ferramentas de pintura chegam aqui.</p>
+    <p class="mudo rodape">Editor novo · Fases 1 a 3. O editor antigo continua em <a href="/painel/mapas">/painel/mapas</a> enquanto objetos e áreas de mobs chegam aqui.</p>
   </div>
 </main>
 
@@ -37,11 +37,17 @@
   </header>
   <div id="palco"><canvas id="cv"></canvas>
     <div id="modoAviso" hidden></div>
+    <div id="selBar" class="barraSel" hidden></div>
     <div class="zoom"><button class="ib" id="zMenos" aria-label="Diminuir zoom">−</button><span id="zVal">100%</span><button class="ib" id="zMais" aria-label="Aumentar zoom">+</button><button class="ib" id="zAjustar" aria-label="Ajustar à tela">⤢</button></div>
   </div>
-  <section id="painel" hidden><div class="painelTopo"><b id="pnT"></b><span class="cresce"></span><button class="ib" id="pnX" aria-label="Fechar painel">✕</button></div><div id="pnC" class="rolar"></div></section>
+  <section id="painel" hidden><div class="painelTopo"><b id="pnT"></b><span class="cresce"></span><button class="ib" id="pnX" aria-label="Fechar painel">✕</button></div><div id="pnC" class="rolar"></div>
+    <div id="pick" hidden><div class="linha" style="padding:0 14px"><select id="pkTs" class="cresce"></select><button class="btn peq" id="pkModo" aria-pressed="false">Escolher vários</button></div><div class="pickPalco"><canvas id="pkCv"></canvas><div class="zoom peqz"><button class="ib" id="pkZm" aria-label="Diminuir">−</button><button class="ib" id="pkZp" aria-label="Aumentar">+</button><button class="ib" id="pkZa" aria-label="Ajustar">⤢</button></div></div><p class="mudo" id="pkInfo" style="padding:0 14px"></p></div></section>
+  <div id="ferr" class="ferr" role="toolbar" aria-label="Ferramentas">
+    <button id="fCam" class="chip"><small>Camada</small><b id="fCamN"></b></button>
+    <button data-f="mover" aria-pressed="true">✋<small>Mover</small></button><button data-f="pincel">✏️<small>Pincel</small></button><button data-f="borracha">🧽<small>Borracha</small></button><button data-f="balde">🪣<small>Balde</small></button><button data-f="ret">▭<small>Retângulo</small></button><button data-f="sel">⬚<small>Seleção</small></button><button data-f="colar" hidden>📋<small>Colar</small></button>
+  </div>
   <nav class="abas" role="tablist">
-    <button data-aba="mapa">Mapa</button><button id="abaBib">Biblioteca</button><button data-aba="camadas">Camadas</button><button data-aba="prop">Propriedades</button><button data-aba="conferir">Conferir</button>
+    <button data-aba="mapa">Mapa</button><button data-aba="pintura">Pintura</button><button data-aba="camadas">Camadas</button><button id="abaBib">Biblioteca</button><button data-aba="prop">Propriedades</button><button data-aba="conferir">Conferir</button>
   </nav>
 </main>
 
@@ -84,6 +90,7 @@
 <script src="/painel/editor/modelo.js"></script>
 <script src="/painel/editor/persist.js"></script>
 <script src="/painel/editor/render.js"></script>
+<script src="/painel/editor/ferramentas.js"></script>
 <script src="/painel/editor/recursos.js"></script>
 <script src="/painel/editor/visor.js"></script>
 <script src="/painel/editor/ui.js"></script>

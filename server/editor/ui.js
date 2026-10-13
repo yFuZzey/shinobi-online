@@ -11,7 +11,8 @@
   /* ---------- estado ---------- */
   const E = { m: null, reg: null, sujo: false, des: [], ref: [], s: 1, ox: 0, oy: 0, aba: null, modo: null,
     ver: { grade: true, colisao: false, chao: true, detalhes: true, objetos: true, acima: true, areas: true, marcas: true },
-    cache: {}, srv: [], lib: { imagens: [], tilesets: [] } };
+    cache: {}, srv: [], lib: { imagens: [], tilesets: [], recursos: [] },
+    ferr: 'mover', ativa: 'chao', tinta: { terreno: 0, col: 1, tile: null }, contorno: false, sel: null, clip: null, colarClip: null, mira: null, traco: null, conj: [], gradePasso: 32, selTodas: true, pkId: null };
   window.EDITOR = E; // para os testes
 
   /* ---------- diálogo ---------- */
@@ -151,7 +152,8 @@
     try { await P.salvar(reg); } catch (e) { return aviso('Não consegui salvar no aparelho', esc(e.message)); }
     abrir(m, reg); }
   function abrir(m, reg) {
-    E.m = m; E.reg = reg; E.sujo = false; E.des = []; E.ref = []; E.modo = null; E.cache = {};
+    E.m = m; E.reg = reg; E.sujo = false; E.des = []; E.ref = []; E.modo = null; E.cache = {}; E.sel = null; E.traco = null; E.mira = null; Ferr.padrao(m);
+    ferramenta('mover'); ativar(E.ativa && (FIXAS[E.ativa] || Ferr.camada(m, E.ativa)) ? E.ativa : 'chao');
     $('#inicio').hidden = true; $('#editor').hidden = false; fecharPainel(); topo(); ajusta(); requestAnimationFrame(() => { tamanhoCv(); ajustar(); }); }
 
   /* ---------- editor: barra, histórico, salvar ---------- */
@@ -168,7 +170,7 @@
   function desfazer() { if (!E.des.length) return; const c = Mo.copia(E.m); c.nome = E.m.nome; E.ref.push(c); E.m = E.des.pop(); E.sujo = true; invalida('tudo'); topo(); emerg(); desenhar(); if (E.aba) painel(E.aba); }
   function refazer() { if (!E.ref.length) return; const c = Mo.copia(E.m); c.nome = E.m.nome; E.des.push(c); E.m = E.ref.pop(); E.sujo = true; invalida('tudo'); topo(); emerg(); desenhar(); if (E.aba) painel(E.aba); }
   let emT = 0; function emerg() { clearTimeout(emT); emT = setTimeout(() => { if (E.sujo && E.m && !E.reg.base) P.emergencia(registro()); }, 1500); }
-  const registro = () => Object.assign({}, E.reg, { id: E.m.id, nome: E.m.nome, W: E.m.W, H: E.m.H, mapa: Mo.paraJogo(E.m) });
+  const registro = () => { const c = Mo.copia(E.m); c.nome = E.m.nome; Ferr.compactar(c); return Object.assign({}, E.reg, { id: E.m.id, nome: E.m.nome, W: E.m.W, H: E.m.H, mapa: Mo.paraJogo(c) }); }; // tilesets sem uso saem
   async function salvar() { if (!E.m || E.reg.base) return false;
     try { const r = await P.salvar(registro()); E.reg = r; E.sujo = false; topo(); toast('Salvo no aparelho'); return true; }
     catch (e) { aviso('Não consegui salvar', esc(e.message) + '<br>As alterações continuam abertas aqui; tente de novo.'); return false; } }
@@ -191,7 +193,7 @@
         aviso('Não consegui publicar', esc(P.erroTexto(e))); return null; } };
     const r = await manda(false); if (!r) return;
     E.reg.servidor = { atualizado_em: r.atualizado_em, publicado: r.publicado }; await salvar(); toast(pub ? 'Publicado no jogo' : 'Enviado ao servidor (fora do jogo)'); }
-  const libSets = () => ({ tilesets: new Set(E.lib.tilesets.map(t => t.id)), objetos: new Set(Object.keys(J.TSZ).concat(E.lib.imagens.map(i => i.id))) });
+  const libSets = () => ({ tilesets: new Set(E.lib.tilesets.map(t => t.id).concat((E.lib.recursos || []).filter(r => r.grade).map(r => r.id))), objetos: new Set(Object.keys(J.TSZ).concat(E.lib.imagens.map(i => i.id))) });
 
   async function sairEditor() {
     if (E.sujo) { const v = await dlg('Alterações não salvas', '<p>Salvar antes de voltar para a lista?</p>', [{ t: 'Salvar', v: 's', c: 'pri' }, { t: 'Descartar alterações', v: 'd', c: 'perigo' }, { t: 'Continuar editando', v: null }]);
@@ -204,15 +206,28 @@
   function fecharPainel() { E.aba = null; $('#painel').hidden = true; document.querySelectorAll('[data-aba]').forEach(b => b.setAttribute('aria-selected', 'false')); tamanhoCv(); }
   const chk = (id, txt, on) => `<label class="chk"><input type="checkbox" data-v="${id}" ${on ? 'checked' : ''}> ${txt}</label>`;
   function painel(a) {
-    const C = $('#pnC'), m = E.m, so = E.reg.base; let h = '';
+    const C = $('#pnC'), m = E.m, so = E.reg.base; let h = ''; Ferr.padrao(m);
     if (a === 'mapa') { $('#pnT').textContent = 'Mapa';
-      h = chk('grade', 'Grade (32 px)', E.ver.grade) + chk('colisao', 'Mostrar colisão (vermelho = bloqueado, azul = água)', E.ver.colisao) +
-        '<p class="mudo">Um dedo arrasta a visão; dois dedos aproximam/afastam. As ferramentas de pintura chegam na Fase 3.</p><p id="toque" class="mudo"></p>'; }
-    else if (a === 'camadas') { $('#pnT').textContent = 'Camadas (visibilidade)';
-      const n = nm => ((m.camadas.find(c => c.t === 'tiles' && c.n === nm) || { d: [] }).d.length);
-      h = chk('chao', 'Chão (terreno + tiles “Chão”: ' + n('chao') + ')', E.ver.chao) + chk('detalhes', 'Detalhes do chão (' + n('detalhes') + ' tiles)', E.ver.detalhes) + chk('objetos', 'Objetos e estruturas (' + m.objetos.length + ')', E.ver.objetos) +
-        chk('acima', 'Acima do personagem (' + n('acima') + ' tiles)', E.ver.acima) + chk('colisao', 'Colisão', E.ver.colisao) + chk('areas', 'Áreas de mobs (' + m.areas.length + ')', E.ver.areas) + chk('marcas', 'Nascimento e chefe', E.ver.marcas) +
-        '<p class="mudo">Ordem, bloqueio e renomear camadas chegam na Fase 3.</p>'; }
+      const gp = E.gradePasso, art = (m.ed && m.ed.tile) || 32;
+      h = `<label class="lbl">Grade</label><div class="presets">${[[32, 'Colisão (32 px)'], [art, 'Tile da arte (' + art + ' px)'], [0, 'Desligada']].filter((x, i, A) => A.findIndex(y => y[0] === x[0]) === i).map(([v, t]) => `<button data-gp="${v}" aria-pressed="${gp === v}">${t}</button>`).join('')}</div>` +
+        `<label class="chk"><input type="checkbox" id="mCol" ${visivel('colisao') ? 'checked' : ''}> Mostrar colisão (vermelho = bloqueado, azul = água)</label>` +
+        '<p class="mudo">Um dedo usa a ferramenta escolhida embaixo (✋ Mover só arrasta a visão); dois dedos aproximam/afastam e arrastam sempre.</p><p id="toque" class="mudo"></p>'; }
+    else if (a === 'pintura') { $('#pnT').textContent = 'Pintura · ' + nomeAtiva();
+      const k = E.ativa, ct = Ferr.camada(m, k);
+      h = `<div class="presets"><span class="lbl" style="margin:auto 4px auto 0">Retângulo:</span><button data-ct="0" aria-pressed="${!E.contorno}">Preenchido</button><button data-ct="1" aria-pressed="${E.contorno}">Só contorno</button></div>`;
+      if (k === 'terreno') { const t = Mo.TEMAS[m.tema];
+        h += `<div class="terrs">${t.terr.map((n, i) => `<button data-tr="${i}" aria-pressed="${E.tinta.terreno === i}"><img alt="" src="${J.TS[t.th[i]] || ''}">${esc(n)}</button>`).join('')}</div><p class="mudo">Pântano, lagoa, rio e ponte ocupam blocos de 2×2 tiles (regra do jogo). A borracha volta ao terreno inicial.</p>`; }
+      else if (k === 'colisao') h += `<div class="presets"><button data-cv="1" aria-pressed="${E.tinta.col === 1}">Bloquear</button><button data-cv="2" aria-pressed="${E.tinta.col === 2}">Liberar (passa mesmo sobre obstáculo/água)</button></div><p class="mudo">A borracha tira a colisão pintada (volta à regra do terreno e dos objetos).</p>`;
+      else if (k === 'objetos' || k === 'regioes') h += `<p class="mudo">${k === 'objetos' ? 'Colocar e editar objetos e estruturas chega na Fase 4.' : 'Áreas de mobs, regiões e saídas chegam na Fase 5.'} Por enquanto esta camada só pode ser mostrada/escondida e bloqueada.</p>`;
+      else { const s = E.tinta.tile; h += `<p class="mudo">${libTs().length ? (s ? 'Tile escolhido: ' + s.sw + '×' + s.sh + ' do tileset “' + esc((libTs().find(x => x.id === s.id) || {}).nome || s.id) + '”.' : 'Toque num tile abaixo para escolher; “Escolher vários” para um bloco.') : 'Nenhum tileset na biblioteca: importe uma imagem e ligue a grade (Biblioteca → recurso → Grade).'}</p>`;
+        if (E.conj.length) h += `<label class="lbl">Conjuntos (carimbos)</label><div class="presets">${E.conj.map(c => `<button data-cj="${esc(c.id)}">${esc(c.nome)} <small>${c.w}×${c.h}</small></button>`).join('')}</div>`; } }
+    else if (a === 'camadas') { $('#pnT').textContent = 'Camadas';
+      const L = Ferr.tiles(m), cima = L.filter(c => Ferr.ehAcima(c)).reverse(), baixo = L.filter(c => !Ferr.ehAcima(c)).reverse();
+      const fixa = (k, n, sub) => `<div class="cam ${E.ativa === k ? 'on' : ''}"><button class="nm" data-at="${k}">${n}<br><small class="mudo">${sub}</small></button><button class="ib" data-vi="${k}" aria-label="Mostrar/esconder">${visivel(k) ? '👁' : '◌'}</button><button class="ib" data-tv="${k}" aria-label="Bloquear">${travada(k) ? '🔒' : '🔓'}</button></div>`;
+      const tl = c => `<div class="cam ${E.ativa === c.n ? 'on' : ''}"><button class="nm" data-at="${esc(c.n)}">${esc(Ferr.nomeCamada(c))}<br><small class="mudo">${c.d.length} tile(s)</small></button><button class="ib" data-vi="${esc(c.n)}" aria-label="Mostrar/esconder">${visivel(c.n) ? '👁' : '◌'}</button><button class="ib" data-tv="${esc(c.n)}" aria-label="Bloquear">${travada(c.n) ? '🔒' : '🔓'}</button>${so ? '' : `<button class="ib" data-up="${esc(c.n)}" aria-label="Subir">▲</button><button class="ib" data-dn="${esc(c.n)}" aria-label="Descer">▼</button><button class="ib" data-rn="${esc(c.n)}" aria-label="Renomear">✎</button><button class="ib" data-rm="${esc(c.n)}" aria-label="Excluir">🗑</button>`}</div>`;
+      h = '<p class="mudo">Toque no nome para escolher onde pintar. De cima para baixo = da frente para trás.</p>' + fixa('regioes', 'Regiões e navegação', m.areas.length + ' área(s) de mobs') + fixa('colisao', 'Colisão', 'pintada à mão + regra do jogo') +
+        cima.map(tl).join('') + '<div class="cam sep">— personagem e objetos (ordenados pela base) —</div>' + fixa('objetos', 'Objetos e estruturas', m.objetos.length + ' objeto(s)') + baixo.map(tl).join('') + fixa('terreno', 'Terreno do jogo', 'grama, rua, água…') +
+        (so ? '' : '<button class="btn" id="cNova" style="margin-top:8px">+ Camada de tiles</button>'); }
     else if (a === 'prop') { $('#pnT').textContent = 'Propriedades';
       h = `<div class="campo"><label class="lbl">Nome</label><input id="pNome" maxlength="40" value="${esc(m.nome)}" ${so ? 'disabled' : ''}></div>
         <div class="campo"><label class="lbl">Identificador</label><input value="${esc(m.id)}" disabled></div>
@@ -228,8 +243,26 @@
       if (f) pr.push({ nivel: 'aviso', msg: f + ' objeto(s) com imagem que não carregou.' });
       h = (pr.length ? pr.map(p => `<div class="prob ${p.nivel}">${esc(p.msg)}</div>`).join('') : '<div class="prob ok">Nada a corrigir.</div>') +
         `<p class="mudo">${m.objetos.length} objetos · ${m.areas.length} áreas de mobs · ${m.tilesets.length} tileset(s) · nascimento (${m.spawn.join(', ')})</p>`; }
-    C.innerHTML = h;
-    C.querySelectorAll('[data-v]').forEach(i => i.onchange = () => { E.ver[i.dataset.v] = i.checked; desenhar(); });
+    C.innerHTML = h; mostraPick();
+    if (a === 'mapa') { C.querySelectorAll('[data-gp]').forEach(b => b.onclick = () => { E.gradePasso = +b.dataset.gp; painel('mapa'); desenhar(); }); $('#mCol').onchange = e => marcaEd('vis', 'colisao', e.target.checked); }
+    if (a === 'pintura') {
+      C.querySelectorAll('[data-ct]').forEach(b => b.onclick = () => { E.contorno = b.dataset.ct === '1'; painel('pintura'); });
+      C.querySelectorAll('[data-tr]').forEach(b => b.onclick = () => { E.tinta.terreno = +b.dataset.tr; if (E.ferr === 'mover' || E.ferr === 'sel') ferramenta('pincel'); painel('pintura'); });
+      C.querySelectorAll('[data-cv]').forEach(b => b.onclick = () => { E.tinta.col = +b.dataset.cv; if (E.ferr === 'mover' || E.ferr === 'sel') ferramenta('pincel'); painel('pintura'); });
+      C.querySelectorAll('[data-cj]').forEach(b => b.onclick = () => { const c = E.conj.find(x => x.id === b.dataset.cj); if (!c) return; E.colarClip = c.dados; ferramenta('colar'); toast('Carimbo “' + c.nome + '”: toque no mapa'); }); }
+    if (a === 'camadas') {
+      C.querySelectorAll('[data-at]').forEach(b => b.onclick = () => ativar(b.dataset.at));
+      C.querySelectorAll('[data-vi]').forEach(b => b.onclick = () => { marcaEd('vis', b.dataset.vi, !visivel(b.dataset.vi)); painel('camadas'); });
+      C.querySelectorAll('[data-tv]').forEach(b => b.onclick = () => { marcaEd('trava', b.dataset.tv, !travada(b.dataset.tv)); painel('camadas'); });
+      C.querySelectorAll('[data-up]').forEach(b => b.onclick = () => mudar(x => Ferr.moverCamada(x, b.dataset.up, 1), 'tiles'));
+      C.querySelectorAll('[data-dn]').forEach(b => b.onclick = () => mudar(x => Ferr.moverCamada(x, b.dataset.dn, -1), 'tiles'));
+      C.querySelectorAll('[data-rn]').forEach(b => b.onclick = async () => { const c = Ferr.camada(m, b.dataset.rn); const v = await dlg('Renomear camada', `<input id="rcN" maxlength="30" value="${esc(Ferr.nomeCamada(c))}">`, [{ t: 'OK', v: 1, c: 'pri', antes: () => !!$('#rcN').value.trim() }, { t: 'Cancelar', v: 0 }]);
+        if (v) { const nm = $('#rcN').value.trim().slice(0, 30); mudar(x => { Ferr.camada(x, b.dataset.rn).nome = nm; }, 'nada'); $('#fCamN').textContent = nomeAtiva(); } });
+      C.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { const c = Ferr.camada(m, b.dataset.rm); const v = await dlg('Excluir camada?', `<p>Excluir <b>${esc(Ferr.nomeCamada(c))}</b>${c.d.length ? ' e os ' + c.d.length + ' tile(s) dela' : ''}? Dá para desfazer (↶).</p>`, [{ t: 'Excluir', v: 1, c: 'perigo' }, { t: 'Cancelar', v: 0 }]);
+        if (v) { mudar(x => { x.camadas = x.camadas.filter(k => !(k && k.t === 'tiles' && k.n === b.dataset.rm)); if (Ferr.PADRAO.some(p => p.n === b.dataset.rm)) Ferr.camada(x, b.dataset.rm) || x.camadas.push({ n: b.dataset.rm, t: 'tiles', d: [], z: b.dataset.rm === 'acima' ? 'acima' : 'baixo', nome: Ferr.nomeCamada(c) }); }, 'tiles'); if (E.ativa === b.dataset.rm && !Ferr.camada(E.m, E.ativa)) ativar('chao'); } });
+      if ($('#cNova')) $('#cNova').onclick = async () => { const v = await dlg('Nova camada de tiles', '<label class="lbl">Nome</label><input id="ncN" maxlength="30" placeholder="Ex.: Telhados"><div class="presets" style="margin-top:8px"><button data-nz="baixo" aria-pressed="true">Por baixo do personagem</button><button data-nz="acima" aria-pressed="false">Por cima do personagem</button></div>',
+          [{ t: 'Criar', v: 1, c: 'pri', antes: () => !!$('#ncN').value.trim() }, { t: 'Cancelar', v: 0 }], c => c.querySelectorAll('[data-nz]').forEach(x => x.onclick = () => c.querySelectorAll('[data-nz]').forEach(y => y.setAttribute('aria-pressed', y === x))));
+        if (!v) return; const nome = $('#ncN').value.trim(), z = $('[data-nz="acima"]').getAttribute('aria-pressed') === 'true' ? 'acima' : 'baixo'; let n; mudar(x => { n = Ferr.novaCamada(x, nome, z).n; }, 'tiles'); ativar(n); }; }
     if (a === 'prop' && !so) {
       $('#pNome').onchange = e => { const v = e.target.value.trim().slice(0, 40); if (v && v !== m.nome) mudar(x => { x.nome = v; x.tem.title = true; }, 'nada'); };
       $('#pTema').onchange = e => mudar(x => { x.tema = e.target.value; }, 'chao');
@@ -273,33 +306,143 @@
   function ajustar() { if (!E.m) return; const r = cv.getBoundingClientRect(), W = E.m.W * T, H = E.m.H * T; E.s = clamp(Math.min(r.width / W, r.height / H) * .96, .05, 4); E.ox = (r.width - W * E.s) / 2; E.oy = (r.height - H * E.s) / 2; ajusta(); desenhar(); }
   function zoomEm(px, py, ns) { ns = clamp(ns, .05, 4); const wx = (px - E.ox) / E.s, wy = (py - E.oy) / E.s; E.s = ns; E.ox = px - wx * ns; E.oy = py - wy * ns; ajusta(); desenhar(); }
   function desenhar() { if (!raf) raf = requestAnimationFrame(pinta); }
+  const camCv = c => { E.cache.cam = E.cache.cam || {}; if (!(c.n in E.cache.cam)) E.cache.cam[c.n] = R.camadaCv(E.m, c); return E.cache.cam[c.n]; };
   function pinta() { raf = 0; const m = E.m; if (!m) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#0b0d10'; ctx.fillRect(0, 0, cv.width, cv.height);
     ctx.setTransform(E.s * dpr, 0, 0, E.s * dpr, E.ox * dpr, E.oy * dpr); ctx.imageSmoothingEnabled = false;
     if (!E.cache.chao) E.cache.chao = R.chao(m);
-    if (!E.cache.cam) E.cache.cam = { chao: R.camada(m, 'chao'), detalhes: R.camada(m, 'detalhes'), acima: R.camada(m, 'acima') };
-    const r = cv.getBoundingClientRect(), vis = { x0: -E.ox / E.s, y0: -E.oy / E.s, x1: (r.width - E.ox) / E.s, y1: (r.height - E.oy) / E.s };
-    if (E.ver.chao) { ctx.drawImage(E.cache.chao, 0, 0); if (E.cache.cam.chao) ctx.drawImage(E.cache.cam.chao, 0, 0); } else { ctx.fillStyle = '#20242b'; ctx.fillRect(0, 0, m.W * T, m.H * T); }
-    if (E.ver.detalhes && E.cache.cam.detalhes) ctx.drawImage(E.cache.cam.detalhes, 0, 0);
-    if (E.ver.objetos) R.objetos(ctx, J, m, vis);
-    if (E.ver.acima && E.cache.cam.acima) ctx.drawImage(E.cache.cam.acima, 0, 0);
-    if (E.ver.colisao) { if (!E.cache.M) { try { E.cache.M = window.MR.compilar(Mo.paraJogo(m, true), R.cat(J)).M; } catch (e) { E.cache.M = ''; } } if (E.cache.M) R.colisao(ctx, m, E.cache.M); }
-    if (E.ver.grade && E.s * T >= 6) R.grade(ctx, m, E.s);
+    const r = cv.getBoundingClientRect(), vis = { x0: -E.ox / E.s, y0: -E.oy / E.s, x1: (r.width - E.ox) / E.s, y1: (r.height - E.oy) / E.s }, L = Ferr.tiles(m);
+    if (visivel('terreno')) ctx.drawImage(E.cache.chao, 0, 0); else { ctx.fillStyle = '#20242b'; ctx.fillRect(0, 0, m.W * T, m.H * T); }
+    for (const c of L) if (!Ferr.ehAcima(c) && visivel(c.n)) { const k = camCv(c); if (k) ctx.drawImage(k, 0, 0); }
+    if (visivel('objetos')) R.objetos(ctx, J, m, vis);
+    for (const c of L) if (Ferr.ehAcima(c) && visivel(c.n)) { const k = camCv(c); if (k) ctx.drawImage(k, 0, 0); }
+    if (visivel('colisao')) { if (!E.cache.M) { try { E.cache.M = window.MR.compilar(Mo.paraJogo(m, true), R.cat(J)).M; } catch (e) { E.cache.M = ''; } } if (E.cache.M) R.colisao(ctx, m, E.cache.M); }
+    const gp = E.gradePasso; if (gp && E.s * gp >= 5) R.grade(ctx, m, E.s, gp);
     R.borda(ctx, m, E.s);
-    if (E.ver.areas) R.areas(ctx, m, E.s);
+    if (visivel('regioes')) R.areas(ctx, m, E.s);
     if (E.ver.marcas) { R.marcador(ctx, m.spawn, E.s, '#2f8cff', 'N'); R.marcador(ctx, m.boss, E.s, '#d23c3c', 'C'); }
-    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2 / E.s; ctx.strokeRect(0, 0, m.W * T, m.H * T); }
-  // toque: 1 dedo arrasta (ou toca para pôr nascimento/chefe), 2 dedos = pinça
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2 / E.s; ctx.strokeRect(0, 0, m.W * T, m.H * T);
+    previa(); }
+
+  /* ---------- camadas: visível / bloqueada (ficam no mapa, em ed) ---------- */
+  const PADV = { colisao: false };
+  const visivel = k => { const v = E.m && E.m.ed && E.m.ed.vis; return v && k in v ? !!v[k] : PADV[k] !== false; };
+  const travada = k => !!(E.m && E.m.ed && E.m.ed.trava && E.m.ed.trava[k]);
+  function marcaEd(campo, k, v) { E.m.ed = Object.assign({}, E.m.ed); E.m.ed[campo] = Object.assign({}, E.m.ed[campo], { [k]: v }); E.sujo = true; topo(); emerg(); desenhar(); }
+  const FIXAS = { terreno: 'Terreno', colisao: 'Colisão', objetos: 'Objetos', regioes: 'Regiões' };
+  function nomeAtiva() { const c = Ferr.camada(E.m, E.ativa); return FIXAS[E.ativa] || (c ? Ferr.nomeCamada(c) : E.ativa); }
+  function camadaAtiva() { if (FIXAS[E.ativa]) return null; let c = Ferr.camada(E.m, E.ativa); if (!c && Ferr.PADRAO.some(p => p.n === E.ativa)) { Ferr.padrao(E.m); c = Ferr.camada(E.m, E.ativa); } return c; }
+  function ativar(k) { E.ativa = k; $('#fCamN').textContent = nomeAtiva(); if (E.aba === 'camadas' || E.aba === 'pintura') painel(E.aba); }
+
+  /* ---------- biblioteca de tilesets (antigos t_ + recursos r_ com grade) ---------- */
+  function libTs() { const L = []; for (const t of E.lib.tilesets) L.push({ id: t.id, nome: t.nome, tw: t.tw, th: t.th, mg: t.mg || 0, sp: t.sp || 0, w: t.w, h: t.h });
+    for (const r of E.lib.recursos || []) if (r.grade && r.grade.tw > 0) L.push({ id: r.id, nome: r.nome, tw: r.grade.tw, th: r.grade.th, mg: r.grade.mg || 0, sp: r.grade.sp || 0, w: r.w, h: r.h }); return L; }
+  function tsInfo() { const o = {}; for (const t of libTs()) o[t.id] = { tw: t.tw, th: t.th }; return o; }
+
+  /* ---------- ferramentas ---------- */
+  function ferramenta(f) { E.ferr = f; document.querySelectorAll('[data-f]').forEach(b => b.setAttribute('aria-pressed', b.dataset.f === f)); if (f !== 'sel') E.sel = null; barraSel(); desenhar(); }
+  const mundo = p => ({ x: (p.x - E.ox) / E.s, y: (p.y - E.oy) / E.s });
+  const cel = w => [Math.floor(w.x / T), Math.floor(w.y / T)];
+  const opSel = () => { const tod = E.selTodas !== false, L = Ferr.tiles(E.m).map(c => c.n).filter(n => !travada(n));
+    return tod ? { terreno: !travada('terreno'), colisao: !travada('colisao'), camadas: L } : { terreno: E.ativa === 'terreno', colisao: E.ativa === 'colisao', camadas: FIXAS[E.ativa] ? [] : [E.ativa] }; };
+  function podePintar() { const k = E.ativa;
+    if (E.reg.base) { toast('Mapa do jogo: duplique para editar'); return false; }
+    if (E.ferr === 'sel' || E.ferr === 'colar') return true;
+    if (k === 'objetos' || k === 'regioes') { toast(k === 'objetos' ? 'Objetos: ferramentas na Fase 4' : 'Regiões: ferramentas na Fase 5'); return false; }
+    if (travada(k)) { toast('Camada “' + nomeAtiva() + '” está bloqueada'); return false; }
+    if (!visivel(k) && k !== 'colisao') { toast('Camada escondida: mostre antes de pintar'); return false; }
+    if (!FIXAS[k] && E.ferr !== 'borracha' && !E.tinta.tile) { toast('Escolha um tile na aba Pintura'); abrirAba('pintura'); return false; }
+    if (!FIXAS[k] && E.tinta.tile && !tsInfo()[E.tinta.tile.id]) { toast('Tileset não encontrado na biblioteca'); return false; }
+    return true; }
+  // aplica no ponto w (pixels do mapa); devolve true se mudou
+  function pontoPinta(w, apagar) { const m = E.m, k = E.ativa;
+    if (k === 'terreno') { const [x, y] = cel(w), t = apagar ? ((m.ed && Mo.INICIAIS.includes(m.ed.terreno)) ? m.ed.terreno : 0) : E.tinta.terreno, r = Ferr.terreno(m, x, y, t); if (r) { R.chaoParcial(E.cache.chao || (E.cache.chao = R.chao(m)), m, r[0], r[1], r[2], r[3]); E.cache.M = null; return true; } return false; }
+    if (k === 'colisao') { const [x, y] = cel(w); if (Ferr.colisao(m, x, y, apagar ? 0 : E.tinta.col)) { E.cache.M = null; return true; } return false; }
+    const c = camadaAtiva(); if (!c) return false;
+    if (apagar) { const n = Ferr.apagarPx(m, c, w.x, w.y, tsInfo()); if (n) delete (E.cache.cam || {})[c.n]; return n > 0; }
+    const s = E.tinta.tile, inf = tsInfo()[s.id], n = Ferr.carimbo(m, c, s, inf, Math.floor(w.x / inf.tw), Math.floor(w.y / inf.th)); if (n) delete (E.cache.cam || {})[c.n]; return n > 0; }
+  function traco(w) { const t = E.traco, a = t.ult, passo = Math.max(4, Math.min(E.ativa === 'terreno' || E.ativa === 'colisao' ? T : (tsInfo()[(E.tinta.tile || {}).id] || { tw: T }).tw, T) / 2), d = Math.hypot(w.x - a.x, w.y - a.y), n = Math.max(1, Math.ceil(d / passo));
+    for (let i = 1; i <= n; i++) if (pontoPinta({ x: a.x + (w.x - a.x) * i / n, y: a.y + (w.y - a.y) * i / n }, E.ferr === 'borracha')) t.mudou = true; t.ult = w; }
+  function iniFerr(p) { const w = mundo(p); E.mira = w; if (!podePintar()) return null;
+    const t = E.traco = { pre: Mo.copia(E.m), mudou: false, a: w, ult: w, f: E.ferr }; t.pre.nome = E.m.nome;
+    if (E.ferr === 'pincel' || E.ferr === 'borracha') { if (pontoPinta(w, E.ferr === 'borracha')) t.mudou = true; }
+    else if (E.ferr === 'sel') { const [x, y] = cel(w), s = E.sel; if (s && x >= s.x && y >= s.y && x < s.x + s.w && y < s.y + s.h) { t.mover = { x0: x, y0: y, dx: 0, dy: 0 }; } else { t.selA = [clamp(x, 0, E.m.W - 1), clamp(y, 0, E.m.H - 1)]; E.sel = { x: t.selA[0], y: t.selA[1], w: 1, h: 1 }; barraSel(); } }
+    desenhar(); return t; }
+  function moveFerr(p) { const t = E.traco; if (!t) return; const w = mundo(p); E.mira = w;
+    if (t.f === 'pincel' || t.f === 'borracha') traco(w);
+    else if (t.f === 'ret') t.b = w;
+    else if (t.f === 'sel') { const [x, y] = cel(w); if (t.mover) { t.mover.dx = x - t.mover.x0; t.mover.dy = y - t.mover.y0; } else if (t.selA) { const a = t.selA, X = clamp(x, 0, E.m.W - 1), Y = clamp(y, 0, E.m.H - 1); E.sel = { x: Math.min(a[0], X), y: Math.min(a[1], Y), w: Math.abs(X - a[0]) + 1, h: Math.abs(Y - a[1]) + 1 }; } }
+    desenhar(); }
+  function fimFerr(p, moveu) { const t = E.traco; E.traco = null; if (!t) return; const m = E.m, w = mundo(p), ti = tsInfo();
+    if (t.f === 'ret') { const b = t.b || w; if (E.ativa === 'terreno' || E.ativa === 'colisao') { const k = E.ativa, n = Ferr.retGrade(m, cel(t.a), cel(b), E.contorno, (x, y) => k === 'terreno' ? !!Ferr.terreno(m, x, y, E.tinta.terreno) : Ferr.colisao(m, x, y, E.tinta.col)); if (n) { t.mudou = true; E.cache.chao = null; } }
+      else { const c = camadaAtiva(), s = E.tinta.tile, inf = ti[s.id]; if (c && Ferr.retTiles(m, c, s, inf, [Math.floor(t.a.x / inf.tw), Math.floor(t.a.y / inf.th)], [Math.floor(b.x / inf.tw), Math.floor(b.y / inf.th)], E.contorno)) { t.mudou = true; delete (E.cache.cam || {})[c.n]; } } }
+    else if (t.f === 'balde' && !moveu) { const k = E.ativa, [x, y] = cel(w); let r;
+      if (k === 'terreno') { const tt = E.tinta.terreno; r = Ferr.baldeGrade(m, x, y, (a, b) => m.chao[b * m.W + a], (a, b) => !!Ferr.terreno(m, a, b, tt)); E.cache.chao = null; }
+      else if (k === 'colisao') r = Ferr.baldeGrade(m, x, y, (a, b) => m.col[b * m.W + a], (a, b) => Ferr.colisao(m, a, b, E.tinta.col));
+      else { const c = camadaAtiva(), s = E.tinta.tile, inf = ti[s.id]; r = Ferr.baldeTiles(m, c, s, inf, Math.floor(w.x / inf.tw), Math.floor(w.y / inf.th)); delete (E.cache.cam || {})[c.n]; if (r.cortado) toast('Área muito grande: preenchi só uma parte'); }
+      if (r && r.n) t.mudou = true; }
+    else if (t.f === 'sel' && t.mover && (t.mover.dx || t.mover.dy)) { const s = E.sel, op = opSel(), clip = Ferr.copiar(m, s, op, ti); Ferr.apagarArea(m, s, op, ti); const r = Ferr.colar(m, clip, s.x + t.mover.dx, s.y + t.mover.dy, op, ti);
+      E.sel = { x: clamp(s.x + t.mover.dx, 0, m.W - 1), y: clamp(s.y + t.mover.dy, 0, m.H - 1), w: s.w, h: s.h }; t.mudou = true; E.cache.chao = null; E.cache.cam = {}; avisaPulados(r); }
+    else if (t.f === 'sel' && !moveu && !t.selA) { E.sel = null; }
+    else if (t.f === 'colar' && E.colarClip) { const [x, y] = cel(w), r = Ferr.colar(m, E.colarClip, x, y, opColar(), ti); if (r.n) { t.mudou = true; E.cache.chao = null; E.cache.cam = {}; } avisaPulados(r); }
+    if (t.mudou) { E.des.push(t.pre); if (E.des.length > 80) E.des.shift(); E.ref.length = 0; marcarSujo('nada'); }
+    barraSel(); desenhar(); }
+  const opColar = () => ({ terreno: !travada('terreno'), colisao: !travada('colisao'), camadas: null });
+  function avisaPulados(r) { if (r && (r.pulados || r.fora)) toast((r.pulados ? r.pulados + ' tile(s) fora da grade do tileset' : '') + (r.pulados && r.fora ? ' · ' : '') + (r.fora ? r.fora + ' fora do mapa' : '')); }
+  function cancelaFerr() { const t = E.traco; E.traco = null; if (!t) return; if (t.mudou) { const n = E.m.nome; E.m = t.pre; E.m.nome = n; invalida('tudo'); } desenhar(); }
+  // prévia: carimbo sob o dedo, retângulo, seleção, colar
+  function previa() { const m = E.m, w = E.mira, t = E.traco, s = E.s; ctx.save(); ctx.lineWidth = 2 / s;
+    if (t && t.f === 'ret' && t.b) { const [ax, ay] = cel(t.a), [bx, by] = cel(t.b); let x0, y0, x1, y1, g = T;
+      if (!FIXAS[E.ativa] && E.tinta.tile) { const inf = tsInfo()[E.tinta.tile.id]; if (inf) { x0 = Math.floor(Math.min(t.a.x, t.b.x) / inf.tw) * inf.tw; y0 = Math.floor(Math.min(t.a.y, t.b.y) / inf.th) * inf.th; x1 = (Math.floor(Math.max(t.a.x, t.b.x) / inf.tw) + 1) * inf.tw; y1 = (Math.floor(Math.max(t.a.y, t.b.y) / inf.th) + 1) * inf.th; } }
+      if (x0 == null) { x0 = Math.min(ax, bx) * g; y0 = Math.min(ay, by) * g; x1 = (Math.max(ax, bx) + 1) * g; y1 = (Math.max(ay, by) + 1) * g; }
+      ctx.fillStyle = 'rgba(255,154,60,.25)'; ctx.strokeStyle = '#ff9a3c'; if (!E.contorno) ctx.fillRect(x0, y0, x1 - x0, y1 - y0); ctx.strokeRect(x0, y0, x1 - x0, y1 - y0); }
+    if (E.sel) { const q = E.sel, d = t && t.mover ? t.mover : { dx: 0, dy: 0 }; ctx.setLineDash([6 / s, 4 / s]); ctx.strokeStyle = '#ffe04d'; ctx.fillStyle = 'rgba(255,224,77,.12)'; ctx.fillRect((q.x + d.dx) * T, (q.y + d.dy) * T, q.w * T, q.h * T); ctx.strokeRect((q.x + d.dx) * T, (q.y + d.dy) * T, q.w * T, q.h * T); ctx.setLineDash([]); }
+    if (w && E.ferr === 'colar' && E.colarClip) { const [x, y] = cel(w), c = E.colarClip; ctx.globalAlpha = .65; desenhaClip(c, x * T, y * T); ctx.globalAlpha = 1; ctx.strokeStyle = '#38d6ff'; ctx.strokeRect(x * T, y * T, c.w * T, c.h * T); }
+    else if (w && !t && (E.ferr === 'pincel' || E.ferr === 'balde' || E.ferr === 'ret')) { if (!FIXAS[E.ativa] && E.tinta.tile) { const st = E.tinta.tile, inf = tsInfo()[st.id], ts = R.TSI[st.id]; if (inf) { const x = Math.floor(w.x / inf.tw) * inf.tw, y = Math.floor(w.y / inf.th) * inf.th;
+        if (ts && ts.ok) { ctx.globalAlpha = .6; for (let j = 0; j < st.sh; j++) for (let i = 0; i < st.sw; i++) ctx.drawImage(ts.img, ts.mg + (st.c0 + i) * (ts.tw + ts.sp), ts.mg + (st.r0 + j) * (ts.th + ts.sp), ts.tw, ts.th, x + i * inf.tw, y + j * inf.th, inf.tw, inf.th); ctx.globalAlpha = 1; }
+        ctx.strokeStyle = '#ff9a3c'; ctx.strokeRect(x, y, st.sw * inf.tw, st.sh * inf.th); } }
+      else if (E.ativa === 'terreno' || E.ativa === 'colisao') { let [x, y] = cel(w), n = 1; if (E.ativa === 'terreno' && E.tinta.terreno >= 2) { x = x >> 1 << 1; y = y >> 1 << 1; n = 2; } ctx.strokeStyle = '#ff9a3c'; ctx.strokeRect(x * T, y * T, n * T, n * T); } }
+    ctx.restore(); }
+  function desenhaClip(c, X, Y) { for (const n in c.tiles) for (const e of c.tiles[n].d) { const ts = R.TSI[e[0]]; if (!ts || !ts.ok) continue; ctx.drawImage(ts.img, ts.mg + e[3] * (ts.tw + ts.sp), ts.mg + e[4] * (ts.th + ts.sp), ts.tw, ts.th, X + e[1], Y + e[2], ts.tw, ts.th); }
+    if (c.col) { ctx.fillStyle = 'rgba(230,40,60,.35)'; for (let j = 0; j < c.h; j++) for (let i = 0; i < c.w; i++) if (c.col[j * c.w + i] === '1') ctx.fillRect(X + i * T, Y + j * T, T, T); } }
+  // barra da seleção: copiar, recortar, duplicar, apagar, salvar conjunto
+  function barraSel() { const b = $('#selBar'); const on = E.ferr === 'sel' && E.sel && !E.reg.base; b.hidden = !on && !(E.ferr === 'colar');
+    $('[data-f="colar"]').hidden = !E.colarClip && !E.clip;
+    if (E.ferr === 'colar') { b.innerHTML = `<span class="cresce"><b>Colar</b> · toque no mapa (canto de cima/esquerda). ${E.colarClip ? E.colarClip.w + '×' + E.colarClip.h : ''}</span><button class="btn peq" data-s="parar">✕ Parar</button>`; }
+    else if (on) { const q = E.sel; b.innerHTML = `<span class="mudo" style="width:100%">${q.w}×${q.h} tiles em ${q.x}, ${q.y} · arraste dentro para mover</span><button class="btn peq" data-s="copiar">Copiar</button><button class="btn peq" data-s="recortar">Recortar</button><button class="btn peq" data-s="dup">Duplicar</button><button class="btn peq" data-s="apagar">Apagar</button><button class="btn peq" data-s="conj">Salvar conjunto</button><button class="btn peq" data-s="todas" aria-pressed="${E.selTodas !== false}">${E.selTodas !== false ? 'Todas as camadas' : 'Só a camada ativa'}</button><button class="btn peq" data-s="x">✕</button>`; }
+    else return;
+    b.querySelectorAll('[data-s]').forEach(x => x.onclick = () => acaoSel(x.dataset.s)); }
+  function acaoSel(a) { const m = E.m, s = E.sel, ti = tsInfo();
+    if (a === 'parar') { E.colarClip = null; return ferramenta('sel'); }
+    if (a === 'x') { E.sel = null; barraSel(); return desenhar(); }
+    if (a === 'todas') { E.selTodas = E.selTodas === false; return barraSel(); }
+    if (!s) return; const op = opSel();
+    if (a === 'copiar' || a === 'recortar') { E.clip = Ferr.copiar(m, s, op, ti); if (a === 'recortar') mudar(x => { Ferr.apagarArea(x, s, op, ti); }, 'tudo'); toast((a === 'copiar' ? 'Copiado' : 'Recortado') + ': use 📋 Colar'); E.colarClip = E.clip; barraSel(); return; }
+    if (a === 'apagar') { mudar(x => { if (!Ferr.apagarArea(x, s, op, ti)) return false; }, 'tudo') || toast('Nada para apagar'); return; }
+    if (a === 'dup') { const clip = Ferr.copiar(m, s, op, ti), nx = s.x + s.w + s.w <= m.W ? s.x + s.w : s.x, ny = nx === s.x ? Math.min(m.H - s.h, s.y + s.h) : s.y; let r;
+      mudar(x => { r = Ferr.colar(x, clip, nx, ny, op, ti); }, 'tudo'); E.sel = { x: nx, y: ny, w: s.w, h: s.h }; avisaPulados(r); barraSel(); desenhar(); toast('Duplicado'); return; }
+    if (a === 'conj') salvarConjunto(Ferr.copiar(m, s, op, ti)); }
+  async function salvarConjunto(clip) { if (!P.sessao()) return aviso('Entre primeiro', 'Conjuntos ficam no servidor: entre com a conta admin na lista de mapas.');
+    if (!Object.keys(clip.tiles).length && !clip.terreno && !clip.col) return toast('Seleção vazia');
+    const v = await dlg('Salvar conjunto', '<p class="mudo">Fica na biblioteca para usar como carimbo em qualquer mapa (aba Pintura).</p><label class="lbl">Nome</label><input id="cjNome" maxlength="60" placeholder="Ex.: Estrada reta">', [{ t: 'Salvar', v: 1, c: 'pri', antes: () => !!$('#cjNome').value.trim() }, { t: 'Cancelar', v: 0 }]);
+    if (!v) return; const nome = $('#cjNome').value.trim().slice(0, 60), usados = new Set(E.conj.map(c => c.id)); let id = 'k_' + (Mo.slug(nome).slice(0, 34) || 'conj'), n = 2; if (id.length < 4) id += '_1'; while (usados.has(id)) id = id.slice(0, 36) + '_' + n++;
+    try { await P.api('/rest/v1/mapa_conjuntos', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ id, nome, categoria: '', w: clip.w, h: clip.h, dados: clip }) }); toast('Conjunto salvo'); await carregarConj(); }
+    catch (e) { aviso('Não consegui salvar', esc(/mapa_conjuntos|PGRST205/.test(e.message + e.code) ? 'O banco ainda não tem os conjuntos: rode o arquivo sql/18_mapa_conjuntos.sql no Supabase.' : P.erroTexto(e))); } }
+  async function carregarConj() { if (!P.sessao()) { E.conj = []; return; } try { E.conj = (await P.api('/rest/v1/mapa_conjuntos?select=*&order=nome.asc')) || []; } catch (e) { E.conj = []; } if (E.aba === 'pintura') painel('pintura'); }
+
+  // toque: ✋ Mover = 1 dedo arrasta (ou toca para pôr nascimento/chefe); outras ferramentas usam 1 dedo; 2 dedos = pinça sempre
   const ptr = new Map(); let gesto = null;
   const pt = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   cv.addEventListener('pointerdown', e => { try { cv.setPointerCapture(e.pointerId); } catch (_) { } ptr.set(e.pointerId, pt(e));
-    if (ptr.size === 1) gesto = { t: 'um', p0: pt(e), ox: E.ox, oy: E.oy, moveu: false };
-    else if (ptr.size === 2) { const [a, b] = [...ptr.values()]; gesto = { t: 'dois', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, c0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, s0: E.s, ox: E.ox, oy: E.oy }; } });
-  cv.addEventListener('pointermove', e => { if (!ptr.has(e.pointerId) || !gesto) return; ptr.set(e.pointerId, pt(e));
-    if (gesto.t === 'um' && ptr.size === 1) { const p = pt(e), dx = p.x - gesto.p0.x, dy = p.y - gesto.p0.y; if (Math.hypot(dx, dy) > 8) gesto.moveu = true; if (gesto.moveu) { E.ox = gesto.ox + dx; E.oy = gesto.oy + dy; desenhar(); } }
+    if (ptr.size === 1) { const p = pt(e); if (E.ferr !== 'mover' && !E.modo) { const t = iniFerr(p); gesto = t ? { t: 'ferr', p0: p, moveu: false } : { t: 'nada' }; } else gesto = { t: 'um', p0: p, ox: E.ox, oy: E.oy, moveu: false }; }
+    else if (ptr.size === 2) { if (gesto && gesto.t === 'ferr') cancelaFerr(); const [a, b] = [...ptr.values()]; gesto = { t: 'dois', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, c0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, s0: E.s, ox: E.ox, oy: E.oy }; } });
+  cv.addEventListener('pointermove', e => { const p = pt(e); if (!ptr.has(e.pointerId)) { if (e.pointerType === 'mouse' && E.ferr !== 'mover') { E.mira = mundo(p); desenhar(); } return; } if (!gesto) return; ptr.set(e.pointerId, p);
+    if (gesto.t === 'um' && ptr.size === 1) { const dx = p.x - gesto.p0.x, dy = p.y - gesto.p0.y; if (Math.hypot(dx, dy) > 8) gesto.moveu = true; if (gesto.moveu) { E.ox = gesto.ox + dx; E.oy = gesto.oy + dy; desenhar(); } }
+    else if (gesto.t === 'ferr' && ptr.size === 1) { if (Math.hypot(p.x - gesto.p0.x, p.y - gesto.p0.y) > 6) gesto.moveu = true; moveFerr(p); }
     else if (gesto.t === 'dois' && ptr.size >= 2) { const [a, b] = [...ptr.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, ns = clamp(gesto.s0 * d / gesto.d0, .05, 4);
       const wx = (gesto.c0.x - gesto.ox) / gesto.s0, wy = (gesto.c0.y - gesto.oy) / gesto.s0; E.s = ns; E.ox = c.x - wx * ns; E.oy = c.y - wy * ns; ajusta(); desenhar(); } });
   const solta = e => { if (!ptr.has(e.pointerId)) return; const p = pt(e); ptr.delete(e.pointerId);
+    if (gesto && gesto.t === 'ferr') { if (e.type === 'pointercancel') cancelaFerr(); else fimFerr(p, gesto.moveu); gesto = null; return; }
     if (gesto && gesto.t === 'um' && !gesto.moveu && e.type === 'pointerup') toque(p);
     if (!ptr.size) gesto = null; else if (gesto && gesto.t === 'dois') { const q = [...ptr.values()][0]; gesto = { t: 'um', p0: q, ox: E.ox, oy: E.oy, moveu: true }; } };
   cv.addEventListener('pointerup', solta); cv.addEventListener('pointercancel', solta);
@@ -308,6 +451,28 @@
     const t = $('#toque'); if (t) t.textContent = tx >= 0 && ty >= 0 && tx < m.W && ty < m.H ? 'Tile tocado: ' + tx + ', ' + ty : 'Fora do mapa';
     if (E.modo) { if (tx < 2 || ty < 2 || tx >= m.W - 2 || ty >= m.H - 2) { toast('Fora do mapa ou na borda bloqueada'); return; }
       const k = E.modo; mudar(q => { q[k] = [tx + .5, ty + .5]; if (k === 'boss') q.tem.boss = true; }, 'nada'); modo(null); toast(k === 'spawn' ? 'Nascimento posto em ' + tx + ', ' + ty : 'Chefe posto em ' + tx + ', ' + ty); } }
+
+  /* ---------- seletor de tiles (aba Pintura) ---------- */
+  const pk = new window.Visor($('#pkCv'), {
+    toqueImg: ip => { const s = pkTs(); if (!s) return true; const c = clamp(Math.floor((ip.x - s.mg) / (s.tw + s.sp)), 0, pkCols(s)[0] - 1), r = clamp(Math.floor((ip.y - s.mg) / (s.th + s.sp)), 0, pkCols(s)[1] - 1); escolheTile(s, c, r, c, r); return true; },
+    novo: q => { const s = pkTs(); if (!q || !s) return; const f = v => Math.floor((v - s.mg) / (s.tw + s.sp)), g = v => Math.floor((v - s.mg) / (s.th + s.sp)), [cc, rr] = pkCols(s);
+      escolheTile(s, clamp(f(q.x), 0, cc - 1), clamp(g(q.y), 0, rr - 1), clamp(f(q.x + q.w - 1), 0, cc - 1), clamp(g(q.y + q.h - 1), 0, rr - 1)); pk.pend = null; } });
+  const pkCols = s => [Math.max(1, Math.floor((s.w - s.mg + s.sp) / (s.tw + s.sp))), Math.max(1, Math.floor((s.h - s.mg + s.sp) / (s.th + s.sp)))];
+  const pkTs = () => libTs().find(t => t.id === E.pkId) || null;
+  function escolheTile(s, c0, r0, c1, r1) { E.tinta.tile = { id: s.id, c0, r0, sw: c1 - c0 + 1, sh: r1 - r0 + 1 };
+    pk.recortes = [{ id: 'sel', x: s.mg + c0 * (s.tw + s.sp), y: s.mg + r0 * (s.th + s.sp), w: (c1 - c0 + 1) * (s.tw + s.sp) - s.sp, h: (r1 - r0 + 1) * (s.th + s.sp) - s.sp }]; pk.desenhar();
+    $('#pkInfo').textContent = 'Escolhido: ' + E.tinta.tile.sw + '×' + E.tinta.tile.sh + ' tile(s) de ' + s.tw + '×' + s.th + ' px (coluna ' + c0 + ', linha ' + r0 + ')';
+    if (E.ferr === 'mover' || E.ferr === 'sel' || E.ferr === 'colar') ferramenta('pincel'); }
+  function mostraPick() { const on = E.aba === 'pintura' && !FIXAS[E.ativa]; $('#pick').hidden = !on; if (!on) return;
+    const L = libTs(); if (!L.length) { $('#pick').hidden = true; return; } if (!E.pkId || !L.some(t => t.id === E.pkId)) E.pkId = (E.tinta.tile && E.tinta.tile.id) || L[0].id;
+    $('#pkTs').innerHTML = L.map(t => `<option value="${esc(t.id)}" ${t.id === E.pkId ? 'selected' : ''}>${esc(t.nome)} · ${t.tw}×${t.th}</option>`).join('');
+    carregaPick(); }
+  function carregaPick() { const s = pkTs(), t = s && R.TSI[s.id]; if (!s) return; pk.grade = { tw: s.tw, th: s.th, mg: s.mg, sp: s.sp }; pk.encaixar = true; pk.recortes = []; pk.cand = []; pk.sel = null;
+    if (E.tinta.tile && E.tinta.tile.id === s.id) { const q = E.tinta.tile; pk.recortes = [{ id: 'sel', x: s.mg + q.c0 * (s.tw + s.sp), y: s.mg + q.r0 * (s.th + s.sp), w: q.sw * (s.tw + s.sp) - s.sp, h: q.sh * (s.th + s.sp) - s.sp }]; }
+    requestAnimationFrame(() => { pk.tamanho(); if (t && t.ok) { if (pk.img !== t.img) { pk.imagem(t.img); pk.ajustar(); } else pk.desenhar(); } else { $('#pkInfo').textContent = 'Carregando o tileset…'; setTimeout(() => { if (R.TSI[s.id] && R.TSI[s.id].ok && E.aba === 'pintura') carregaPick(); }, 600); } }); }
+  $('#pkTs').onchange = e => { E.pkId = e.target.value; pk.img = null; carregaPick(); };
+  $('#pkModo').onclick = () => { const on = pk.modo !== 'sel'; pk.modo = on ? 'sel' : 'mover'; $('#pkModo').setAttribute('aria-pressed', on); $('#pkModo').textContent = on ? 'Escolhendo vários (arraste)' : 'Escolher vários'; };
+  $('#pkZp').onclick = () => pk.zoom(1.25); $('#pkZm').onclick = () => pk.zoom(1 / 1.25); $('#pkZa').onclick = () => pk.ajustar();
 
   /* ---------- botões ---------- */
   $('#novo').onclick = novo; $('#srvAtu').onclick = srvLista;
@@ -319,13 +484,19 @@
   $('#zMenos').onclick = () => { const r = cv.getBoundingClientRect(); zoomEm(r.width / 2, r.height / 2, E.s / 1.25); };
   $('#zAjustar').onclick = ajustar; $('#pnX').onclick = fecharPainel;
   document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => abrirAba(b.dataset.aba));
+  document.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { if (b.dataset.f === 'colar') { E.colarClip = E.colarClip || E.clip; if (!E.colarClip) return toast('Copie uma seleção primeiro'); } ferramenta(b.dataset.f); });
+  $('#fCam').onclick = () => abrirAba('camadas');
   document.addEventListener('keydown', e => { if (!E.m || $('#dlg').hidden === false || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); e.shiftKey ? refazer() : desfazer(); } if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); salvar(); } });
 
   // biblioteca já existente (imagens próprias e tilesets) para desenhar mapas que usam
-  async function carregarLib() { const [im, ts] = await Promise.all([P.imagens(), P.tilesets()]); E.lib = { imagens: im, tilesets: ts };
-    R.imagens(im, P.STORE, () => { E.cache.M = null; desenhar(); }); R.tilesets(ts, P.STORE, () => { E.cache.cam = null; desenhar(); }); }
+  async function carregarLib() { const [im, ts, rc] = await Promise.all([P.imagens(), P.tilesets(), P.sessao() && window.Recursos ? window.Recursos.listar().catch(() => []) : []]); E.lib = { imagens: im, tilesets: ts, recursos: rc };
+    const rg = rc.filter(r => r.grade && r.grade.tw > 0).map(r => ({ id: r.id, nome: r.nome, arquivo: r.arquivo, w: r.w, h: r.h, tw: r.grade.tw, th: r.grade.th, mg: r.grade.mg || 0, sp: r.grade.sp || 0 }));
+    for (const r of rg) if (window.Render.TSI[r.id] && window.Render.TSI[r.id].arq !== r.arquivo + JSON.stringify(r)) delete window.Render.TSI[r.id];
+    R.imagens(im, P.STORE, () => { E.cache.M = null; desenhar(); }); R.tilesets(ts.concat(rg), P.STORE, () => { E.cache.cam = null; desenhar(); if (E.aba === 'pintura') carregaPick(); });
+    for (const r of rg) if (R.TSI[r.id]) R.TSI[r.id].arq = r.arquivo + JSON.stringify(r);
+    carregarConj(); }
   window.UI = { dlg, aviso, toast, esc, hora, telaEditor: () => { $('#inicio').hidden = true; $('#editor').hidden = !E.m; if (!E.m) inicio(); else { tamanhoCv(); desenhar(); } }, inicio, carregarLib };
-  E.api = { novo, abrir, abrirLocal, abrirSrv, salvar, publicar, redimensionar, desfazer, refazer, mudar, ajustar, zoomEm, inicio, sairEditor };
+  E.api = { ferramenta, ativar, libTs, tsInfo, escolheTile: (id, c0, r0, c1, r1) => escolheTile(libTs().find(t => t.id === id), c0, r0, c1 == null ? c0 : c1, r1 == null ? r0 : r1), carregarLib, acaoSel, novo, abrir, abrirLocal, abrirSrv, salvar, publicar, redimensionar, desfazer, refazer, mudar, ajustar, zoomEm, inicio, sairEditor };
   R.carregar(J).then(() => { carregarLib(); inicio(); E.pronto = true; });
 })();

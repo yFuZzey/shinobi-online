@@ -1398,18 +1398,19 @@ function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if
  return Promise.all(ps)}
 // ---- tilesets e camadas de tiles do editor (Chão e Detalhes entram no chão; Acima desenha por cima do jogador). Mapas sem camadas não passam por aqui.
 const TLS={};let TLM=null,GA=null;
-function tlsLoad(L){const ps=[];for(const id of Object.keys(L||{})){const r=L[id];if(!/^t_[a-z0-9_]{2,28}$/.test(id)||!r||typeof r.url!=='string'||!/^https?:\/\//.test(r.url))continue;
+function tlsLoad(L){const ps=[];for(const id of Object.keys(L||{})){const r=L[id];if(!/^(t|r)_[a-z0-9_]{2,40}$/.test(id)||!r||typeof r.url!=='string'||!/^https?:\/\//.test(r.url))continue;
   const o=TLS[id];if(o&&o.url===r.url){Object.assign(o,{tw:r.tw|0,th:r.th|0,mg:r.mg|0,sp:r.sp|0,px:!!r.px});continue}
   ps.push(new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>{TLS[id]={img:i,url:r.url,tw:Math.max(1,r.tw|0),th:Math.max(1,r.th|0),mg:r.mg|0,sp:r.sp|0,px:!!r.px};ok()};i.onerror=ok;i.src=r.url}))}
  return Promise.all(ps).then(()=>{if(ps.length&&TLM){GC=null;GA=null}})}
 function tlReady(){return !!TLM&&TLM.tilesets.every(id=>TLS[id])}
-function tlDraw(g,nomes){if(!TLM)return;g.save();g.imageSmoothingEnabled=false;
- for(const c of TLM.camadas){if(c.t!=='tiles'||!nomes.includes(c.n))continue;
+const tlCima=c=>c.z?c.z==='acima':c.n==='acima'; // camada por cima do personagem (as outras ficam por baixo dos objetos, na ordem da lista)
+function tlDraw(g,cima){if(!TLM)return;g.save();g.imageSmoothingEnabled=false;
+ for(const c of TLM.camadas){if(c.t!=='tiles'||tlCima(c)!==cima)continue;
   for(const e of c.d){const t=TLS[TLM.tilesets[e[0]]];if(!t)continue;g.drawImage(t.img,t.mg+e[3]*(t.tw+t.sp),t.mg+e[4]*(t.th+t.sp),t.tw,t.th,e[1]*t.tw,e[2]*t.th,t.tw,t.th)}}
  g.restore()}
 {const _am=applyMap;applyMap=function(m){_am(m);TLM=m&&m.camadas&&m.tilesets?m:null;GA=null}}
-{const _bg=buildGround;buildGround=function(){_bg();if(TLM&&GC)tlDraw(GC.getContext('2d'),['chao','detalhes'])}}
-function tlAcima(){if(scene||!TLM||!tlReady())return;if(!GA){if(!TLM.camadas.some(c=>c.t==='tiles'&&c.n==='acima'&&c.d.length))return;GA=document.createElement('canvas');GA.width=N*T;GA.height=NH*T;tlDraw(GA.getContext('2d'),['acima'])}
+{const _bg=buildGround;buildGround=function(){_bg();if(TLM&&GC)tlDraw(GC.getContext('2d'),false)}}
+function tlAcima(){if(scene||!TLM||!tlReady())return;if(!GA){if(!TLM.camadas.some(c=>c.t==='tiles'&&tlCima(c)&&c.d.length))return;GA=document.createElement('canvas');GA.width=N*T;GA.height=NH*T;tlDraw(GA.getContext('2d'),true)}
  const m=ctx.getTransform(),k=m.a||1,x=Math.floor(-m.e/k),y=Math.floor(-m.f/k),w=Math.ceil(cv.width/k)+2,h=Math.ceil(cv.height/k)+2;ctx.drawImage(GA,x,y,w,h,x,y,w,h)}
 async function mpApply(j){await mpImg(j.imagens);await tlsLoad(j.tilesets);return mpPut(j.mapas)}
 async function mapasSync(){if(!ONL.ok)return false;let ch=false;

@@ -257,6 +257,9 @@ async function mapasDb() {
     const cv = crypto.createHash('sha1').update(JSON.stringify(Object.keys(IM).map(k => [k, cat.fpt[k]]))).digest('hex').slice(0, 10), mudouImg = cv !== MP_CV; MP_CV = cv;
     let tss = []; try { tss = await svc('/rest/v1/mapa_tilesets?select=*') || []; } catch (e) { if (e.status !== 404) throw e; }
     const TSM = {}; for (const r of tss) if (/^t_[a-z0-9_]{2,28}$/.test(r.id || '') && /^tilesets\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '')) TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: r.tw | 0, th: r.th | 0, mg: r.mg | 0, sp: r.sp | 0, px: r.px === false ? 0 : 1 };
+    let rcs = []; try { rcs = await svc('/rest/v1/mapa_recursos?select=id,arquivo,w,h,grade&grade=not.is.null') || []; } catch (e) { if (e.status !== 404 && e.status !== 400) throw e; } // biblioteca do editor novo (sql/17)
+    for (const r of rcs) { const q = r.grade || {}; if (/^r_[a-z0-9_]{2,40}$/.test(r.id || '') && /^(originais|derivados|tilesets|objetos)\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '') && q.tw > 0 && q.th > 0)
+      TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: q.tw | 0, th: q.th | 0, mg: q.mg | 0, sp: q.sp | 0, px: 1 }; }
     const L = await svc('/rest/v1/mapas?select=id,nome,mapa&publicado=eq.true') || [], pub = {}, vistos = [];
     for (const r of L) {
       if (MAPAS_BASE.has(r.id)) continue;

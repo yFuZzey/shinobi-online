@@ -37,7 +37,7 @@ function validar(id, nome, m, cat) {
     ground: m.ground, objects: O, spawn: pt(m.spawn, [W / 2 + .5, H / 2 + .5]), boss: pt(m.boss, null) };
   if (W !== N || H !== N) { out.W = W; out.H = H; } // 50×50 continua exatamente como antes
   // camadas de tiles (Chão, Detalhes, Acima…): opcional; mapas antigos não têm. Camadas de tipo desconhecido (estruturas, colisão, altura no futuro) passam adiante sem mexer.
-  const TS = Array.isArray(m.tilesets) ? m.tilesets.filter(t => /^t_[a-z0-9_]{2,28}$/.test(t)).slice(0, 16) : [];
+  const TS = Array.isArray(m.tilesets) && m.tilesets.every(t => /^(t|r)_[a-z0-9_]{2,40}$/.test(t)) ? m.tilesets.slice(0, 32) : []; // t_ = tileset do editor antigo, r_ = recurso da biblioteca
   if (TS.length && Array.isArray(m.camadas)) {
     const C = [];
     for (const c of m.camadas.slice(0, 12)) {
@@ -48,7 +48,8 @@ function validar(id, nome, m, cat) {
           if (!Array.isArray(e) || e.length < 5 || !e.slice(0, 5).every(Number.isInteger) || e[0] < 0 || e[0] >= TS.length || e[1] < 0 || e[2] < 0 || e[1] > 4096 || e[2] > 4096 || e[3] < 0 || e[4] < 0 || e[3] > 4096 || e[4] > 4096) continue;
           d.push(e.slice(0, 5)); if (d.length >= 20000) break;
         }
-        C.push({ n: c.n, t: 'tiles', d });
+        const o = { n: c.n, t: 'tiles', d }; if (c.z === 'acima' || c.z === 'baixo') o.z = c.z; if (typeof c.nome === 'string') o.nome = c.nome.replace(/[\u0000-\u001f<>]/g, '').slice(0, 30);
+        C.push(o);
       } else if (JSON.stringify(c).length <= 200000) C.push(c);
     }
     if (C.length) { out.tilesets = TS; out.camadas = C; }
