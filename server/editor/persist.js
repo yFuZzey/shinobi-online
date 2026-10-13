@@ -96,6 +96,6 @@
   async function tilesets() { try { return (await api('/rest/v1/mapa_tilesets?select=*')) || []; } catch (e) { return []; } }
   const STORE = SB + '/storage/v1/object/public/mapa-recursos/';
 
-  G.Persist = { salvar, listar, ler, apagar, copias, emergencia, lerEmergencia, limparEmergencia, entrar, sair, sessao, erroTexto,
+  G.Persist = { api, salvar, listar, ler, apagar, copias, emergencia, lerEmergencia, limparEmergencia, entrar, sair, sessao, erroTexto,
     listarServidor, lerServidor, publicar, renomearServidor, publicadoServidor, apagarServidor, imagens, tilesets, STORE };
 })(window);

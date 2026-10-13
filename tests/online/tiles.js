@@ -21,13 +21,14 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.evaluate(n=>{closeMenu();createMap(n,'folha')},'tiles_'+suf);
  // tileset de teste: 96×64, tiles 32×32, o primeiro tem um buraco transparente
  const COR=[[220,30,30],[0,200,0],[0,0,220],[230,230,0],[230,0,230],[0,220,230]];
+ const TS0=await mget('/__tilesets');
  const tsB64=await P.evaluate(COR=>{const c=document.createElement('canvas');c.width=96;c.height=64;const g=c.getContext('2d');COR.forEach((k,i)=>{g.fillStyle='rgb('+k+')';g.fillRect((i%3)*32,(i>>1>>0)*0+Math.floor(i/3)*32,32,32)});g.clearRect(0,0,8,8);return c.toDataURL('image/png').split(',')[1]},COR);
  const tsBuf=Buffer.from(tsB64,'base64');
  await P.evaluate(()=>{tool='tile';ui()});await P.click('#tsNew');await P.setInputFiles('#tsFile',{name:'terreno.png',mimeType:'image/png',buffer:tsBuf});await P.waitForFunction(()=>TI&&TI.img,null,{timeout:8000});
  const pv=await P.evaluate(()=>({tw:+document.querySelector('#tsTw').value,th:+document.querySelector('#tsTh').value,info:document.querySelector('#tsInfo').textContent}));
  ok(pv.tw===32&&pv.th===32&&/96×64 px · 3×2 tiles de 32×32/.test(pv.info),'prévia: tamanho do tile detectado e grade 3×2 ('+pv.info.slice(0,60)+')');
  await P.click('#tsSave');await W(1800);
- const TS=await mget('/__tilesets'),tid=Object.keys(TS)[0],ST=await mget('/__store'),sha=crypto.createHash('sha256').update(tsBuf).digest('hex').slice(0,12);
+ const TS=await mget('/__tilesets'),tid=Object.keys(TS).find(k=>!TS0[k]),ST=await mget('/__store'),sha=crypto.createHash('sha256').update(tsBuf).digest('hex').slice(0,12);
  ok(tid&&TS[tid].w===96&&TS[tid].h===64&&TS[tid].tw===32&&TS[tid].arquivo==='tilesets/'+sha+'.png','tileset gravado (96×64, tile 32×32) com o arquivo no Storage pelo hash do original ('+TS[tid].arquivo+')');
  ok(ST[TS[tid].arquivo]&&ST[TS[tid].arquivo].n===tsBuf.length&&ST[TS[tid].arquivo].tipo==='image/png','arquivo original guardado sem alteração (mesmo tamanho em bytes, PNG)');
  const orig=await P.evaluate(async([url,esp])=>{const r=await fetch(url),buf=new Uint8Array(await r.arrayBuffer()),im=new Image();im.crossOrigin='anonymous';await new Promise(ok=>{im.onload=ok;im.src=url});const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);
@@ -66,7 +67,7 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.evaluate(()=>{tool='tile';ui()});await P.click('#tsNew');await P.setInputFiles('#tsFile',{name:'pequeno.png',mimeType:'image/png',buffer:Buffer.from(TS16,'base64')});await P.waitForFunction(()=>TI&&TI.img.width===32,null,{timeout:8000});
  const g16=await P.evaluate(()=>[+document.querySelector('#tsTw').value,+document.querySelector('#tsTh').value]);ok(g16[0]===16&&g16[1]===16,'imagem 32×16: o tile detectado é 16×16 (não força 32)');
  await P.click('#tsSave');await W(1500);
- const t16=Object.values(await mget('/__tilesets')).find(r=>r.tw===16);
+ const t16=Object.values(await mget('/__tilesets')).find(r=>r.tw===16&&!TS0[r.id]);
  // pinta na camada Chão com o de 16 px: célula (tx,ty) na grade de 16 px
  await layer('chao');await sub('pincel');await P.click('[data-tset="'+t16.id+'"]');await tile(1,0);
  const p16=await P.evaluate(()=>{const r=cv.getBoundingClientRect();return[r.left+ox+(30*16+8)*s,r.top+oy+(30*16+8)*s]});await P.mouse.click(p16[0]+0,p16[1]);

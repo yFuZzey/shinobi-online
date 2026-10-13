@@ -1,7 +1,7 @@
 // Servidor simulado (subconjunto do Supabase: Auth, REST de "personagens" e Realtime/Phoenix) para testes locais.
 const http=require('http'),crypto=require('crypto');
 const PORT=+process.argv[2]||54321;
-const users={},rows={},INV={},PATCHES=[],TROCAS=[],BANS={},ITENS={},MAPAS={},IMAGENS={},TILESETS={},STORE={};let RPCS=0;let n=0;const log=[];
+const users={},rows={},INV={},PATCHES=[],TROCAS=[],BANS={},ITENS={},MAPAS={},IMAGENS={},TILESETS={},RECURSOS={},STORE={};let RPCS=0;let n=0;const log=[];
 function J(res,code,obj){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});res.end(obj===undefined?'':JSON.stringify(obj))}
 function sess(u){const r='ref-'+u.id+'-'+(++n);u.refresh=r;return {access_token:'tok-'+u.id,refresh_token:r,expires_in:3600,token_type:'bearer',user:{id:u.id,email:u.email,user_metadata:u.meta}}}
 function uidOf(req){const a=req.headers.authorization||'';const m=/^Bearer tok-(.+)$/.exec(a);return m?m[1]:null}
@@ -103,6 +103,17 @@ const srv=http.createServer((req,res)=>{
    if(req.method==='POST'||req.method==='PUT'){if(STORE[f]&&req.headers['x-upsert']!=='true')return J(res,409,{statusCode:'409',error:'Duplicate',message:'The resource already exists'});
     STORE[f]={b:raw,t:req.headers['content-type']||'application/octet-stream'};return J(res,200,{Key:'mapa-recursos/'+f})}
    if(req.method==='DELETE'){delete STORE[f];return J(res,200,{message:'Successfully deleted'})}}
+  // biblioteca de recursos (SQL 17): só admin lê e grava
+  if(u.pathname==='/__recursos')return J(res,200,RECURSOS);
+  if(u.pathname==='/rest/v1/mapa_recursos'){const uid=uidOf(req),adm=SVC||!!(uid&&rows[uid]&&rows[uid].admin),idf=(u.searchParams.get('id')||'').replace(/^eq\./,''),au=(u.searchParams.get('atualizado_em')||'').replace(/^eq\./,'');
+   if(req.method==='GET'){if(!adm)return J(res,200,[]);return J(res,200,Object.values(RECURSOS).filter(r=>!idf||r.id===idf).map(r=>JSON.parse(JSON.stringify(r))))}
+   if(!uid&&!SVC)return J(res,401,{message:'JWT required'});
+   if(!adm)return J(res,403,{code:'42501',message:'new row violates row-level security policy for table "mapa_recursos"'});
+   const agora=()=>new Date(Date.now()+(++n)).toISOString();
+   if(req.method==='POST'){if(!/^r_[a-z0-9_]{2,40}$/.test(body.id||'')||!/^(originais|tilesets|objetos)\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(body.original||'')||!/^(originais|derivados|tilesets|objetos)\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(body.arquivo||''))return J(res,400,{code:'23514',message:'new row violates check constraint'});
+    if(RECURSOS[body.id])return J(res,409,{code:'23505',message:'duplicate key value violates unique constraint "mapa_recursos_pkey"'});const t=agora();RECURSOS[body.id]={...body,criado_em:t,atualizado_em:t};return J(res,201,[RECURSOS[body.id]])}
+   if(req.method==='PATCH'){const r=RECURSOS[idf];if(!r||(au&&r.atualizado_em!==au))return J(res,200,[]);Object.assign(r,body,{atualizado_em:agora()});return J(res,200,[r])}
+   if(req.method==='DELETE'){const r=RECURSOS[idf];delete RECURSOS[idf];return J(res,200,r?[r]:[])}}
   // tilesets (SQL 15)
   if(u.pathname==='/__tilesets')return J(res,200,TILESETS);
   if(u.pathname==='/rest/v1/mapa_tilesets'){const uid=uidOf(req),adm=SVC||!!(uid&&rows[uid]&&rows[uid].admin),idf=(u.searchParams.get('id')||'').replace(/^eq\./,'');

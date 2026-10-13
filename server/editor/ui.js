@@ -325,6 +325,7 @@
   // biblioteca já existente (imagens próprias e tilesets) para desenhar mapas que usam
   async function carregarLib() { const [im, ts] = await Promise.all([P.imagens(), P.tilesets()]); E.lib = { imagens: im, tilesets: ts };
     R.imagens(im, P.STORE, () => { E.cache.M = null; desenhar(); }); R.tilesets(ts, P.STORE, () => { E.cache.cam = null; desenhar(); }); }
+  window.UI = { dlg, aviso, toast, esc, hora, telaEditor: () => { $('#inicio').hidden = true; $('#editor').hidden = !E.m; if (!E.m) inicio(); else { tamanhoCv(); desenhar(); } }, inicio, carregarLib };
   E.api = { novo, abrir, abrirLocal, abrirSrv, salvar, publicar, redimensionar, desfazer, refazer, mudar, ajustar, zoomEm, inicio, sairEditor };
   R.carregar(J).then(() => { carregarLib(); inicio(); E.pronto = true; });
 })();

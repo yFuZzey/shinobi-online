@@ -19,10 +19,11 @@
       <button class="btn pri" id="lgIn">Entrar</button><p class="status" id="lgSt"></p>
     </section>
     <button class="btn pri grande" id="novo">+ Novo mapa</button>
+    <button class="btn grande" id="abreBib">Biblioteca de recursos (tilesets, spritesheets, objetos)</button>
     <section class="cartao"><h2>Neste aparelho</h2><div id="lsLocal" class="lista"></div></section>
     <section class="cartao" id="secSrv" hidden><div class="linha"><h2 class="cresce">No servidor</h2><button class="btn peq" id="srvAtu">Atualizar</button></div><div id="lsSrv" class="lista"></div></section>
     <section class="cartao"><h2>Mapas do jogo</h2><p class="mudo">Vêm junto com o jogo. Para mudar, duplique e publique com outro nome.</p><div id="lsBase" class="lista"></div></section>
-    <p class="mudo rodape">Editor novo · Fase 1. O editor antigo continua em <a href="/painel/mapas">/painel/mapas</a> enquanto as ferramentas de pintura chegam aqui.</p>
+    <p class="mudo rodape">Editor novo · Fases 1 e 2. O editor antigo continua em <a href="/painel/mapas">/painel/mapas</a> enquanto as ferramentas de pintura chegam aqui.</p>
   </div>
 </main>
 
@@ -40,8 +41,37 @@
   </div>
   <section id="painel" hidden><div class="painelTopo"><b id="pnT"></b><span class="cresce"></span><button class="ib" id="pnX" aria-label="Fechar painel">✕</button></div><div id="pnC" class="rolar"></div></section>
   <nav class="abas" role="tablist">
-    <button data-aba="mapa">Mapa</button><button data-aba="camadas">Camadas</button><button data-aba="prop">Propriedades</button><button data-aba="conferir">Conferir</button>
+    <button data-aba="mapa">Mapa</button><button id="abaBib">Biblioteca</button><button data-aba="camadas">Camadas</button><button data-aba="prop">Propriedades</button><button data-aba="conferir">Conferir</button>
   </nav>
+</main>
+
+<!-- ========== biblioteca de recursos ========== -->
+<main id="biblio" class="tela" hidden>
+  <header class="barra"><button class="ib" id="bbVoltar" aria-label="Voltar">←</button><h1 class="cresce">Biblioteca</h1><button class="btn peq pri" id="bbImp">+ Importar imagem</button><input type="file" id="bbFile" accept="image/png,image/webp,image/jpeg,image/gif" hidden></header>
+  <div class="rolar" style="flex:1;padding:12px">
+    <input id="bbBusca" type="search" placeholder="Pesquisar por nome, categoria ou coleção" autocomplete="off">
+    <div class="presets" id="bbCats"></div>
+    <p class="status" id="bbSt"></p>
+    <div id="bbLista" class="grade-rec"></div>
+    <section class="cartao" id="bbAnt" hidden style="margin-top:14px"><h2>Do editor antigo</h2><p class="mudo">Tilesets e imagens já enviados pelo editor antigo. Traga para a biblioteca para organizar e recortar (o arquivo é o mesmo, nada é reenviado).</p><div id="bbAntL" class="grade-rec"></div></section>
+  </div>
+</main>
+
+<!-- ========== editar um recurso (imagem inteira, recortes, grade, fundo) ========== -->
+<main id="recurso" class="tela" hidden>
+  <header class="barra ed">
+    <button class="ib" id="rcVoltar" aria-label="Voltar para a biblioteca">←</button>
+    <div class="titulo"><b id="rcNome"></b><small><span id="rcEstado" class="estado"></span> <span id="rcInfo" class="mudo"></span></small></div>
+    <div class="acoes"><button class="ib" id="rcDesf" aria-label="Desfazer">↶</button><button class="ib" id="rcRef" aria-label="Refazer">↷</button><button class="btn peq pri" id="rcSalvar">Salvar</button></div>
+  </header>
+  <div id="rcPalco" class="palco"><canvas id="rcCv"></canvas>
+    <div class="modos" role="group" aria-label="O que um dedo faz"><button id="rcMover" aria-pressed="true">✋ Mover</button><button id="rcSel" aria-pressed="false">⬚ Selecionar</button></div>
+    <div id="rcPend" class="barraPend" hidden><span class="cresce">Novo recorte</span><button class="btn peq pri" id="rcOk">✓ Confirmar</button><button class="btn peq" id="rcNo">✕ Cancelar</button></div>
+    <div id="rcAviso" class="avisoTopo" hidden></div>
+    <div class="zoom"><button class="ib" id="rcZm" aria-label="Diminuir zoom">−</button><span id="rcZv">100%</span><button class="ib" id="rcZp" aria-label="Aumentar zoom">+</button><button class="ib" id="rcZa" aria-label="Ajustar à tela">⤢</button></div>
+  </div>
+  <section id="rcPainel" class="painel" hidden><div class="painelTopo"><b id="rcPnT"></b><span class="cresce"></span><button class="ib" id="rcPnX" aria-label="Fechar painel">✕</button></div><div id="rcPnC" class="rolar"></div></section>
+  <nav class="abas"><button data-rc="info">Info</button><button data-rc="fundo">Fundo</button><button data-rc="grade">Grade</button><button data-rc="recortes">Recortes</button><button data-rc="detectar">Detectar</button></nav>
 </main>
 
 <div id="dlg" class="fundo" hidden><div class="caixa" role="dialog" aria-modal="true"><h2 id="dlgT"></h2><div id="dlgC"></div><div id="dlgB" class="botoes"></div></div></div>
@@ -54,6 +84,9 @@
 <script src="/painel/editor/modelo.js"></script>
 <script src="/painel/editor/persist.js"></script>
 <script src="/painel/editor/render.js"></script>
+<script src="/painel/editor/recursos.js"></script>
+<script src="/painel/editor/visor.js"></script>
 <script src="/painel/editor/ui.js"></script>
+<script src="/painel/editor/ui_recursos.js"></script>
 </body>
 </html>
