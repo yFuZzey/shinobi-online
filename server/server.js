@@ -535,7 +535,7 @@ function onMessage(c, m) {
   switch (m.t) {
     case 'join': return onJoin(p, m);
     case 'pos': if (!p.map) return;
-      { const mp = MAPS[p.map]; p.x = clamp(num(m.x, p.x), 0, Math.max(50, (mp && mp.N) || 50) * T); p.y = clamp(num(m.y, p.y), 0, Math.max(50, (mp && (mp.H || mp.N)) || 50) * T); } // a sala da torre usa 50×50 p.fl = m.fl ? 1 : 0; p.mv = m.mv ? 1 : 0; p.run = m.run ? 1 : 0;
+      { const mp = MAPS[p.map]; p.x = clamp(num(m.x, p.x), 0, Math.max(50, (mp && mp.N) || 50) * T); p.y = clamp(num(m.y, p.y), 0, Math.max(50, (mp && (mp.H || mp.N)) || 50) * T); } /* a sala da torre usa 50×50 */ p.fl = m.fl ? 1 : 0; p.mv = m.mv ? 1 : 0; p.run = m.run ? 1 : 0;
       p.au = num(m.au, -1); p.th = num(m.th, -1); p.sc = m.sc ? 1 : 0; p.hp = clamp(num(m.hp, p.hp), 0, 1e5); p.max = clamp(num(m.max, p.max), 1, 1e5); p.ct = Number.isFinite(m.c) ? Math.round(m.c) : null; p.dirty = true; return;
     case 'meta': setMeta(p, m); if (p.map) toRoom(room(p.map), { t: 'pm', id: p.id, lv: p.lv, eq: p.eq, look: p.look, clan: p.clan, ey: p.ey || 0 }, p); return;
     case 'gaze': return onGaze(p, m);
