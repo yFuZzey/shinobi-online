@@ -127,6 +127,9 @@
         <div class="grade4"><div><label class="lbl">Largura</label><input id="rgTw" type="number" min="1" max="1024" value="${q.tw}"></div><div><label class="lbl">Altura</label><input id="rgTh" type="number" min="1" max="1024" value="${q.th}"></div>
         <div><label class="lbl">Início X</label><input id="rgMg" type="number" min="0" max="2048" value="${q.mg}"></div><div><label class="lbl">Início Y</label><input id="rgMy" type="number" min="0" max="2048" value="${my}"></div></div>
         <div class="grade4" style="margin-top:6px"><div><label class="lbl">Espaço</label><input id="rgSp" type="number" min="0" max="128" value="${q.sp}"></div></div>
+        <label class="lbl" style="margin-top:8px">Tamanho de cada tile no mapa (o arquivo não muda)</label>
+        <div class="presets">${[[32, '1 quadrado (32 px)'], [16, '½ quadrado (16 px)'], [64, '2 quadrados (64 px)'], [0, 'Original (' + q.tw + ' px)']].map(([v, t]) => `<button data-gd="${v}" aria-pressed="${(q.dw || 0) === v || (!q.dw && !v)}">${t}</button>`).join('')}</div>
+        <p class="mudo">No jogo, cada tile ocupa <b>${((q.dw || q.tw) / 32).toFixed(2).replace(/\.?0+$/, '')} × ${((q.dh || q.th) / 32).toFixed(2).replace(/\.?0+$/, '')}</b> quadrado(s) de 32 px.${(q.dw || q.tw) !== q.tw ? ' Redimensionado só na hora de desenhar.' : ''}</p>
         <button class="btn ${vis.modo === 'grade' ? 'pri' : ''}" id="rgArr" style="width:100%;margin-top:8px">${vis.modo === 'grade' ? '✥ Arrastando a grade — toque para terminar' : '✥ Arrastar a grade (encaixar no desenho)'}</button>
         <label class="lbl" style="margin-top:8px">Ajuste fino (1 px)</label><div class="presets"><button data-gn="x,-1">← X</button><button data-gn="x,1">X →</button><button data-gn="y,-1">↑ Y</button><button data-gn="y,1">Y ↓</button><button data-gn="w,-1">Tile − </button><button data-gn="w,1">Tile +</button></div>
         <p class="mudo">${cr[0]}×${cr[1]} tiles de ${q.tw}×${q.th} px. Mover a grade não mexe na imagem: só diz onde cada tile começa (a área escura fica de fora).</p>
@@ -167,6 +170,7 @@
     if (a === 'grade') { $('#rgOn').onchange = e => { mudar(x => { x.grade = e.target.checked ? { tw: 32, th: 32, mg: 0, sp: 0 } : null; }); painel('grade'); };
       if (r.grade) { const num = (id, k, a0, b0) => $(id).onchange = e => { const v = clamp(Math.round(+e.target.value || 0), a0, b0); mudar(x => { x.grade = Object.assign({}, x.grade, { [k]: v }); }); painel('grade'); };
         num('#rgTw', 'tw', 1, 1024); num('#rgTh', 'th', 1, 1024); num('#rgMg', 'mg', 0, 2048); num('#rgMy', 'my', 0, 2048); num('#rgSp', 'sp', 0, 128);
+        document.querySelectorAll('[data-gd]').forEach(b => b.onclick = () => { const v = +b.dataset.gd; mudar(x => { const g = Object.assign({}, x.grade); if (v) { g.dw = v; g.dh = Math.max(1, Math.round(v * g.th / g.tw)); } else { delete g.dw; delete g.dh; } x.grade = g; }); painel('grade'); });
         $('#rgArr').onclick = () => { if (vis.modo === 'grade') { modo('mover'); } else { vis.verGrade = true; modo('grade'); } painel('grade'); };
         document.querySelectorAll('[data-gn]').forEach(b => b.onclick = () => { const [k, d] = b.dataset.gn.split(','), g = Object.assign({}, r.grade); if (g.my == null) g.my = g.mg;
           if (k === 'x') g.mg = Math.max(0, g.mg + +d); else if (k === 'y') g.my = Math.max(0, g.my + +d); else { g.tw = clamp(g.tw + +d, 1, 1024); g.th = clamp(g.th + +d, 1, 1024); } mudar(x => { x.grade = g; }); painel('grade'); });

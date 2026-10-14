@@ -266,7 +266,7 @@ async function mapasDb() {
     let tss = []; try { tss = await svc('/rest/v1/mapa_tilesets?select=*') || []; } catch (e) { if (e.status !== 404) throw e; }
     const TSM = {}; for (const r of tss) if (/^t_[a-z0-9_]{2,28}$/.test(r.id || '') && /^tilesets\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '')) TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: r.tw | 0, th: r.th | 0, mg: r.mg | 0, sp: r.sp | 0, px: r.px === false ? 0 : 1 };
     for (const r of rcs) { const q = r.grade || {}; if (/^r_[a-z0-9_]{2,40}$/.test(r.id || '') && /^(originais|derivados|tilesets|objetos)\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '') && q.tw > 0 && q.th > 0)
-      TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: q.tw | 0, th: q.th | 0, mg: q.mg | 0, my: q.my != null ? q.my | 0 : q.mg | 0, sp: q.sp | 0, px: 1 }; }
+      TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: q.tw | 0, th: q.th | 0, dw: q.dw > 0 ? Math.min(1024, q.dw | 0) : q.tw | 0, dh: q.dh > 0 ? Math.min(1024, q.dh | 0) : q.th | 0, mg: q.mg | 0, my: q.my != null ? q.my | 0 : q.mg | 0, sp: q.sp | 0, px: 1 }; }
     const L = await svc('/rest/v1/mapas?select=id,nome,mapa&publicado=eq.true') || [], pub = {}, vistos = [];
     for (const r of L) {
       if (MAPAS_BASE.has(r.id)) continue;

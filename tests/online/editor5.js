@@ -1,0 +1,50 @@
+// Editor novo: mapas pequenos (sala 12×10, centralizada no jogo) e tiles grandes que ocupam 1 quadrado no mapa (tamanho no mapa ≠ arquivo).
+const {chromium}=require(process.env.PLAYWRIGHT||'/opt/npm-tools/node_modules/playwright');const W=ms=>new Promise(r=>setTimeout(r,ms));const suf=String(Date.now()%100000);
+let fails=0;const ok=(c,m)=>{console.log((c?'OK  ':'FALHA ')+m);if(!c)fails++};
+const path=require('path'),fs=require('fs'),LOG=path.join(__dirname,'..','servidor.log'),MOCK='http://127.0.0.1:54333',GS='http://127.0.0.1:8096';
+const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
+(async()=>{const b=await chromium.launch({args:['--no-sandbox']});const n0=fs.readFileSync(LOG,'utf8').length;const MR=require('../../server/mapas_regras.js');
+ const A=await (await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:1})).newPage();A.on('pageerror',e=>{console.log('ERRO JOGO',e.message);fails++});const adm='Sl'+suf;
+ await A.goto('file://'+path.join(__dirname,'..','paginas','online.html'));await A.click('#tabNew');await A.fill('#nu',adm);await A.fill('#np','12345678');await A.fill('#ne','t@t.com');await A.click('#goNew');
+ await A.waitForFunction(()=>cur==='clan',null,{timeout:20000});await A.click('.card >> nth=0');await A.click('#go2');await A.waitForFunction(()=>ONL.joined,null,{timeout:20000});
+ await mget('/__admin?nome='+adm);await A.evaluate(()=>ONL.ws.close());await A.waitForFunction(()=>ONL.adm&&ONL.joined,null,{timeout:20000});
+ const P=await (await b.newContext({viewport:{width:412,height:860},hasTouch:true,isMobile:true,deviceScaleFactor:2})).newPage();const erros=[];P.on('pageerror',e=>{erros.push(e.message);console.log('ERRO EDITOR',e.message)});
+ await P.goto(GS+'/painel/editor');await P.waitForFunction(()=>window.EDITOR&&EDITOR.pronto,null,{timeout:15000});
+ const ev=(f,a)=>P.evaluate(f,a),D=t=>P.click('#dlgB button:has-text("'+t+'")');
+ const cdp=await P.context().newCDPSession(P);const toque=(type,pts)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:pts.map((p,i)=>({x:p[0],y:p[1],id:i}))});
+ const tap=async q=>{await toque('touchStart',[q]);await toque('touchEnd',[]);await W(100)};
+ const tela=(x,y)=>ev(([x,y])=>{const r=document.querySelector('#cv').getBoundingClientRect();return[r.left+EDITOR.ox+x*EDITOR.s,r.top+EDITOR.oy+y*EDITOR.s]},[x,y]);
+ await P.fill('#lgU',adm);await P.fill('#lgP','12345678');await P.click('#lgIn');await P.waitForFunction(()=>!document.querySelector('#secSrv').hidden,null,{timeout:8000});
+ // tileset com tiles grandes (64 px): vermelho e azul
+ const tid=await ev(async suf=>{const c=document.createElement('canvas');c.width=128;c.height=64;const g=c.getContext('2d');g.fillStyle='rgb(200,0,0)';g.fillRect(0,0,64,64);g.fillStyle='rgb(0,0,200)';g.fillRect(64,0,64,64);
+   const bl=await new Promise(ok=>c.toBlob(ok,'image/png')),sha=await Recursos.sha12(await bl.arrayBuffer()),o='originais/'+sha+'.png';await Recursos.subir(o,bl,'image/png');
+   return (await Recursos.criar({id:'r_chao_'+suf,nome:'Chão grande',tipo:'tileset',categoria:'',colecao:'',original:o,arquivo:o,w:128,h:64,fundo:null,grade:{tw:64,th:64,mg:0,sp:0},recortes:[],meta:{}})).id},suf);
+ // no recurso: “1 quadrado (32 px)”
+ await P.click('#abreBib');await W(800);await P.click('#bbLista .rec:has-text("Chão grande")');await D('Abrir');await P.waitForFunction(()=>BIB.RS.r&&BIB.RS.r.id,null,{timeout:10000});await W(300);
+ await ev(()=>BIB.api.abaRc('grade',true));await W(150);ok(/2 × 2/.test(await ev(()=>document.querySelector('#rcPnC').textContent)),'mostra que cada tile de 64 px ocuparia 2×2 quadrados');
+ await P.click('[data-gd="32"]');ok(/1 × 1/.test(await ev(()=>document.querySelector('#rcPnC').textContent)),'“1 quadrado (32 px)”: passa a ocupar 1×1');
+ await P.click('#rcSalvar');await P.waitForFunction(()=>/Salvo/.test(document.querySelector('#rcEstado').textContent),null,{timeout:10000});
+ const rr=(await mget('/__recursos'))[tid];ok(rr.grade.dw===32&&rr.grade.dh===32&&rr.grade.tw===64,'grade guarda o tamanho no mapa (32) separado do tile do arquivo (64)');
+ await P.click('#rcVoltar');await W(300);await P.click('#bbVoltar');await W(300);
+ // sala 12×10
+ const id='sala_'+suf;await P.click('#novo');await P.fill('#nvNome','Sala do Kage');await W(150);await P.fill('#nvId',id);
+ ok(await ev(()=>!!document.querySelector('.presets [data-p="12,10"]')),'opções de tamanhos pequenos (12×10, 16×12, 20×15…)');
+ await P.click('.presets [data-p="12,10"]');await D('Criar');await P.waitForFunction(()=>EDITOR.m&&!document.querySelector('#editor').hidden,null,{timeout:8000});await W(300);
+ ok(await ev(()=>EDITOR.m.W===12&&EDITOR.m.H===10),'mapa 12×10 criado');
+ await ev(()=>EDITOR.api.carregarLib());await W(1200);await ev(id=>{EDITOR.api.ativar('chao');EDITOR.api.escolheTile(id,0,0);EDITOR.api.ferramenta('pincel')},tid);
+ await ev(()=>{EDITOR.s=1.5;EDITOR.ox=10;EDITOR.oy=10});await W(80);await tap(await tela(5*32+16,5*32+16));
+ const e=await ev(()=>EDITOR.m.camadas.find(c=>c.n==='chao').d);ok(e.length===1&&e[0][1]===5&&e[0][2]===5,'pintou um tile no quadrado (5,5) — 1 tile = 1 quadrado: '+JSON.stringify(e));
+ await P.click('#salvar');await W(300);await P.click('#publicar');await W(200);await D('Enviar e pôr no jogo');await W(1500);await W(1500);
+ const pub=await (await fetch(GS+'/mapas?dim=1')).json();ok(pub.mapas[id]&&pub.mapas[id].W===12&&pub.tilesets[tid].dw===32,'servidor aceita 12×10 e entrega o tamanho no mapa do tileset');
+ await A.click('#mapbtn');await W(2500);await A.evaluate(n=>[...document.querySelectorAll('#mmList button')].find(x=>x.textContent.toLowerCase().includes(n)).click(),'sala do kage');await W(2500);
+ await A.waitForFunction(()=>GC&&tlReady(),null,{timeout:8000});
+ const g=await A.evaluate(()=>{const c=GC.getContext('2d'),px=(x,y)=>[...c.getImageData(x,y,1,1).data].join();return{N,NH,gc:[GC.width,GC.height],dentro:px(5*32+16,5*32+16),fora:px(6*32+16,5*32+16),canto:px(5*32+1,5*32+1)}});
+ ok(g.N===12&&g.NH===10&&g.gc[0]===384&&g.gc[1]===320,'jogo: sala 12×10');
+ ok(g.dentro.startsWith('200,0,0')&&g.canto.startsWith('200,0,0')&&!g.fora.startsWith('200,0,0'),'jogo: o tile de 64 px ocupa só 1 quadrado de 32 px');
+ const cam=await A.evaluate(()=>{const cvs=document.querySelector('#cv'),k=dpr*z,w=cvs.width/k;const d=cvs.getContext('2d').getImageData(4,Math.round(cvs.height/2),1,1).data;return{w,cor:[...d].join()}});
+ ok(cam.w>384&&cam.cor==='11,13,16,255','jogo: sala menor que a tela fica no meio, com o resto escuro');
+ const MRv=MR.validar(id,'Sala',{...pub.mapas[id]},{fpt:{},tsz:[]});ok(MRv&&MRv.W===12,'regras do servidor aceitam mínimo 8');
+ ok(!erros.length,'editor sem erros de página');
+ const lg=fs.readFileSync(LOG,'utf8').slice(n0);ok(!/erro ignorado|inválido ignorado/.test(lg),'servidor sem erros');
+ await A.screenshot({path:path.join(__dirname,'ed5_jogo.png')});
+ console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();

@@ -1406,14 +1406,14 @@ function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if
 // ---- tilesets e camadas de tiles do editor (Chão e Detalhes entram no chão; Acima desenha por cima do jogador). Mapas sem camadas não passam por aqui.
 const TLS={};let TLM=null,GA=null;
 function tlsLoad(L){const ps=[];for(const id of Object.keys(L||{})){const r=L[id];if(!/^(t|r)_[a-z0-9_]{2,40}$/.test(id)||!r||typeof r.url!=='string'||!/^https?:\/\//.test(r.url))continue;
-  const o=TLS[id],my=r.my!=null?r.my|0:r.mg|0;if(o&&o.url===r.url){Object.assign(o,{tw:r.tw|0,th:r.th|0,mg:r.mg|0,my,sp:r.sp|0,px:!!r.px});continue}
-  ps.push(new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>{TLS[id]={img:i,url:r.url,tw:Math.max(1,r.tw|0),th:Math.max(1,r.th|0),mg:r.mg|0,my,sp:r.sp|0,px:!!r.px};ok()};i.onerror=ok;i.src=r.url}))}
+  const o=TLS[id],my=r.my!=null?r.my|0:r.mg|0,dw=Math.max(1,r.dw|0||r.tw|0),dh=Math.max(1,r.dh|0||r.th|0);if(o&&o.url===r.url){Object.assign(o,{tw:r.tw|0,th:r.th|0,dw,dh,mg:r.mg|0,my,sp:r.sp|0,px:!!r.px});continue}
+  ps.push(new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>{TLS[id]={img:i,url:r.url,tw:Math.max(1,r.tw|0),th:Math.max(1,r.th|0),dw,dh,mg:r.mg|0,my,sp:r.sp|0,px:!!r.px};ok()};i.onerror=ok;i.src=r.url}))}
  return Promise.all(ps).then(()=>{if(ps.length&&TLM){GC=null;GA=null}})}
 function tlReady(){return !!TLM&&TLM.tilesets.every(id=>TLS[id])}
 const tlCima=c=>c.z?c.z==='acima':c.n==='acima'; // camada por cima do personagem (as outras ficam por baixo dos objetos, na ordem da lista)
 function tlDraw(g,cima){if(!TLM)return;g.save();g.imageSmoothingEnabled=false;
  for(const c of TLM.camadas){if(c.t!=='tiles'||tlCima(c)!==cima)continue;
-  for(const e of c.d){const t=TLS[TLM.tilesets[e[0]]];if(!t)continue;g.drawImage(t.img,t.mg+e[3]*(t.tw+t.sp),t.my+e[4]*(t.th+t.sp),t.tw,t.th,e[1]*t.tw,e[2]*t.th,t.tw,t.th)}}
+  for(const e of c.d){const t=TLS[TLM.tilesets[e[0]]];if(!t)continue;const dw=t.dw||t.tw,dh=t.dh||t.th;g.imageSmoothingEnabled=dw<t.tw;g.drawImage(t.img,t.mg+e[3]*(t.tw+t.sp),t.my+e[4]*(t.th+t.sp),t.tw,t.th,e[1]*dw,e[2]*dh,dw,dh)}} // dw×dh = tamanho de cada tile no mapa
  g.restore()}
 {const _am=applyMap;applyMap=function(m){_am(m);TLM=m&&m.camadas&&m.tilesets?m:null;GA=null}}
 {const _bg=buildGround;buildGround=function(){_bg();if(TLM&&GC)tlDraw(GC.getContext('2d'),false)}}

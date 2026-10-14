@@ -455,7 +455,7 @@ function render(ts,dt){
  const cx=Math.max(0,Math.min(N*T-w,p.x-w/2))|0,cy=Math.max(0,Math.min(N*T-h,p.y-h/2))|0;
  ctx.setTransform(dpr*z,0,0,dpr*z,-cx*dpr*z,-cy*dpr*z);
   if(!scene&&tsOK&&!GC)buildGround();
-  if(scene){ctx.fillStyle='#14110d';ctx.fillRect(cx,cy,w+2,h+2);drawRoom(ctx)}else if(GC)ctx.drawImage(GC,cx,cy,w+2,h+2,cx,cy,w+2,h+2);else{ctx.fillStyle='#5b9a4a';ctx.fillRect(cx,cy,w+2,h+2)}
+  if(scene){ctx.fillStyle='#14110d';ctx.fillRect(cx,cy,w+2,h+2);drawRoom(ctx)}else if(GC){if(cx<0||cy<0||cx+w>N*T||cy+h>NH*T){ctx.fillStyle='#0b0d10';ctx.fillRect(cx,cy,w+2,h+2)}ctx.drawImage(GC,cx,cy,w+2,h+2,cx,cy,w+2,h+2)} // mapa menor que a tela: fica no meio, com o resto escuroelse{ctx.fillStyle='#5b9a4a';ctx.fillRect(cx,cy,w+2,h+2)}
   const L=[];
   if(tsOK&&!scene){
    ctx.fillStyle='#ffffff38';

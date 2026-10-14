@@ -75,7 +75,7 @@
   async function idsUsados() { if (P.sessao()) { try { E.srv = await P.listarServidor(); } catch (e) { } } const s = new Set(Mo.BASE_IDS); for (const r of await P.listar()) s.add(r.id); for (const r of E.srv) s.add(r.id); return s; }
   function idLivre(base, usados) { base = Mo.slug(base) || 'mapa'; if (base.length < 2) base += '_1'; let id = base, n = 2; while (usados.has(id)) id = (base.slice(0, 26) + '_' + n++); return id; }
   async function novo() {
-    const usados = await idsUsados(), presets = [[50, 50], [40, 30], [60, 40], [70, 40], [80, 80], [100, 64]];
+    const usados = await idsUsados(), presets = [[12, 10], [16, 12], [20, 15], [30, 20], [50, 50], [70, 40], [80, 80], [100, 64]];
     const html = `<div class="campo"><label class="lbl">Nome</label><input id="nvNome" maxlength="40" placeholder="Ex.: Floresta da Névoa"></div>
       <div class="campo"><label class="lbl">Identificador (vai no endereço do mapa; não muda depois de publicar)</label><input id="nvId" maxlength="30" autocapitalize="none"></div>
       <label class="lbl">Tamanho em tiles (1 tile = 32 px no jogo)</label><div class="presets">${presets.map(p => `<button data-p="${p}">${p[0]}×${p[1]}</button>`).join('')}</div>
@@ -375,9 +375,9 @@
   function ativar(k) { if (k !== 'objetos' && E.objSel) selObj(null); E.ativa = k; $('#fCamN').textContent = nomeAtiva(); if (E.aba === 'camadas' || E.aba === 'pintura') painel(E.aba); }
 
   /* ---------- biblioteca de tilesets (antigos t_ + recursos r_ com grade) ---------- */
-  function libTs() { const L = []; for (const t of E.lib.tilesets) L.push({ id: t.id, nome: t.nome, tw: t.tw, th: t.th, mg: t.mg || 0, my: t.mg || 0, sp: t.sp || 0, w: t.w, h: t.h });
-    for (const r of E.lib.recursos || []) if (r.grade && r.grade.tw > 0) L.push({ id: r.id, nome: r.nome, tw: r.grade.tw, th: r.grade.th, mg: r.grade.mg || 0, my: r.grade.my != null ? r.grade.my : (r.grade.mg || 0), sp: r.grade.sp || 0, w: r.w, h: r.h }); return L; }
-  function tsInfo() { const o = {}; for (const t of libTs()) o[t.id] = { tw: t.tw, th: t.th }; return o; }
+  function libTs() { const L = []; for (const t of E.lib.tilesets) L.push({ id: t.id, nome: t.nome, tw: t.tw, th: t.th, dw: t.tw, dh: t.th, mg: t.mg || 0, my: t.mg || 0, sp: t.sp || 0, w: t.w, h: t.h });
+    for (const r of E.lib.recursos || []) if (r.grade && r.grade.tw > 0) L.push({ id: r.id, nome: r.nome, tw: r.grade.tw, th: r.grade.th, dw: r.grade.dw || r.grade.tw, dh: r.grade.dh || r.grade.th, mg: r.grade.mg || 0, my: r.grade.my != null ? r.grade.my : (r.grade.mg || 0), sp: r.grade.sp || 0, w: r.w, h: r.h }); return L; }
+  function tsInfo() { const o = {}; for (const t of libTs()) o[t.id] = { tw: t.dw, th: t.dh }; return o; } // tamanho de cada tile NO MAPA (a grade de pintura)
 
   /* ---------- ferramentas ---------- */
   function ferramenta(f) { E.ferr = f; document.querySelectorAll('[data-f]').forEach(b => b.setAttribute('aria-pressed', b.dataset.f === f)); if (f !== 'sel') E.sel = null; barraSel(); desenhar(); }
@@ -457,11 +457,11 @@
       ctx.fillStyle = 'rgba(230,40,60,.3)'; for (const [dx, dy] of celulasObj(o)) ctx.fillRect((Math.floor(o.x) + dx) * T, (Ferr.baseLin(o) + dy) * T, T, T); ctx.fillStyle = '#2f8cff'; ctx.beginPath(); ctx.arc(o.x * T, o.y * T, 4 / s + 2, 0, 7); ctx.fill(); }
     else if (w && E.ferr === 'colar' && E.colarClip) { const [x, y] = cel(w), c = E.colarClip; ctx.globalAlpha = .65; desenhaClip(c, x * T, y * T); ctx.globalAlpha = 1; ctx.strokeStyle = '#38d6ff'; ctx.strokeRect(x * T, y * T, c.w * T, c.h * T); }
     else if (w && !t && E.ativa !== 'objetos' && (E.ferr === 'pincel' || E.ferr === 'balde' || E.ferr === 'ret')) { if (!FIXAS[E.ativa] && E.tinta.tile) { const st = E.tinta.tile, inf = tsInfo()[st.id], ts = R.TSI[st.id]; if (inf) { const x = Math.floor(w.x / inf.tw) * inf.tw, y = Math.floor(w.y / inf.th) * inf.th;
-        if (ts && ts.ok) { ctx.globalAlpha = .6; for (let j = 0; j < st.sh; j++) for (let i = 0; i < st.sw; i++) ctx.drawImage(ts.img, ts.mg + (st.c0 + i) * (ts.tw + ts.sp), ts.my + (st.r0 + j) * (ts.th + ts.sp), ts.tw, ts.th, x + i * inf.tw, y + j * inf.th, inf.tw, inf.th); ctx.globalAlpha = 1; }
+        if (ts && ts.ok) { ctx.globalAlpha = .6; ctx.imageSmoothingEnabled = inf.tw < ts.tw; for (let j = 0; j < st.sh; j++) for (let i = 0; i < st.sw; i++) ctx.drawImage(ts.img, ts.mg + (st.c0 + i) * (ts.tw + ts.sp), ts.my + (st.r0 + j) * (ts.th + ts.sp), ts.tw, ts.th, x + i * inf.tw, y + j * inf.th, inf.tw, inf.th); ctx.globalAlpha = 1; }
         ctx.strokeStyle = '#ff9a3c'; ctx.strokeRect(x, y, st.sw * inf.tw, st.sh * inf.th); } }
       else if (E.ativa === 'terreno' || E.ativa === 'colisao') { let [x, y] = cel(w), n = 1; if (E.ativa === 'terreno' && E.tinta.terreno >= 2) { x = x >> 1 << 1; y = y >> 1 << 1; n = 2; } ctx.strokeStyle = '#ff9a3c'; ctx.strokeRect(x * T, y * T, n * T, n * T); } }
     ctx.restore(); }
-  function desenhaClip(c, X, Y) { for (const n in c.tiles) for (const e of c.tiles[n].d) { const ts = R.TSI[e[0]]; if (!ts || !ts.ok) continue; ctx.drawImage(ts.img, ts.mg + e[3] * (ts.tw + ts.sp), ts.my + e[4] * (ts.th + ts.sp), ts.tw, ts.th, X + e[1], Y + e[2], ts.tw, ts.th); }
+  function desenhaClip(c, X, Y) { for (const n in c.tiles) for (const e of c.tiles[n].d) { const ts = R.TSI[e[0]]; if (!ts || !ts.ok) continue; ctx.drawImage(ts.img, ts.mg + e[3] * (ts.tw + ts.sp), ts.my + e[4] * (ts.th + ts.sp), ts.tw, ts.th, X + e[1], Y + e[2], ts.dw || ts.tw, ts.dh || ts.th); }
     if (c.objetos) for (const it of R.listaObjetos(J, { objetos: c.objetos.map(a => ({ k: a[0], x: a[1] + X / T, y: a[2] + Y / T, f: a[3] })) })) it.d(ctx);
     if (c.col) { ctx.fillStyle = 'rgba(230,40,60,.35)'; for (let j = 0; j < c.h; j++) for (let i = 0; i < c.w; i++) if (c.col[j * c.w + i] === '1') ctx.fillRect(X + i * T, Y + j * T, T, T); } }
   // barra da seleção: copiar, recortar, duplicar, apagar, salvar conjunto
@@ -613,7 +613,7 @@
 
   // biblioteca já existente (imagens próprias e tilesets) para desenhar mapas que usam
   async function carregarLib() { const [im, ts, rc] = await Promise.all([P.imagens(), P.tilesets(), P.sessao() && window.Recursos ? window.Recursos.listar().catch(() => []) : []]); E.lib = { imagens: im, tilesets: ts, recursos: rc };
-    const rg = rc.filter(r => r.grade && r.grade.tw > 0).map(r => ({ id: r.id, nome: r.nome, arquivo: r.arquivo, w: r.w, h: r.h, tw: r.grade.tw, th: r.grade.th, mg: r.grade.mg || 0, my: r.grade.my != null ? r.grade.my : (r.grade.mg || 0), sp: r.grade.sp || 0 }));
+    const rg = rc.filter(r => r.grade && r.grade.tw > 0).map(r => ({ id: r.id, nome: r.nome, arquivo: r.arquivo, w: r.w, h: r.h, tw: r.grade.tw, th: r.grade.th, dw: r.grade.dw || r.grade.tw, dh: r.grade.dh || r.grade.th, mg: r.grade.mg || 0, my: r.grade.my != null ? r.grade.my : (r.grade.mg || 0), sp: r.grade.sp || 0 }));
     for (const r of rg) if (window.Render.TSI[r.id] && window.Render.TSI[r.id].arq !== r.arquivo + JSON.stringify(r)) delete window.Render.TSI[r.id];
     R.recursos(rc, P.STORE, () => { desenhar(); if (E.aba === 'pintura' && E.ativa === 'objetos') painel('pintura'); });
     R.imagens(im, P.STORE, () => { E.cache.M = null; desenhar(); }); R.tilesets(ts.concat(rg), P.STORE, () => { E.cache.cam = null; desenhar(); if (E.aba === 'pintura') carregaPick(); });

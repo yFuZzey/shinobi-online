@@ -5,7 +5,7 @@
    Coordenadas: tiles de 32 px; x/y dos objetos são números com fração (a base do objeto), guardados sem arredondar. */
 (function (G) {
   'use strict';
-  const T = 32, N0 = 50, LIM = { MIN: 20, MAX: 100, AREA: 6400 };
+  const T = 32, N0 = 50, LIM = { MIN: 8, MAX: 100, AREA: 6400 }; // 8 = sala pequena (a borda de 2 tiles é sempre bloqueada)
   const TEMAS = {
     folha: { n: 'Folha', terr: ['Grama', 'Rua', 'Pântano', 'Lagoa', 'Rio', 'Ponte'], th: ['g1', 'p1', 'sw1', 'water', 'river', 'river'] },
     areia: { n: 'Areia', terr: ['Areia', 'Caminho', 'Duna', 'Oásis', 'Rio', 'Ponte'], th: ['sg1', 'sp1', 'sd1', 'swater', 'sriver', 'sriver'] } };

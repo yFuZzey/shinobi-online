@@ -133,7 +133,7 @@ rep("if(Math.hypot(p.x-b.x,p.y-24-b.y)<22){hurt(30)","if(!b.sv&&Math.hypot(p.x-b
 # ---- fluidez ----
 # câmera anda em pixels reais da tela (antes pulava de 1 em 1 pixel do mundo = ~3 pixels da tela, dando tranco)
 rep("let cx=Math.max(0,Math.min(N*T-w,p.x-w/2))|0,cy=Math.max(0,Math.min(N*T-h,p.y-h/2))|0;if(shk>0){cx+=(Math.random()-.5)*shk*14|0;cy+=(Math.random()-.5)*shk*14|0;",
-    "const _q=dpr*z;let cx=Math.round(Math.max(0,Math.min((scene?50:N)*T-w,p.x-w/2))*_q)/_q,cy=Math.round(Math.max(0,Math.min((scene?50:NH)*T-h,p.y-h/2))*_q)/_q;if(shk>0){cx+=Math.round((Math.random()-.5)*shk*14*_q)/_q;cy+=Math.round((Math.random()-.5)*shk*14*_q)/_q;")
+    "const _q=dpr*z,_mw=(scene?50:N)*T,_mh=(scene?50:NH)*T;let cx=Math.round((_mw<w?(_mw-w)/2:Math.max(0,Math.min(_mw-w,p.x-w/2)))*_q)/_q,cy=Math.round((_mh<h?(_mh-h)/2:Math.max(0,Math.min(_mh-h,p.y-h/2)))*_q)/_q;if(shk>0){cx+=Math.round((Math.random()-.5)*shk*14*_q)/_q;cy+=Math.round((Math.random()-.5)*shk*14*_q)/_q;")
 # alvo selecionado: guarda a câmera para converter o toque em posição do mundo e usa o alvo escolhido na mira dos golpes
 rep(" ctx.setTransform(dpr*z,0,0,dpr*z,-cx*dpr*z,-cy*dpr*z);"," CAM.x=cx;CAM.y=cy;ctx.setTransform(dpr*z,0,0,dpr*z,-cx*dpr*z,-cy*dpr*z);")
 # resolução máxima ajustável (o modo online baixa sozinho se o aparelho não aguentar)

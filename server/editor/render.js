@@ -18,7 +18,7 @@
       i.src = typeof r.png === 'string' && r.png ? r.png : store + r.arquivo; } }
   function tilesets(rows, store, cb) {
     for (const r of rows) { if (TSI[r.id]) continue; const i = new Image(); i.crossOrigin = 'anonymous';
-      TSI[r.id] = { img: i, tw: r.tw, th: r.th, mg: r.mg || 0, my: r.my != null ? r.my : (r.mg || 0), sp: r.sp || 0, w: r.w, h: r.h, nome: r.nome, ok: false };
+      TSI[r.id] = { img: i, tw: r.tw, th: r.th, dw: r.dw || r.tw, dh: r.dh || r.th, mg: r.mg || 0, my: r.my != null ? r.my : (r.mg || 0), sp: r.sp || 0, w: r.w, h: r.h, nome: r.nome, ok: false };
       i.onload = () => { TSI[r.id].ok = true; cb && cb(); }; i.onerror = () => { TSI[r.id].falhou = true; cb && cb(); }; i.src = store + r.arquivo; } }
   // catálogo para a colisão do servidor (mesmo formato de mapa_objetos.json)
   function cat(J) { const fpt = {}, tsz = Object.keys(J.TSZ);
@@ -75,14 +75,14 @@
   function camadaCv(m, c) { if (!c || !c.d.length) return null;
     const cv = document.createElement('canvas'); cv.width = m.W * T; cv.height = m.H * T; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; let falta = 0;
     for (const e of c.d) { const id = m.tilesets[e[0]], t = TSI[id]; if (!t || !t.ok) { falta++; continue; }
-      g.drawImage(t.img, t.mg + e[3] * (t.tw + t.sp), t.my + e[4] * (t.th + t.sp), t.tw, t.th, e[1] * t.tw, e[2] * t.th, t.tw, t.th); }
+      g.imageSmoothingEnabled = t.dw < t.tw; g.drawImage(t.img, t.mg + e[3] * (t.tw + t.sp), t.my + e[4] * (t.th + t.sp), t.tw, t.th, e[1] * t.dw, e[2] * t.dh, t.dw, t.dh); }
     cv.falta = falta; return cv; }
   // camada de tiles num canvas do tamanho do mapa (cache por versão)
   function camada(m, nome) {
     const c = (m.camadas || []).find(x => x && x.t === 'tiles' && x.n === nome); if (!c || !c.d.length) return null;
     const cv = document.createElement('canvas'); cv.width = m.W * T; cv.height = m.H * T; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; let falta = 0;
     for (const e of c.d) { const id = m.tilesets[e[0]], t = TSI[id]; if (!t || !t.ok) { falta++; continue; }
-      g.drawImage(t.img, t.mg + e[3] * (t.tw + t.sp), t.my + e[4] * (t.th + t.sp), t.tw, t.th, e[1] * t.tw, e[2] * t.th, t.tw, t.th); }
+      g.imageSmoothingEnabled = t.dw < t.tw; g.drawImage(t.img, t.mg + e[3] * (t.tw + t.sp), t.my + e[4] * (t.th + t.sp), t.tw, t.th, e[1] * t.dw, e[2] * t.dh, t.dw, t.dh); }
     cv.falta = falta; return cv; }
 
   /* ---------- objetos ----------

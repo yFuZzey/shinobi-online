@@ -3,7 +3,7 @@
 // A colisão segue exatamente applyMap do jogo (terreno, tamanho dos objetos no chão, colisão pintada); o teste "mapas" compara os dois.
 // Tamanho: W (largura) × H (altura) em tiles; mapas sem W/H são 50×50. Limite pensado para a memória do celular (o chão vira uma imagem W·32 × H·32).
 // cat = { fpt: {objeto:[largura,altura,recuo]}, tsz: [objetos que existem] }  (gerado junto com maps.json por src/online/exportmaps.js)
-const N = 50, T = 32, MIN = 20, MAX = 100, AREA = 6400;
+const N = 50, T = 32, MIN = 8, MAX = 100, AREA = 6400;
 const dims = m => { const w = m && m.W != null ? m.W : (m && m.N) || N, h = m && m.H != null ? m.H : (m && m.N) || N; return Number.isInteger(w) && Number.isInteger(h) && w >= MIN && h >= MIN && w <= MAX && h <= MAX && w * h <= AREA ? [w, h] : null; };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fin = v => typeof v === 'number' && isFinite(v);
