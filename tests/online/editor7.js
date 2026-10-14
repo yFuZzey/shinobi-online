@@ -36,17 +36,30 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await tap(await tela(3*32+10,3*32+10));await W(500);
  await ev(id=>{document.querySelector('#evM').value=id},mB);await P.click('#evN');await P.fill('#evX','5.5');await P.fill('#evY','5');await D('Salvar');await W(200);
  evs=await ev(()=>EDITOR.m.eventos);ok(evs.length===1&&evs[0].m===mB&&evs[0].tx===5.5&&evs[0].ty===5,'evento com destino X/Y: '+JSON.stringify(evs));
- await ev(()=>EDITOR.api.ferramenta('borracha'));await tap(await tela(3*32+10,3*32+10));ok(await ev(()=>EDITOR.m.eventos.length===0),'borracha apaga o evento');await P.click('#desf');ok(await ev(()=>EDITOR.m.eventos.length===1),'desfazer volta o evento');
+ // 📍 escolher a chegada tocando no mapa destino (B), tile (7,4)
+ await ev(()=>EDITOR.api.ferramenta('pincel'));await tap(await tela(3*32+10,3*32+10));await W(400);await P.click('#evEsc');await P.waitForFunction(()=>document.querySelector('#escChegada')&&document.querySelector('#escChegada').vis.W>0,null,{timeout:8000});await W(300);
+ ok(await ev(()=>document.querySelector('#escChegada').vis.W===12*32),'abre o mapa destino (B, 12×10) em tela cheia');
+ const pc=await ev(()=>{const o=document.querySelector('#escChegada'),v=o.vis,r=o.querySelector('canvas').getBoundingClientRect();return[r.left+v.ox+(7*32+16)*v.s,r.top+v.oy+(4*32+16)*v.s]});await tap(pc);await W(150);
+ ok(/\(7, 4\)/.test(await ev(()=>document.querySelector('#ecInfo').textContent)),'tocar marca o tile de chegada (7, 4)');await P.click('#ecOk');await W(200);
+ ok(await ev(()=>!document.querySelector('#escChegada')&&!document.querySelector('#dlg').hidden&&document.querySelector('#evX').value==='7.5'&&document.querySelector('#evY').value==='4.5'),'volta ao evento com X 7.5 e Y 4.5 preenchidos');
+ await D('Salvar');await W(200);evs=await ev(()=>EDITOR.m.eventos);ok(evs[0].tx===7.5&&evs[0].ty===4.5,'chegada salva: '+JSON.stringify(evs[0]));
+ // duplicar e mover
+ await tap(await tela(3*32+10,3*32+10));await W(400);await D('Duplicar');await W(200);evs=await ev(()=>EDITOR.m.eventos);ok(evs.length===2&&evs[1].x===4&&evs[1].y===3&&evs[1].m===evs[0].m&&evs[1].tx===7.5,'duplicar: cópia no tile ao lado (4, 3)');
+ await ev(()=>EDITOR.api.ferramenta('mover'));const de=await tela(4*32+16,3*32+16),pa_=await tela(6*32+16,6*32+16);
+ await toque('touchStart',[de]);for(let i=1;i<=8;i++){await toque('touchMove',[[de[0]+(pa_[0]-de[0])*i/8,de[1]+(pa_[1]-de[1])*i/8]]);await W(30)}await toque('touchEnd',[]);await W(150);
+ evs=await ev(()=>EDITOR.m.eventos);ok(evs[1].x===6&&evs[1].y===6&&evs[0].x===3,'✋ Mover arrasta o evento para (6, 6)');
+ await P.click('#desf');ok(await ev(()=>EDITOR.m.eventos[1].x===4&&EDITOR.m.eventos[1].y===3),'desfazer volta o evento movido');await P.click('#ref');
+ await ev(()=>EDITOR.api.ferramenta('borracha'));await tap(await tela(3*32+10,3*32+10));ok(await ev(()=>EDITOR.m.eventos.length===1),'borracha apaga o evento');await P.click('#desf');ok(await ev(()=>EDITOR.m.eventos.length===2),'desfazer volta o evento');
  await publicar();
  const pub=await (await fetch(GS+'/mapas?dim=1')).json(),pa=pub.mapas[mA],pb=pub.mapas[mB];
- ok(pa&&pa.pvp===0&&pa.ev&&pa.ev[0].m===mB&&pa.ev[0].tx===5.5,'servidor: mapa A sem PvP e com o evento');ok(pb&&pb.pvp===undefined&&pb.ev&&pb.ev[0].tx===undefined,'servidor: mapa B com PvP (padrão) e evento para o nascimento');
+ ok(pa&&pa.pvp===0&&pa.ev&&pa.ev[0].m===mB&&pa.ev[0].tx===7.5&&pa.ev.length===2,'servidor: mapa A sem PvP e com o evento');ok(pb&&pb.pvp===undefined&&pb.ev&&pb.ev[0].tx===undefined,'servidor: mapa B com PvP (padrão) e evento para o nascimento');
  ok(MR.compilar(pa,{tsz:[],fpt:{}}).pvp===0&&MR.compilar(pb,{tsz:[],fpt:{}}).pvp===1,'regras: compilar leva o PvP do mapa');
  ok(MR.validar('xx','x',{...pb,ev:[{x:99,y:1,t:'tp',m:'konoha'},{x:1,y:1,t:'xx',m:'konoha'},{x:1,y:1,t:'tp',m:'Bad!'}]},{tsz:[],fpt:{}}).ev===undefined,'regras: eventos inválidos são descartados');
  // jogo
  await A.click('#mapbtn');await W(2500);await A.evaluate(n=>[...document.querySelectorAll('#mmList button')].find(x=>x.textContent.toLowerCase().includes(n)).click(),'sala a');await W(2500);
  ok(await A.evaluate(()=>MAPEV.nopvp===1&&pvpSafeAt(p.x+500,p.y+500)&&PVT().length===0),'jogo: mapa sem PvP é todo zona segura');
  await A.evaluate(()=>{p.x=3*32+16;p.y=3*32+20});await W(600);
- let g=await A.evaluate(()=>({m:CURMAP,x:p.x/32,y:p.y/32,np:MAPEV.nopvp}));ok(g.m.includes('ev_b')&&g.x===5.5&&g.y===5&&g.np===0,'jogo: pisar no evento leva para B em (5.5, 5): '+JSON.stringify(g));
+ let g=await A.evaluate(()=>({m:CURMAP,x:p.x/32,y:p.y/32,np:MAPEV.nopvp}));ok(g.m.includes('ev_b')&&g.x===7.5&&g.y===4.5&&g.np===0,'jogo: pisar no evento leva para B em (7.5, 4.5): '+JSON.stringify(g));
  await W(1500);ok(await A.evaluate(()=>ONL.joined&&CURMAP.includes('ev_b')),'jogo: entrou na sala B no servidor');
  await A.evaluate(()=>{p.x=2*32+16;p.y=2*32+20});await W(600);
  g=await A.evaluate(()=>({m:CURMAP,x:p.x/32,y:p.y/32,s:SPAWN}));ok(g.m.includes('ev_a')&&g.x===g.s[0]&&g.y===g.s[1],'jogo: evento sem destino leva ao nascimento de A: '+JSON.stringify(g));
