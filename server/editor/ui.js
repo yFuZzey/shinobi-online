@@ -230,7 +230,7 @@
           <p class="mudo">${s ? 'Escolhido: <b>' + esc(nomeObj(s)) + '</b>. ✏️ Pincel: toque/arraste e solte no mapa para colocar. ⬚ Seleção: toque num objeto para escolher e arraste para mover.' : 'Escolha um objeto abaixo.'}${ab === 'bib' && !L.length ? ' Nenhum recorte na biblioteca ainda (Biblioteca → recurso → Recortes).' : ''}</p>
           <div class="grade-obj">${L.map(x => `<button class="obj" data-ob="${esc(x.k)}" aria-pressed="${x.k === s}"><canvas width="64" height="64"></canvas><small>${esc(x.n)}</small></button>`).join('')}</div>`; }
       else if (k === 'npcs') { const L = m.npcs || [];
-        h += `<p class="mudo">✏️ Pincel: toque num tile para criar ou editar um NPC (nome, aparência, falas). ✋ Mover ou ⬚ Seleção: arraste o NPC. 🧽 Borracha: toque para apagar. No jogo, quem chegar perto vê o botão “💬 Falar”.</p>` +
+        h += `<button class="btn" id="npMisP" style="width:100%;margin:4px 0">📜 Missões…</button><p class="mudo">✏️ Pincel: toque num tile para criar ou editar um NPC (nome, aparência, falas, missões). ✋ Mover ou ⬚ Seleção: arraste o NPC. 🧽 Borracha: toque para apagar. No jogo, quem chegar perto vê o botão “💬 Falar”.</p>` +
           (L.length ? L.map((v, i) => `<div class="cam"><button class="nm" data-np="${i}">🧑 ${esc(v.n || 'NPC')} <small class="mudo">(${v.x}, ${v.y}) · ${(v.f || []).length} fala(s)</small></button></div>`).join('') : '<p class="mudo">Nenhum NPC ainda.</p>'); }
       else if (k === 'eventos') { const L = m.eventos || [];
         h += `<p class="mudo">✏️ Pincel: toque num tile para criar ou editar um evento (lá dentro: 📍 escolher a chegada no mapa destino, Duplicar). ✋ Mover ou ⬚ Seleção: arraste o evento. 🧽 Borracha: toque para apagar. Quem pisar no tile é levado para o destino (outro mapa ou outro ponto deste). Dica: ponha uma porta ou escada (objeto) por cima.</p>` +
@@ -284,6 +284,7 @@
       C.querySelectorAll('[data-cv]').forEach(b => b.onclick = () => { E.tinta.col = +b.dataset.cv; if (E.ferr === 'mover' || E.ferr === 'sel') ferramenta('pincel'); painel('pintura'); });
       C.querySelectorAll('[data-ca]').forEach(b => b.onclick = () => { E.catAba = b.dataset.ca; painel('pintura'); });
       C.querySelectorAll('[data-op]').forEach(b => b.onclick = () => { const v = b.dataset.op; ativar(v); if (v === 'objetos' && !['pincel', 'sel', 'borracha', 'mover'].includes(E.ferr)) ferramenta('pincel'); });
+      if ($('#npMisP')) $('#npMisP').onclick = () => abrirMissoes();
       C.querySelectorAll('[data-np]').forEach(b => b.onclick = () => { const v = (E.m.npcs || [])[+b.dataset.np]; if (v) tocaNpc([v.x, v.y]); });
       C.querySelectorAll('[data-ev]').forEach(b => b.onclick = () => { const v = (E.m.eventos || [])[+b.dataset.ev]; if (v) tocaEvento([v.x, v.y]); });
       C.querySelectorAll('[data-om]').forEach(b => b.onclick = () => { E.objModo = b.dataset.om; painel('pintura'); });
@@ -635,7 +636,12 @@
   // escala do NPC de imagem (igual ao jogo): a.e escolhido; sem a.e = automático (imagem alta fica com ~60 px, a altura de um personagem)
   function npcEsc(a) { if (a && a.e > 0) return a.e; const i = a && R.info(J, a.k), h = (i && i.dh) || 60; return h > 64 ? 60 / h : 1; }
   // um quadro da biblioteca com a âncora no ponto (x, y), na escala e (espelhado se fl); devolve a altura desenhada
-  function quadroNpc(g, k, x, y, e, fl) { const i = R.info(J, k); if (!i || !i.ok) return 0; const w = i.dw * e, h = i.dh * e; g.save(); g.translate(x, y); if (fl) g.scale(-1, 1); g.imageSmoothingEnabled = !i.px; g.drawImage(i.img, i.sx, i.sy, i.sw, i.sh, -i.ax * e, -i.ay * e, w, h); g.restore(); return h; }
+  function quadroNpc(g, k, x, y, e, fl, alinha) { const i = R.info(J, k); if (!i || !i.ok) return 0; const w = i.dw * e, h = i.dh * e, pe = alinha && peNpc(i), fx = i.dw / i.sw, fy = i.dh / i.sh, ax = pe ? pe.cx * fx : i.ax, ay = pe ? pe.by * fy : i.ay;
+    g.save(); g.translate(x, y); if (fl) g.scale(-1, 1); g.imageSmoothingEnabled = !i.px; g.drawImage(i.img, i.sx, i.sy, i.sw, i.sh, -ax * e, -ay * e, w, h); g.restore(); return h; }
+  // “pé” do quadro (base e centro da parte desenhada): na animação os quadros ficam alinhados por ele (igual ao jogo), sem tremer
+  function peNpc(i) { if (!i.img || !i.img.getContext) return null; if (i.img._pe !== undefined) return i.img._pe; i.img._pe = null;
+    try { const w = i.img.width, h = i.img.height, d = i.img.getContext('2d').getImageData(0, 0, w, h).data; let x0 = w, x1 = -1, y1 = -1;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; y1 = y; } if (x1 >= 0) i.img._pe = { cx: (x0 + x1 + 1) / 2, by: y1 + 1 }; } catch (_) { } return i.img._pe; }
   function desenhaNpcs(g, m, s) { for (const v of m.npcs || []) { const x = (v.x + .5) * T, y = (v.y + 1) * T - 2, a = v.a || {}; let top = y - 64;
       if (a.t === 'img' && R.info(J, a.k)) { const h = quadroNpc(g, a.k, x, y, npcEsc(a), a.fl); top = y - (h || 48) - 4; if (v.mv) { g.strokeStyle = 'rgba(255,217,138,.5)'; g.setLineDash([4 / s, 4 / s]); g.lineWidth = 1.5 / s; const r = v.mv.r || 3; g.strokeRect((v.x - r) * T, (v.y - r) * T, (2 * r + 1) * T, (2 * r + 1) * T); g.setLineDash([]); } }
       else { if (v.mv) { g.strokeStyle = 'rgba(255,217,138,.5)'; g.setLineDash([4 / s, 4 / s]); g.lineWidth = 1.5 / s; const r = v.mv.r || 3; g.strokeRect((v.x - r) * T, (v.y - r) * T, (2 * r + 1) * T, (2 * r + 1) * T); g.setLineDash([]); }
@@ -643,11 +649,59 @@
         g.fillStyle = '#23283a'; g.fillRect(-5, -12, 4, 12); g.fillRect(1, -12, 4, 12); g.fillStyle = PAL.c[a.c | 0] || PAL.c[0]; g.fillRect(-7, -27, 14, 16);
         g.fillStyle = PAL.s[a.s | 0] || PAL.s[0]; g.beginPath(); g.arc(0, -35, 8, 0, 7); g.fill(); g.fillStyle = PAL.h[a.h | 0] || PAL.h[0]; g.beginPath(); g.arc(0, -35, 8.6, Math.PI, 0); g.fill(); g.restore(); }
       g.font = 'bold ' + Math.max(9, 10 / s) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineWidth = 3 / s; g.strokeStyle = '#000c'; g.strokeText(v.n || 'NPC', x, top); g.fillStyle = '#ffd98a'; g.fillText(v.n || 'NPC', x, top); } }
+  /* ---------- missões (SQL 19): nome + passos (o que aparece no diário do jogador). Progresso: 0 = não começou, 1..N = passo, 999 = concluída ---------- */
+  async function carregarMis() { try { E.missoes = (await P.api('/rest/v1/missoes?select=*&order=nome.asc')) || []; E.misErro = ''; } catch (e) { E.missoes = []; E.misErro = /missoes|PGRST205|42P01/.test(e.message + e.code) ? 'O banco ainda não tem as missões: rode o arquivo sql/19_missoes.sql no Supabase.' : P.erroTexto(e); } return E.missoes; }
+  function abrirMissoes() { return new Promise(async ok => { const ov = document.createElement('div'); ov.className = 'escChegada'; ov.id = 'missoesTela';
+    ov.innerHTML = '<div class="ecTopo"><b class="cresce">📜 Missões</b><button class="btn" id="msX">Fechar</button></div><div id="msC" style="flex:1;overflow:auto;padding:12px 14px"></div>'; document.body.appendChild(ov);
+    const C2 = ov.querySelector('#msC'), fim = () => { ov.remove(); ok(); }; ov.querySelector('#msX').onclick = fim;
+    const lista = async () => { await carregarMis(); C2.innerHTML = (E.misErro ? `<p class="aviso">${esc(E.misErro)}</p>` : '') + '<p class="mudo">Cada missão tem passos. O jogador vê a missão e o passo atual no alto da tela. Os NPCs começam, avançam e concluem missões nas “falas com condição”.</p>' +
+        E.missoes.map(q => `<div class="cam"><button class="nm" data-ms="${esc(q.id)}">📜 ${esc(q.nome)}<br><small class="mudo">${(q.passos || []).length} passo(s) · ${esc(q.id)}</small></button></div>`).join('') + '<button class="btn pri" id="msNova" style="width:100%;margin-top:8px">+ Nova missão</button>';
+      C2.querySelectorAll('[data-ms]').forEach(b => b.onclick = () => form(E.missoes.find(q => q.id === b.dataset.ms))); C2.querySelector('#msNova').onclick = () => form(null); };
+    const form = q => { C2.innerHTML = `<label class="lbl">Nome da missão</label><input id="msN" maxlength="60" value="${esc(q ? q.nome : '')}" placeholder="Ex.: O livro perdido do Kakashi">
+        <label class="lbl" style="margin-top:8px">Passos — um por linha (o que o jogador precisa fazer em cada passo)</label><textarea id="msP" rows="6" style="width:100%" placeholder="Fale com o Kakashi na Sala do Kage&#10;Encontre o livro na floresta&#10;Leve o livro de volta ao Kakashi">${esc(q ? (q.passos || []).join('\n') : '')}</textarea>
+        <p class="mudo">${q ? 'Identificador: ' + esc(q.id) + '. Mudar os passos não mexe no progresso de quem já começou.' : ''}</p>
+        <div class="linha" style="margin-top:8px"><button class="btn pri cresce" id="msS">Salvar</button>${q ? '<button class="btn perigo" id="msD">Excluir</button>' : ''}<button class="btn" id="msV">Voltar</button></div>`;
+      C2.querySelector('#msV').onclick = lista;
+      C2.querySelector('#msS').onclick = async () => { const nome = C2.querySelector('#msN').value.trim().slice(0, 60), passos = C2.querySelector('#msP').value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 30).map(x => x.slice(0, 140));
+        if (!nome) return toast('Dê um nome à missão'); if (!passos.length) return toast('Escreva pelo menos um passo');
+        try { if (q) await P.api('/rest/v1/missoes?id=eq.' + encodeURIComponent(q.id), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ nome, passos }) });
+          else { let id = 'q_' + (Mo.slug(nome).replace(/^_+/, '') || 'missao').slice(0, 36), n = 2; while (E.missoes.some(x => x.id === id)) id = id.slice(0, 36) + '_' + n++; await P.api('/rest/v1/missoes', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ id, nome, passos }) }); }
+          toast('Missão salva'); lista(); } catch (e) { aviso('Não consegui salvar a missão', esc(/missoes|PGRST205|42P01/.test(e.message + e.code) ? 'O banco ainda não tem as missões: rode o arquivo sql/19_missoes.sql no Supabase.' : P.erroTexto(e))); } };
+      if (q) C2.querySelector('#msD').onclick = async () => { if (!confirm('Excluir a missão “' + q.nome + '”? NPCs que usam ela deixam de funcionar.')) return; try { await P.api('/rest/v1/missoes?id=eq.' + encodeURIComponent(q.id), { method: 'DELETE' }); toast('Missão excluída'); lista(); } catch (e) { aviso('Não consegui excluir', esc(P.erroTexto(e))); } }; };
+    lista(); }); }
+  // editor das páginas de fala com condição (dentro da janela do NPC). Cada página: se = condições, f = falas, faz = ações no fim da fala
+  function paginasNpc(box, PG, mapas) { if (!box) return; const M2 = E.missoes || [], IT = E.itens || [];
+    const opMis = sel => M2.length ? M2.map(q => `<option value="${esc(q.id)}" ${q.id === sel ? 'selected' : ''}>${esc(q.nome)}</option>`).join('') : '<option value="">(crie em 📜 Missões…)</option>';
+    const inp = (pi, g, i, k, v, w) => `<input class="pgIn" data-pi="${pi}" data-g="${g}" data-i="${i}" data-k="${k}" type="number" min="1" max="99" value="${v || 1}" style="width:${w || 64}px">`;
+    const sel = (pi, g, i, k, html) => `<select class="pgIn" data-pi="${pi}" data-g="${g}" data-i="${i}" data-k="${k}">${html}</select>`;
+    const cond = (pi, i, k) => `<div class="linha" style="flex-wrap:wrap;gap:4px;margin:3px 0">${sel(pi, 'se', i, 't', [['mis', 'Missão'], ['item', 'Tem o item'], ['nivel', 'Nível mínimo']].map(([a, b]) => `<option value="${a}" ${k.t === a ? 'selected' : ''}>${b}</option>`).join(''))}` +
+      (k.t === 'mis' ? sel(pi, 'se', i, 'q', opMis(k.q)) + sel(pi, 'se', i, 'e', [['nao', 'não começou'], ['em', 'em andamento'], ['passo', 'no passo…'], ['fim', 'concluída']].map(([a, b]) => `<option value="${a}" ${k.e === a ? 'selected' : ''}>${b}</option>`).join('')) + (k.e === 'passo' ? inp(pi, 'se', i, 'n', k.n) : '')
+        : k.t === 'item' ? sel(pi, 'se', i, 'i', IT.map(it => `<option value="${esc(it.id)}" ${it.id === k.i ? 'selected' : ''}>${esc(it.n)}</option>`).join('') || '<option value="">(sem itens)</option>') + '<span class="mudo">qtd</span>' + inp(pi, 'se', i, 'n', k.n, 56)
+        : inp(pi, 'se', i, 'n', k.n)) + `<button class="ib" data-pgdel="${pi},se,${i}" aria-label="Tirar">✕</button></div>`;
+    const acao = (pi, i, a) => `<div class="linha" style="flex-wrap:wrap;gap:4px;margin:3px 0">${sel(pi, 'faz', i, 't', [['mis', 'Missão'], ['tp', 'Levar para o mapa']].map(([x, y]) => `<option value="${x}" ${a.t === x ? 'selected' : ''}>${y}</option>`).join(''))}` +
+      (a.t === 'mis' ? sel(pi, 'faz', i, 'q', opMis(a.q)) + sel(pi, 'faz', i, 'a', [['comecar', 'começar'], ['passo', 'ir para o passo…'], ['fim', 'concluir']].map(([x, y]) => `<option value="${x}" ${a.a === x ? 'selected' : ''}>${y}</option>`).join('')) + (a.a === 'passo' ? inp(pi, 'faz', i, 'n', a.n) : '')
+        : sel(pi, 'faz', i, 'm', mapas.map(id => `<option value="${esc(id)}" ${id === a.m ? 'selected' : ''}>${esc(id)}</option>`).join('')) + `<button class="btn peq" data-pgtp="${pi},${i}">📍 ${a.tx != null ? '(' + Math.floor(a.tx) + ', ' + Math.floor(a.ty) + ')' : 'nascimento'}</button>`) + `<button class="ib" data-pgdel="${pi},faz,${i}" aria-label="Tirar">✕</button></div>`;
+    box.innerHTML = PG.map((g, pi) => `<div style="border:1px solid var(--linha);border-radius:10px;padding:8px;margin:6px 0"><div class="linha"><b class="cresce">Página ${pi + 1}</b>${pi ? `<button class="ib" data-pgup="${pi}" aria-label="Subir">▲</button>` : ''}<button class="ib" data-pgx="${pi}" aria-label="Excluir página">🗑</button></div>
+      <label class="lbl">Quando (todas precisam valer)</label>${g.se.map((k, i) => cond(pi, i, k)).join('') || '<p class="mudo">Sempre (sem condição)</p>'}<button class="btn peq" data-pgadd="${pi},se">+ Condição</button>
+      <label class="lbl" style="margin-top:6px">Falas (uma por linha)</label><textarea class="pgF" data-pi="${pi}" rows="3" style="width:100%">${esc((g.f || []).join('\n'))}</textarea>
+      <label class="lbl" style="margin-top:6px">No fim da fala</label>${g.faz.map((a, i) => acao(pi, i, a)).join('') || '<p class="mudo">Nada</p>'}<button class="btn peq" data-pgadd="${pi},faz">+ Ação</button></div>`).join('');
+    const re = () => paginasNpc(box, PG, mapas);
+    box.querySelectorAll('.pgIn').forEach(el => el.onchange = () => { const d = el.dataset, o = PG[+d.pi][d.g][+d.i], k = d.k; o[k] = k === 'n' ? Math.max(1, Math.min(99, +el.value | 0)) : el.value;
+      if (k === 't') { for (const x of Object.keys(o)) if (x !== 't') delete o[x]; if (d.g === 'se') Object.assign(o, o.t === 'mis' ? { q: (M2[0] || {}).id || '', e: 'em' } : o.t === 'item' ? { i: (IT[0] || {}).id || '', n: 1 } : { n: 1 }); else Object.assign(o, o.t === 'mis' ? { q: (M2[0] || {}).id || '', a: 'comecar' } : { m: mapas[0] }); }
+      if ((k === 'e' && o.e === 'passo') || (k === 'a' && o.a === 'passo')) o.n = o.n || 1; if ((k === 'e' && o.e !== 'passo') || (k === 'a' && o.a !== 'passo')) delete o.n; if (k === 'm') { delete o.tx; delete o.ty; } if (k === 't' || k === 'e' || k === 'a' || k === 'm') re(); });
+    box.querySelectorAll('.pgF').forEach(el => el.oninput = () => { PG[+el.dataset.pi].f = el.value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 20).map(x => x.slice(0, 300)); });
+    box.querySelectorAll('[data-pgadd]').forEach(b => b.onclick = () => { const [pi, g] = b.dataset.pgadd.split(','); if (PG[+pi][g].length >= 6) return toast('No máximo 6');
+      PG[+pi][g].push(g === 'se' ? { t: 'mis', q: (M2[0] || {}).id || '', e: 'nao' } : { t: 'mis', q: (M2[0] || {}).id || '', a: 'comecar' }); re(); });
+    box.querySelectorAll('[data-pgdel]').forEach(b => b.onclick = () => { const [pi, g, i] = b.dataset.pgdel.split(','); PG[+pi][g].splice(+i, 1); re(); });
+    box.querySelectorAll('[data-pgx]').forEach(b => b.onclick = () => { PG.splice(+b.dataset.pgx, 1); re(); });
+    box.querySelectorAll('[data-pgup]').forEach(b => b.onclick = () => { const i = +b.dataset.pgup; [PG[i - 1], PG[i]] = [PG[i], PG[i - 1]]; re(); });
+    box.querySelectorAll('[data-pgtp]').forEach(b => b.onclick = async () => { const [pi, i] = b.dataset.pgtp.split(',').map(Number), a = PG[pi].faz[i], d = $('#dlg'); d.hidden = true;
+      const r = await escolherChegada(a.m, a.tx != null ? [a.tx, a.ty] : null); d.hidden = false; if (r) { a.tx = r[0]; a.ty = r[1]; } else if (a.tx != null && confirm('Voltar a chegar no ponto de nascimento?')) { delete a.tx; delete a.ty; } re(); }); }
   async function tocaNpc([x, y], apagar) { const m = E.m; m.npcs = m.npcs || []; const L = m.npcs, i = L.findIndex(v => v.x === x && v.y === y), v = L[i];
     if (apagar) { if (i >= 0) { mudar(q => { q.npcs.splice(i, 1); }, 'nada'); toast('NPC apagado (↶ desfaz)'); if (E.aba === 'pintura') painel('pintura'); } return; }
     const a0 = (v && v.a) || { t: 'ninja', s: 0, h: 0, c: 1 }, mv0 = v && v.mv;
     const st = { t: a0.t === 'img' ? 'img' : 'ninja', s: a0.s | 0, h: a0.h | 0, c: a0.c | 0, fl: !!a0.fl, k: a0.k || '', e: a0.e > 0 ? a0.e : 0,
-      q: Array.isArray(a0.q) && a0.q.length > 1 ? a0.q.slice() : [], ms: a0.ms || 125, qa: a0.qa === 'andando' ? 'andando' : 'sempre', oe: !!a0.oe, mv: mv0 ? 1 : 0, r: (mv0 && mv0.r) || 3, v: (mv0 && mv0.v) || 2 };
+      q: Array.isArray(a0.q) && a0.q.length > 1 ? a0.q.slice() : [], qc: Array.isArray(a0.qc) ? a0.qc.slice() : [], qb: Array.isArray(a0.qb) ? a0.qb.slice() : [], lq: 'q', rt: v ? v.rt : undefined, pg: v && Array.isArray(v.pg) ? JSON.parse(JSON.stringify(v.pg)) : [], ms: a0.ms || 125, qa: a0.qa === 'andando' ? 'andando' : 'sempre', oe: !!a0.oe, mv: mv0 ? 1 : 0, r: (mv0 && mv0.r) || 3, v: (mv0 && mv0.v) || 2 };
     const imgs = Object.keys(R.RC).map(k => [k, R.RC[k].nome]).concat((E.lib && E.lib.imagens || []).map(i => [i.id, i.nome || i.id]));
     const sw = g => PAL[g].map((c, j) => `<button data-sw="${g}" data-v="${j}" aria-pressed="${st[g] === j}" style="width:38px;height:38px;border-radius:8px;background:${c};border:3px solid ${st[g] === j ? '#ff9a3c' : '#0006'}"></button>`).join('');
     const r = await dlg(v ? 'NPC ' + (v.n || '') + ' (' + x + ', ' + y + ')' : 'Novo NPC em (' + x + ', ' + y + ')', `<label class="lbl">Nome</label><input id="npN" maxlength="24" value="${esc(v ? v.n || '' : '')}" placeholder="Ex.: Hokage">
@@ -656,8 +710,9 @@
       <div id="npImg" ${st.t === 'img' ? '' : 'hidden'}>${imgs.length ? `<select id="npK">${imgs.map(([k, n]) => `<option value="${esc(k)}" ${k === st.k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
         <label class="lbl" style="margin-top:6px">Tamanho no mapa</label><div class="presets"><button data-npe="auto">Altura de um personagem</button><button data-npe="1">Tamanho do arquivo</button><button data-npe="m">Outro…</button></div>
         <div class="linha" id="npEL" hidden><input id="npE" type="number" min="5" max="800" step="5" style="width:90px"><span class="mudo">% do arquivo</span></div>
-        <label class="chk"><input type="checkbox" id="npAn" ${st.q.length > 1 ? 'checked' : ''}> 🎞 Animação (sequência de quadros)</label>
-        <div id="npAnB" ${st.q.length > 1 ? '' : 'hidden'}><p class="mudo">Quadros na ordem em que tocam (o 1º é o NPC parado). Toque num quadro para tirar.</p><div class="grade-obj" id="npQ"></div>
+        <label class="chk"><input type="checkbox" id="npAn" ${st.q.length > 1 || st.qc.length || st.qb.length ? 'checked' : ''}> 🎞 Animação (sequência de quadros)</label>
+        <div id="npAnB" ${st.q.length > 1 || st.qc.length || st.qb.length ? '' : 'hidden'}><div class="presets"><button data-lq="q">↔ De lado</button><button data-lq="qc">↑ Andando para cima</button><button data-lq="qb">↓ Andando para baixo</button></div>
+          <p class="mudo" id="npQDica"></p><div class="grade-obj" id="npQ"></div>
           <button class="btn peq" id="npQAdd" style="width:100%;margin-top:6px">+ Adicionar quadros</button><div class="grade-obj" id="npQPick" hidden></div>
           <label class="lbl" style="margin-top:6px">Velocidade: <b id="npVv"></b> quadros por segundo</label><input type="range" id="npV" min="1" max="20" style="width:100%;height:40px">
           <div class="presets"><button data-qa="sempre">Anima sempre</button><button data-qa="andando">Só quando anda</button></div></div>
@@ -670,15 +725,22 @@
         <label class="chk" id="npOeL" ${st.t === 'img' ? '' : 'hidden'}><input type="checkbox" id="npOe" ${st.oe ? 'checked' : ''}> A imagem (sem espelhar) olha para a esquerda — para virar certo ao andar</label>
         <p class="mudo">Anda um tile por vez, sem atravessar paredes nem o jogador, e para quando alguém fala com ele.</p></div>
       <label class="lbl" style="margin-top:8px">Falas — uma por linha; no jogo aparece uma de cada vez (“Próximo ▸”)</label><textarea id="npF" rows="5" style="width:100%" placeholder="Bem-vindo à Vila da Folha!&#10;Fale comigo de novo depois.">${esc(v ? (v.f || []).join('\n') : '')}</textarea>
+      <p class="mudo">Nas falas, <b>%player%</b> vira o nome de quem está falando com o NPC.</p>
+      <label class="lbl" style="margin-top:8px">Retrato na janela de fala</label><div class="presets"><button data-rt="auto">Automático</button><button data-rt="nenhum">Nenhum</button><button data-rt="img">Escolher imagem</button></div>
+      <div class="linha" id="npRtL"><select id="npRtK" class="cresce">${imgs.map(([k, n]) => `<option value="${esc(k)}" ${k === st.rt ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select><canvas id="npRtPrev" width="64" height="64" style="width:64px;height:64px;border:2px solid #c99a4a;border-radius:8px;background:#2a1f14;image-rendering:pixelated"></canvas></div>
+      <label class="lbl" style="margin-top:10px">📜 Falas com condição (missões)</label><p class="mudo">A 1ª página cujas condições valerem é a que o NPC fala; se nenhuma valer, ele usa as falas acima. No fim da fala a página pode começar, avançar ou concluir uma missão, ou levar a pessoa para outro lugar.</p>
+      <div id="npPgs"></div><div class="linha"><button class="btn peq cresce" id="npPgAdd">+ Página de fala com condição</button><button class="btn peq" id="npMis">📜 Missões…</button></div>
       <label class="chk"><input type="checkbox" id="npB" ${!v || v.b !== 0 ? 'checked' : ''}> Bloqueia a passagem (ninguém atravessa o NPC)</label>`,
       [{ t: 'Salvar', v: 1, c: 'pri', antes: () => { if (!$('#npN').value.trim()) { toast('Dê um nome ao NPC'); return false; } } }].concat(v ? [{ t: 'Duplicar', v: 3 }, { t: 'Apagar', v: 2, c: 'perigo' }] : []).concat([{ t: 'Cancelar', v: 0 }]), c => {
         const $c = q => c.querySelector(q), marca = (sel, f) => c.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', f(b)));
         // quadros: a sequência (st.q) e o catálogo para escolher (recortes do mesmo recurso primeiro)
-        const quadros = () => { const Q = $c('#npQ'); if (!Q) return; Q.innerHTML = st.q.map((k, j) => `<button class="obj" data-qi="${j}" aria-label="Tirar quadro ${j + 1}"><canvas width="64" height="64"></canvas><small>${j + 1}${j ? '' : ' · parado'}</small></button>`).join('');
-          Q.querySelectorAll('[data-qi]').forEach(b => { miniatura(b.querySelector('canvas'), st.q[+b.dataset.qi]); b.onclick = () => { st.q.splice(+b.dataset.qi, 1); if (!st.q.length) st.q = [st.k]; st.k = st.q[0]; quadros(); }; }); };
+        const quadros = () => { const Q = $c('#npQ'); if (!Q) return; const Lq = st[st.lq]; marca('[data-lq]', b => b.dataset.lq === st.lq);
+          $c('#npQDica').textContent = st.lq === 'q' ? 'Quadros na ordem em que tocam (o 1º é o NPC parado). Toque num quadro para tirar.' : 'Opcional: quadros usados quando o NPC anda para ' + (st.lq === 'qc' ? 'cima' : 'baixo') + ' (o 1º é ele parado olhando para lá). Vazio = usa os de lado.';
+          Q.innerHTML = Lq.map((k, j) => `<button class="obj" data-qi="${j}" aria-label="Tirar quadro ${j + 1}"><canvas width="64" height="64"></canvas><small>${j + 1}${j ? '' : ' · parado'}</small></button>`).join('') || '<p class="mudo">Nenhum quadro.</p>';
+          Q.querySelectorAll('[data-qi]').forEach(b => { miniatura(b.querySelector('canvas'), Lq[+b.dataset.qi]); b.onclick = () => { Lq.splice(+b.dataset.qi, 1); if (st.lq === 'q') { if (!st.q.length) st.q = [st.k]; st.k = st.q[0]; } quadros(); prev(); }; }); };
         const catalogoQ = () => { const P2 = $c('#npQPick'), rec = R.RC[st.k] && R.RC[st.k].rec, L2 = imgs.map(x => x[0]).sort((a, b) => ((R.RC[b] && R.RC[b].rec === rec) ? 1 : 0) - ((R.RC[a] && R.RC[a].rec === rec) ? 1 : 0));
           P2.innerHTML = L2.map(k => `<button class="obj" data-qk="${esc(k)}"><canvas width="64" height="64"></canvas><small>${esc((R.RC[k] || {}).nome || k)}</small></button>`).join('');
-          P2.querySelectorAll('[data-qk]').forEach(b => { miniatura(b.querySelector('canvas'), b.dataset.qk); b.onclick = () => { if (st.q.length >= 24) return toast('No máximo 24 quadros'); st.q.push(b.dataset.qk); quadros(); }; }); };
+          P2.querySelectorAll('[data-qk]').forEach(b => { miniatura(b.querySelector('canvas'), b.dataset.qk); b.onclick = () => { const Lq = st[st.lq]; if (Lq.length >= 24) return toast('No máximo 24 quadros'); Lq.push(b.dataset.qk); quadros(); prev(); }; }); };
         const vel = () => { if ($c('#npV')) { const f = Math.round(1000 / st.ms); $c('#npV').value = f; $c('#npVv').textContent = f; } marca('[data-qa]', b => b.dataset.qa === st.qa); };
         const mov = () => { $c('#npMvB').hidden = !st.mv; marca('[data-mv]', b => +b.dataset.mv === st.mv); marca('[data-mvv]', b => +b.dataset.mvv === st.v); $c('#npR').value = st.r; $c('#npRv').textContent = st.r; $c('#npOeL').hidden = st.t !== 'img'; };
         // prévia: o NPC (animado) no tamanho escolhido ao lado de um personagem, na mesma escala
@@ -687,9 +749,9 @@
           marca('[data-npe]', b => b.dataset.npe === (st.e ? (st.e === 1 ? '1' : 'm') : 'auto')); $c('#npEL').hidden = !st.e || st.e === 1;
           if (!i || !i.ok) { $c('#npInfo').textContent = 'Carregando a imagem…'; setTimeout(prev, 600); return; } const e = npcEsc({ t: 'img', k: st.k, e: st.e }), w = i.dw * e, h = i.dh * e, z = Math.min(1.6, 110 / Math.max(64, h), 80 / Math.max(32, w));
           g.save(); g.translate(60, 120); g.scale(z, z); g.translate(-16, -30); desenhaNpcs(g, { npcs: [{ x: 0, y: 0, n: ' ', a: { t: 'ninja', s: 0, h: 0, c: 1 } }] }, 99); g.restore();
-          const an = $c('#npAn') && $c('#npAn').checked && st.q.length > 1, kq = an ? st.q[Math.floor(performance.now() / st.ms) % st.q.length] : st.k;
-          g.save(); g.translate(135, 120); g.scale(z, z); quadroNpc(g, kq, 0, 0, e, $c('#npFl').checked); g.restore();
-          $c('#npInfo').textContent = 'No mapa: ' + Math.round(w) + '×' + Math.round(h) + ' px (o personagem tem ~60 px de altura)' + (an ? ' · ' + st.q.length + ' quadros' : ''); if (!st.e) $c('#npE').value = Math.round(e * 100);
+          const Lq = st.lq === 'q' || !st[st.lq].length ? st.q : st[st.lq], an = $c('#npAn') && $c('#npAn').checked && Lq.length > 1, kq = an ? Lq[Math.floor(performance.now() / st.ms) % Lq.length] : Lq.length ? Lq[0] : st.k;
+          g.save(); g.translate(135, 120); g.scale(z, z); quadroNpc(g, kq, 0, 0, e, st.lq === 'q' && $c('#npFl').checked, $c('#npAn') && $c('#npAn').checked); g.restore();
+          $c('#npInfo').textContent = 'No mapa: ' + Math.round(w) + '×' + Math.round(h) + ' px (o personagem tem ~60 px de altura)' + (an ? ' · ' + Lq.length + ' quadros' : ''); if (!st.e) $c('#npE').value = Math.round(e * 100);
           if (an) raf = requestAnimationFrame(prev); };
         c.querySelectorAll('[data-npa]').forEach(b => b.onclick = () => { st.t = b.dataset.npa; marca('[data-npa]', x => x === b); $c('#npNinja').hidden = st.t !== 'ninja'; $c('#npImg').hidden = st.t !== 'img'; mov(); prev(); });
         c.querySelectorAll('[data-sw]').forEach(b => b.onclick = () => { const g = b.dataset.sw; st[g] = +b.dataset.v; c.querySelectorAll('[data-sw="' + g + '"]').forEach(x => { const on = x === b; x.setAttribute('aria-pressed', on); x.style.borderColor = on ? '#ff9a3c' : '#0006'; }); });
@@ -704,16 +766,30 @@
         if ($c('#npQAdd')) $c('#npQAdd').onclick = () => { const P2 = $c('#npQPick'); P2.hidden = !P2.hidden; if (!P2.hidden) catalogoQ(); };
         if ($c('#npRec')) $c('#npRec').onclick = () => { const rc = R.RC[st.k]; if (!rc) return toast('Essa imagem não é um recorte da biblioteca'); const x0 = c.parentNode.querySelector('#dlgB button[data-v="0"]'); if (x0) x0.click(); setTimeout(() => { if (window.BIB) { window.BIB.api.telaBib('editor'); window.BIB.api.abrirRecurso(rc.rec); } }, 0); };
         const k = $c('#npK'); if (k) { k.onchange = () => { st.k = k.value; if (st.q.length) st.q[0] = st.k; quadros(); prev(); }; if (!st.k) st.k = k.value; if (st.q.length) st.k = st.q[0]; }
-        quadros(); vel(); mov(); prev(); });
+        c.querySelectorAll('[data-lq]').forEach(b => b.onclick = () => { st.lq = b.dataset.lq; const P2 = $c('#npQPick'); if (P2 && !P2.hidden) catalogoQ(); quadros(); prev(); });
+        // retrato
+        const retrato = () => { const modo = st.rt === 0 ? 'nenhum' : typeof st.rt === 'string' ? 'img' : 'auto'; marca('[data-rt]', b => b.dataset.rt === modo); $c('#npRtL').hidden = modo !== 'img';
+          const cv3 = $c('#npRtPrev'); if (cv3 && modo === 'img') { const g = cv3.getContext('2d'), i = R.info(J, st.rt); g.clearRect(0, 0, 64, 64); if (i && i.ok) { const z = Math.min(64 / i.sw, 64 / i.sh); g.imageSmoothingEnabled = !i.px; g.drawImage(i.img, i.sx, i.sy, i.sw, i.sh, (64 - i.sw * z) / 2, (64 - i.sh * z) / 2, i.sw * z, i.sh * z); } } };
+        c.querySelectorAll('[data-rt]').forEach(b => b.onclick = () => { const v2 = b.dataset.rt; st.rt = v2 === 'nenhum' ? 0 : v2 === 'img' ? ($c('#npRtK').value || undefined) : undefined; if (v2 === 'img' && !st.rt) toast('Nenhuma imagem na biblioteca'); retrato(); });
+        $c('#npRtK').onchange = e2 => { st.rt = e2.target.value; retrato(); };
+        // páginas de fala com condição
+        const ids = [E.m.id].concat(Mo.BASE_IDS, (E.srv || []).map(r => r.id)).filter((x, j, A) => A.indexOf(x) === j);
+        const pags = () => paginasNpc($c('#npPgs'), st.pg, ids);
+        $c('#npPgAdd').onclick = () => { if (st.pg.length >= 10) return toast('No máximo 10 páginas'); st.pg.push({ se: [], f: [], faz: [] }); pags(); };
+        $c('#npMis').onclick = async () => { const d = $('#dlg'); d.hidden = true; await abrirMissoes(); d.hidden = false; pags(); };
+        (async () => { if (!E.missoes) await carregarMis(); if (!E.itens) { try { E.itens = await (await fetch('/painel/editor/itens.json')).json(); } catch (_) { E.itens = []; } } if (!E.srv) { try { E.srv = await P.listarServidor(); } catch (_) { } } pags(); })();
+        retrato(); pags(); quadros(); vel(); mov(); prev(); });
     if (!r) return; if (r === 2) return tocaNpc([x, y], true);
     if (r === 3) { const p = livreEvento(E.m, x, y, 'npcs'); if (!p) return toast('Sem espaço livre para a cópia'); let n = 1; while (E.m.npcs.some(q => q.id === 'n' + n)) n++; const cp = Object.assign(JSON.parse(JSON.stringify(L[i])), { id: 'n' + n, x: p[0], y: p[1] });
       mudar(q => { q.npcs.push(cp); }, 'nada'); toast('Cópia em (' + p[0] + ', ' + p[1] + '): arraste com ✋ Mover para posicionar'); if (E.aba === 'pintura') painel('pintura'); return; }
     let id = v && v.id; if (!id) { let n = 1; while (L.some(q => q.id === 'n' + n)) n++; id = 'n' + n; }
     const anOn = $('#npAn') && $('#npAn').checked && st.q.length > 1, a = st.t === 'img' && st.k ? { t: 'img', k: anOn ? st.q[0] : st.k } : { t: 'ninja', s: st.s, h: st.h, c: st.c };
-    if (a.t === 'img') { if (st.e > 0) a.e = +st.e.toFixed(3); if (anOn) { a.q = st.q.slice(0, 24); a.ms = st.ms; if (st.qa === 'andando') a.qa = 'andando'; } if (st.mv && $('#npOe').checked) a.oe = 1; }
+    const anOn2 = $('#npAn') && $('#npAn').checked && (st.qc.length || st.qb.length);
+    if (a.t === 'img') { if (st.e > 0) a.e = +st.e.toFixed(3); if (anOn) a.q = st.q.slice(0, 24); if (anOn2) { if (st.qc.length) a.qc = st.qc.slice(0, 24); if (st.qb.length) a.qb = st.qb.slice(0, 24); } if (anOn || anOn2) { a.ms = st.ms; if (st.qa === 'andando') a.qa = 'andando'; } if (st.mv && $('#npOe').checked) a.oe = 1; }
     if ($('#npFl').checked) a.fl = 1;
     const nv = { id, n: $('#npN').value.trim().slice(0, 24), x, y, a, f: $('#npF').value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 20).map(s => s.slice(0, 300)) };
-    if (st.mv) nv.mv = { r: st.r, v: st.v }; if (!$('#npB').checked) nv.b = 0;
+    if (st.mv) nv.mv = { r: st.r, v: st.v }; if (!$('#npB').checked) nv.b = 0; if (st.rt === 0 || typeof st.rt === 'string') nv.rt = st.rt;
+    const pg = st.pg.map(g => ({ se: g.se.filter(k => k.t !== 'mis' || k.q), f: (g.f || []).filter(Boolean), faz: g.faz.filter(x => (x.t !== 'mis' || x.q) && (x.t !== 'tp' || x.m)) })); if (pg.length) nv.pg = pg;
     mudar(q => { q.npcs = q.npcs || []; const j = q.npcs.findIndex(e => e.x === x && e.y === y); if (j >= 0) q.npcs[j] = nv; else q.npcs.push(nv); }, 'nada');
     toast('NPC salvo: ' + nv.n); if (E.aba === 'pintura') painel('pintura'); }
   /* eventos (pisar no tile): por enquanto teletransporte para outro mapa ou outro ponto deste. Sem destino X/Y = nascimento do mapa destino */

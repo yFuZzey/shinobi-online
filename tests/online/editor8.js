@@ -41,10 +41,10 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  // animação (Kakashi → Guarda), espelhar e andar por perto
  await tap(await tela(3*32+10,8*32+10));await W(400);await P.click('#npAn');await W(100);ok(await ev(()=>document.querySelectorAll('#npQ [data-qi]').length===1),'animação: começa com o quadro parado');
  await P.click('#npQAdd');await W(200);await P.click('#npQPick [data-qk="'+k+'"]');await W(100);ok(await ev(()=>document.querySelectorAll('#npQ [data-qi]').length===2),'adicionar quadro');
- await ev(()=>{const r=document.querySelector('#npV');r.value='4';r.dispatchEvent(new Event('input'))});await P.click('[data-qa="andando"]');await P.click('#npFl');
+ await P.click('[data-lq="qc"]');await W(100);await P.click('#npQPick [data-qk="'+kk+'"]');await W(100);ok(await ev(()=>document.querySelectorAll('#npQ [data-qi]').length===1),'quadros andando para cima (lista separada)');await P.click('[data-lq="q"]');await W(100);await ev(()=>{const r=document.querySelector('#npV');r.value='4';r.dispatchEvent(new Event('input'))});await P.click('[data-qa="andando"]');await P.click('#npFl');
  await P.click('[data-mv="1"]');await ev(()=>{const r=document.querySelector('#npR');r.value='2';r.dispatchEvent(new Event('input'))});await P.click('[data-mvv="3"]');await P.click('#npOe');
  await D('Salvar');await W(200);let kk2=await ev(()=>EDITOR.m.npcs[2]);
- ok(JSON.stringify(kk2.a)===JSON.stringify({t:'img',k:kk,q:[kk,k],ms:250,qa:'andando',oe:1,fl:1})&&JSON.stringify(kk2.mv)==='{"r":2,"v":3}','NPC animado, espelhado e andando: '+JSON.stringify(kk2));
+ ok(JSON.stringify(kk2.a)===JSON.stringify({t:'img',k:kk,q:[kk,k],qc:[kk],ms:250,qa:'andando',oe:1,fl:1})&&JSON.stringify(kk2.mv)==='{"r":2,"v":3}','NPC animado, espelhado e andando: '+JSON.stringify(kk2));
  await tap(await tela(3*32+10,8*32+10));await W(400);ok(await ev(()=>document.querySelector('#npAn').checked&&document.querySelectorAll('#npQ [data-qi]').length===2&&document.querySelector('#npFl').checked&&!document.querySelector('#npMvB').hidden&&document.querySelector('#npVv').textContent==='4'),'reabrir mostra a animação e o movimento');await D('Cancelar');await W(150);
  // duplicar, mover e apagar
  await tap(await tela(5*32+10,5*32+10));await W(400);await D('Duplicar');await W(200);np=await ev(()=>EDITOR.m.npcs);ok(np.length===4&&np[3].id==='n4'&&np[3].x===6&&np[3].n==='Hokage','duplicar NPC (novo id, tile ao lado)');
@@ -66,7 +66,7 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await A.evaluate(()=>{p.x=5.5*32;p.y=7*32});await W(500);
  ok(await A.evaluate(()=>{const b=document.getElementById('npcBtn');return b&&b.style.display==='block'&&/Hokage/.test(b.textContent)}),'jogo: perto do NPC aparece “💬 Falar com Hokage”');
  await A.click('#npcBtn');await W(200);
- ok(await A.evaluate(()=>document.getElementById('npcDlg').style.display==='block'&&document.getElementById('npcT').textContent==='Olá, ninja!'&&/Próximo/.test(document.getElementById('npcP').textContent)),'jogo: a janela mostra a primeira fala');
+ ok(await A.evaluate(()=>document.getElementById('npcDlg').style.display==='block'&&document.getElementById('npcT').textContent==='Olá, ninja!'&&/Próximo/.test(document.getElementById('npcP').textContent)),'jogo: a janela mostra a primeira fala');ok(await A.evaluate(()=>document.getElementById('npcR').style.display==='block'),'jogo: retrato automático (rosto do ninja) na janela');await A.screenshot({path:path.join(__dirname,'ed8_fala.png')});
  await A.click('#npcP');await W(100);ok(await A.evaluate(()=>document.getElementById('npcT').textContent==='Volte depois.'&&/Fechar/.test(document.getElementById('npcP').textContent)),'jogo: “Próximo” mostra a segunda fala');
  await A.click('#npcP');await W(200);ok(await A.evaluate(()=>document.getElementById('npcDlg').style.display==='none'),'jogo: “Fechar” fecha a janela');
  await A.evaluate(()=>{p.x=5.5*32;p.y=7*32});await W(500);await A.screenshot({path:path.join(__dirname,'ed8_perto.png')});

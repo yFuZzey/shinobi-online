@@ -1,7 +1,7 @@
 // Servidor simulado (subconjunto do Supabase: Auth, REST de "personagens" e Realtime/Phoenix) para testes locais.
 const http=require('http'),crypto=require('crypto');
 const PORT=+process.argv[2]||54321;
-const users={},rows={},INV={},PATCHES=[],TROCAS=[],BANS={},ITENS={},MAPAS={},IMAGENS={},TILESETS={},RECURSOS={},CONJ={},STORE={};let RPCS=0;let n=0;const log=[];
+const users={},rows={},INV={},PATCHES=[],TROCAS=[],BANS={},ITENS={},MAPAS={},IMAGENS={},TILESETS={},RECURSOS={},CONJ={},STORE={},MISSOES={},PROG={};let RPCS=0;let n=0;const log=[];
 function J(res,code,obj){res.writeHead(code,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});res.end(obj===undefined?'':JSON.stringify(obj))}
 function sess(u){const r='ref-'+u.id+'-'+(++n);u.refresh=r;return {access_token:'tok-'+u.id,refresh_token:r,expires_in:3600,token_type:'bearer',user:{id:u.id,email:u.email,user_metadata:u.meta}}}
 function uidOf(req){const a=req.headers.authorization||'';const m=/^Bearer tok-(.+)$/.exec(a);return m?m[1]:null}
@@ -114,6 +114,17 @@ const srv=http.createServer((req,res)=>{
     if(RECURSOS[body.id])return J(res,409,{code:'23505',message:'duplicate key value violates unique constraint "mapa_recursos_pkey"'});const t=agora();RECURSOS[body.id]={...body,criado_em:t,atualizado_em:t};return J(res,201,[RECURSOS[body.id]])}
    if(req.method==='PATCH'){const r=RECURSOS[idf];if(!r||(au&&r.atualizado_em!==au))return J(res,200,[]);Object.assign(r,body,{atualizado_em:agora()});return J(res,200,[r])}
    if(req.method==='DELETE'){const r=RECURSOS[idf];delete RECURSOS[idf];return J(res,200,r?[r]:[])}}
+  // missões (SQL 19): definições (admin) e progresso por personagem (só o servidor)
+  if(u.pathname==='/__missoes')return J(res,200,{MISSOES,PROG});
+  if(u.pathname==='/rest/v1/missoes'){const uid=uidOf(req),adm=SVC||!!(uid&&rows[uid]&&rows[uid].admin),idf=(u.searchParams.get('id')||'').replace(/^eq\./,'');
+   if(req.method==='GET'){if(!adm)return J(res,200,[]);return J(res,200,Object.values(MISSOES).filter(r=>!idf||r.id===idf))}
+   if(!uid&&!SVC)return J(res,401,{message:'JWT required'});if(!adm)return J(res,403,{code:'42501',message:'new row violates row-level security policy for table "missoes"'});
+   if(req.method==='POST'){if(!/^q_[a-z0-9_]{2,40}$/.test(body.id||''))return J(res,400,{code:'23514',message:'new row violates check constraint'});if(MISSOES[body.id])return J(res,409,{code:'23505',message:'duplicate key'});MISSOES[body.id]={...body,atualizado_em:new Date().toISOString()};return J(res,201,[MISSOES[body.id]])}
+   if(req.method==='PATCH'){const r=MISSOES[idf];if(!r)return J(res,200,[]);Object.assign(r,body);return J(res,200,[r])}
+   if(req.method==='DELETE'){const r=MISSOES[idf];delete MISSOES[idf];return J(res,200,r?[r]:[])}}
+  if(u.pathname==='/rest/v1/missao_progresso'){if(!SVC)return J(res,403,{message:'permission denied for table missao_progresso'});const pid=(u.searchParams.get('personagem_id')||'').replace(/^eq\./,'');
+   if(req.method==='GET')return J(res,200,Object.entries(PROG[pid]||{}).map(([missao,passo])=>({missao,passo})));
+   if(req.method==='POST'){const L=Array.isArray(body)?body:[body];for(const r of L){(PROG[r.personagem_id]=PROG[r.personagem_id]||{})[r.missao]=r.passo}return J(res,201)}}
   // conjuntos de tiles (SQL 18)
   if(u.pathname==='/__conjuntos')return J(res,200,CONJ);
   if(u.pathname==='/rest/v1/mapa_conjuntos'){const uid=uidOf(req),adm=SVC||!!(uid&&rows[uid]&&rows[uid].admin),idf=(u.searchParams.get('id')||'').replace(/^eq\./,'');

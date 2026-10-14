@@ -1667,8 +1667,8 @@ const MAPEV={nopvp:0,ev:[],ult:'',dito:'',npcs:[],perto:null,fala:null};
  MAPEV.npcs=m&&Array.isArray(m.npcs)?m.npcs:[];npcFecha();MAPEV.m0=M.slice();for(const c of MAPEV.npcs){delete c._;if(c.b!==0)setM(c.x,c.y,1)}}}
 // tamanho do NPC de imagem: a.e escolhido no editor; sem a.e = automático (imagem alta fica com a altura de um personagem, ~60 px)
 function npcEsc(c){const h=(TSZ[c.a.k]||[0,60])[1]||60;return c.a.e>0?c.a.e:h>64?60/h:1}
-// estado de cada NPC no jogo (posição em px, tile, para onde anda, espelhado). O passeio é só visual (cada aparelho sorteia o seu)
-function npcSt(c){return c._||(c._={x:(c.x+.5)*T,y:(c.y+1)*T-2,tx:c.x,ty:c.y,ir:null,esp:.5+Math.random()*2,anda:0,fl:c.a&&c.a.fl?1:0})}
+// estado de cada NPC no jogo (posição em px, tile, para onde anda, direção, espelhado). O passeio é só visual (cada aparelho sorteia o seu)
+function npcSt(c){return c._||(c._={x:(c.x+.5)*T,y:(c.y+1)*T-2,tx:c.x,ty:c.y,ir:null,esp:.5+Math.random()*2,anda:0,dir:'l',fl:c.a&&c.a.fl?1:0})}
 const npcPos=c=>{const s=npcSt(c);return [s.x,s.y]};
 const npcLivre=(x,y)=>x>=1&&y>=1&&x<N-1&&y<NH-1&&MAPEV.m0&&(MAPEV.m0[y*N+x]===0||MAPEV.m0[y*N+x]===3)&&M[y*N+x]!==1&&!(Math.floor(p.x/T)===x&&Math.floor(p.y/T)===y);
 function npcMove(c,dt){const s=npcSt(c),mv=c.mv;if(!mv||(MAPEV.fala&&MAPEV.fala.c===c&&!s.ir)){s.anda=0;return}
@@ -1677,29 +1677,65 @@ function npcMove(c,dt){const s=npcSt(c),mv=c.mv;if(!mv||(MAPEV.fala&&MAPEV.fala.
   else{s.x+=dx/d*sp;s.y+=dy/d*sp;s.anda=1}return}
  if((s.esp-=dt)>0)return;s.esp=.6+Math.random()*1.5;const D=[[1,0],[-1,0],[0,1],[0,-1]][Math.random()*4|0],nx=s.tx+D[0],ny=s.ty+D[1],r=mv.r||3;
  if(Math.abs(nx-c.x)>r||Math.abs(ny-c.y)>r||!npcLivre(nx,ny))return;
- s.ir=[nx,ny];if(c.b!==0)setM(nx,ny,1);if(D[0])s.fl=c.a&&c.a.t==='img'?((D[0]<0)!==!!c.a.oe?1:0):(D[0]<0?1:0)}
-// desenha um quadro da biblioteca com a âncora no chão, na escala e espelhado se preciso; devolve a altura desenhada
-function npcImg(k,x,y,e,fl){const im=TX[k];if(!im)return 0;const bw=im.dw||im.width,bh=im.dh||im.height,w=bw*e,h=bh*e,ax=(Number.isFinite(im.ax)?im.ax:bw/2)*e,ay=(Number.isFinite(im.ay)?im.ay:bh)*e;
- ctx.save();ctx.translate(x,y);if(fl)ctx.scale(-1,1);const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=im.px===false;ctx.drawImage(im,-ax,-ay,w,h);ctx.imageSmoothingEnabled=sm;ctx.restore();return h}
+ s.ir=[nx,ny];if(c.b!==0)setM(nx,ny,1);s.dir=D[1]<0?'c':D[1]>0?'b':'l';if(D[0])s.fl=c.a&&c.a.t==='img'?((D[0]<0)!==!!c.a.oe?1:0):(D[0]<0?1:0)}
+// “pé” de um quadro: base e centro da parte desenhada (pixels não transparentes). Na animação todos os quadros ficam com o pé no mesmo lugar,
+// mesmo que os recortes tenham tamanhos ou margens diferentes (sem tremer). Sem conseguir ler os pixels, usa a âncora do recorte.
+function npcPe(im){if(im._pe!==undefined)return im._pe;im._pe=null;try{const w=im.width,h=im.height,d=im.getContext?im.getContext('2d').getImageData(0,0,w,h).data:null;if(!d)return null;
+ let x0=w,x1=-1,y0=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(d[(y*w+x)*4+3]>40){if(x<x0)x0=x;if(x>x1)x1=x;if(y0<0)y0=y;y1=y}if(x1>=0)im._pe={cx:(x0+x1+1)/2,by:y1+1,ty:y0}}catch(_){}return im._pe}
+// desenha um quadro da biblioteca com a âncora no chão, na escala e espelhado se preciso; anim = alinhar pelo pé; devolve a altura desenhada
+function npcImg(k,x,y,e,fl,anim){const im=TX[k];if(!im)return 0;const bw=im.dw||im.width,bh=im.dh||im.height,w=bw*e,h=bh*e,pe=anim&&npcPe(im),fx=bw/im.width,fy=bh/im.height;
+ const ax=(pe?pe.cx*fx:Number.isFinite(im.ax)?im.ax:bw/2)*e,ay=(pe?pe.by*fy:Number.isFinite(im.ay)?im.ay:bh)*e;
+ ctx.save();ctx.translate(x,y);if(fl)ctx.scale(-1,1);const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=im.px===false;ctx.drawImage(im,-ax,-ay,w,h);ctx.imageSmoothingEnabled=sm;ctx.restore();return pe?pe.by*fy*e:h}
+// quadros conforme a direção: andando para cima/baixo usa qc/qb se existirem; de lado (ou sem eles) usa q
+function npcQuadros(c,s){const a=c.a,L=s.dir==='c'&&a.qc&&a.qc.length?a.qc:s.dir==='b'&&a.qb&&a.qb.length?a.qb:a.q&&a.q.length>1?a.q:[a.k];return {L,lado:L===a.q||L.length===1&&L[0]===a.k}}
 function npcDraw(L,ts){if(scene|0)return;const dt=Math.min(.1,Math.max(0,(ts-(MAPEV.ts||ts))/1000));MAPEV.ts=ts;
  for(const c of MAPEV.npcs){npcMove(c,dt);const s=npcSt(c),x=s.x,y=s.y,ninja=!c.a||c.a.t!=='img';
   L.push({y,d:()=>{let hh=60;if(ninja){const lk={skin:SKIN[c.a&&c.a.s|0]||SKIN[0],hair:HAIR[c.a&&c.a.h|0]||HAIR[0],cloth:CLOTH[c.a&&c.a.c|0]||CLOTH[0]};
     try{if(HERO)drawHero(ctx,x,y,{fl:s.fl,t:ts+c.x*131+c.y*71,mv:s.anda,run:0,aura:-1,th:-1,set:heroFor(lk),act:null,vis:[]});else drawChar(ctx,x,y,{...lk,dir:s.fl?2:0,t:ts,mv:s.anda,run:0})}catch(_){}}
-   else{const q=c.a.q&&c.a.q.length>1?c.a.q:[c.a.k],an=q.length>1&&(c.a.qa!=='andando'||s.anda),k=an?q[Math.floor(ts/(c.a.ms||125))%q.length]:q[0];hh=npcImg(TX[k]?k:c.a.k,x,y,npcEsc(c),s.fl)||48}
+   else{const Q=npcQuadros(c,s),q=Q.L,an=q.length>1&&(c.a.qa!=='andando'||s.anda),k=an?q[Math.floor(ts/(c.a.ms||125))%q.length]:q[0],anim=!!(c.a.q||c.a.qc||c.a.qb);
+    hh=npcImg(TX[k]?k:c.a.k,x,y,npcEsc(c),Q.lado?s.fl:0,anim)||48}
    const top=ninja?y-62:y-hh-6;ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#ffd98a';
-   const lb=(MAPEV.perto===c?'💬 ':'')+c.n;ctx.strokeText(lb,x,top);ctx.fillText(lb,x,top)}})}}
-// botão “Falar” quando o jogador está perto de um NPC; a janela mostra as falas uma a uma
+   const lb=(MAPEV.perto===c?'💬 ':'')+c.n;ctx.strokeText(lb,x,top);ctx.fillText(lb,x,top);
+   const mk=npcMarca(c);if(mk){const b=Math.sin(ts/220)*2;ctx.font='bold 18px system-ui';ctx.lineWidth=4;ctx.strokeStyle='#000c';ctx.fillStyle=mk==='!'?'#ffd23f':'#7fd6ff';ctx.strokeText(mk,x,top-12+b);ctx.fillText(mk,x,top-12+b)}}})}}
+/* ---------- missões: progresso (MIS.d, vem do servidor) e definições (MIS.def, vêm com os mapas). 0 = não começou, 1..N = passo, 999 = concluída ---------- */
+const MIS={d:{},def:{},ok:0,min:0};
+function misCond(s){for(const k of s||[]){if(k.t==='mis'){const v=MIS.d[k.q]|0;if(k.e==='nao'?v!==0:k.e==='fim'?v!==999:k.e==='em'?!(v>0&&v!==999):v!==k.n)return false}
+  else if(k.t==='nivel'){if(((typeof CH!=='undefined'&&CH.lv)|0)<k.n)return false}else if(k.t==='item'){const n=INV.filter(i=>i===k.i).length+Object.values(EQ).filter(i=>i===k.i).length;if(n<k.n)return false}}return true}
+// página de fala do NPC: a 1ª cujas condições valem (−1 = falas normais)
+function npcPg(c){const P=Array.isArray(c.pg)?c.pg:[];for(let i=0;i<P.length;i++)if(misCond(P[i].se))return i;return -1}
+// marca em cima do NPC: “!” = tem missão para começar, “?” = tem missão para avançar/entregar
+function npcMarca(c){if(!MIS.ok||!Array.isArray(c.pg))return '';const i=npcPg(c);if(i<0)return '';const A=c.pg[i].faz||[];return A.some(a=>a.t==='mis'&&a.a==='comecar')?'!':A.some(a=>a.t==='mis')?'?':''}
+// diário: as missões em andamento ficam num quadrinho no alto da tela (toque para encolher)
+function misHud(){let h=document.getElementById('misHud');const L=Object.keys(MIS.d).filter(q=>MIS.def[q]&&MIS.d[q]>0&&MIS.d[q]!==999);
+ if(!h){h=document.createElement('div');h.id='misHud';h.style.cssText='position:fixed;left:50%;top:6px;transform:translateX(-50%);z-index:25;max-width:min(420px,60vw);background:#14100cc8;border:1px solid #c99a4a;border-radius:10px;padding:5px 10px;color:#f3e6cc;font:12px/1.35 system-ui,sans-serif;pointer-events:auto';
+  h.onclick=e=>{e.stopPropagation();MIS.min=!MIS.min;misHud()};h.addEventListener('pointerdown',e=>e.stopPropagation());document.body.appendChild(h)}
+ h.style.display=L.length&&cur==='game'?'block':'none';if(!L.length)return;
+ h.innerHTML=MIS.min?'📜 '+L.length+' missão(ões)':L.map(q=>{const d=MIS.def[q],v=MIS.d[q];return '<div>📜 <b style="color:#ffd27a">'+esc(d.n)+'</b> · '+esc(d.p[v-1]||('passo '+v))+'</div>'}).join('')}
+setInterval(()=>{const h=document.getElementById('misHud');if(h)h.style.display=cur==='game'&&Object.keys(MIS.d).some(q=>MIS.def[q]&&MIS.d[q]>0&&MIS.d[q]!==999)?'block':'none'},1000);
+// botão “Falar” quando o jogador está perto de um NPC; a janela mostra as falas uma a uma (com retrato e %player% = nome do jogador)
 function npcTick(){try{const b=npcBtn();let best=null,bd=1.8*T;if(cur==='game'&&!(scene|0)&&p)for(const c of MAPEV.npcs){const [x,y]=npcPos(c),d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=c}}
  MAPEV.perto=best;if(MAPEV.fala&&MAPEV.fala.c!==best)npcFecha();b.style.display=best&&!MAPEV.fala?'block':'none';if(best)b.textContent='💬 Falar com '+best.n}catch(_){}}
 function npcBtn(){let b=document.getElementById('npcBtn');if(b)return b;b=document.createElement('button');b.id='npcBtn';
  b.style.cssText='position:fixed;left:50%;bottom:24%;transform:translateX(-50%);z-index:30;padding:10px 18px;border-radius:22px;border:2px solid #f0b84a;background:#1b1410e6;color:#ffe2a8;font:bold 15px system-ui,sans-serif;display:none;max-width:80vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
  b.onclick=e=>{e.stopPropagation();npcAbre(MAPEV.perto)};document.body.appendChild(b);return b}
-function npcAbre(c){if(!c)return;const f=c.f&&c.f.length?c.f:['…'];let d=document.getElementById('npcDlg');
+const npcTxt=(t,c)=>String(t).replace(/%(player|jogador|nome)%/gi,(typeof name==='string'&&name)||'ninja').replace(/%npc%/gi,c.n);
+// retrato: rt = imagem escolhida; 0 = nenhum; sem rt = automático (NPC de imagem: a parte de cima do 1º quadro; ninja: o rosto do boneco)
+function npcRetrato(cv,c){const g=cv.getContext('2d'),W=cv.width,H=cv.height;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H);if(c.rt===0)return false;
+ try{if(typeof c.rt==='string'){const im=TX[c.rt];if(!im)return false;const w=im.width,h=im.height,z=Math.min(W/w,H/h);g.imageSmoothingEnabled=im.px===false;g.drawImage(im,(W-w*z)/2,(H-h*z)/2,w*z,h*z);return true}
+  if(c.a&&c.a.t==='img'){const k=(c.a.q&&c.a.q[0])||c.a.k,im=TX[k];if(!im)return false;const pe=npcPe(im),w=im.width,ty=pe?pe.ty:0,h=(pe?pe.by:im.height)-ty,q=Math.min(w,Math.max(8,h*.45)),sy=Math.max(0,ty-q*.08),sx=pe?Math.max(0,Math.min(w-q,pe.cx-q/2)):(w-q)/2;g.imageSmoothingEnabled=im.px===false;g.drawImage(im,sx,sy,q,q,0,0,W,H);return true}
+  const lk={skin:SKIN[c.a&&c.a.s|0]||SKIN[0],hair:HAIR[c.a&&c.a.h|0]||HAIR[0],cloth:CLOTH[c.a&&c.a.c|0]||CLOTH[0]},k=H/HFACE.z;g.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);if(HERO)drawHero(g,0,0,{fl:0,t:0,mv:0,run:0,aura:-1,th:-1,set:heroFor(lk),act:null,vis:[]});else drawChar(g,0,0,{...lk,dir:0,t:0,mv:0,run:0});g.setTransform(1,0,0,1,0,0);return true}catch(_){return false}}
+function npcAbre(c){if(!c)return;const pi=npcPg(c),pg=pi>=0?c.pg[pi]:null,f0=pg&&pg.f&&pg.f.length?pg.f:c.f&&c.f.length?c.f:['…'],f=f0.map(t=>npcTxt(t,c));let d=document.getElementById('npcDlg');
  if(!d){d=document.createElement('div');d.id='npcDlg';d.style.cssText='position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(560px,92vw);z-index:40;background:#14100cee;border:2px solid #c99a4a;border-radius:12px;padding:12px 14px;color:#f3e6cc;font:15px/1.45 system-ui,sans-serif;box-shadow:0 6px 24px #000a';
-  d.innerHTML='<b id="npcN" style="color:#ffd27a;font-size:16px"></b><p id="npcT" style="margin:6px 0 10px;white-space:pre-wrap"></p><div style="text-align:right"><button id="npcP" style="padding:9px 18px;border-radius:10px;border:2px solid #c99a4a;background:#2a1f14;color:#ffe2a8;font:bold 14px system-ui,sans-serif"></button></div>';
+  d.innerHTML='<div style="display:flex;gap:12px;align-items:flex-start"><canvas id="npcR" width="128" height="128" style="width:64px;height:64px;flex:none;border:2px solid #c99a4a;border-radius:8px;background:#2a1f14;image-rendering:pixelated"></canvas><div style="flex:1;min-width:0"><b id="npcN" style="color:#ffd27a;font-size:16px"></b><p id="npcT" style="margin:6px 0 10px;white-space:pre-wrap"></p></div></div><div style="text-align:right"><button id="npcP" style="padding:9px 18px;border-radius:10px;border:2px solid #c99a4a;background:#2a1f14;color:#ffe2a8;font:bold 14px system-ui,sans-serif"></button></div>';
   d.addEventListener('pointerdown',e=>e.stopPropagation());document.body.appendChild(d)}
- MAPEV.fala={c,i:0};const mostra=()=>{document.getElementById('npcN').textContent=c.n;document.getElementById('npcT').textContent=f[MAPEV.fala.i];document.getElementById('npcP').textContent=MAPEV.fala.i<f.length-1?'Próximo ▸':'Fechar'};
- mostra();d.style.display='block';npcBtn().style.display='none';document.getElementById('npcP').onclick=e=>{e.stopPropagation();if(MAPEV.fala&&MAPEV.fala.i<f.length-1){MAPEV.fala.i++;mostra()}else npcFecha()}}
+ const rc=document.getElementById('npcR');rc.style.display=npcRetrato(rc,c)?'block':'none';
+ MAPEV.fala={c,i:0,pi};const mostra=()=>{document.getElementById('npcN').textContent=c.n;document.getElementById('npcT').textContent=f[MAPEV.fala.i];document.getElementById('npcP').textContent=MAPEV.fala.i<f.length-1?'Próximo ▸':'Fechar'};
+ mostra();d.style.display='block';npcBtn().style.display='none';document.getElementById('npcP').onclick=e=>{e.stopPropagation();if(MAPEV.fala&&MAPEV.fala.i<f.length-1){MAPEV.fala.i++;mostra()}else{npcFecha();if(pg)npcFaz(c,pi,pg)}}}
+// fim da fala: missões vão para o servidor conferir e gravar; teletransporte é feito aqui
+function npcFaz(c,pi,pg){const A=pg.faz||[];if(A.some(a=>a.t==='mis')&&ONL.on)gsSend({t:'npcfim',id:c.id,pg:pi});
+ const tp=A.find(a=>a.t==='tp');if(tp){if(tp.m!==CURMAP&&!MAPS[tp.m])return onlReg('Este caminho leva a um mapa que não existe mais ('+tp.m+').');
+  if(tp.m===CURMAP){if(tp.tx!=null){p.x=Math.max(T,Math.min(N*T-T,tp.tx*T));p.y=Math.max(T,Math.min(NH*T-T,tp.ty*T))}else{p.x=SPAWN[0]*T;p.y=SPAWN[1]*T}flash={col:'#000',a:1}}
+  else{if(tp.tx!=null)window.TPD=[tp.tx,tp.ty];switchMap(tp.m)}MAPEV.ult=Math.floor(p.x/T)+','+Math.floor(p.y/T)}}
 function npcFecha(){MAPEV.fala=null;const d=document.getElementById('npcDlg');if(d)d.style.display='none'}
 setInterval(npcTick,150);
 function evTick(){try{if(!MAPEV.ev.length||cur!=='game'||(scene|0)||!p)return;const tx=Math.floor(p.x/T),ty=Math.floor(p.y/T),k=tx+','+ty;if(k===MAPEV.ult)return;MAPEV.ult=k;
@@ -1770,6 +1806,7 @@ function pvpShow(m){const pe=ONL.peers[m.to];if(m.safe){pvpSafeMsg(pe);return}
  pe.hitT=.18;FT.push({x:pe.x+(me?0:Math.random()*20-10),y,t:m.c?m.d+'!':m.d,life:me?.8:.7,crit:m.c,oth:me?0:1});if(me)regDmg('pout',m.d,m.c,pe.nome)}
 function gsMsg(m){
  switch(m.t){
+ case 'mis':MIS.d=m.d&&typeof m.d==='object'?m.d:{};MIS.ok=1;(m.msg||[]).forEach(t=>onlReg(t));misHud();break;
  case 'welcome':ONL.authed=true;ONL.uid=m.id;ONL.adm=!!m.adm;ONL.inv=!!m.inv;if(m.cfg){PVP.on=!!m.cfg.pvp;PVP.safe=+m.cfg.pvpSafe||0;if(+m.cfg.pvpMul>0)ONL.pvpMul=+m.cfg.pvpMul}document.body.classList.toggle('adm',ONL.adm);if(ONL.adm&&!m.inv&&m.invWhy&&!ONL.invWarn){ONL.invWarn=1;onlReg('⚠️ [ADM] Trocas desligadas: '+m.invWhy+'.')}if(ONL.welcomeCb){const f=ONL.welcomeCb;ONL.welcomeCb=null;f()}else if(cur==='game')gsJoin();onlStatus();break;
  case 'authfail':onlReg('⚠️ Falha ao entrar no servidor: '+m.msg);if(ONL.rtok)onlRefresh();break;
  case 'old':ONL.closing=true;
@@ -2723,7 +2760,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610140722'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610140742'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2826,7 +2863,7 @@ function tlDraw(g,cima){if(!TLM)return;g.save();g.imageSmoothingEnabled=false;
 {const _bg=buildGround;buildGround=function(){_bg();if(TLM&&GC)tlDraw(GC.getContext('2d'),false)}}
 function tlAcima(){if(scene||!TLM||!tlReady())return;if(!GA){if(!TLM.camadas.some(c=>c.t==='tiles'&&tlCima(c)&&c.d.length))return;GA=document.createElement('canvas');GA.width=N*T;GA.height=NH*T;tlDraw(GA.getContext('2d'),true)}
  const m=ctx.getTransform(),k=m.a||1,x=Math.floor(-m.e/k),y=Math.floor(-m.f/k),w=Math.ceil(cv.width/k)+2,h=Math.ceil(cv.height/k)+2;ctx.drawImage(GA,x,y,w,h,x,y,w,h)}
-async function mpApply(j){await mpImg(j.imagens);await tlsLoad(j.tilesets);return mpPut(j.mapas)}
+async function mpApply(j){await mpImg(j.imagens);await tlsLoad(j.tilesets);if(j.missoes&&typeof j.missoes==='object'){MIS.def=j.missoes;misHud()}return mpPut(j.mapas)}
 async function mapasSync(){if(!ONL.ok)return false;let ch=false;
  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),9000);const r=await fetch(GS_URL+'/mapas?dim=1'+(MPV?'&v='+MPV:''),{cache:'no-store',signal:c.signal});clearTimeout(t);if(!r.ok)return false;const j=await r.json();
   if(j.igual)return false;ch=await mpApply(j);MPV=j.v||'';try{localStorage.setItem(MPK,JSON.stringify({v:MPV,mapas:j.mapas||{},imagens:j.imagens||{},tilesets:j.tilesets||{}}))}catch(_){}}catch(_){}return ch}

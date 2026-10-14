@@ -76,7 +76,19 @@ function validar(id, nome, m, cat) {
       o.a = a.t === 'img' && typeof a.k === 'string' && tsz.has(a.k) ? { t: 'img', k: a.k } : { t: 'ninja', s: ci(a.s, 0, 3), h: ci(a.h, 0, 4), c: ci(a.c, 0, 4) }; if (a.fl) o.a.fl = 1;
       if (o.a.t === 'img' && fin(a.e) && a.e > 0) o.a.e = +clamp(a.e, .05, 8).toFixed(3); // escala da imagem; sem e = automático (altura de um personagem)
       // animação (img): q = quadros (imagens do catálogo, o 1º é o parado), ms = duração de cada quadro, qa:'andando' = só anima andando; oe = a imagem original olha para a esquerda
-      if (o.a.t === 'img') { const q = Array.isArray(a.q) ? a.q.filter(k => typeof k === 'string' && tsz.has(k)).slice(0, 24) : []; if (q.length > 1) { o.a.k = q[0]; o.a.q = q; o.a.ms = clamp(Math.round(fin(a.ms) ? a.ms : 125), 40, 2000); if (a.qa === 'andando') o.a.qa = 'andando'; } if (a.oe) o.a.oe = 1; }
+      const imgs = v => Array.isArray(v) ? v.filter(k => typeof k === 'string' && tsz.has(k)).slice(0, 24) : [];
+      if (o.a.t === 'img') { const q = imgs(a.q), qc = imgs(a.qc), qb = imgs(a.qb); if (q.length > 1) { o.a.k = q[0]; o.a.q = q; } if (q.length > 1 || qc.length || qb.length) { o.a.ms = clamp(Math.round(fin(a.ms) ? a.ms : 125), 40, 2000); if (a.qa === 'andando') o.a.qa = 'andando'; }
+        if (qc.length) o.a.qc = qc; if (qb.length) o.a.qb = qb; if (a.oe) o.a.oe = 1; } // qc/qb = quadros andando para cima/baixo (opcionais)
+      if (c.rt === 0) o.rt = 0; else if (typeof c.rt === 'string' && tsz.has(c.rt)) o.rt = c.rt; // retrato na janela de fala: 0 = nenhum; sem rt = automático
+      // páginas de fala (missões): a 1ª página cujas condições valem é a que aparece; sem nenhuma, as falas normais (f)
+      if (Array.isArray(c.pg)) { const QI = /^q_[a-z0-9_]{2,40}$/, P = [];
+        for (const g of c.pg.slice(0, 10)) { if (!g || typeof g !== 'object') continue;
+          const se = (Array.isArray(g.se) ? g.se : []).slice(0, 6).map(k => !k ? null : k.t === 'mis' && QI.test(k.q || '') && ['nao', 'em', 'passo', 'fim'].includes(k.e) ? Object.assign({ t: 'mis', q: k.q, e: k.e }, k.e === 'passo' ? { n: ci(k.n, 1, 30) } : {})
+            : k.t === 'item' && typeof k.i === 'string' && /^[a-z0-9_]{1,40}$/.test(k.i) ? { t: 'item', i: k.i, n: ci(k.n, 1, 99) } : k.t === 'nivel' ? { t: 'nivel', n: ci(k.n, 1, 99) } : null).filter(Boolean);
+          const faz = (Array.isArray(g.faz) ? g.faz : []).slice(0, 6).map(x => !x ? null : x.t === 'mis' && QI.test(x.q || '') && ['comecar', 'passo', 'fim'].includes(x.a) ? Object.assign({ t: 'mis', q: x.q, a: x.a }, x.a === 'passo' ? { n: ci(x.n, 1, 30) } : {})
+            : x.t === 'tp' && typeof x.m === 'string' && ID.test(x.m) ? Object.assign({ t: 'tp', m: x.m }, fin(x.tx) && fin(x.ty) ? { tx: clamp(+x.tx, 0, MAX), ty: clamp(+x.ty, 0, MAX) } : {}) : null).filter(Boolean);
+          P.push({ se, f: (Array.isArray(g.f) ? g.f : []).filter(s => typeof s === 'string').map(s => txt(s, 300)).filter(Boolean).slice(0, 20), faz }); }
+        if (P.length) o.pg = P; }
       // passeio: anda sozinho até r tiles da posição (v: 1 devagar, 2 normal, 3 rápido)
       if (c.mv && typeof c.mv === 'object') o.mv = { r: ci(c.mv.r, 1, 10), v: ci(c.mv.v, 1, 3) };
       o.f = (Array.isArray(c.f) ? c.f : []).filter(s => typeof s === 'string').map(s => txt(s, 300)).filter(Boolean).slice(0, 20); if (c.b === 0) o.b = 0;

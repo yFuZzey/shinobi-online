@@ -246,8 +246,35 @@ let MR = null, MCAT = null; try { MR = require('./mapas_regras.js'); MCAT = JSON
 const MAPAS_BASE = new Set(Object.keys(MAPS)); // os que vêm no jogo não são trocados pelo painel
 let MP_DB = { n: 0, quando: 0, motivo: 'iniciando' }, MP_PUB = {}, MP_V = '0', MP_PUB0 = {}, MP_V0 = '0', MP_IMG = {}, MP_TS = {}, MP_CV = '';
 const STORE = () => SB_URL + '/storage/v1/object/public/mapa-recursos/'; // arte do editor (bucket de leitura pública; só admin grava)
+// ---------------------------------------------------------------- missões (SQL 19)
+// definições: tabela "missoes" (editor); progresso: "missao_progresso" (0 = não começou, 1..N = passo, 999 = concluída), só o servidor grava.
+// O app escolhe a página de fala do NPC (condições) e, no fim da fala, avisa o servidor; o servidor confere tudo de novo e grava.
+const MIS_FIM = 999; let MIS = {}, MIS_WHY = 'iniciando';
+async function missoesDb() { if (!SB_URL || !SB_SVC) { MIS_WHY = 'sem chave secreta'; return; }
+  try { const L = await svc('/rest/v1/missoes?select=id,nome,passos') || [], o = {};
+    for (const r of L) { if (!/^q_[a-z0-9_]{2,40}$/.test(r.id || '')) continue; o[r.id] = { n: str(r.nome, 60), p: (Array.isArray(r.passos) ? r.passos : []).filter(x => typeof x === 'string').slice(0, 30).map(x => str(x, 140)) }; }
+    MIS = o; MIS_WHY = ''; } catch (e) { MIS_WHY = e.status === 404 ? 'falta rodar o SQL 19 (missões) no Supabase' : e.message; } }
+async function misLoad(p) { p.mis = {}; if (SB_URL && SB_SVC) { try { for (const r of await svc('/rest/v1/missao_progresso?select=missao,passo&personagem_id=eq.' + encodeURIComponent(p.id)) || []) if (/^q_[a-z0-9_]{2,40}$/.test(r.missao || '')) p.mis[r.missao] = r.passo | 0; }
+  catch (e) { p.misErr = e.status === 404 ? 'falta rodar o SQL 19 (missões) no Supabase' : e.message; } } if (p.conn.open) p.conn.send({ t: 'mis', d: p.mis }); }
+function misCond(p, s, inv) { for (const k of s || []) { if (k.t === 'mis') { const v = p.mis[k.q] | 0; if (k.e === 'nao' ? v !== 0 : k.e === 'fim' ? v !== MIS_FIM : k.e === 'em' ? !(v > 0 && v !== MIS_FIM) : v !== k.n) return false; }
+  else if (k.t === 'nivel') { if ((p.lv | 0) < k.n) return false; } else if (k.t === 'item') { if (!inv || (inv[k.i] || 0) < k.n) return false; } } return true; }
+async function onNpcFim(p, m) { const t = now(); if (t - (p.npcT || 0) < 0.3 || !p.map || p.sc || !p.mis) return; p.npcT = t;
+  const pm = MP_PUB[p.map], c = pm && Array.isArray(pm.npcs) && pm.npcs.find(x => x.id === m.id), i = m.pg | 0, pg = c && Array.isArray(c.pg) && c.pg[i];
+  if (!pg || !Array.isArray(pg.faz) || !pg.faz.some(a => a.t === 'mis')) return;
+  const r = (c.mv ? c.mv.r : 0) + 3; if (Math.abs(p.x / T - (c.x + .5)) > r || Math.abs(p.y / T - (c.y + 1)) > r) return sys(p, 'Chegue mais perto de ' + c.n + '.');
+  let inv = null; if (c.pg.some(g => (g.se || []).some(k => k.t === 'item'))) { inv = {}; if (INV_OK) for (const row of await invOf(p.id)) inv[row.item] = (inv[row.item] || 0) + 1; }
+  let ok = -1; for (let j = 0; j < c.pg.length; j++) if (misCond(p, c.pg[j].se, inv)) { ok = j; break; }
+  if (ok !== i) return p.conn.send({ t: 'mis', d: p.mis }); // a situação mudou: o app atualiza e escolhe a página certa
+  const msg = [];
+  for (const a of pg.faz) { if (a.t !== 'mis' || !MIS[a.q]) continue; const def = MIS[a.q], v = a.a === 'comecar' ? 1 : a.a === 'fim' ? MIS_FIM : clamp(a.n | 0, 1, Math.max(1, def.p.length));
+    if ((p.mis[a.q] | 0) === v) continue;
+    try { await svc('/rest/v1/missao_progresso?on_conflict=personagem_id,missao', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ personagem_id: p.id, missao: a.q, passo: v, atualizado_em: new Date().toISOString() }) }); }
+    catch (e) { log('missão não salva', p.nome, a.q, e.message); return sys(p, 'Não consegui salvar a missão agora. Tente de novo.'); }
+    p.mis[a.q] = v; msg.push(a.a === 'comecar' ? '📜 Missão iniciada: ' + def.n : a.a === 'fim' ? '✅ Missão concluída: ' + def.n : '📜 ' + def.n + ': ' + (def.p[v - 1] || 'passo ' + v)); }
+  if (p.conn.open) p.conn.send({ t: 'mis', d: p.mis, msg }); }
 async function mapasDb() {
   if (!MR || !MCAT || !SB_URL || !SB_SVC) { MP_DB.motivo = 'sem chave secreta ou sem mapa_objetos.json'; return; }
+  await missoesDb().catch(() => {}); // as missões vão junto no /mapas (o jogo mostra nome e passos)
   try {
     // imagens próprias do editor (tabela "mapa_imagens", SQL 12): entram no catálogo de objetos (colisão da base) e vão junto no /mapas
     let imgs = []; try { imgs = await svc('/rest/v1/mapa_imagens?select=*') || []; } catch (e) { if (e.status !== 404) throw e; }
@@ -281,8 +308,8 @@ async function mapasDb() {
     }
     for (const id in MP_PUB) if (!pub[id]) { // despublicado: sai da lista; quem está dentro termina a visita, a sala some quando esvaziar
       const rm = rooms[id]; if (rm && rm.players.size) { pub[id] = MP_PUB[id]; continue; } delete MAPS[id]; delete rooms[id]; }
-    MP_PUB = pub; MP_IMG = {}; MP_TS = {}; for (const id in pub) { for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]]; for (const c of pub[id].npcs || []) for (const k of c.a ? [c.a.k].concat(c.a.q || []) : []) if (k && IM[k]) MP_IMG[k] = IM[k]; for (const t of pub[id].tilesets || []) if (TSM[t]) MP_TS[t] = TSM[t]; }
-    MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, (MP_IMG[k].png || MP_IMG[k].url).length, MP_IMG[k].url, MP_IMG[k].sx, MP_IMG[k].sy, MP_IMG[k].w, MP_IMG[k].h, MP_IMG[k].ax, MP_IMG[k].ay, MP_IMG[k].corte]), MP_TS])).digest('hex').slice(0, 12);
+    MP_PUB = pub; MP_IMG = {}; MP_TS = {}; for (const id in pub) { for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]]; for (const c of pub[id].npcs || []) for (const k of (c.a ? [c.a.k].concat(c.a.q || [], c.a.qc || [], c.a.qb || []) : []).concat(typeof c.rt === 'string' ? [c.rt] : [])) if (k && IM[k]) MP_IMG[k] = IM[k]; for (const t of pub[id].tilesets || []) if (TSM[t]) MP_TS[t] = TSM[t]; }
+    MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, (MP_IMG[k].png || MP_IMG[k].url).length, MP_IMG[k].url, MP_IMG[k].sx, MP_IMG[k].sy, MP_IMG[k].w, MP_IMG[k].h, MP_IMG[k].ax, MP_IMG[k].ay, MP_IMG[k].corte]), MP_TS, MIS])).digest('hex').slice(0, 12);
     MP_PUB0 = {}; for (const id in pub) if (!pub[id].W) MP_PUB0[id] = pub[id]; // apps antigos só sabem desenhar 50×50
     MP_V0 = crypto.createHash('sha1').update(MP_V + ':' + Object.keys(MP_PUB0).join(',')).digest('hex').slice(0, 12);
     const n = Object.keys(pub).length; if (n !== MP_DB.n || MP_DB.motivo) log('mapas do painel: ' + n + ' publicado(s)');
@@ -472,6 +499,7 @@ function onMessage(c, m) {
       c.player = p; players.set(u.id, p); offlineInfo.delete(u.id);
       c.send({ t: 'welcome', id: u.id, nome: u.nome, adm: u.adm ? 1 : 0, inv: INV_OK ? 1 : 0, invWhy: u.adm ? INV_WHY : '', cfg: { aggro: CFG.aggro, resetNear: CFG.resetNear, resetHome: CFG.resetHome, partyMax: CFG.partyMax, pvp: CFG.pvp, pvpMul: CFG.pvpMul, pvpSafe: CFG.pvpSafe } });
       const pid = memberParty.get(u.id); if (pid) partySync(parties.get(pid));
+      misLoad(p);
       log('entrou', u.nome + (u.adm ? ' [ADM]' : ''), '(' + players.size + ' online)');
     }).catch(e => { c.send({ t: 'authfail', msg: String(e.message || e) }); c.close(4002, 'auth'); });
     return;
@@ -484,6 +512,7 @@ function onMessage(c, m) {
       p.au = num(m.au, -1); p.th = num(m.th, -1); p.sc = m.sc ? 1 : 0; p.hp = clamp(num(m.hp, p.hp), 0, 1e5); p.max = clamp(num(m.max, p.max), 1, 1e5); p.ct = Number.isFinite(m.c) ? Math.round(m.c) : null; p.dirty = true; return;
     case 'meta': setMeta(p, m); if (p.map) toRoom(room(p.map), { t: 'pm', id: p.id, lv: p.lv, eq: p.eq, look: p.look, clan: p.clan, ey: p.ey || 0 }, p); return;
     case 'gaze': return onGaze(p, m);
+    case 'npcfim': return onNpcFim(p, m).catch(e => log('npcfim', e.message));
     case 'cast': return onCast(p, m);
     case 'fx': if (!p.map) return; {
       const fx = Array.isArray(m.fx) ? m.fx.slice(0, 8) : [], pr = Array.isArray(m.pr) ? m.pr.slice(0, 8) : [];
@@ -960,7 +989,7 @@ const server = http.createServer((req, res) => {
   if (u === '/mapas') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
     const q = new URLSearchParams(req.url.split('?')[1] || ''), dim = q.get('dim') === '1', v = dim ? MP_V : MP_V0; // dim=1: o app sabe desenhar mapas de outro tamanho
     if ((q.get('v') || '') === v) return res.end(JSON.stringify({ v, igual: 1 })); // o jogo já tem esta versão: não manda tudo de novo
-    return res.end(JSON.stringify({ v, mapas: dim ? MP_PUB : MP_PUB0, imagens: MP_IMG, tilesets: MP_TS })); }
+    return res.end(JSON.stringify({ v, mapas: dim ? MP_PUB : MP_PUB0, imagens: MP_IMG, tilesets: MP_TS, missoes: MIS })); }
   // editor novo (/painel/editor): a página e os arquivos dele (só nomes simples dentro de server/editor). mapas_regras.js é a mesma regra de colisão do servidor.
   { const me = /^\/painel\/editor(?:\/([a-z0-9_]+\.(?:js|css)))?\/?$/.exec(u);
     if (me) { try {
@@ -971,6 +1000,8 @@ const server = http.createServer((req, res) => {
       if (gz) { res.writeHead(200, { ...h2, 'Content-Encoding': 'gzip' }); return res.end(require('zlib').gzipSync(b)); }
       res.writeHead(200, h2); return res.end(b);
     } catch (e) { res.writeHead(404, cors); return res.end('não encontrado'); } } }
+  // lista de itens para o editor (condição “tem item” das falas dos NPCs)
+  if (u === '/painel/editor/itens.json') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' }); return res.end(JSON.stringify(Object.keys(ITEMS).map(id => ({ id, n: ITEMS[id].name || id })))); }
   // o editor de mapas antigo foi removido: o endereço antigo leva ao editor novo
   if (u === '/painel/mapas' || u === '/painel/mapas/') { res.writeHead(302, { ...cors, Location: '/painel/editor' }); return res.end(); }
   // molde do boneco para a IA desenhar os itens no corpo (parado/correndo; _ia = grande, fundo magenta; _4 = os 4 quadros da prévia animada)
