@@ -199,7 +199,8 @@
       $('#rdAy').onchange = e => setRec(c.id, k => { k.ay = clamp(Math.round(+e.target.value || 0), -2048, 4096); });
       $('#rdCt').onchange = e => setRec(c.id, k => { k.corte = clamp(Math.round(+e.target.value || 0), 0, dims(k).dh); });
       $('#rdNs').onchange = e => setRec(c.id, k => { k.ns = e.target.checked; });
-      document.querySelectorAll('[data-uso]').forEach(b => b.onclick = () => setRec(c.id, k => { const v = b.dataset.uso; if (v) k.uso = v; else delete k.uso; if (v === 'chao') k.ns = true; }));
+      document.querySelectorAll('[data-uso]').forEach(b => b.onclick = () => { const v = b.dataset.uso; let n = 0; setRec(c.id, k => { if (v) k.uso = v; else delete k.uso; if (v === 'chao') { k.ns = true; n = aparar(k); } }); if (n) U.toast('Bordas vazias aparadas (' + n + ' px)'); });
+      $('#rdApara').onclick = () => { let n = 0; const k0 = Object.assign({}, c); n = aparar(k0, true); if (!n) return U.toast('Sem borda vazia para aparar'); setRec(c.id, k => { aparar(k); }); U.toast('Bordas vazias aparadas (' + n + ' px)'); };
       $('#rdColP').onclick = () => setRec(c.id, k => { k.col = [[0, 0]]; k.ns = false; });
       $('#rrDup').onclick = () => { const id = 'c' + (++RS.seq); mudar(x => x.recortes.push(Object.assign({}, c, { id, nome: c.nome + ' (cópia)', x: clamp(c.x + 8, 0, r.w - c.w), y: clamp(c.y + 8, 0, r.h - c.h) }))); vis.sel = id; sincVisor(); painel('recortes'); };
       $('#rrDel').onclick = async () => { const ok = await U.dlg('Excluir recorte?', `<p>Excluir <b>${esc(c.nome)}</b>? Dá para desfazer (↶).</p>`, [{ t: 'Excluir', v: 1, c: 'perigo' }, { t: 'Cancelar', v: 0 }]); if (!ok) return;
@@ -217,12 +218,21 @@
      O arquivo não muda: dw/dh = tamanho em que aparece no mapa; ax/ay = ponto que fica no chão (px do desenho já no tamanho do mapa);
      corte = linha (px do topo) acima da qual o desenho fica sempre na frente do personagem; col = células de colisão (tiles de 32 px)
      contadas a partir do tile da âncora; ns = sem colisão. */
+  /* aparar: tira das bordas do recorte as linhas/colunas quase vazias (menos da metade dos pixels opacos), até 1/4 do tamanho por lado.
+     Usa a imagem já sem fundo. Mantém o tamanho no mapa se ele foi escolhido (dw/dh); devolve quantos px tirou (só conta, se teste). */
+  function aparar(k, teste) { const d = RS.r.fundo && RS.fundoDados ? RS.fundoDados : RS.od; if (!d) return 0; const W = d.width, a = d.data;
+    const op = (x, y) => a[(y * W + x) * 4 + 3] >= 200, lin = y => { let n = 0; for (let x = k.x; x < k.x + k.w; x++) if (op(x, y)) n++; return n / k.w; }, col = x => { let n = 0; for (let y = k.y; y < k.y + k.h; y++) if (op(x, y)) n++; return n / k.h; };
+    let t = 0, b = 0, l = 0, r = 0; const mx = Math.floor(k.w / 4), my = Math.floor(k.h / 4);
+    while (t < my && lin(k.y + t) < .5) t++; while (b < my && lin(k.y + k.h - 1 - b) < .5) b++; while (l < mx && col(k.x + l) < .5) l++; while (r < mx && col(k.x + k.w - 1 - r) < .5) r++;
+    const n = t + b + l + r; if (!n || teste) return n; const w0 = k.w, h0 = k.h; k.x += l; k.y += t; k.w -= l + r; k.h -= t + b;
+    if (!k.dw) { if (k.ax != null) k.ax = Math.max(0, k.ax - l); if (k.ay != null) k.ay = Math.max(0, k.ay - t); } return n; }
   const dims = c => { const dw = c.dw || c.w, dh = c.dh || c.h; return { dw, dh, ax: c.ax != null ? c.ax : Math.round(dw / 2), ay: c.ay != null ? c.ay : dh, corte: c.corte || 0, col: c.col || [[0, 0]], ns: !!c.ns }; };
   function propsRecorte(c) { const d = dims(c), r = RS.r;
     return `<div class="prob ok" style="margin:8px 0">Arquivo original: <b>${r.w}×${r.h}</b> · Recorte: <b>${c.w}×${c.h}</b> em ${c.x},${c.y} · No mapa: <b>${d.dw}×${d.dh}</b> · Colisão: <b>${d.ns ? 'nenhuma' : d.col.length + ' tile(s)'}</b></div>
       <label class="lbl">Como usar no mapa</label>
       <div class="presets usos">${[['', '🏠 Objeto / construção', 'o personagem passa na frente ou atrás'], ['chao', '🟫 Chão / piso', 'sempre por baixo do personagem, sem colisão'], ['acima', '☁️ Por cima', 'sempre na frente do personagem (copa, telhado)']].map(([v, t, d]) => `<button data-uso="${v}" aria-pressed="${(c.uso || '') === v}">${t}<br><small class="mudo">${d}</small></button>`).join('')}</div>
-      <p class="mudo">Vale para as próximas vezes que você colocar este recorte. Os já colocados mudam na barra do objeto (botão Ordem).</p>
+      <p class="mudo">Vale para as próximas vezes que você colocar este recorte. Os já colocados mudam na barra do objeto (botão Ordem).${c.uso === 'chao' ? ' Chão também aparece na camada 🟫 Piso (tiles), com pincel e balde.' : ''}</p>
+      <button class="btn peq" id="rdApara">✂ Aparar bordas vazias (tira a margem transparente que deixa vão entre os pisos)</button>
       <label class="lbl">Tamanho no mapa (px) — não muda o arquivo nem a colisão</label>
       <div class="grade4"><div><input id="rdW2" type="number" min="1" max="2048" value="${d.dw}" aria-label="Largura no mapa"></div><div><input id="rdH2" type="number" min="1" max="2048" value="${d.dh}" aria-label="Altura no mapa"></div>
       <label class="chk" style="grid-column:span 2"><input type="checkbox" id="rdProp" ${c.livre ? '' : 'checked'}> Manter proporção</label></div>

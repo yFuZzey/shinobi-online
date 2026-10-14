@@ -267,6 +267,10 @@ async function mapasDb() {
     const TSM = {}; for (const r of tss) if (/^t_[a-z0-9_]{2,28}$/.test(r.id || '') && /^tilesets\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '')) TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: r.tw | 0, th: r.th | 0, mg: r.mg | 0, sp: r.sp | 0, px: r.px === false ? 0 : 1 };
     for (const r of rcs) { const q = r.grade || {}; if (/^r_[a-z0-9_]{2,40}$/.test(r.id || '') && /^(originais|derivados|tilesets|objetos)\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '') && q.tw > 0 && q.th > 0)
       TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: q.tw | 0, th: q.th | 0, dw: q.dw > 0 ? Math.min(1024, q.dw | 0) : q.tw | 0, dh: q.dh > 0 ? Math.min(1024, q.dh | 0) : q.th | 0, mg: q.mg | 0, my: q.my != null ? q.my | 0 : q.mg | 0, sp: q.sp | 0, px: 1 }; }
+    // recortes marcados como Chão também viram um “tileset de 1 tile” (id recurso__recorte): dá para pintar com pincel/balde na camada Piso
+    for (const r of rcs) { if (!/^r_[a-z0-9_]{2,40}$/.test(r.id || '') || !/^(originais|derivados|tilesets|objetos)\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '') || !Array.isArray(r.recortes)) continue;
+      for (const c of r.recortes.slice(0, 2000)) { if (!c || c.uso !== 'chao' || !/^c\d{1,6}$/.test(c.id || '')) continue; const id = r.id + '__' + c.id, w = ni(c.w, 1, 8192, 0), h = ni(c.h, 1, 8192, 0); if (!w || !h || !/^r_[a-z0-9_]{2,40}$/.test(id)) continue;
+        TSM[id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: w, th: h, dw: ni(c.dw, 1, 1024, w), dh: ni(c.dh, 1, 1024, h), mg: ni(c.x, 0, 16384, 0), my: ni(c.y, 0, 16384, 0), sp: 0, px: 1 }; } }
     const L = await svc('/rest/v1/mapas?select=id,nome,mapa&publicado=eq.true') || [], pub = {}, vistos = [];
     for (const r of L) {
       if (MAPAS_BASE.has(r.id)) continue;

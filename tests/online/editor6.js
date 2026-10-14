@@ -26,6 +26,15 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.click('#rcSalvar');await P.waitForFunction(()=>/Salvo/.test(document.querySelector('#rcEstado').textContent),null,{timeout:10000});
  ok((await mget('/__recursos'))[rid].recortes[0].uso==='chao','“Chão” salvo no recurso');
  await P.click('#rcVoltar');await W(300);await P.click('#bbVoltar');await W(300);
+ // piso com margem transparente de 2 px: marcar Chão apara a margem e vira “tile” de piso
+ const rid2=await ev(async suf=>{const c=document.createElement('canvas');c.width=40;c.height=40;const g=c.getContext('2d');g.fillStyle='rgb(120,70,30)';g.fillRect(2,2,36,36);
+   const bl=await new Promise(ok=>c.toBlob(ok,'image/png')),sha=await Recursos.sha12(await bl.arrayBuffer()),o='originais/'+sha+'.png';await Recursos.subir(o,bl,'image/png');
+   return (await Recursos.criar({id:'r_tabua_'+suf,nome:'Tabua '+suf,tipo:'spritesheet',categoria:'',colecao:'',original:o,arquivo:o,w:40,h:40,fundo:null,grade:null,recortes:[{id:'c1',nome:'Tábua',cat:'',x:0,y:0,w:40,h:40,dw:32,dh:32}],meta:{}})).id},suf);
+ await P.click('#abreBib');await W(800);await P.click('#bbLista .rec:has-text("Tabua '+suf+'")');await D('Abrir');await P.waitForFunction(id=>BIB.RS.r&&BIB.RS.r.id===id,rid2,{timeout:10000});await W(300);
+ await ev(()=>BIB.api.abaRc('recortes',true));await P.click('.lrec:has-text("Tábua")');await W(200);await P.click('[data-uso="chao"]');await W(150);
+ let tb=await ev(()=>BIB.RS.r.recortes[0]);ok(tb.x===2&&tb.y===2&&tb.w===36&&tb.h===36&&tb.dw===32,'Chão: apara a margem transparente (2 px) e mantém 32 px no mapa: '+JSON.stringify(tb));
+ await P.click('#rcSalvar');await P.waitForFunction(()=>/Salvo/.test(document.querySelector('#rcEstado').textContent),null,{timeout:10000});
+ await P.click('#rcVoltar');await W(300);await P.click('#bbVoltar');await W(300);
  // mapa 16×12
  const id='piso_'+suf;await P.click('#novo');await P.fill('#nvNome','Piso');await W(150);await P.fill('#nvId',id);await P.click('.presets [data-p="16,12"]');await D('Criar');
  await P.waitForFunction(()=>EDITOR.m&&!document.querySelector('#editor').hidden,null,{timeout:8000});await W(300);await ev(()=>EDITOR.api.carregarLib());await W(1200);
@@ -58,6 +67,12 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.click('#objBar [data-o="z"]');ok(await ev(()=>{const f=EDITOR.m.objetos[1].f;return f[0]===1&&!(f[2]&&f[2].z)}),"Por cima → Normal");
  await P.click('#objBar [data-o="z"]');ok(await ev(()=>{const f=EDITOR.m.objetos[1].f;return f[0]===1&&f[2].z==='chao'}),'Normal → Chão (sem colisão)');
  await P.click('#objBar [data-o="z"]');ok(await ev(()=>EDITOR.m.objetos[1].f[2].z==='acima'),'Chão → Por cima');await P.click('#objBar [data-o="x"]');
+ // balde com recorte de chão: vira piso na camada Piso (tiles)
+ const pid=rid2+'__c1';ok(await ev(id=>EDITOR.api.libTs().some(t=>t.id===id&&t.dw===32&&t.mg===2),pid),'recorte Chão aparece como tile de piso');
+ await ev(()=>EDITOR.api.ativar('objetos'));await P.click('[data-aba="pintura"]');await W(300);await P.click('[data-ob="'+rid2+'.c1"]');await P.click('#pnX');await W(150);
+ await P.click('[data-f="balde"]');await W(150);ok(await ev(id=>/Piso/.test(document.querySelector('#fCamN').textContent),pid),'balde com recorte de chão troca para a camada Piso');
+ await tap(await tela(1*32+5,10*32+5));const nt=await ev(id=>{const c=EDITOR.m.camadas.find(c=>c.n==='chao');const i=EDITOR.m.tilesets.indexOf(id);return c?c.d.filter(e=>e[0]===i).length:0},pid);
+ ok(nt===16*12,'balde preencheu o mapa todo com o piso ('+nt+' tiles)');
  // camadas: menu ⋯
  await P.click('[data-aba="camadas"]');await W(200);ok(await ev(()=>!document.querySelector('[data-up]')&&!!document.querySelector('[data-mais="chao"]')),'camadas: ▲▼✎🗑 ficam no menu ⋯');
  await P.click('[data-mais="detalhes"]');await W(100);ok(await ev(()=>document.querySelectorAll('#dlgB button').length===5),'menu ⋯ com subir, descer, renomear, excluir');await D('Fechar');
@@ -65,6 +80,10 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.click('#salvar');await W(300);await P.click('#publicar');await W(200);await D('Enviar e pôr no jogo');await W(2500);
  const pub=await (await fetch(GS+'/mapas?dim=1')).json(),pm=pub.mapas[id];const o0=pm&&pm.objects.find(o=>o[0]===k&&o[1]===5);
  ok(o0&&o0[5]&&o0[5].z==='chao','servidor recebe o objeto como chão');
+ const tsP=pub.tilesets[rid2+'__c1'];ok(tsP&&tsP.mg===2&&tsP.my===2&&tsP.tw===36&&tsP.dw===32&&pm.tilesets.includes(rid2+'__c1'),'servidor entrega o piso como tileset de 1 tile: '+JSON.stringify(tsP));
+ await A.click('#mapbtn');await W(2500);await A.evaluate(n=>[...document.querySelectorAll('#mmList button')].find(x=>x.textContent.toLowerCase().includes(n)).click(),'piso');await W(2500);
+ await A.waitForFunction(()=>GC&&tlReady(),null,{timeout:8000});const gp=await A.evaluate(()=>{const c=GC.getContext('2d');return[[1*32+1,10*32+1],[14*32+30,2*32+30]].map(([x,y])=>[...c.getImageData(x,y,1,1).data].join())});
+ ok(gp.every(v=>v==='120,70,30,255'),'jogo: piso pintado com o balde, sem vão nas bordas: '+gp.join(' | '));
  ok(!erros.length,'editor sem erros de página');
  const lg=fs.readFileSync(LOG,'utf8').slice(n0);ok(!/erro ignorado|inválido ignorado/.test(lg),'servidor sem erros');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();
