@@ -225,7 +225,7 @@
           <p class="mudo">${s ? 'Escolhido: <b>' + esc(nomeObj(s)) + '</b>. ✏️ Pincel: toque/arraste e solte no mapa para colocar. ⬚ Seleção: toque num objeto para escolher e arraste para mover.' : 'Escolha um objeto abaixo.'}${ab === 'bib' && !L.length ? ' Nenhum recorte na biblioteca ainda (Biblioteca → recurso → Recortes).' : ''}</p>
           <div class="grade-obj">${L.map(x => `<button class="obj" data-ob="${esc(x.k)}" aria-pressed="${x.k === s}"><canvas width="64" height="64"></canvas><small>${esc(x.n)}</small></button>`).join('')}</div>`; }
       else if (k === 'regioes') h += `<p class="mudo">Áreas de mobs, regiões e saídas chegam na Fase 5. Por enquanto esta camada só pode ser mostrada/escondida e bloqueada.</p>`;
-      else { const s = E.tinta.tile; h += `<p class="mudo">${libTs().length ? (s ? 'Tile escolhido: ' + s.sw + '×' + s.sh + ' do tileset “' + esc((libTs().find(x => x.id === s.id) || {}).nome || s.id) + '”.' : 'Toque num tile abaixo para escolher; “Escolher vários” para um bloco.') : 'Nenhum tileset na biblioteca: importe uma imagem e ligue a grade (Biblioteca → recurso → Grade).'}</p>`;
+      else { const s = E.tinta.tile; h += `<button class="btn" id="irObj" style="width:100%;margin:4px 0">🌳 Colocar objetos e spritesheets (camada Objetos)</button><p class="mudo">${libTs().length ? (s ? 'Tile escolhido: ' + s.sw + '×' + s.sh + ' do tileset “' + esc((libTs().find(x => x.id === s.id) || {}).nome || s.id) + '”.' : 'Toque num tile abaixo para escolher; “Escolher vários” para um bloco.') : 'Nenhum tileset na biblioteca: importe uma imagem e ligue a grade (Biblioteca → recurso → Grade).'}</p>`;
         if (E.conj.length) h += `<label class="lbl">Conjuntos (carimbos)</label><div class="presets">${E.conj.map(c => `<button data-cj="${esc(c.id)}">${esc(c.nome)} <small>${c.w}×${c.h}</small></button>`).join('')}</div>`; } }
     else if (a === 'camadas') { $('#pnT').textContent = 'Camadas';
       const L = Ferr.tiles(m), cima = L.filter(c => Ferr.ehAcima(c)).reverse(), baixo = L.filter(c => !Ferr.ehAcima(c)).reverse();
@@ -269,6 +269,7 @@
       C.querySelectorAll('[data-tr]').forEach(b => b.onclick = () => { E.tinta.terreno = +b.dataset.tr; if (E.ferr === 'mover' || E.ferr === 'sel') ferramenta('pincel'); painel('pintura'); });
       C.querySelectorAll('[data-cv]').forEach(b => b.onclick = () => { E.tinta.col = +b.dataset.cv; if (E.ferr === 'mover' || E.ferr === 'sel') ferramenta('pincel'); painel('pintura'); });
       C.querySelectorAll('[data-ca]').forEach(b => b.onclick = () => { E.catAba = b.dataset.ca; painel('pintura'); });
+      if ($('#irObj')) $('#irObj').onclick = () => { ativar('objetos'); E.catAba = 'bib'; if (!['pincel', 'sel', 'borracha'].includes(E.ferr)) ferramenta('pincel'); painel('pintura'); };
       if ($('#obBusca')) { $('#obBusca').oninput = e => { E.busca = e.target.value; clearTimeout(E.bT); E.bT = setTimeout(() => { painel('pintura'); const x = $('#obBusca'); if (x) { x.focus(); x.setSelectionRange(x.value.length, x.value.length); } }, 350); };
         $('#obEnc').onchange = e => { E.encaixarObj = e.target.checked; };
         C.querySelectorAll('[data-ob]').forEach(b => { miniatura(b.querySelector('canvas'), b.dataset.ob); b.onclick = () => { E.tinta.obj = b.dataset.ob; if (E.ferr !== 'pincel') ferramenta('pincel'); painel('pintura'); }; }); }
