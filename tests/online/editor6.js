@@ -34,10 +34,16 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.click('.ondes [data-op="objetos"]');await W(200);ok(await ev(()=>EDITOR.E?true:true)&&/Objetos e spritesheets/.test(await ev(()=>document.querySelector('#fCamN').textContent)),'“Objetos e spritesheets” escolhido pelo botão');
  const k=rid+'.c1';await P.click('[data-ob="'+k+'"]');await P.click('#pnX');await W(150);await ev(()=>{EDITOR.s=1;EDITOR.ox=10;EDITOR.oy=40});await W(80);
  await tap(await tela(5*32+10,5*32+20));let ob=await ev(()=>EDITOR.m.objetos.map(o=>o.f));
- ok(ob.length===1&&JSON.stringify(ob[0])==='[1,null,{"z":"chao"}]','Automático: o recorte “Chão” entra por baixo do personagem e sem colisão: '+JSON.stringify(ob[0]));
+ ok(ob.length===1&&JSON.stringify(ob[0])==='[1,null,{"z":"chao"}]'&&await ev(()=>EDITOR.m.objetos[0].x===5&&EDITOR.m.objetos[0].y===6),'Automático: o recorte “Chão” entra por baixo do personagem e sem colisão: '+JSON.stringify(ob[0]));
  // ímã: uma pedra de 40 px solta a 5 px do tapete cola na borda dele (sem vão), com a base alinhada
- const im=await ev(k=>{const o={k,x:0,y:0,f:[1]};EDITOR.api.encaixe(o,208+20+5,190);return[o.x,o.y]},rid+'.c2');ok(im[0]===7.125&&im[1]===6,'ímã: sprite cola no vizinho sem vão: '+JSON.stringify(im));
+ const im=await ev(k=>{const o={k,x:0,y:0,f:[1]};EDITOR.api.encaixe(o,192+20+5,190);return[o.x,o.y]},rid+'.c2');ok(im[0]===6.625&&im[1]===6,'ímã: sprite cola no vizinho sem vão: '+JSON.stringify(im));
  const im2=await ev(k=>{const o={k,x:0,y:0,f:[1]};EDITOR.api.encaixe(o,400,300);return[o.x,o.y]},rid+'.c2');ok(im2[0]===12.5&&im2[1]===10,'longe dos vizinhos segue a grade: '+JSON.stringify(im2));
+ // chão: as bordas do desenho vão para as linhas da grade (tapete 64 px ocupa 2 tiles inteiros)
+ const ch=await ev(k=>{const o={k,x:0,y:0,f:[1,null,{z:'chao'}]};EDITOR.api.encaixe(o,400,300);const b=Render.caixa(window.JOGO,o);return[o.x,o.y,b.x0,b.y1]},k);ok(ch[2]%32===0&&ch[3]%32===0&&ch[0]===13&&ch[1]===9,'chão encaixa as bordas na grade: '+JSON.stringify(ch));
+ // recorte: tela da biblioteca não muda; canvas próprio do recorte (sem vazar pixel da folha)
+ ok(await ev(k=>{const i=Render.info(window.JOGO,k);return i&&i.img instanceof HTMLCanvasElement&&i.sx===0},k),'recorte desenhado de um canvas próprio (sem linha entre sprites)');
+ // sem fundo
+ const vz=await ev(()=>{const c=Render.chao({W:8,H:8,tema:'vazio',chao:new Array(64).fill(0)});return[...c.getContext('2d').getImageData(40,40,1,1).data].join()});ok(vz==='11,13,16,255','tema “Sem fundo”: chão preto no editor');
  // bordas rosadas: quadrado vermelho com anel antisserrilhado rosa sobre magenta
  const br=await ev(()=>{const W=12,d=new ImageData(W,W);for(let y=0;y<W;y++)for(let x=0;x<W;x++){const p=(y*W+x)*4,inn=x>=4&&x<8&&y>=4&&y<8,anel=x>=3&&x<9&&y>=3&&y<9;const c=inn?[200,40,40]:anel?[228,20,150]:[255,0,255];d.data.set([...c,255],p)}
    const r=Recursos.removerFundo(d,{cor:[255,0,255],tol:24,modo:'borda'}),a=r.dados.data;let rosa=0,verm=0;for(let p=0;p<a.length;p+=4)if(a[p+3]){if(Math.min(a[p],a[p+2])>a[p+1]+20)rosa++;if(a[p]===200&&a[p+1]===40)verm++}
@@ -57,7 +63,7 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.click('[data-mais="detalhes"]');await W(100);ok(await ev(()=>document.querySelectorAll('#dlgB button').length===5),'menu ⋯ com subir, descer, renomear, excluir');await D('Fechar');
  // publica e confere no servidor
  await P.click('#salvar');await W(300);await P.click('#publicar');await W(200);await D('Enviar e pôr no jogo');await W(2500);
- const pub=await (await fetch(GS+'/mapas?dim=1')).json(),pm=pub.mapas[id];const o0=pm&&pm.objects.find(o=>o[0]===k&&o[1]===5.5);
+ const pub=await (await fetch(GS+'/mapas?dim=1')).json(),pm=pub.mapas[id];const o0=pm&&pm.objects.find(o=>o[0]===k&&o[1]===5);
  ok(o0&&o0[5]&&o0[5].z==='chao','servidor recebe o objeto como chão');
  ok(!erros.length,'editor sem erros de página');
  const lg=fs.readFileSync(LOG,'utf8').slice(n0);ok(!/erro ignorado|inválido ignorado/.test(lg),'servidor sem erros');

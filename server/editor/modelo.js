@@ -8,7 +8,9 @@
   const T = 32, N0 = 50, LIM = { MIN: 8, MAX: 100, AREA: 6400 }; // 8 = sala pequena (a borda de 2 tiles é sempre bloqueada)
   const TEMAS = {
     folha: { n: 'Folha', terr: ['Grama', 'Rua', 'Pântano', 'Lagoa', 'Rio', 'Ponte'], th: ['g1', 'p1', 'sw1', 'water', 'river', 'river'] },
-    areia: { n: 'Areia', terr: ['Areia', 'Caminho', 'Duna', 'Oásis', 'Rio', 'Ponte'], th: ['sg1', 'sp1', 'sd1', 'swater', 'sriver', 'sriver'] } };
+    areia: { n: 'Areia', terr: ['Areia', 'Caminho', 'Duna', 'Oásis', 'Rio', 'Ponte'], th: ['sg1', 'sp1', 'sd1', 'swater', 'sriver', 'sriver'] },
+    // sem fundo: o terreno inicial é preto (salas, interiores); rua/água/ponte usam as texturas da Folha
+    vazio: { n: 'Sem fundo (preto)', terr: ['Vazio (preto)', 'Rua', 'Pântano', 'Lagoa', 'Rio', 'Ponte'], th: ['', 'p1', 'sw1', 'water', 'river', 'river'] } };
   const INICIAIS = [0, 1, 2]; // terrenos em que dá para andar (água bloqueia: um mapa todo de água não teria onde nascer)
   const ID = /^[a-z0-9_]{2,30}$/, BASE_IDS = ['konoha', 'vila_areia'];
   const CONHECIDOS = new Set(['v', 'N', 'T', 'W', 'H', 'name', 'title', 'theme', 'ground', 'objects', 'spawn', 'boss', 'k', 'areas', 'tilesets', 'camadas', 'ed']);

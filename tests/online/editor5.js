@@ -41,6 +41,8 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  const g=await A.evaluate(()=>{const c=GC.getContext('2d'),px=(x,y)=>[...c.getImageData(x,y,1,1).data].join();return{N,NH,gc:[GC.width,GC.height],dentro:px(5*32+16,5*32+16),fora:px(6*32+16,5*32+16),canto:px(5*32+1,5*32+1)}});
  ok(g.N===12&&g.NH===10&&g.gc[0]===384&&g.gc[1]===320,'jogo: sala 12×10');
  ok(g.dentro.startsWith('200,0,0')&&g.canto.startsWith('200,0,0')&&!g.fora.startsWith('200,0,0'),'jogo: o tile de 64 px ocupa só 1 quadrado de 32 px');
+ const vz=await A.evaluate(()=>{const t=THEME;THEME='vazio';buildGround();const c=GC.getContext('2d'),r=[[6*32+16,5*32+16],[5*32+16,5*32+16]].map(([x,y])=>[...c.getImageData(x,y,1,1).data].join());THEME=t;buildGround();return r});
+ ok(vz[0]==='11,13,16,255'&&vz[1].startsWith('200,0,0'),'jogo: tema “Sem fundo” deixa o chão preto e mantém os tiles: '+vz.join(' | '));
  const cam=await A.evaluate(()=>{const cvs=document.querySelector('#cv'),k=dpr*z,w=cvs.width/k;const d=cvs.getContext('2d').getImageData(4,Math.round(cvs.height/2),1,1).data;return{w,cor:[...d].join()}});
  ok(cam.w>384&&cam.cor==='11,13,16,255','jogo: sala menor que a tela fica no meio, com o resto escuro');
  const MRv=MR.validar(id,'Sala',{...pub.mapas[id]},{fpt:{},tsz:[]});ok(MRv&&MRv.W===12,'regras do servidor aceitam mínimo 8');

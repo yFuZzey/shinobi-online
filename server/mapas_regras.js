@@ -7,7 +7,7 @@ const N = 50, T = 32, MIN = 8, MAX = 100, AREA = 6400;
 const dims = m => { const w = m && m.W != null ? m.W : (m && m.N) || N, h = m && m.H != null ? m.H : (m && m.N) || N; return Number.isInteger(w) && Number.isInteger(h) && w >= MIN && h >= MIN && w <= MAX && h <= MAX && w * h <= AREA ? [w, h] : null; };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fin = v => typeof v === 'number' && isFinite(v);
-const TEMAS = { folha: 1, areia: 1 };
+const TEMAS = { folha: 1, areia: 1, vazio: 1 }; // vazio = sem fundo (chão preto; rua/água usam a Folha)
 const ID = /^[a-z0-9_]{2,30}$/;
 
 // devolve o mapa limpo (formato do jogo) ou null se não prestar

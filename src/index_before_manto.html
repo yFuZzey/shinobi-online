@@ -313,7 +313,8 @@ function leaveSala(){scene=0;p.x=DOOR?DOOR.x:SPAWN[0]*T;p.y=DOOR?DOOR.yOut:SPAWN
 function buildGround(){
  GC=document.createElement('canvas');GC.width=N*T;GC.height=NH*T;const g=GC.getContext('2d'),A=THEME=='areia';
  const G=['g1','g2','g3','g4','g1','g2','g3','g4','g1','g2','g3','g4','g1','g2','g3','g4','g1','g2','g3','g4','g1','g2','g3','gd'];
- if(A){for(let cy=0;cy<AGH;cy++)for(let cx=0;cx<AGW;cx++){const h=((cx*73856093)^(cy*19349663))>>>0;g.drawImage(TX['sg'+(h%5+1)],cx*64,cy*64)}}
+ if(THEME=='vazio'){g.fillStyle='#0b0d10';g.fillRect(0,0,GC.width,GC.height)}
+ else if(A){for(let cy=0;cy<AGH;cy++)for(let cx=0;cx<AGW;cx++){const h=((cx*73856093)^(cy*19349663))>>>0;g.drawImage(TX['sg'+(h%5+1)],cx*64,cy*64)}}
  else for(let y=0;y<NH;y++)for(let x=0;x<N;x++){const h=((x*73856093)^(y*19349663))>>>0;g.drawImage(TX[G[h%G.length]],x*T,y*T)}
  for(let cy=0;cy<AGH;cy++)for(let cx=0;cx<AGW;cx++){
   if(SWC[cy*AGW+cx])g.drawImage(TX[A?((cx+cy)%2?'sd1':'sd2'):((cx+cy)%2?'sw1':'sw2')],cx*64,cy*64)}

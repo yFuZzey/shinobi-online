@@ -81,7 +81,7 @@
       <label class="lbl">Tamanho em tiles (1 tile = 32 px no jogo)</label><div class="presets">${presets.map(p => `<button data-p="${p}">${p[0]}×${p[1]}</button>`).join('')}</div>
       <div class="grade2"><div><label class="lbl">Largura</label><input id="nvW" type="number" min="${Mo.LIM.MIN}" max="${Mo.LIM.MAX}" value="50"></div><div><label class="lbl">Altura</label><input id="nvH" type="number" min="${Mo.LIM.MIN}" max="${Mo.LIM.MAX}" value="50"></div></div>
       <p class="mudo" id="nvMem"></p>
-      <div class="grade2"><div><label class="lbl">Tema</label><select id="nvTema"><option value="folha">Folha</option><option value="areia">Areia</option></select></div>
+      <div class="grade2"><div><label class="lbl">Tema</label><select id="nvTema"><option value="folha">Folha</option><option value="areia">Areia</option><option value="vazio">Sem fundo (preto)</option></select></div>
       <div><label class="lbl">Terreno inicial</label><select id="nvTerr"></select></div></div>
       <div class="campo"><label class="lbl">Tile da arte (px): tamanho dos tiles dos seus tilesets. A grade de colisão e de movimento do jogo continua 32 px.</label><select id="nvTile"><option>16</option><option selected>32</option><option>48</option><option>64</option></select></div>
       <label class="lbl">Ponto de nascimento (tiles; vazio = centro)</label><div class="grade2"><input id="nvSx" type="number" step="0.5" placeholder="X"><input id="nvSy" type="number" step="0.5" placeholder="Y"></div>
@@ -217,7 +217,7 @@
       h = '<label class="lbl">Onde pintar</label><div class="ondes">' + ondes().map(([v, t, d]) => `<button data-op="${esc(v)}" aria-pressed="${k === v}">${t}<br><small class="mudo">${d}</small></button>`).join('') + '</div>' +
         (k === 'objetos' ? '' : `<div class="presets"><span class="lbl" style="margin:auto 4px auto 0">Retângulo:</span><button data-ct="0" aria-pressed="${!E.contorno}">Preenchido</button><button data-ct="1" aria-pressed="${E.contorno}">Só contorno</button></div>`);
       if (k === 'terreno') { const t = Mo.TEMAS[m.tema];
-        h += `<div class="terrs">${t.terr.map((n, i) => `<button data-tr="${i}" aria-pressed="${E.tinta.terreno === i}"><img alt="" src="${J.TS[t.th[i]] || ''}">${esc(n)}</button>`).join('')}</div><p class="mudo">Pântano, lagoa, rio e ponte ocupam blocos de 2×2 tiles (regra do jogo). A borracha volta ao terreno inicial.</p>`; }
+        h += `<div class="terrs">${t.terr.map((n, i) => `<button data-tr="${i}" aria-pressed="${E.tinta.terreno === i}">${t.th[i] ? `<img alt="" src="${J.TS[t.th[i]] || ''}">` : '<span style="width:32px;height:32px;background:#0b0d10;border:1px solid #444;border-radius:4px"></span>'}${esc(n)}</button>`).join('')}</div><p class="mudo">Pântano, lagoa, rio e ponte ocupam blocos de 2×2 tiles (regra do jogo). A borracha volta ao terreno inicial.</p>`; }
       else if (k === 'colisao') h += `<div class="presets"><button data-cv="1" aria-pressed="${E.tinta.col === 1}">Bloquear</button><button data-cv="2" aria-pressed="${E.tinta.col === 2}">Liberar (passa mesmo sobre obstáculo/água)</button></div><p class="mudo">A borracha tira a colisão pintada (volta à regra do terreno e dos objetos).</p>`;
       else if (k === 'objetos') { const ab = E.catAba || 'bib', L = catalogo(), s = E.tinta.obj;
         h += `<div class="presets"><button data-ca="bib" aria-pressed="${ab === 'bib'}">Biblioteca</button><button data-ca="jogo" aria-pressed="${ab === 'jogo'}">Do jogo</button><button data-ca="img" aria-pressed="${ab === 'img'}">Minhas imagens</button></div>
@@ -257,7 +257,7 @@
       h = `<div class="campo"><label class="lbl">Nome</label><input id="pNome" maxlength="40" value="${esc(m.nome)}" ${so ? 'disabled' : ''}></div>
         <div class="campo"><label class="lbl">Identificador</label><input value="${esc(m.id)}" disabled></div>
         <div class="campo"><label class="lbl">Tamanho</label><div class="linha"><b class="cresce">${m.W} × ${m.H} tiles (${m.W * T}×${m.H * T} px)</b><button class="btn peq" id="pRed" ${so ? 'disabled' : ''}>Redimensionar…</button></div></div>
-        <div class="grade2"><div><label class="lbl">Tema</label><select id="pTema" ${so ? 'disabled' : ''}><option value="folha" ${m.tema === 'folha' ? 'selected' : ''}>Folha</option><option value="areia" ${m.tema === 'areia' ? 'selected' : ''}>Areia</option></select></div>
+        <div class="grade2"><div><label class="lbl">Tema</label><select id="pTema" ${so ? 'disabled' : ''}><option value="folha" ${m.tema === 'folha' ? 'selected' : ''}>Folha</option><option value="areia" ${m.tema === 'areia' ? 'selected' : ''}>Areia</option><option value="vazio" ${m.tema === 'vazio' ? 'selected' : ''}>Sem fundo (preto)</option></select></div>
         <div><label class="lbl">Tile da arte (px)</label><input id="pTile" type="number" min="4" max="512" value="${(m.ed && m.ed.tile) || 32}" ${so ? 'disabled' : ''}></div></div>
         <label class="lbl">Ponto de nascimento (tiles)</label><div class="linha"><input id="pSx" type="number" step="0.5" value="${m.spawn[0]}" ${so ? 'disabled' : ''}><input id="pSy" type="number" step="0.5" value="${m.spawn[1]}" ${so ? 'disabled' : ''}><button class="btn peq" id="pSt" ${so ? 'disabled' : ''}>Tocar no mapa</button></div>
         <label class="lbl" style="margin-top:10px">Chefe (tiles)</label><div class="linha">${m.boss ? `<input id="pBx" type="number" step="0.5" value="${m.boss[0]}" ${so ? 'disabled' : ''}><input id="pBy" type="number" step="0.5" value="${m.boss[1]}" ${so ? 'disabled' : ''}>` : '<span class="mudo cresce">Sem chefe</span>'}<button class="btn peq" id="pBt" ${so ? 'disabled' : ''}>Tocar no mapa</button>${m.boss ? `<button class="btn peq perigo" id="pBn" ${so ? 'disabled' : ''}>Tirar</button>` : ''}</div>
@@ -552,6 +552,9 @@
      sem vão e sem sobrepor; vale por eixo, o eixo sem vizinho perto segue a grade. */
   function encaixe(o, nx, ny, arrasto) { const m = E.m, enc = E.encaixarObj !== false;
     let x = enc ? Math.floor(nx / T) + .5 : Math.round(nx) / T, y = enc ? (arrasto ? Math.round(ny / T) : Math.floor(ny / T) + 1) : Math.round(ny) / T;
+    // chão com encaixe: as bordas do desenho vão para as linhas da grade (piso de 32/64 px fecha o mapa sem sobra)
+    if (enc && Ferr.objOp(o).z === 'chao') { o.x = nx / T; o.y = ny / T; let b = null; try { b = R.caixa(J, o); } catch (e) { }
+      if (b && Number.isFinite(b.x0)) { x = o.x + (Math.round(b.x0 / T) * T - b.x0) / T; y = o.y + (Math.round(b.y1 / T) * T - b.y1) / T; } }
     if (E.imaObj !== false) { o.x = nx / T; o.y = ny / T; const d = ima(o); if (d.x != null) x = o.x + d.x / T; if (d.y != null) y = o.y + d.y / T; }
     o.x = +clamp(x, 0, m.W - .01).toFixed(4); o.y = +clamp(y, .03, m.H).toFixed(4); return o; }
   function ima(o) { const r = { x: null, y: null }; let b; try { b = R.caixa(J, o); } catch (e) { return r; } if (!b || !Number.isFinite(b.x0)) return r;

@@ -36,7 +36,8 @@
     for (let cy = 0; cy < AH; cy++) for (let cx = 0; cx < AW; cx++) { const t = g0[cy * 2 * W + cx * 2]; if (t < 2) continue;
       if (t === 2) SWC[cy * AW + cx] = 1; else { WC[cy * AW + cx] = t === 3 ? 2 : 1; if (t === 5) BRD.push([cx, cy]); } }
     const c = document.createElement('canvas'); c.width = W * T; c.height = H * T; const g = c.getContext('2d');
-    if (A) { for (let cy = 0; cy < AH; cy++) for (let cx = 0; cx < AW; cx++) { const h = ((cx * 73856093) ^ (cy * 19349663)) >>> 0; g.drawImage(TX['sg' + (h % 5 + 1)], cx * 64, cy * 64); } }
+    if (m.tema === 'vazio') { g.fillStyle = '#0b0d10'; g.fillRect(0, 0, c.width, c.height); }
+    else if (A) { for (let cy = 0; cy < AH; cy++) for (let cx = 0; cx < AW; cx++) { const h = ((cx * 73856093) ^ (cy * 19349663)) >>> 0; g.drawImage(TX['sg' + (h % 5 + 1)], cx * 64, cy * 64); } }
     else for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const h = ((x * 73856093) ^ (y * 19349663)) >>> 0; g.drawImage(TX[GR[h % GR.length]], x * T, y * T); }
     for (let cy = 0; cy < AH; cy++) for (let cx = 0; cx < AW; cx++) if (SWC[cy * AW + cx]) g.drawImage(TX[A ? ((cx + cy) % 2 ? 'sd1' : 'sd2') : ((cx + cy) % 2 ? 'sw1' : 'sw2')], cx * 64, cy * 64);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (RD[y * W + x]) { const h = ((x * 83492791) ^ (y * 29765729)) >>> 0; g.drawImage(TX[A ? (h % 3 ? 'sp1' : 'sp2') : (h % 3 ? 'p1' : 'p2')], x * T, y * T); }
@@ -57,7 +58,8 @@
     const cx0 = Math.max(0, (x0 >> 1) - 1), cy0 = Math.max(0, (y0 >> 1) - 1), cx1 = Math.min(AW - 1, (x1 >> 1) + 1), cy1 = Math.min(AH - 1, (y1 >> 1) + 1);
     g.save(); g.beginPath(); g.rect(cx0 * 64, cy0 * 64, (cx1 - cx0 + 1) * 64, (cy1 - cy0 + 1) * 64); g.clip();
     const yA = cy0 * 2, yB = Math.min(H - 1, cy1 * 2 + 1), xA = cx0 * 2, xB = Math.min(W - 1, cx1 * 2 + 1);
-    if (A) { for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) { const h = ((cx * 73856093) ^ (cy * 19349663)) >>> 0; g.drawImage(TX['sg' + (h % 5 + 1)], cx * 64, cy * 64); } }
+    if (m.tema === 'vazio') { g.fillStyle = '#0b0d10'; g.fillRect(cx0 * 64, cy0 * 64, (cx1 - cx0 + 1) * 64, (cy1 - cy0 + 1) * 64); }
+    else if (A) { for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) { const h = ((cx * 73856093) ^ (cy * 19349663)) >>> 0; g.drawImage(TX['sg' + (h % 5 + 1)], cx * 64, cy * 64); } }
     else for (let y = yA; y <= yB; y++) for (let x = xA; x <= xB; x++) { const h = ((x * 73856093) ^ (y * 19349663)) >>> 0; g.drawImage(TX[GR[h % GR.length]], x * T, y * T); }
     for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) if (cellT(cx, cy) === 2) g.drawImage(TX[A ? ((cx + cy) % 2 ? 'sd1' : 'sd2') : ((cx + cy) % 2 ? 'sw1' : 'sw2')], cx * 64, cy * 64);
     for (let y = yA; y <= yB; y++) for (let x = xA; x <= xB; x++) if (g0[y * W + x] === 1) { const h = ((x * 83492791) ^ (y * 29765729)) >>> 0; g.drawImage(TX[A ? (h % 3 ? 'sp1' : 'sp2') : (h % 3 ? 'p1' : 'p2')], x * T, y * T); }
@@ -95,8 +97,15 @@
     for (const r of rows) { if (!Array.isArray(r.recortes) || !r.recortes.length) continue;
       if (!RIM[r.id] || RIM[r.id].arq !== r.arquivo) { const i = new Image(); i.crossOrigin = 'anonymous'; const o = RIM[r.id] = { img: i, ok: false, arq: r.arquivo }; i.onload = () => { o.ok = true; cb && cb(); }; i.onerror = () => { o.falhou = true; cb && cb(); }; i.src = store + r.arquivo; }
       for (const c of r.recortes) { const dw = c.dw || c.w, dh = c.dh || c.h; RC[r.id + '.' + c.id] = { rec: r.id, nome: c.nome || c.id, cat: c.cat || '', sx: c.x, sy: c.y, sw: c.w, sh: c.h, dw, dh, ax: c.ax != null ? c.ax : Math.round(dw / 2), ay: c.ay != null ? c.ay : dh, corte: c.corte || 0, ns: !!c.ns, col: c.col || [[0, 0]], uso: c.uso === 'chao' || c.uso === 'acima' ? c.uso : '' }; } } }
+  // recorte copiado para um canvas próprio (igual ao jogo): desenhar direto da folha com zoom “vaza” 1 pixel do vizinho na borda
+  // (no celular aparece como linha fina entre sprites colados)
+  const CORTES = new Map();
+  function corte(b, R0) { const ch = b.arq + '|' + R0.sx + ',' + R0.sy + ',' + R0.sw + ',' + R0.sh; let c = CORTES.get(ch); if (c) return c;
+    try { c = document.createElement('canvas'); c.width = R0.sw; c.height = R0.sh; c.getContext('2d').drawImage(b.img, R0.sx, R0.sy, R0.sw, R0.sh, 0, 0, R0.sw, R0.sh); } catch (e) { return null; }
+    if (CORTES.size > 3000) CORTES.clear(); CORTES.set(ch, c); return c; }
   function info(J, k) { const R0 = RC[k];
-    if (R0) { const b = RIM[R0.rec]; return { img: b && b.img, ok: !!(b && b.ok), falhou: !!(b && b.falhou), sx: R0.sx, sy: R0.sy, sw: R0.sw, sh: R0.sh, dw: R0.dw, dh: R0.dh, ax: R0.ax, ay: R0.ay, corte: R0.corte, px: true, tipo: 'rc' }; }
+    if (R0) { const b = RIM[R0.rec], cv = b && b.ok ? corte(b, R0) : null; if (cv) return { img: cv, ok: true, falhou: false, sx: 0, sy: 0, sw: R0.sw, sh: R0.sh, dw: R0.dw, dh: R0.dh, ax: R0.ax, ay: R0.ay, corte: R0.corte, px: true, tipo: 'rc' };
+      return { img: b && b.img, ok: !!(b && b.ok), falhou: !!(b && b.falhou), sx: R0.sx, sy: R0.sy, sw: R0.sw, sh: R0.sh, dw: R0.dw, dh: R0.dh, ax: R0.ax, ay: R0.ay, corte: R0.corte, px: true, tipo: 'rc' }; }
     const P = IMG[k]; if (P) { const w = P.img.naturalWidth || P.w, h = P.img.naturalHeight || P.h; return { img: P.img, ok: P.ok, falhou: P.falhou, sx: 0, sy: 0, sw: w, sh: h, dw: P.dw, dh: P.dh, ax: P.dw / 2, ay: P.dh, corte: 0, px: P.px, tipo: 'img' }; }
     const im = TX[k], s = J.TSZ[k]; if (im && s) return { img: im, ok: !!im.naturalWidth, sx: 0, sy: 0, sw: im.naturalWidth, sh: im.naturalHeight, dw: im.naturalWidth, dh: im.naturalHeight, ax: s[0] / 2, ay: s[1], corte: 0, px: false, tipo: 'jogo' };
     return null; }
