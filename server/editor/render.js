@@ -94,7 +94,7 @@
     for (const k in RC) delete RC[k];
     for (const r of rows) { if (!Array.isArray(r.recortes) || !r.recortes.length) continue;
       if (!RIM[r.id] || RIM[r.id].arq !== r.arquivo) { const i = new Image(); i.crossOrigin = 'anonymous'; const o = RIM[r.id] = { img: i, ok: false, arq: r.arquivo }; i.onload = () => { o.ok = true; cb && cb(); }; i.onerror = () => { o.falhou = true; cb && cb(); }; i.src = store + r.arquivo; }
-      for (const c of r.recortes) { const dw = c.dw || c.w, dh = c.dh || c.h; RC[r.id + '.' + c.id] = { rec: r.id, nome: c.nome || c.id, cat: c.cat || '', sx: c.x, sy: c.y, sw: c.w, sh: c.h, dw, dh, ax: c.ax != null ? c.ax : Math.round(dw / 2), ay: c.ay != null ? c.ay : dh, corte: c.corte || 0, ns: !!c.ns, col: c.col || [[0, 0]] }; } } }
+      for (const c of r.recortes) { const dw = c.dw || c.w, dh = c.dh || c.h; RC[r.id + '.' + c.id] = { rec: r.id, nome: c.nome || c.id, cat: c.cat || '', sx: c.x, sy: c.y, sw: c.w, sh: c.h, dw, dh, ax: c.ax != null ? c.ax : Math.round(dw / 2), ay: c.ay != null ? c.ay : dh, corte: c.corte || 0, ns: !!c.ns, col: c.col || [[0, 0]], uso: c.uso === 'chao' || c.uso === 'acima' ? c.uso : '' }; } } }
   function info(J, k) { const R0 = RC[k];
     if (R0) { const b = RIM[R0.rec]; return { img: b && b.img, ok: !!(b && b.ok), falhou: !!(b && b.falhou), sx: R0.sx, sy: R0.sy, sw: R0.sw, sh: R0.sh, dw: R0.dw, dh: R0.dh, ax: R0.ax, ay: R0.ay, corte: R0.corte, px: true, tipo: 'rc' }; }
     const P = IMG[k]; if (P) { const w = P.img.naturalWidth || P.w, h = P.img.naturalHeight || P.h; return { img: P.img, ok: P.ok, falhou: P.falhou, sx: 0, sy: 0, sw: w, sh: h, dw: P.dw, dh: P.dh, ax: P.dw / 2, ay: P.dh, corte: 0, px: P.px, tipo: 'img' }; }

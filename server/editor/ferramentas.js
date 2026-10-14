@@ -6,7 +6,7 @@
 (function (G) {
   'use strict';
   const T = 32, MAXBALDE = 120000;
-  const PADRAO = [{ n: 'chao', nome: 'Chão', z: 'baixo' }, { n: 'detalhes', nome: 'Detalhes do chão', z: 'baixo' }, { n: 'acima', nome: 'Acima do personagem', z: 'acima' }];
+  const PADRAO = [{ n: 'chao', nome: 'Piso (tiles)', z: 'baixo' }, { n: 'detalhes', nome: 'Detalhes do piso', z: 'baixo' }, { n: 'acima', nome: 'Tiles por cima do personagem', z: 'acima' }];
   const ehAcima = c => c.z ? c.z === 'acima' : c.n === 'acima';
   const nomeCamada = c => c.nome || (PADRAO.find(p => p.n === c.n) || {}).nome || c.n;
   const tiles = m => m.camadas.filter(c => c && c.t === 'tiles');

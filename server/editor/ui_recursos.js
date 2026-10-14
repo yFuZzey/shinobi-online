@@ -197,6 +197,7 @@
       $('#rdAy').onchange = e => setRec(c.id, k => { k.ay = clamp(Math.round(+e.target.value || 0), -2048, 4096); });
       $('#rdCt').onchange = e => setRec(c.id, k => { k.corte = clamp(Math.round(+e.target.value || 0), 0, dims(k).dh); });
       $('#rdNs').onchange = e => setRec(c.id, k => { k.ns = e.target.checked; });
+      document.querySelectorAll('[data-uso]').forEach(b => b.onclick = () => setRec(c.id, k => { const v = b.dataset.uso; if (v) k.uso = v; else delete k.uso; if (v === 'chao') k.ns = true; }));
       $('#rdColP').onclick = () => setRec(c.id, k => { k.col = [[0, 0]]; k.ns = false; });
       $('#rrDup').onclick = () => { const id = 'c' + (++RS.seq); mudar(x => x.recortes.push(Object.assign({}, c, { id, nome: c.nome + ' (cópia)', x: clamp(c.x + 8, 0, r.w - c.w), y: clamp(c.y + 8, 0, r.h - c.h) }))); vis.sel = id; sincVisor(); painel('recortes'); };
       $('#rrDel').onclick = async () => { const ok = await U.dlg('Excluir recorte?', `<p>Excluir <b>${esc(c.nome)}</b>? Dá para desfazer (↶).</p>`, [{ t: 'Excluir', v: 1, c: 'perigo' }, { t: 'Cancelar', v: 0 }]); if (!ok) return;
@@ -217,6 +218,9 @@
   const dims = c => { const dw = c.dw || c.w, dh = c.dh || c.h; return { dw, dh, ax: c.ax != null ? c.ax : Math.round(dw / 2), ay: c.ay != null ? c.ay : dh, corte: c.corte || 0, col: c.col || [[0, 0]], ns: !!c.ns }; };
   function propsRecorte(c) { const d = dims(c), r = RS.r;
     return `<div class="prob ok" style="margin:8px 0">Arquivo original: <b>${r.w}×${r.h}</b> · Recorte: <b>${c.w}×${c.h}</b> em ${c.x},${c.y} · No mapa: <b>${d.dw}×${d.dh}</b> · Colisão: <b>${d.ns ? 'nenhuma' : d.col.length + ' tile(s)'}</b></div>
+      <label class="lbl">Como usar no mapa</label>
+      <div class="presets usos">${[['', '🏠 Objeto / construção', 'o personagem passa na frente ou atrás'], ['chao', '🟫 Chão / piso', 'sempre por baixo do personagem, sem colisão'], ['acima', '☁️ Por cima', 'sempre na frente do personagem (copa, telhado)']].map(([v, t, d]) => `<button data-uso="${v}" aria-pressed="${(c.uso || '') === v}">${t}<br><small class="mudo">${d}</small></button>`).join('')}</div>
+      <p class="mudo">Vale para as próximas vezes que você colocar este recorte. Os já colocados mudam na barra do objeto (botão Ordem).</p>
       <label class="lbl">Tamanho no mapa (px) — não muda o arquivo nem a colisão</label>
       <div class="grade4"><div><input id="rdW2" type="number" min="1" max="2048" value="${d.dw}" aria-label="Largura no mapa"></div><div><input id="rdH2" type="number" min="1" max="2048" value="${d.dh}" aria-label="Altura no mapa"></div>
       <label class="chk" style="grid-column:span 2"><input type="checkbox" id="rdProp" ${c.livre ? '' : 'checked'}> Manter proporção</label></div>

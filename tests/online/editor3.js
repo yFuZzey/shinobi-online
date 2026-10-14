@@ -95,10 +95,10 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  ok(L.filter(e=>e[1]>=30&&e[1]<=32&&e[2]>=5&&e[2]<=6&&e[3]===2).length===6,'carimbo do conjunto aplicado em outro lugar');
  await P.click('#selBar [data-s="parar"]');
  // ordem e nomes das camadas
- await P.click('[data-aba="camadas"]');await W(150);await P.click('[data-dn="'+nova+'"]');await W(100);await P.click('[data-dn="'+nova+'"]');await W(100);
+ await P.click('[data-aba="camadas"]');await W(150);const mais=async(n,a)=>{await P.click('[data-mais="'+n+'"]');await W(80);await P.click('#dlgB button[data-v="'+a+'"]');await W(120);};await mais(nova,'dn');await mais(nova,'dn');
  ok(await ev(n=>EDITOR.m.camadas.find(c=>c.n===n).z==='baixo',nova),'descer a camada de cima passa para baixo dos objetos');
- await P.click('[data-up="'+nova+'"]');await W(100);ok(await ev(n=>EDITOR.m.camadas.find(c=>c.n===n).z==='acima',nova),'subir volta para cima do personagem');
- await P.click('[data-rn="detalhes"]');await P.fill('#rcN','Flores');await D('OK');await W(100);ok(await ev(()=>EDITOR.m.camadas.find(c=>c.n==='detalhes').nome==='Flores'),'renomear camada');
+ await mais(nova,'up');ok(await ev(n=>EDITOR.m.camadas.find(c=>c.n===n).z==='acima',nova),'subir volta para cima do personagem');
+ await mais('detalhes','rn');await P.fill('#rcN','Flores');await D('OK');await W(100);ok(await ev(()=>EDITOR.m.camadas.find(c=>c.n==='detalhes').nome==='Flores'),'renomear camada');
  await P.click('[data-vi="'+nova+'"]');await W(100);ok(await ev(n=>EDITOR.m.ed.vis[n]===false,nova),'esconder camada');await P.click('[data-vi="'+nova+'"]');
  // salvar, recarregar a página e conferir tudo
  await P.click('#pnX');await P.click('#salvar');await W(500);const antes=await ev(()=>JSON.stringify(Modelo.paraJogo(EDITOR.m)));
