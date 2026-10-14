@@ -21,8 +21,13 @@ function validar(id, nome, m, cat) {
   for (const r of m.objects) {
     if (!Array.isArray(r) || !tsz.has(r[0]) || !fin(r[1]) || !fin(r[2])) continue;
     const o = [r[0], +r[1].toFixed(4), +r[2].toFixed(4)];
-    if (r[3] || Array.isArray(r[4])) o.push(r[3] ? 1 : 0);
-    if (Array.isArray(r[4]) && r[4].length <= 120) o.push(r[4].filter(a => Array.isArray(a) && fin(a[0]) && fin(a[1])).map(a => [Math.round(a[0]), Math.round(a[1])]));
+    // opções do editor novo (r[5]): escala (e), sempre no chão/por cima (z), ajuste fino da ordem (b, px)
+    const q = r[5] && typeof r[5] === 'object' ? r[5] : null, op = {};
+    if (q) { if (fin(q.e) && q.e > 0 && q.e !== 1) op.e = +Math.min(8, Math.max(.1, q.e)).toFixed(4); if (q.z === 'chao' || q.z === 'acima') op.z = q.z; if (fin(q.b) && q.b) op.b = clamp(Math.round(q.b), -1024, 1024); }
+    const temOp = Object.keys(op).length > 0, cel = Array.isArray(r[4]) && r[4].length <= 120 ? r[4].filter(a => Array.isArray(a) && fin(a[0]) && fin(a[1])).map(a => [Math.round(a[0]), Math.round(a[1])]) : null;
+    if (r[3] || cel || temOp) o.push(r[3] ? 1 : 0);
+    if (cel) o.push(cel); else if (temOp) o.push(null);
+    if (temOp) o.push(op);
     O.push(o);
   }
   const pt = (a, d) => Array.isArray(a) && fin(a[0]) && fin(a[1]) ? [clamp(+a[0], 2, W - 2), clamp(+a[1], 2, H - 2)] : d;

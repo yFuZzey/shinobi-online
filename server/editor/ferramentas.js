@@ -73,13 +73,20 @@
     for (const c of tiles(m)) { if (op.camadas && !op.camadas.includes(c.n)) continue; const d = [];
       for (const e of c.d) { const id = m.tilesets[e[0]], inf = tsInfo[id]; if (!inf) continue; const px = e[1] * inf.tw, py = e[2] * inf.th; if (px >= X0 && px < X1 && py >= Y0 && py < Y1) d.push([id, px - X0, py - Y0, e[3], e[4]]); }
       if (d.length) clip.tiles[c.n] = { nome: nomeCamada(c), z: ehAcima(c) ? 'acima' : 'baixo', d }; }
+    if (op.objetos) { const L = m.objetos.filter(o => { const x = Math.floor(o.x), y = baseLin(o); return x >= s.x && x < s.x + s.w && y >= s.y && y < s.y + s.h; }); if (L.length) clip.objetos = L.map(o => [o.k, o.x - s.x, o.y - s.y, JSON.parse(JSON.stringify(o.f || []))]); }
     return clip; }
   function apagarArea(m, s, op, tsInfo) { let n = 0; const ini = m.ed && [0, 1, 2].includes(m.ed.terreno) ? m.ed.terreno : 0;
     for (let y = s.y; y < s.y + s.h; y++) for (let x = s.x; x < s.x + s.w; x++) { if (op.terreno && terreno(m, x, y, ini)) n++; if (op.colisao && colisao(m, x, y, 0)) n++; }
     const X0 = s.x * T, Y0 = s.y * T, X1 = (s.x + s.w) * T, Y1 = (s.y + s.h) * T;
     for (const c of tiles(m)) { if (op.camadas && !op.camadas.includes(c.n)) continue; const fica = c.d.filter(e => { const inf = tsInfo[m.tilesets[e[0]]]; if (!inf) return true; const px = e[1] * inf.tw, py = e[2] * inf.th; return !(px >= X0 && px < X1 && py >= Y0 && py < Y1); });
       if (fica.length !== c.d.length) { n += c.d.length - fica.length; c.d = fica; IDX.delete(c); } }
+    if (op.objetos) { const fica = m.objetos.filter(o => { const x = Math.floor(o.x), y = baseLin(o); return objOp(o).tv || !(x >= s.x && x < s.x + s.w && y >= s.y && y < s.y + s.h); }); n += m.objetos.length - fica.length; m.objetos = fica; }
     return n; }
+  /* ---------- objetos: f = [semColisão, células, opções] (as mesmas posições 3, 4, 5 do formato do jogo) ---------- */
+  function objF(o, ns, cel, op) { const f = [ns ? 1 : 0, Array.isArray(cel) ? cel.map(a => [a[0], a[1]]) : null, op && Object.keys(op).length ? Object.assign({}, op) : null];
+    while (f.length && (f[f.length - 1] === null || (f.length === 1 && !f[0]))) f.pop(); o.f = f; return o; }
+  const objNs = o => !!(o.f && o.f[0]), objCel = o => o.f && Array.isArray(o.f[1]) ? o.f[1] : null, objOp = o => o.f && o.f[2] && typeof o.f[2] === 'object' ? o.f[2] : {};
+  const baseLin = o => Math.floor((o.y * T - 1) / T);
   // cola com o canto em (X, Y) (tiles de 32 px). Tiles que não caem na grade do tileset (ex.: 48 px com deslocamento ímpar) são pulados
   function colar(m, clip, X, Y, op, tsInfo) { const r = { n: 0, pulados: 0, fora: 0 };
     if (clip.terreno && op.terreno) for (let j = 0; j < clip.h; j++) for (let i = 0; i < clip.w; i++) { const t = +clip.terreno[j * clip.w + i]; const x = X + i, y = Y + j; if (x < 0 || y < 0 || x >= m.W || y >= m.H) continue;
@@ -89,12 +96,14 @@
       if (!c) { c = { n, t: 'tiles', d: [] }; if (src.nome) c.nome = src.nome; if (src.z) c.z = src.z; if (ehAcima(c)) m.camadas.push(c); else { const k = m.camadas.findIndex(x => x && x.t === 'tiles' && ehAcima(x)); k < 0 ? m.camadas.push(c) : m.camadas.splice(k, 0, c); } }
       for (const e of src.d) { const inf = tsInfo[e[0]]; if (!inf) { r.pulados++; continue; } const px = X * T + e[1], py = Y * T + e[2];
         if (px % inf.tw || py % inf.th) { r.pulados++; continue; } if (!dentro(m, inf, px / inf.tw, py / inf.th)) { r.fora++; continue; } if (putTile(m, c, e[0], inf, px / inf.tw, py / inf.th, e[3], e[4])) r.n++; } }
+    if (clip.objetos && op.objetos) for (const a of clip.objetos) { const x = a[1] + X, y = a[2] + Y; if (x < 0 || x >= m.W || y <= 0 || y > m.H) { r.fora++; continue; }
+      const f = JSON.parse(JSON.stringify(a[3] || [])); if (f[2] && f[2].tv) { delete f[2].tv; if (!Object.keys(f[2]).length) f[2] = null; } const o = { k: a[0], x, y, f }; objF(o, f[0], f[1], f[2]); m.objetos.push(o); r.n++; }
     return r; }
   // tira do mapa os tilesets que ninguém usa e reajusta os números
   function compactar(m) { const usado = new Set(); for (const c of tiles(m)) for (const e of c.d) usado.add(e[0]); if (usado.size === m.tilesets.length) return;
     const novo = [], mapa = {}; m.tilesets.forEach((id, i) => { if (usado.has(i)) { mapa[i] = novo.length; novo.push(id); } });
     for (const c of tiles(m)) { for (const e of c.d) e[0] = mapa[e[0]]; IDX.delete(c); } m.tilesets = novo; }
 
-  const API = { T, PADRAO, ehAcima, nomeCamada, tiles, camada, padrao, novaCamada, moverCamada, tsIdx, putTile, apagarPx, carimbo, retTiles, baldeTiles, terreno, colisao, retGrade, baldeGrade, copiar, colar, apagarArea, compactar };
+  const API = { objF, objNs, objCel, objOp, baseLin, T, PADRAO, ehAcima, nomeCamada, tiles, camada, padrao, novaCamada, moverCamada, tsIdx, putTile, apagarPx, carimbo, retTiles, baldeTiles, terreno, colisao, retGrade, baldeGrade, copiar, colar, apagarArea, compactar };
   if (typeof module === 'object' && module.exports) module.exports = API; else G.Ferr = API;
 })(typeof window !== 'undefined' ? window : globalThis);

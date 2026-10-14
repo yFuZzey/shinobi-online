@@ -254,12 +254,19 @@ async function mapasDb() {
     const cat = { fpt: { ...MCAT.fpt }, tsz: [...MCAT.tsz] }, IM = {}, ci = n => Math.max(0, Math.min(8, n | 0));
     for (const r of imgs) { if (!/^c_[a-z0-9_]{2,28}$/.test(r.id || '') || (typeof r.png !== 'string' && !/^objetos\/[a-f0-9]{12}\.png$/.test(r.arquivo || ''))) continue;
       const f = [ci(r.fw) || 1, ci(r.fh) || 1, ci(r.off)]; cat.tsz.push(r.id); cat.fpt[r.id] = f; IM[r.id] = { ...(typeof r.png === 'string' ? { png: r.png } : { url: STORE() + r.arquivo }), w: r.w | 0, h: r.h | 0, dw: r.dw > 0 ? r.dw | 0 : 0, dh: r.dh > 0 ? r.dh | 0 : 0, px: r.px ? 1 : 0, fw: f[0], fh: f[1], off: f[2], ns: r.ns ? 1 : 0 }; }
+    // biblioteca do editor novo (sql/17): cada recorte vira um objeto "recurso.recorte" (pedaço da imagem, tamanho no mapa, âncora, parte da frente)
+    let rcs = []; try { rcs = await svc('/rest/v1/mapa_recursos?select=id,arquivo,w,h,grade,recortes') || []; } catch (e) { if (e.status !== 404 && e.status !== 400) throw e; }
+    const ni = (v, a, b, d) => Number.isFinite(+v) ? Math.max(a, Math.min(b, Math.round(+v))) : d;
+    for (const r of rcs) { if (!/^r_[a-z0-9_]{2,40}$/.test(r.id || '') || !/^(originais|derivados|tilesets|objetos)\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '') || !Array.isArray(r.recortes)) continue;
+      for (const c of r.recortes.slice(0, 2000)) { if (!c || !/^c\d{1,6}$/.test(c.id || '')) continue; const w = ni(c.w, 1, 8192, 0), h = ni(c.h, 1, 8192, 0); if (!w || !h) continue;
+        const k = r.id + '.' + c.id, dw = ni(c.dw, 1, 2048, w), dh = ni(c.dh, 1, 2048, h);
+        cat.tsz.push(k); cat.fpt[k] = [1, 1, 0];
+        IM[k] = { url: STORE() + r.arquivo, sx: ni(c.x, 0, 16384, 0), sy: ni(c.y, 0, 16384, 0), w, h, dw, dh, ax: ni(c.ax, -2048, 4096, Math.round(dw / 2)), ay: ni(c.ay, -2048, 4096, dh), corte: ni(c.corte, 0, dh, 0), px: 1, fw: 1, fh: 1, off: 0, ns: c.ns ? 1 : 0 }; } }
     const cv = crypto.createHash('sha1').update(JSON.stringify(Object.keys(IM).map(k => [k, cat.fpt[k]]))).digest('hex').slice(0, 10), mudouImg = cv !== MP_CV; MP_CV = cv;
     let tss = []; try { tss = await svc('/rest/v1/mapa_tilesets?select=*') || []; } catch (e) { if (e.status !== 404) throw e; }
     const TSM = {}; for (const r of tss) if (/^t_[a-z0-9_]{2,28}$/.test(r.id || '') && /^tilesets\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '')) TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: r.tw | 0, th: r.th | 0, mg: r.mg | 0, sp: r.sp | 0, px: r.px === false ? 0 : 1 };
-    let rcs = []; try { rcs = await svc('/rest/v1/mapa_recursos?select=id,arquivo,w,h,grade&grade=not.is.null') || []; } catch (e) { if (e.status !== 404 && e.status !== 400) throw e; } // biblioteca do editor novo (sql/17)
     for (const r of rcs) { const q = r.grade || {}; if (/^r_[a-z0-9_]{2,40}$/.test(r.id || '') && /^(originais|derivados|tilesets|objetos)\/[a-f0-9]{12}\.(png|webp|jpg|gif)$/.test(r.arquivo || '') && q.tw > 0 && q.th > 0)
-      TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: q.tw | 0, th: q.th | 0, mg: q.mg | 0, sp: q.sp | 0, px: 1 }; }
+      TSM[r.id] = { url: STORE() + r.arquivo, w: r.w | 0, h: r.h | 0, tw: q.tw | 0, th: q.th | 0, mg: q.mg | 0, my: q.my != null ? q.my | 0 : q.mg | 0, sp: q.sp | 0, px: 1 }; }
     const L = await svc('/rest/v1/mapas?select=id,nome,mapa&publicado=eq.true') || [], pub = {}, vistos = [];
     for (const r of L) {
       if (MAPAS_BASE.has(r.id)) continue;
@@ -271,7 +278,7 @@ async function mapasDb() {
     for (const id in MP_PUB) if (!pub[id]) { // despublicado: sai da lista; quem está dentro termina a visita, a sala some quando esvaziar
       const rm = rooms[id]; if (rm && rm.players.size) { pub[id] = MP_PUB[id]; continue; } delete MAPS[id]; delete rooms[id]; }
     MP_PUB = pub; MP_IMG = {}; MP_TS = {}; for (const id in pub) { for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]]; for (const t of pub[id].tilesets || []) if (TSM[t]) MP_TS[t] = TSM[t]; }
-    MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, (MP_IMG[k].png || MP_IMG[k].url).length]), MP_TS])).digest('hex').slice(0, 12);
+    MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, (MP_IMG[k].png || MP_IMG[k].url).length, MP_IMG[k].url, MP_IMG[k].sx, MP_IMG[k].sy, MP_IMG[k].w, MP_IMG[k].h, MP_IMG[k].ax, MP_IMG[k].ay, MP_IMG[k].corte]), MP_TS])).digest('hex').slice(0, 12);
     MP_PUB0 = {}; for (const id in pub) if (!pub[id].W) MP_PUB0[id] = pub[id]; // apps antigos só sabem desenhar 50×50
     MP_V0 = crypto.createHash('sha1').update(MP_V + ':' + Object.keys(MP_PUB0).join(',')).digest('hex').slice(0, 12);
     const n = Object.keys(pub).length; if (n !== MP_DB.n || MP_DB.motivo) log('mapas do painel: ' + n + ' publicado(s)');

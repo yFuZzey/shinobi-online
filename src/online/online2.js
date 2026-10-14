@@ -1388,7 +1388,14 @@ const MPK='so-mapas',MPX=new Set(Object.keys(MAPS));let MPV='';
 function mpPut(L){let ch=false;for(const k of Object.keys(L||{})){const m=L[k];if(MPX.has(k)||!m||typeof m.ground!=='string'||!Array.isArray(m.objects)||m.ground.length!==(m.W||m.N||50)*(m.H||m.N||50))continue;if(JSON.stringify(MAPS[k])!==JSON.stringify(m)){MAPS[k]=m;ch=true}}
  for(const k of Object.keys(MAPS))if(!MPX.has(k)&&!(L&&L[k])&&k!==CURMAP){delete MAPS[k];ch=true}return ch}
 // imagens próprias do editor: só passam a existir (TSZ/FPT/TX) depois de carregadas, para o desenho nunca pegar imagem pela metade
-function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!/^c_[a-z0-9_]{2,28}$/.test(k)||!r)continue;
+const MPB={}; // imagens inteiras já baixadas (por endereço), para recortar os objetos da biblioteca do editor novo
+function mpBase(u){return MPB[u]||(MPB[u]=new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>ok(i);i.onerror=()=>ok(null);i.src=u}))}
+function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!r)continue;
+  if(/^r_[a-z0-9_]{2,40}\.c\d{1,6}$/.test(k)){if(typeof r.url!=='string'||!/^https?:\/\//.test(r.url))continue; // recorte: pedaço (sx,sy,w,h) da imagem; desenhado em dw×dh com a âncora (ax,ay) no chão
+   FPT[k]=[Math.max(1,r.fw|0),Math.max(1,r.fh|0),r.off|0];const sig=JSON.stringify(r);if(TX[k]&&TS[k]===sig)continue;
+   ps.push(mpBase(r.url).then(b=>{if(!b)return;const w=Math.max(1,r.w|0),h=Math.max(1,r.h|0),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(b,r.sx|0,r.sy|0,w,h,0,0,w,h);
+    c.rc=1;c.dw=Math.max(1,r.dw|0||w);c.dh=Math.max(1,r.dh|0||h);c.ax=+r.ax;c.ay=+r.ay;c.corte=r.corte|0;c.px=r.px!==0;TX[k]=c;TS[k]=sig;TSZ[k]=[c.dw,c.dh]}));continue}
+  if(!/^c_[a-z0-9_]{2,28}$/.test(k))continue;
   const src=typeof r.png==='string'&&/^data:image\/(png|webp);base64,/.test(r.png)?r.png:(typeof r.url==='string'&&/^https?:\/\//.test(r.url)?r.url:'');if(!src)continue;
   FPT[k]=[Math.max(1,r.fw|0),Math.max(1,r.fh|0),r.off|0];
   // a imagem pode ter mais pixels do que o tamanho em que aparece no mapa (dw×dh): desenhada reduzida, fica nítida
@@ -1399,14 +1406,14 @@ function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if
 // ---- tilesets e camadas de tiles do editor (Chão e Detalhes entram no chão; Acima desenha por cima do jogador). Mapas sem camadas não passam por aqui.
 const TLS={};let TLM=null,GA=null;
 function tlsLoad(L){const ps=[];for(const id of Object.keys(L||{})){const r=L[id];if(!/^(t|r)_[a-z0-9_]{2,40}$/.test(id)||!r||typeof r.url!=='string'||!/^https?:\/\//.test(r.url))continue;
-  const o=TLS[id];if(o&&o.url===r.url){Object.assign(o,{tw:r.tw|0,th:r.th|0,mg:r.mg|0,sp:r.sp|0,px:!!r.px});continue}
-  ps.push(new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>{TLS[id]={img:i,url:r.url,tw:Math.max(1,r.tw|0),th:Math.max(1,r.th|0),mg:r.mg|0,sp:r.sp|0,px:!!r.px};ok()};i.onerror=ok;i.src=r.url}))}
+  const o=TLS[id],my=r.my!=null?r.my|0:r.mg|0;if(o&&o.url===r.url){Object.assign(o,{tw:r.tw|0,th:r.th|0,mg:r.mg|0,my,sp:r.sp|0,px:!!r.px});continue}
+  ps.push(new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>{TLS[id]={img:i,url:r.url,tw:Math.max(1,r.tw|0),th:Math.max(1,r.th|0),mg:r.mg|0,my,sp:r.sp|0,px:!!r.px};ok()};i.onerror=ok;i.src=r.url}))}
  return Promise.all(ps).then(()=>{if(ps.length&&TLM){GC=null;GA=null}})}
 function tlReady(){return !!TLM&&TLM.tilesets.every(id=>TLS[id])}
 const tlCima=c=>c.z?c.z==='acima':c.n==='acima'; // camada por cima do personagem (as outras ficam por baixo dos objetos, na ordem da lista)
 function tlDraw(g,cima){if(!TLM)return;g.save();g.imageSmoothingEnabled=false;
  for(const c of TLM.camadas){if(c.t!=='tiles'||tlCima(c)!==cima)continue;
-  for(const e of c.d){const t=TLS[TLM.tilesets[e[0]]];if(!t)continue;g.drawImage(t.img,t.mg+e[3]*(t.tw+t.sp),t.mg+e[4]*(t.th+t.sp),t.tw,t.th,e[1]*t.tw,e[2]*t.th,t.tw,t.th)}}
+  for(const e of c.d){const t=TLS[TLM.tilesets[e[0]]];if(!t)continue;g.drawImage(t.img,t.mg+e[3]*(t.tw+t.sp),t.my+e[4]*(t.th+t.sp),t.tw,t.th,e[1]*t.tw,e[2]*t.th,t.tw,t.th)}}
  g.restore()}
 {const _am=applyMap;applyMap=function(m){_am(m);TLM=m&&m.camadas&&m.tilesets?m:null;GA=null}}
 {const _bg=buildGround;buildGround=function(){_bg();if(TLM&&GC)tlDraw(GC.getContext('2d'),false)}}

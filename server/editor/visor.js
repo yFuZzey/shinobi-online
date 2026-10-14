@@ -35,9 +35,11 @@
       if (x1 > x0 && y1 > y0) { g.save(); g.beginPath(); g.rect(x0, y0, x1 - x0, y1 - y0); g.clip(); for (let y = Math.floor(y0 / 12) * 12; y < y1; y += 12) for (let x = Math.floor(x0 / 12) * 12; x < x1; x += 12) { g.fillStyle = ((x + y) / 12) % 2 ? '#8a8a8a' : '#b4b4b4'; g.fillRect(x, y, 12, 12); } g.restore(); }
       g.setTransform(this.s * d, 0, 0, this.s * d, this.ox * d, this.oy * d); g.imageSmoothingEnabled = false; g.drawImage(this.img, 0, 0);
       const lw = 1 / this.s;
-      if (this.grade && this.verGrade) { const q = this.grade, st = q.tw + q.sp, sh = q.th + q.sp; if (q.tw * this.s >= 3) { g.strokeStyle = 'rgba(255,60,60,.75)'; g.lineWidth = lw; g.beginPath();
-        for (let x = q.mg; x <= this.W; x += st) { g.moveTo(x, 0); g.lineTo(x, this.H); if (q.sp) { g.moveTo(x + q.tw, 0); g.lineTo(x + q.tw, this.H); } }
-        for (let y = q.mg; y <= this.H; y += sh) { g.moveTo(0, y); g.lineTo(this.W, y); if (q.sp) { g.moveTo(0, y + q.th); g.lineTo(this.W, y + q.th); } } g.stroke(); } }
+      if (this.grade && this.verGrade) { const q = this.grade, st = q.tw + q.sp, sh = q.th + q.sp, mx = q.mg || 0, my = q.my != null ? q.my : mx;
+        if (mx || my) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, 0, mx, this.H); g.fillRect(mx, 0, this.W - mx, my); } // margem (fora dos tiles)
+        if (q.tw * this.s >= 3) { g.strokeStyle = this.modo === 'grade' ? 'rgba(255,224,77,.95)' : 'rgba(255,60,60,.75)'; g.lineWidth = this.modo === 'grade' ? 1.6 * lw : lw; g.beginPath();
+        for (let x = mx; x <= this.W; x += st) { g.moveTo(x, 0); g.lineTo(x, this.H); if (q.sp) { g.moveTo(x + q.tw, 0); g.lineTo(x + q.tw, this.H); } }
+        for (let y = my; y <= this.H; y += sh) { g.moveTo(0, y); g.lineTo(this.W, y); if (q.sp) { g.moveTo(0, y + q.th); g.lineTo(this.W, y + q.th); } } g.stroke(); } }
       g.lineWidth = 2 * lw; g.font = (12 * lw) + 'px sans-serif';
       for (const c of this.cand) { g.setLineDash([5 * lw, 4 * lw]); g.strokeStyle = c.ok === false ? 'rgba(160,160,160,.7)' : '#ff4fd8'; g.strokeRect(c.x, c.y, c.w, c.h); }
       g.setLineDash([]);
@@ -49,7 +51,7 @@
     alcaPos(r, k) { const x = k.includes('w') ? r.x : k.includes('e') ? r.x + r.w : r.x + r.w / 2, y = k.includes('n') ? r.y : k.includes('s') ? r.y + r.h : r.y + r.h / 2; return this.paraTela(x, y); }
     // ---------- toque ----------
     pt(e) { const r = this.cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-    snap(v, eixo) { if (!this.encaixar || !this.grade) return Math.round(v); const q = this.grade, t = eixo === 'x' ? q.tw : q.th, st = t + q.sp; const k = Math.round((v - q.mg) / st), a = q.mg + k * st, b = q.mg + Math.round((v - q.mg - t) / st) * st + t; return Math.abs(v - a) <= Math.abs(v - b) ? a : b; }
+    snap(v, eixo) { if (!this.encaixar || !this.grade) return Math.round(v); const q = this.grade, t = eixo === 'x' ? q.tw : q.th, st = t + q.sp, m0 = eixo === 'x' ? (q.mg || 0) : (q.my != null ? q.my : (q.mg || 0)); const k = Math.round((v - m0) / st), a = m0 + k * st, b = m0 + Math.round((v - m0 - t) / st) * st + t; return Math.abs(v - a) <= Math.abs(v - b) ? a : b; }
     norm(x0, y0, x1, y1) { x0 = clamp(this.snap(x0, 'x'), 0, this.W); x1 = clamp(this.snap(x1, 'x'), 0, this.W); y0 = clamp(this.snap(y0, 'y'), 0, this.H); y1 = clamp(this.snap(y1, 'y'), 0, this.H);
       if (x1 < x0) [x0, x1] = [x1, x0]; if (y1 < y0) [y0, y1] = [y1, y0]; if (x1 === x0) x1 = Math.min(this.W, x0 + 1), x0 = x1 - 1; if (y1 === y0) y1 = Math.min(this.H, y0 + 1), y0 = y1 - 1; return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; }
     noRecorte(ip) { for (let i = this.recortes.length - 1; i >= 0; i--) { const r = this.recortes[i]; if (ip.x >= r.x && ip.x <= r.x + r.w && ip.y >= r.y && ip.y <= r.y + r.h) return r; } return null; }
@@ -68,13 +70,15 @@
       cv.addEventListener('pointerup', fim); cv.addEventListener('pointercancel', fim);
       cv.addEventListener('wheel', e => { e.preventDefault(); const p = this.pt(e); this.zoomEm(p.x, p.y, this.s * Math.exp(-e.deltaY * .0015)); }, { passive: false }); }
     inicio(p) { const ip = this.paraImg(p), a = this.alvo();
+      if (this.modo === 'grade' && this.grade) { const q = this.grade; this.op = { t: 'grade', p0: p, q0: Object.assign({}, q, { my: q.my != null ? q.my : (q.mg || 0) }), moveu: false }; return; } // arrastar a grade até encaixar no desenho
       if (a) for (const k of ALCAS) { const q = this.alcaPos(a, k); if (Math.hypot(q.x - p.x, q.y - p.y) <= 24) { const r0 = { x: a.x, y: a.y, w: a.w, h: a.h }; this.op = { t: 'alca', k, r: a, r0, p0: p, moveu: false, desfaz: () => Object.assign(a, r0) }; return; } }
       if (this.modo === 'sel') {
         if (a && ip.x >= a.x && ip.x <= a.x + a.w && ip.y >= a.y && ip.y <= a.y + a.h) { const r0 = { x: a.x, y: a.y, w: a.w, h: a.h }; this.op = { t: 'mover', r: a, r0, i0: ip, p0: p, moveu: false, desfaz: () => Object.assign(a, r0) }; return; }
         this.op = { t: 'novo', i0: ip, p0: p, moveu: false, desfaz: () => { this.pend = null; } }; return; }
       this.op = { t: 'pan', p0: p, ox: this.ox, oy: this.oy, moveu: false }; }
-    mover(p) { const o = this.op; if (!o) return; if (!o.moveu && Math.hypot(p.x - o.p0.x, p.y - o.p0.y) > (o.t === 'alca' ? 3 : 8)) o.moveu = true; /* alça: começa a mexer com pouco movimento (ajuste fino) */ if (!o.moveu) return; o.ult = p;
+    mover(p) { const o = this.op; if (!o) return; if (!o.moveu && Math.hypot(p.x - o.p0.x, p.y - o.p0.y) > (o.t === 'alca' || o.t === 'grade' ? 3 : 8)) o.moveu = true; /* alça: começa a mexer com pouco movimento (ajuste fino) */ if (!o.moveu) return; o.ult = p;
       if (o.t === 'pan') { this.ox = o.ox + p.x - o.p0.x; this.oy = o.oy + p.y - o.p0.y; this.desenhar(); return; }
+      if (o.t === 'grade') { const q = o.q0, md = (v, n) => ((v % n) + n) % n; this.grade = Object.assign({}, q, { mg: md(Math.round(q.mg + (p.x - o.p0.x) / this.s), q.tw + q.sp), my: md(Math.round(q.my + (p.y - o.p0.y) / this.s), q.th + q.sp) }); this.desenhar(); this.cb.gradeMexe && this.cb.gradeMexe(this.grade); return; }
       this.aplicar(p); this.autoPan(); }
     aplicar(p) { const o = this.op, ip = this.paraImg(p);
       if (o.t === 'novo') { this.pend = this.norm(o.i0.x, o.i0.y, ip.x, ip.y); this.sel = null; }
@@ -90,6 +94,7 @@
       this.auto = requestAnimationFrame(passo); }
     terminar(p, cancel) { const o = this.op; this.op = null; cancelAnimationFrame(this.auto); this.auto = 0; if (!o) return;
       if (cancel) { o.desfaz && o.desfaz(); this.desenhar(); return; }
+      if (o.t === 'grade') { if (o.moveu && this.cb.gradeFim) this.cb.gradeFim(this.grade, o.q0); this.desenhar(); return; }
       if (!o.moveu) { // toque: seleciona o recorte / candidato tocado
         const ip = this.paraImg(p); if (this.cb.toqueImg && this.cb.toqueImg(ip)) { this.desenhar(); return; } const c = this.noCand(ip); if (c && this.cb.toqueCand) { this.cb.toqueCand(c); this.desenhar(); return; }
         if (this.pend && o.t === 'novo') { this.desenhar(); return; }

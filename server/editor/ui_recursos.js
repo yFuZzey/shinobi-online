@@ -64,12 +64,14 @@
     mexendo: () => { if (RS.aba === 'recortes') valoresVivos(); },
     muda: (r, r0) => { const antes = estado(); const k = antes.recortes.find(x => x.id === r.id); if (k) Object.assign(k, r0); empilha(antes); marca(); if (RS.aba === 'recortes') painel('recortes'); },
     toqueCand: c => { c.ok = c.ok === false; if (RS.aba === 'detectar') painel('detectar'); },
-    toqueImg: ip => { if (!RS.gotas) return false; pegarCor(ip); return true; } });
+    toqueImg: ip => { if (!RS.gotas) return false; pegarCor(ip); return true; },
+    gradeMexe: g => { if ($('#rgMg')) { $('#rgMg').value = g.mg; $('#rgMy').value = g.my; } },
+    gradeFim: (g, g0) => { const antes = estado(); antes.grade = Object.assign({}, g0); RS.r.grade = Object.assign({}, g); empilha(antes); marca(); if (RS.aba === 'grade') painel('grade'); } });
   async function abrirRecurso(id) { const st = $('#bbSt'); st.className = 'status'; st.textContent = 'Abrindo…';
     try { const r = await Rc.ler(id); if (!r) throw new Error('Esse recurso não existe mais.'); const img = await Rc.abrirUrl(Rc.url(r.original)); st.textContent = ''; editar(r, img, null); }
     catch (e) { st.className = 'status err'; st.textContent = Rc.erroSql(e); } }
   function editar(r, img, file) {
-    RS.r = JSON.parse(JSON.stringify(r)); RS.gradeOrig = JSON.stringify(r.grade || null); RS.img = img; RS.file = file; RS.novo = !r.id; RS.sujo = RS.novo; RS.des = []; RS.ref = []; RS.gotas = false; RS.arqFundo = r.fundo ? r.arquivo : null;
+    RS.r = JSON.parse(JSON.stringify(r)); RS.gradeOrig = JSON.stringify(r.grade || null); RS.recOrig = JSON.stringify(r.recortes || []); RS.img = img; RS.file = file; RS.novo = !r.id; RS.sujo = RS.novo; RS.des = []; RS.ref = []; RS.gotas = false; RS.arqFundo = r.fundo ? r.arquivo : null;
     RS.od = Rc.pixels(img); RS.an = RS.od ? Rc.analisar(RS.od) : null; RS.fundoCv = null; if (RS.r.fundo && RS.od) refazFundo();
     RS.r.meta = RS.r.meta || {}; RS.seq = Math.max(0, ...RS.r.recortes.map(c => +String(c.id).slice(1) || 0));
     $('#biblio').hidden = true; $('#recurso').hidden = false; vis.pend = null; vis.cand = []; vis.sel = null; $('#rcPend').hidden = true; avisoGotas();
@@ -86,7 +88,7 @@
   function volta(de, para) { if (!de.length) return; para.push(estado()); const s = de.pop(); const fundoMudou = JSON.stringify(s.fundo) !== JSON.stringify(RS.r.fundo); Object.assign(RS.r, s);
     if (fundoMudou) refazFundo(); vis.pend = null; $('#rcPend').hidden = true; if (vis.sel && !RS.r.recortes.some(c => c.id === vis.sel)) vis.sel = null; RS.sujo = true; sincVisor(); topo(); if (RS.aba) painel(RS.aba); }
   $('#rcDesf').onclick = () => volta(RS.des, RS.ref); $('#rcRef').onclick = () => volta(RS.ref, RS.des);
-  function modo(m) { vis.modo = m; $('#rcMover').setAttribute('aria-pressed', m === 'mover'); $('#rcSel').setAttribute('aria-pressed', m === 'sel'); }
+  function modo(m) { vis.modo = m; $('#rcMover').setAttribute('aria-pressed', m === 'mover'); $('#rcSel').setAttribute('aria-pressed', m === 'sel'); vis.desenhar(); }
   $('#rcMover').onclick = () => modo('mover'); $('#rcSel').onclick = () => modo('sel');
   $('#rcZp').onclick = () => vis.zoom(1.25); $('#rcZm').onclick = () => vis.zoom(1 / 1.25); $('#rcZa').onclick = () => vis.ajustar();
   window.addEventListener('resize', () => { if (!$('#recurso').hidden) vis.tamanho(); });
@@ -120,11 +122,14 @@
         <p class="mudo" id="rfInfo">${RS.removidos != null ? 'Removidos ' + RS.removidos.toLocaleString('pt-BR') + ' pixels (' + (RS.removidos / (r.w * r.h) * 100).toFixed(1) + '%).' : ''}</p>
         <button class="btn" id="rfVolta">Voltar ao original</button>` : ''}`; }
     else if (a === 'grade') { $('#rcPnT').textContent = 'Grade (tileset)';
-      const q = r.grade; const cr = q ? [Math.max(0, Math.floor((r.w - q.mg + q.sp) / (q.tw + q.sp))), Math.max(0, Math.floor((r.h - q.mg + q.sp) / (q.th + q.sp)))] : null;
+      const q = r.grade, my = q ? (q.my != null ? q.my : q.mg) : 0; const cr = q ? [Math.max(0, Math.floor((r.w - q.mg + q.sp) / (q.tw + q.sp))), Math.max(0, Math.floor((r.h - my + q.sp) / (q.th + q.sp)))] : null;
       h = `<label class="chk"><input type="checkbox" id="rgOn" ${q ? 'checked' : ''}> Esta imagem tem grade de tiles</label>` + (q ? `
         <div class="grade4"><div><label class="lbl">Largura</label><input id="rgTw" type="number" min="1" max="1024" value="${q.tw}"></div><div><label class="lbl">Altura</label><input id="rgTh" type="number" min="1" max="1024" value="${q.th}"></div>
-        <div><label class="lbl">Margem</label><input id="rgMg" type="number" min="0" max="512" value="${q.mg}"></div><div><label class="lbl">Espaço</label><input id="rgSp" type="number" min="0" max="128" value="${q.sp}"></div></div>
-        <p class="mudo">${cr[0]}×${cr[1]} tiles de ${q.tw}×${q.th} px. A imagem não é cortada: a grade é só uma informação.</p>
+        <div><label class="lbl">Início X</label><input id="rgMg" type="number" min="0" max="2048" value="${q.mg}"></div><div><label class="lbl">Início Y</label><input id="rgMy" type="number" min="0" max="2048" value="${my}"></div></div>
+        <div class="grade4" style="margin-top:6px"><div><label class="lbl">Espaço</label><input id="rgSp" type="number" min="0" max="128" value="${q.sp}"></div></div>
+        <button class="btn ${vis.modo === 'grade' ? 'pri' : ''}" id="rgArr" style="width:100%;margin-top:8px">${vis.modo === 'grade' ? '✥ Arrastando a grade — toque para terminar' : '✥ Arrastar a grade (encaixar no desenho)'}</button>
+        <label class="lbl" style="margin-top:8px">Ajuste fino (1 px)</label><div class="presets"><button data-gn="x,-1">← X</button><button data-gn="x,1">X →</button><button data-gn="y,-1">↑ Y</button><button data-gn="y,1">Y ↓</button><button data-gn="w,-1">Tile − </button><button data-gn="w,1">Tile +</button></div>
+        <p class="mudo">${cr[0]}×${cr[1]} tiles de ${q.tw}×${q.th} px. Mover a grade não mexe na imagem: só diz onde cada tile começa (a área escura fica de fora).</p>
         <label class="chk"><input type="checkbox" id="rgVer" ${vis.verGrade ? 'checked' : ''}> Mostrar a grade</label>
         <label class="chk"><input type="checkbox" id="rgEnc" ${vis.encaixar ? 'checked' : ''}> Encaixar seleções na grade</label>` : '<p class="mudo">Para tilesets regulares. Spritesheets com peças de tamanhos variados usam recortes livres.</p>'); }
     else if (a === 'recortes') { $('#rcPnT').textContent = 'Recortes (' + r.recortes.length + ')';
@@ -135,8 +140,9 @@
           <div class="grade2"><div><label class="lbl">Nome</label><input id="rrNome" maxlength="40" value="${esc(c.nome)}"></div><div><label class="lbl">Categoria</label><input id="rrCat" list="riCats2" maxlength="40" value="${esc(c.cat || '')}"><datalist id="riCats2">${Rc.CATS.map(x => `<option value="${esc(x)}">`).join('')}</datalist></div></div>
           <label class="lbl" style="margin-top:8px">Recorte no arquivo original (px)</label>
           <div class="grade4"><div><label class="lbl">X</label><input id="rrX" type="number" value="${c.x}"></div><div><label class="lbl">Y</label><input id="rrY" type="number" value="${c.y}"></div><div><label class="lbl">Largura</label><input id="rrW" type="number" value="${c.w}"></div><div><label class="lbl">Altura</label><input id="rrH" type="number" value="${c.h}"></div></div>
-          <p class="mudo">Tamanho no mapa, âncora e colisão: Fase 4 (separados do recorte; o arquivo não muda).</p>
+          ${propsRecorte(c)}
           <div class="linha" style="margin-top:8px"><button class="btn" id="rrDup">Duplicar</button><button class="btn perigo" id="rrDel">Excluir recorte</button></div></div>` : '') +
+        (r.recortes.length ? '' : '<button class="btn" id="rrInteira" style="width:100%">Usar a imagem inteira como um objeto</button>') +
         r.recortes.map(x => `<div class="lrec ${x.id === vis.sel ? 'on' : ''}" data-rr="${x.id}"><b>${esc(x.nome)}</b><small class="mudo">${x.w}×${x.h} · ${x.x},${x.y}</small></div>`).join(''); }
     else if (a === 'detectar') { $('#rcPnT').textContent = 'Detectar peças (opcional)';
       const an = RS.an, cor = r.fundo ? r.fundo.cor : an && an.solido ? an.solido.cor : null, ok = vis.cand.filter(c => c.ok !== false).length;
@@ -160,9 +166,13 @@
         $('#rfVolta').onclick = () => { mudar(x => { x.fundo = null; }); refazFundo(); sincVisor(); painel('fundo'); U.toast('Voltou ao original'); }; } }
     if (a === 'grade') { $('#rgOn').onchange = e => { mudar(x => { x.grade = e.target.checked ? { tw: 32, th: 32, mg: 0, sp: 0 } : null; }); painel('grade'); };
       if (r.grade) { const num = (id, k, a0, b0) => $(id).onchange = e => { const v = clamp(Math.round(+e.target.value || 0), a0, b0); mudar(x => { x.grade = Object.assign({}, x.grade, { [k]: v }); }); painel('grade'); };
-        num('#rgTw', 'tw', 1, 1024); num('#rgTh', 'th', 1, 1024); num('#rgMg', 'mg', 0, 512); num('#rgSp', 'sp', 0, 128);
+        num('#rgTw', 'tw', 1, 1024); num('#rgTh', 'th', 1, 1024); num('#rgMg', 'mg', 0, 2048); num('#rgMy', 'my', 0, 2048); num('#rgSp', 'sp', 0, 128);
+        $('#rgArr').onclick = () => { if (vis.modo === 'grade') { modo('mover'); } else { vis.verGrade = true; modo('grade'); } painel('grade'); };
+        document.querySelectorAll('[data-gn]').forEach(b => b.onclick = () => { const [k, d] = b.dataset.gn.split(','), g = Object.assign({}, r.grade); if (g.my == null) g.my = g.mg;
+          if (k === 'x') g.mg = Math.max(0, g.mg + +d); else if (k === 'y') g.my = Math.max(0, g.my + +d); else { g.tw = clamp(g.tw + +d, 1, 1024); g.th = clamp(g.th + +d, 1, 1024); } mudar(x => { x.grade = g; }); painel('grade'); });
         $('#rgVer').onchange = e => { vis.verGrade = e.target.checked; vis.desenhar(); }; $('#rgEnc').onchange = e => { vis.encaixar = e.target.checked; }; } }
     if (a === 'recortes') {
+      if ($('#rrInteira')) $('#rrInteira').onclick = () => { const id = 'c' + (++RS.seq); mudar(x => x.recortes.push({ id, nome: x.nome, cat: x.categoria || '', x: 0, y: 0, w: x.w, h: x.h })); vis.sel = id; sincVisor(); painel('recortes'); };
       document.querySelectorAll('[data-rr]').forEach(d => d.onclick = () => { vis.sel = d.dataset.rr; const c = r.recortes.find(x => x.id === vis.sel); vis.focar(c, Math.min(vis.s * 1.0, 64)); painel('recortes'); });
       const c = r.recortes.find(x => x.id === vis.sel); if (!c) return; prevRecorte(c);
       $('#rrFoco').onclick = () => { const rc = vis.cv.getBoundingClientRect(); vis.focar(c, clamp(Math.min(rc.width / c.w, rc.height / c.h) * .6, .02, 64)); };
@@ -172,6 +182,18 @@
         if (![X, Y, Wd, Hd].every(Number.isFinite) || Wd < 1 || Hd < 1 || X < 0 || Y < 0 || X + Wd > r.w || Y + Hd > r.h) { U.toast('Fora da imagem (0 a ' + r.w + ' × 0 a ' + r.h + ')'); painel('recortes'); return; }
         mudar(x => Object.assign(x.recortes.find(k => k.id === c.id), { x: X, y: Y, w: Wd, h: Hd })); painel('recortes'); };
       ['#rrX', '#rrY', '#rrW', '#rrH'].forEach(i => $(i).onchange = geo);
+      mapaRecorte(c);
+      const d = dims(c), prop = () => $('#rdProp').checked;
+      $('#rdW2').onchange = e => { const v = clamp(Math.round(+e.target.value || 0), 1, 2048); setRec(c.id, k => { const h = prop() ? Math.max(1, Math.round(v * c.h / c.w)) : (k.dh || k.h); const dd = dims(k); k.dw = v; k.dh = h; k.ax = Math.round(dd.ax * v / dd.dw); k.ay = Math.round(dd.ay * h / dd.dh); if (k.corte) k.corte = Math.round(k.corte * h / dd.dh); k.livre = !prop(); }); };
+      $('#rdH2').onchange = e => { const v = clamp(Math.round(+e.target.value || 0), 1, 2048); setRec(c.id, k => { const w = prop() ? Math.max(1, Math.round(v * c.w / c.h)) : (k.dw || k.w); const dd = dims(k); k.dh = v; k.dw = w; k.ax = Math.round(dd.ax * w / dd.dw); k.ay = Math.round(dd.ay * v / dd.dh); if (k.corte) k.corte = Math.round(k.corte * v / dd.dh); k.livre = !prop(); }); };
+      $('#rdProp').onchange = e => setRec(c.id, k => { k.livre = !e.target.checked; if (e.target.checked) { const dd = dims(k); k.dh = Math.max(1, Math.round(dd.dw * c.h / c.w)); k.ay = Math.round(dd.ay * k.dh / dd.dh); } });
+      document.querySelectorAll('[data-esc]').forEach(b => b.onclick = () => { const f = +b.dataset.esc; setRec(c.id, k => { const dd = dims(k), w = Math.max(1, Math.round(c.w * f)), h = Math.max(1, Math.round(c.h * f)); k.dw = w; k.dh = h; k.ax = Math.round(dd.ax * w / dd.dw); k.ay = Math.round(dd.ay * h / dd.dh); if (k.corte) k.corte = Math.round(k.corte * h / dd.dh); k.livre = false; }); });
+      document.querySelectorAll('[data-anc]').forEach(b => b.onclick = () => setRec(c.id, k => { const dd = dims(k); k.ay = dd.dh; k.ax = b.dataset.anc === 'c' ? Math.round(dd.dw / 2) : b.dataset.anc === 'e' ? 16 : dd.dw - 16; }));
+      $('#rdAx').onchange = e => setRec(c.id, k => { k.ax = clamp(Math.round(+e.target.value || 0), -2048, 4096); });
+      $('#rdAy').onchange = e => setRec(c.id, k => { k.ay = clamp(Math.round(+e.target.value || 0), -2048, 4096); });
+      $('#rdCt').onchange = e => setRec(c.id, k => { k.corte = clamp(Math.round(+e.target.value || 0), 0, dims(k).dh); });
+      $('#rdNs').onchange = e => setRec(c.id, k => { k.ns = e.target.checked; });
+      $('#rdColP').onclick = () => setRec(c.id, k => { k.col = [[0, 0]]; k.ns = false; });
       $('#rrDup').onclick = () => { const id = 'c' + (++RS.seq); mudar(x => x.recortes.push(Object.assign({}, c, { id, nome: c.nome + ' (cópia)', x: clamp(c.x + 8, 0, r.w - c.w), y: clamp(c.y + 8, 0, r.h - c.h) }))); vis.sel = id; sincVisor(); painel('recortes'); };
       $('#rrDel').onclick = async () => { const ok = await U.dlg('Excluir recorte?', `<p>Excluir <b>${esc(c.nome)}</b>? Dá para desfazer (↶).</p>`, [{ t: 'Excluir', v: 1, c: 'perigo' }, { t: 'Cancelar', v: 0 }]); if (!ok) return;
         mudar(x => { x.recortes = x.recortes.filter(k => k.id !== c.id); }); vis.sel = null; sincVisor(); painel('recortes'); }; }
@@ -184,6 +206,42 @@
           mudar(x => { for (const c of L) { const id = 'c' + (++RS.seq); x.recortes.push({ id, nome: 'Peça ' + RS.seq, cat: x.categoria || '', x: c.x, y: c.y, w: c.w, h: c.h }); } });
           vis.cand = []; sincVisor(); U.toast(L.length + ' recorte(s) adicionados'); abaRc('recortes', true); }; } } }
   function valoresVivos() { const c = RS.r.recortes.find(x => x.id === vis.sel); if (!c || !$('#rrX')) return; $('#rrX').value = c.x; $('#rrY').value = c.y; $('#rrW').value = c.w; $('#rrH').value = c.h; }
+  /* ---------- propriedades do recorte no mapa (Fase 4): tamanho de exibição, âncora, parte da frente, colisão ----------
+     O arquivo não muda: dw/dh = tamanho em que aparece no mapa; ax/ay = ponto que fica no chão (px do desenho já no tamanho do mapa);
+     corte = linha (px do topo) acima da qual o desenho fica sempre na frente do personagem; col = células de colisão (tiles de 32 px)
+     contadas a partir do tile da âncora; ns = sem colisão. */
+  const dims = c => { const dw = c.dw || c.w, dh = c.dh || c.h; return { dw, dh, ax: c.ax != null ? c.ax : Math.round(dw / 2), ay: c.ay != null ? c.ay : dh, corte: c.corte || 0, col: c.col || [[0, 0]], ns: !!c.ns }; };
+  function propsRecorte(c) { const d = dims(c), r = RS.r;
+    return `<div class="prob ok" style="margin:8px 0">Arquivo original: <b>${r.w}×${r.h}</b> · Recorte: <b>${c.w}×${c.h}</b> em ${c.x},${c.y} · No mapa: <b>${d.dw}×${d.dh}</b> · Colisão: <b>${d.ns ? 'nenhuma' : d.col.length + ' tile(s)'}</b></div>
+      <label class="lbl">Tamanho no mapa (px) — não muda o arquivo nem a colisão</label>
+      <div class="grade4"><div><input id="rdW2" type="number" min="1" max="2048" value="${d.dw}" aria-label="Largura no mapa"></div><div><input id="rdH2" type="number" min="1" max="2048" value="${d.dh}" aria-label="Altura no mapa"></div>
+      <label class="chk" style="grid-column:span 2"><input type="checkbox" id="rdProp" ${c.livre ? '' : 'checked'}> Manter proporção</label></div>
+      <div class="presets"><button data-esc=".5">50%</button><button data-esc="1">Original</button><button data-esc="2">200%</button><button data-esc="3">300%</button></div>
+      <label class="lbl">Âncora (o ponto que fica no chão e decide quem passa na frente)</label>
+      <div class="presets"><button data-anc="c">Base centro</button><button data-anc="e">Base esquerda</button><button data-anc="d">Base direita</button></div>
+      <div class="grade4"><div><label class="lbl">X</label><input id="rdAx" type="number" value="${d.ax}"></div><div><label class="lbl">Y</label><input id="rdAy" type="number" value="${d.ay}"></div>
+      <div style="grid-column:span 2"><label class="lbl">Frente do personagem: linha (px do topo; 0 = desligado)</label><input id="rdCt" type="number" min="0" max="${d.dh}" value="${d.corte}"></div></div>
+      <p class="mudo">Acima da linha amarela o desenho fica sempre na frente do personagem (copa, telhado). Abaixo, segue a ordem pela base. A imagem não é duplicada.</p>
+      <label class="lbl">Como fica no mapa (toque nos quadrados para ligar/desligar a colisão)</label>
+      <canvas id="rrMapa" class="zoomPrev" style="touch-action:manipulation"></canvas>
+      <label class="chk"><input type="checkbox" id="rdNs" ${d.ns ? 'checked' : ''}> Sem colisão (o personagem atravessa)</label>
+      <button class="btn peq" id="rdColP">Colisão padrão (1 tile na âncora)</button>`; }
+  // desenha o recorte no tamanho do mapa sobre grama, com a grade de 32 px, a âncora, a linha da frente e a colisão
+  function mapaRecorte(c) { const cv = $('#rrMapa'); if (!cv) return; const d = dims(c), src = RS.r.fundo && RS.fundoCv ? RS.fundoCv : RS.img, T = 32;
+    // o tile da âncora fica no centro; mostra 2 tiles de folga em volta do desenho
+    const esq = Math.ceil(d.ax / T) + 1, dir = Math.ceil((d.dw - d.ax) / T) + 1, cima = Math.ceil(d.ay / T) + 1, baixo = 2, cols = esq + dir, rows = cima + baixo;
+    const z = clamp(Math.floor(Math.min(340 / (cols * T), 300 / (rows * T)) * 4) / 4, .25, 3); cv.width = Math.round(cols * T * z); cv.height = Math.round(rows * T * z);
+    const g = cv.getContext('2d'), gr = window.Render.TX.g1; g.imageSmoothingEnabled = false; g.setTransform(z, 0, 0, z, 0, 0);
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) { if (gr && gr.naturalWidth) g.drawImage(gr, x * T, y * T, T, T); else { g.fillStyle = (x + y) % 2 ? '#4f8a3c' : '#5b9a4a'; g.fillRect(x * T, y * T, T, T); } }
+    const ax0 = esq * T - T / 2, ay0 = cima * T; // âncora = meio de baixo do tile (esq-1, cima-1)
+    const ox = ax0 - d.ax, oy = ay0 - d.ay; g.drawImage(src, c.x, c.y, c.w, c.h, ox, oy, d.dw, d.dh);
+    if (!d.ns) { g.fillStyle = 'rgba(230,40,60,.45)'; for (const [dx, dy] of d.col) g.fillRect((esq - 1 + dx) * T, (cima - 1 + dy) * T, T, T); }
+    g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1 / z; g.beginPath(); for (let x = 0; x <= cols; x++) { g.moveTo(x * T, 0); g.lineTo(x * T, rows * T); } for (let y = 0; y <= rows; y++) { g.moveTo(0, y * T); g.lineTo(cols * T, y * T); } g.stroke();
+    if (d.corte) { g.strokeStyle = '#ffe04d'; g.lineWidth = 2 / z; g.setLineDash([5 / z, 3 / z]); g.beginPath(); g.moveTo(ox - 6, oy + d.corte); g.lineTo(ox + d.dw + 6, oy + d.corte); g.stroke(); g.setLineDash([]); }
+    g.fillStyle = '#2f8cff'; g.strokeStyle = '#fff'; g.lineWidth = 2 / z; g.beginPath(); g.arc(ax0, ay0, 5 / z, 0, 7); g.fill(); g.stroke();
+    cv.onclick = e => { const b = cv.getBoundingClientRect(), x = Math.floor((e.clientX - b.left) * cv.width / b.width / z / T), y = Math.floor((e.clientY - b.top) * cv.height / b.height / z / T), dx = x - (esq - 1), dy = y - (cima - 1);
+      setRec(c.id, k => { const L = (k.col || [[0, 0]]).slice(), i = L.findIndex(a => a[0] === dx && a[1] === dy); if (i >= 0) L.splice(i, 1); else L.push([dx, dy]); k.col = L; k.ns = false; }); }; }
+  function setRec(id, fn) { mudar(x => fn(x.recortes.find(k => k.id === id))); painel('recortes'); }
   function prevRecorte(c) { const cv = $('#rrPrev'), src = RS.r.fundo && RS.fundoCv ? RS.fundoCv : RS.img, z = clamp(Math.floor(Math.min(300 / c.w, 160 / c.h)), 1, 16);
     cv.width = c.w * z; cv.height = c.h * z; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(src, c.x, c.y, c.w, c.h, 0, 0, c.w * z, c.h * z); cv.title = 'Ampliado ' + z + '×'; }
   // fundo
@@ -196,6 +254,8 @@
   /* ---------- salvar ---------- */
   async function salvar() { const r = RS.r; if (!P.sessao()) { U.aviso('Entre primeiro', 'Volte para a lista de mapas e entre com a conta admin.'); return false; }
     if (!r.nome || !r.nome.trim()) { U.aviso('Falta o nome', 'Dê um nome ao recurso (aba Info).'); return false; }
+    if (!RS.novo) { const ant = JSON.parse(RS.recOrig || '[]'), mud = ant.filter(o => { const n = r.recortes.find(k => k.id === o.id); return !n || ['x', 'y', 'w', 'h', 'dw', 'dh', 'ax', 'ay', 'corte'].some(f => (n[f] || 0) !== (o[f] || 0)); }).map(o => r.id + '.' + o.id);
+      if (mud.length) { const us = await usos(null, mud); if (us.length) { const v = await U.dlg('Recortes usados em mapas', '<p>Você mudou ou apagou recortes que já estão nestes mapas; eles vão aparecer diferentes (ou sumir, se apagados):</p><ul class="perdas">' + us.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul><p class="mudo">A colisão de cada objeto já colocado não muda sozinha.</p>', [{ t: 'Salvar mesmo assim', v: 1, c: 'perigo' }, { t: 'Cancelar', v: 0 }]); if (!v) return false; } } }
     if (!RS.novo && JSON.stringify(r.grade || null) !== RS.gradeOrig) { const us = await usos(r.id);
       if (us.length) { const v = await U.dlg('Grade alterada', '<p>Estes mapas usam este tileset; com a grade nova os tiles deles podem mudar de lugar ou de desenho:</p><ul class="perdas">' + us.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>', [{ t: 'Salvar mesmo assim', v: 1, c: 'perigo' }, { t: 'Cancelar', v: 0 }]); if (!v) return false; } }
     $('#rcSalvar').disabled = true; U.toast('Enviando…');
@@ -207,13 +267,14 @@
       if (RS.novo) { r.id = Rc.novoId(r.nome, new Set(B.lista.map(k => k.id))); try { x = await Rc.criar(r); } catch (e) { if (!e.existe) throw e; r.id = Rc.novoId(r.nome + '_' + Date.now() % 1000, new Set()); x = await Rc.criar(r); } }
       else { try { x = await Rc.atualizar(r); }
         catch (e) { if (!e.conflito) throw e; const v = await U.dlg('Alterado em outro lugar', '<p>Este recurso foi salvo por outra tela depois que você abriu. Sobrescrever substitui aquela versão.</p>', [{ t: 'Sobrescrever', v: 1, c: 'perigo' }, { t: 'Cancelar', v: 0 }]); if (!v) return false; x = await Rc.atualizar(r, true); } }
-      RS.r = Object.assign(RS.r, x); RS.gradeOrig = JSON.stringify(RS.r.grade || null); RS.novo = false; RS.sujo = false; RS.file = null; sincVisor(); topo(); U.toast('Recurso salvo'); if (RS.aba) painel(RS.aba); return true;
+      RS.r = Object.assign(RS.r, x); RS.gradeOrig = JSON.stringify(RS.r.grade || null); RS.recOrig = JSON.stringify(RS.r.recortes || []); RS.novo = false; RS.sujo = false; RS.file = null; sincVisor(); topo(); U.toast('Recurso salvo'); if (RS.aba) painel(RS.aba); return true;
     } catch (e) { U.aviso('Não consegui salvar', esc(Rc.erroSql(e))); return false; }
     finally { $('#rcSalvar').disabled = false; } }
   // mapas (rascunhos do aparelho e do servidor) que usam o tileset
-  async function usos(id) { const L = [];
-    for (const x of await P.listar()) { const r = await P.ler(x.id); if (r && r.mapa && (r.mapa.tilesets || []).includes(id)) L.push(x.nome + ' (' + x.id + ', no aparelho)'); }
-    try { for (const r of (await P.api('/rest/v1/mapas?select=id,nome,mapa')) || []) if (r.mapa && (r.mapa.tilesets || []).includes(id) && !L.some(t => t.includes('(' + r.id + ','))) L.push((r.nome || r.id) + ' (' + r.id + ', no servidor)'); } catch (e) { }
+  // mapas (aparelho e servidor) que usam o tileset id ou algum dos objetos (chaves "recurso.recorte")
+  async function usos(id, chaves) { const L = [], usa = mp => mp && ((id && (mp.tilesets || []).includes(id)) || (chaves && (mp.objects || []).some(o => Array.isArray(o) && chaves.includes(o[0]))));
+    for (const x of await P.listar()) { const r = await P.ler(x.id); if (r && usa(r.mapa)) L.push(x.nome + ' (' + x.id + ', no aparelho)'); }
+    try { for (const r of (await P.api('/rest/v1/mapas?select=id,nome,mapa')) || []) if (usa(r.mapa) && !L.some(t => t.includes('(' + r.id + ','))) L.push((r.nome || r.id) + ' (' + r.id + ', no servidor)'); } catch (e) { }
     return L; }
   $('#rcSalvar').onclick = salvar;
   $('#rcVoltar').onclick = async () => { if (RS.sujo) { const v = await U.dlg(RS.novo ? 'Importação não salva' : 'Alterações não salvas', RS.novo ? '<p>A imagem ainda não foi enviada. Salvar agora?</p>' : '<p>Salvar antes de sair?</p>', [{ t: 'Salvar', v: 's', c: 'pri' }, { t: RS.novo ? 'Descartar importação' : 'Descartar alterações', v: 'd', c: 'perigo' }, { t: 'Continuar editando', v: null }]);

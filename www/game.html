@@ -827,7 +827,7 @@ function applyMap(m){
   if(t==2)SWC[cy*AGW+cx]=1;
   else{WC[cy*AGW+cx]=t==3?2:1;for(let j=0;j<2;j++)for(let i=0;i<2;i++)setM(cx*2+i,cy*2+j,t==5?3:2);if(t==5)BRD.push([cx,cy])}}
  for(let y=0;y<NH;y++)for(let x=0;x<N;x++)if(ring(x,y))M[y*N+x]=1;
- for(const r of m.objects){const k=r[0];if(!TSZ[k])continue;const o={k,x:r[1]*T,y:r[2]*T};OB.push(o);
+ for(const r of m.objects){const k=r[0];if(!TSZ[k])continue;const o={k,x:r[1]*T,y:r[2]*T};OB.push(o);const q=r[5];if(q&&typeof q==='object'){if(q.e>0)o.e=Math.min(8,+q.e);if(q.z==='chao'||q.z==='acima')o.z=q.z;if(q.b)o.b=q.b|0}
   const f=FPT[k]||[1,1,0],base=Math.floor((o.y-1)/T),x0=Math.round(r[1]-f[0]/2),y1=base-f[2];
   if(Array.isArray(r[4])){const bx=Math.floor(r[1]);for(const a of r[4])setM(bx+a[0],base+a[1],1)}
   else if(!r[3])for(let y=y1-f[1]+1;y<=y1;y++)for(let x=x0;x<x0+f[0];x++)setM(x,y,1);
@@ -1256,7 +1256,14 @@ function render(ts,dt){
   if(tsOK&&!scene){
    ctx.fillStyle='#ffffff38';
    for(let ty=Math.max(0,cy/T|0);ty<=Math.min(NH-1,(cy+h)/T|0);ty++)for(let tx=Math.max(0,cx/T|0);tx<=Math.min(N-1,(cx+w)/T|0);tx++)if(M[ty*N+tx]==2&&WC[(ty>>1)*AGW+(tx>>1)]==2)ctx.fillRect(tx*T+6+Math.sin(ts/500+tx+ty)*5,ty*T+10+(ty%2)*10,12,2);
-   for(const o of OB){const s=TSZ[o.k];if(o.x+s[0]/2<cx||o.x-s[0]/2>cx+w||o.y<cy||o.y-s[1]>cy+h)continue;L.push({y:o.y,d:()=>{const im=TX[o.k];if(im.dw){const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=!im.px;ctx.drawImage(im,o.x-s[0]/2|0,o.y-s[1]|0,im.dw,im.dh);ctx.imageSmoothingEnabled=sm}else ctx.drawImage(im,o.x-s[0]/2|0,o.y-s[1]|0)}})}}
+   for(const o of OB){const s=TSZ[o.k],im0=TX[o.k];
+    if(im0&&(im0.rc||o.e||o.z||o.b)){ // objetos do editor novo: âncora (ax,ay), escala (e), sempre no chão/por cima (z), ajuste da ordem (b) e parte de cima na frente do personagem (corte)
+     const e=o.e||1,bw=im0.dw||im0.width,bh=im0.dh||im0.height,dw=bw*e,dh=bh*e,X=o.x-(Number.isFinite(im0.ax)?im0.ax:bw/2)*e|0,Y=o.y-(Number.isFinite(im0.ay)?im0.ay:bh)*e|0;
+     if(X+dw<cx||X>cx+w||Y+dh<cy||Y>cy+h)continue;
+     const oy=o.z==='chao'?o.y-1e9:o.z==='acima'?1e9-1:o.y+(o.b||0),ct=im0.corte>0?Math.min(dh,im0.corte*e):0,sw=im0.width,sh=im0.height,cs=ct?ct/dh*sh:0;
+     const dr=(a,b,c,d)=>{const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=!im0.px;ctx.drawImage(im0,0,a,sw,b-a,X,Y+c,dw,d-c);ctx.imageSmoothingEnabled=sm};
+     if(ct){L.push({y:oy,d:()=>dr(cs,sh,ct,dh)});L.push({y:1e9-2,d:()=>dr(0,cs,0,ct)})}else L.push({y:oy,d:()=>dr(0,sh,0,dh)});continue}
+    if(o.x+s[0]/2<cx||o.x-s[0]/2>cx+w||o.y<cy||o.y-s[1]>cy+h)continue;L.push({y:o.y,d:()=>{const im=TX[o.k];if(im.dw){const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=!im.px;ctx.drawImage(im,o.x-s[0]/2|0,o.y-s[1]|0,im.dw,im.dh);ctx.imageSmoothingEnabled=sm}else ctx.drawImage(im,o.x-s[0]/2|0,o.y-s[1]|0)}})}}
  L.push({y:p.y,d:()=>{const FL=eqFx();fxImpact(ctx,p.x,p.y,fxT,fxK);fxDraw(ctx,p.x,p.y,ts,FL,0);HERO?drawHero(ctx,p.x,p.y,{fl:p.fl,t:ts,mv:p.mv,run:p.run,aura:p.au,th:p.th,vis:eqVis()}):drawChar(ctx,p.x,p.y,{...look,clan,dir:p.dir,t:ts,mv:p.mv,run:p.run});fxDraw(ctx,p.x,p.y,ts,FL,1,{fl:p.fl});
   ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#fff';
   {const lb=(ONL.adm?'[ADM] ':'')+name;if(ONL.adm)ctx.fillStyle='#ffd23f';ctx.strokeText(lb,p.x,p.y-62);ctx.fillText(lb,p.x,p.y-62)}}});onlDraw(L,ts);susL(L);
@@ -2666,7 +2673,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610132355'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610140014'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2738,7 +2745,14 @@ const MPK='so-mapas',MPX=new Set(Object.keys(MAPS));let MPV='';
 function mpPut(L){let ch=false;for(const k of Object.keys(L||{})){const m=L[k];if(MPX.has(k)||!m||typeof m.ground!=='string'||!Array.isArray(m.objects)||m.ground.length!==(m.W||m.N||50)*(m.H||m.N||50))continue;if(JSON.stringify(MAPS[k])!==JSON.stringify(m)){MAPS[k]=m;ch=true}}
  for(const k of Object.keys(MAPS))if(!MPX.has(k)&&!(L&&L[k])&&k!==CURMAP){delete MAPS[k];ch=true}return ch}
 // imagens próprias do editor: só passam a existir (TSZ/FPT/TX) depois de carregadas, para o desenho nunca pegar imagem pela metade
-function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!/^c_[a-z0-9_]{2,28}$/.test(k)||!r)continue;
+const MPB={}; // imagens inteiras já baixadas (por endereço), para recortar os objetos da biblioteca do editor novo
+function mpBase(u){return MPB[u]||(MPB[u]=new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>ok(i);i.onerror=()=>ok(null);i.src=u}))}
+function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if(!r)continue;
+  if(/^r_[a-z0-9_]{2,40}\.c\d{1,6}$/.test(k)){if(typeof r.url!=='string'||!/^https?:\/\//.test(r.url))continue; // recorte: pedaço (sx,sy,w,h) da imagem; desenhado em dw×dh com a âncora (ax,ay) no chão
+   FPT[k]=[Math.max(1,r.fw|0),Math.max(1,r.fh|0),r.off|0];const sig=JSON.stringify(r);if(TX[k]&&TS[k]===sig)continue;
+   ps.push(mpBase(r.url).then(b=>{if(!b)return;const w=Math.max(1,r.w|0),h=Math.max(1,r.h|0),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(b,r.sx|0,r.sy|0,w,h,0,0,w,h);
+    c.rc=1;c.dw=Math.max(1,r.dw|0||w);c.dh=Math.max(1,r.dh|0||h);c.ax=+r.ax;c.ay=+r.ay;c.corte=r.corte|0;c.px=r.px!==0;TX[k]=c;TS[k]=sig;TSZ[k]=[c.dw,c.dh]}));continue}
+  if(!/^c_[a-z0-9_]{2,28}$/.test(k))continue;
   const src=typeof r.png==='string'&&/^data:image\/(png|webp);base64,/.test(r.png)?r.png:(typeof r.url==='string'&&/^https?:\/\//.test(r.url)?r.url:'');if(!src)continue;
   FPT[k]=[Math.max(1,r.fw|0),Math.max(1,r.fh|0),r.off|0];
   // a imagem pode ter mais pixels do que o tamanho em que aparece no mapa (dw×dh): desenhada reduzida, fica nítida
@@ -2749,14 +2763,14 @@ function mpImg(I){const ps=[];for(const k of Object.keys(I||{})){const r=I[k];if
 // ---- tilesets e camadas de tiles do editor (Chão e Detalhes entram no chão; Acima desenha por cima do jogador). Mapas sem camadas não passam por aqui.
 const TLS={};let TLM=null,GA=null;
 function tlsLoad(L){const ps=[];for(const id of Object.keys(L||{})){const r=L[id];if(!/^(t|r)_[a-z0-9_]{2,40}$/.test(id)||!r||typeof r.url!=='string'||!/^https?:\/\//.test(r.url))continue;
-  const o=TLS[id];if(o&&o.url===r.url){Object.assign(o,{tw:r.tw|0,th:r.th|0,mg:r.mg|0,sp:r.sp|0,px:!!r.px});continue}
-  ps.push(new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>{TLS[id]={img:i,url:r.url,tw:Math.max(1,r.tw|0),th:Math.max(1,r.th|0),mg:r.mg|0,sp:r.sp|0,px:!!r.px};ok()};i.onerror=ok;i.src=r.url}))}
+  const o=TLS[id],my=r.my!=null?r.my|0:r.mg|0;if(o&&o.url===r.url){Object.assign(o,{tw:r.tw|0,th:r.th|0,mg:r.mg|0,my,sp:r.sp|0,px:!!r.px});continue}
+  ps.push(new Promise(ok=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>{TLS[id]={img:i,url:r.url,tw:Math.max(1,r.tw|0),th:Math.max(1,r.th|0),mg:r.mg|0,my,sp:r.sp|0,px:!!r.px};ok()};i.onerror=ok;i.src=r.url}))}
  return Promise.all(ps).then(()=>{if(ps.length&&TLM){GC=null;GA=null}})}
 function tlReady(){return !!TLM&&TLM.tilesets.every(id=>TLS[id])}
 const tlCima=c=>c.z?c.z==='acima':c.n==='acima'; // camada por cima do personagem (as outras ficam por baixo dos objetos, na ordem da lista)
 function tlDraw(g,cima){if(!TLM)return;g.save();g.imageSmoothingEnabled=false;
  for(const c of TLM.camadas){if(c.t!=='tiles'||tlCima(c)!==cima)continue;
-  for(const e of c.d){const t=TLS[TLM.tilesets[e[0]]];if(!t)continue;g.drawImage(t.img,t.mg+e[3]*(t.tw+t.sp),t.mg+e[4]*(t.th+t.sp),t.tw,t.th,e[1]*t.tw,e[2]*t.th,t.tw,t.th)}}
+  for(const e of c.d){const t=TLS[TLM.tilesets[e[0]]];if(!t)continue;g.drawImage(t.img,t.mg+e[3]*(t.tw+t.sp),t.my+e[4]*(t.th+t.sp),t.tw,t.th,e[1]*t.tw,e[2]*t.th,t.tw,t.th)}}
  g.restore()}
 {const _am=applyMap;applyMap=function(m){_am(m);TLM=m&&m.camadas&&m.tilesets?m:null;GA=null}}
 {const _bg=buildGround;buildGround=function(){_bg();if(TLM&&GC)tlDraw(GC.getContext('2d'),false)}}

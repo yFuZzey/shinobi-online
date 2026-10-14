@@ -97,3 +97,7 @@ ul.perdas{margin:8px 0;padding-left:20px;color:var(--av)}
 .cam{display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:10px;background:var(--p2);margin:4px 0;min-height:52px}.cam.on{outline:2px solid var(--acc)}
 .cam .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;padding:0 4px;text-align:left;background:none;border:0;min-height:44px}
 .cam .ib{min-width:38px;font-size:16px}.cam.sep{background:transparent;border:1px dashed var(--linha);min-height:36px;justify-content:center;color:var(--mudo);font-size:13px}
+.grade-obj{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px;margin-top:6px}
+.grade-obj .obj{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px;border-radius:10px;border:2px solid var(--linha);background:var(--p2);min-height:44px}
+.grade-obj .obj[aria-pressed=true]{border-color:var(--acc)}.grade-obj canvas{width:64px;height:64px;image-rendering:pixelated;background:repeating-conic-gradient(#8a8a8a 0 25%,#b4b4b4 0 50%) 0 0/10px 10px;border-radius:6px}
+.grade-obj small{font-size:11px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

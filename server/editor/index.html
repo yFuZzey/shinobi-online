@@ -23,7 +23,7 @@
     <section class="cartao"><h2>Neste aparelho</h2><div id="lsLocal" class="lista"></div></section>
     <section class="cartao" id="secSrv" hidden><div class="linha"><h2 class="cresce">No servidor</h2><button class="btn peq" id="srvAtu">Atualizar</button></div><div id="lsSrv" class="lista"></div></section>
     <section class="cartao"><h2>Mapas do jogo</h2><p class="mudo">Vêm junto com o jogo. Para mudar, duplique e publique com outro nome.</p><div id="lsBase" class="lista"></div></section>
-    <p class="mudo rodape">Editor novo · Fases 1 a 3. O editor antigo continua em <a href="/painel/mapas">/painel/mapas</a> enquanto objetos e áreas de mobs chegam aqui.</p>
+    <p class="mudo rodape">Editor novo · Fases 1 a 4. O editor antigo continua em <a href="/painel/mapas">/painel/mapas</a> (só abre mapas que não foram salvos aqui) até as áreas de mobs chegarem.</p>
   </div>
 </main>
 
@@ -38,6 +38,7 @@
   <div id="palco"><canvas id="cv"></canvas>
     <div id="modoAviso" hidden></div>
     <div id="selBar" class="barraSel" hidden></div>
+    <div id="objBar" class="barraSel" hidden></div>
     <div class="zoom"><button class="ib" id="zMenos" aria-label="Diminuir zoom">−</button><span id="zVal">100%</span><button class="ib" id="zMais" aria-label="Aumentar zoom">+</button><button class="ib" id="zAjustar" aria-label="Ajustar à tela">⤢</button></div>
   </div>
   <section id="painel" hidden><div class="painelTopo"><b id="pnT"></b><span class="cresce"></span><button class="ib" id="pnX" aria-label="Fechar painel">✕</button></div><div id="pnC" class="rolar"></div>
