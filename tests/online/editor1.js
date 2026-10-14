@@ -18,7 +18,7 @@ const ordena=o=>Array.isArray(o)?o.map(ordena):o&&typeof o==='object'?Object.key
   const a=Mo.redimensionar(m,70,60,0,0);ok(!a.erro&&a.mapa.objetos.length===2&&Mo.perdasTexto(a.perdas).length===0&&a.mapa.chao[30*70+30]===3,'ampliar 50×50 → 70×60 (canto): nada perdido');
   const b=Mo.redimensionar(m,30,30,0,0);ok(b.perdas.objetos===1&&b.perdas.areasRemovidas===1&&b.perdas.colisao===1&&Mo.perdasTexto(b.perdas).length>=3,'reduzir para 30×30 lista o que será removido ('+Mo.perdasTexto(b.perdas).join('; ')+')');
   const c=Mo.redimensionar(m,61,50,.5,0);ok(c.perdas.dx%2===0&&c.mapa.objetos[0].x===40.5+c.perdas.dx,'âncora no centro desloca em passo par ('+c.perdas.dx+' tiles)');
-  ok(!!Mo.redimensionar(m,100,65,0,0).erro&&!!Mo.redimensionar(m,19,50,0,0).erro,'limites: mínimo 20, máximo 100 por lado e 6400 tiles');}
+  ok(!!Mo.redimensionar(m,100,65,0,0).erro&&!!Mo.redimensionar(m,7,50,0,0).erro&&!Mo.redimensionar(m,12,10,0,0).erro,'limites: mínimo 8, máximo 100 por lado e 6400 tiles');}
  // 3) servidor: mapa 70×40 é aceito, a colisão tem o tamanho certo; 50×50 sai igual a antes
  {const m=Mo.novo({id:'larg_'+suf,nome:'Largo',W:70,H:40,terreno:0}),j=Mo.paraJogo(m,true),v=MR.validar(m.id,m.nome,j,cat),c=MR.compilar(v,cat);
   ok(v&&v.W===70&&v.H===40&&c.M.length===2800&&c.M[0]==='1'&&c.M[40*70-1]==='1'&&c.M[20*70+35]==='0','servidor aceita 70×40 e monta a colisão 70×40 com a borda bloqueada');
