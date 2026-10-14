@@ -13,7 +13,7 @@
     vazio: { n: 'Sem fundo (preto)', terr: ['Vazio (preto)', 'Rua', 'Pântano', 'Lagoa', 'Rio', 'Ponte'], th: ['', 'p1', 'sw1', 'water', 'river', 'river'] } };
   const INICIAIS = [0, 1, 2]; // terrenos em que dá para andar (água bloqueia: um mapa todo de água não teria onde nascer)
   const ID = /^[a-z0-9_]{2,30}$/, BASE_IDS = ['konoha', 'vila_areia'];
-  const CONHECIDOS = new Set(['v', 'N', 'T', 'W', 'H', 'name', 'title', 'theme', 'ground', 'objects', 'spawn', 'boss', 'k', 'areas', 'tilesets', 'camadas', 'ed', 'pvp', 'ev', 'npcs']);
+  const CONHECIDOS = new Set(['v', 'N', 'T', 'W', 'H', 'name', 'title', 'theme', 'ground', 'objects', 'spawn', 'boss', 'k', 'areas', 'tilesets', 'camadas', 'ed', 'pvp', 'ev', 'npcs', 'mus']);
   const fin = v => typeof v === 'number' && isFinite(v);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const fundo = o => JSON.parse(JSON.stringify(o));
@@ -36,7 +36,7 @@
     const tema = TEMAS[o.tema] ? o.tema : 'folha', terreno = INICIAIS.includes(o.terreno) ? o.terreno : 0, tile = clamp((o.tile | 0) || 32, 4, 512);
     const sp = Array.isArray(o.spawn) && fin(o.spawn[0]) && fin(o.spawn[1]) ? [clamp(+o.spawn[0], 2, W - 2), clamp(+o.spawn[1], 2, H - 2)] : [Math.floor(W / 2) + .5, Math.floor(H / 2) + .5];
     return { id, nome: String(o.nome || id).slice(0, 40), W, H, tema, chao: new Uint8Array(W * H).fill(terreno), col: new Uint8Array(W * H), objetos: [],
-      spawn: sp, boss: null, areas: [], pvp: true, eventos: [], npcs: [], tilesets: [], camadas: [], extra: {}, tem: { k: false, title: true, boss: false }, ed: { v: 1, tile, terreno, criado: Date.now() } }; }
+      spawn: sp, boss: null, areas: [], pvp: true, mus: '', eventos: [], npcs: [], tilesets: [], camadas: [], extra: {}, tem: { k: false, title: true, boss: false }, ed: { v: 1, tile, terreno, criado: Date.now() } }; }
 
   /* ---------- formato do jogo -> modelo (sem perder nada) ---------- */
   function deJogo(j, id) {
@@ -54,7 +54,7 @@
     const ed = j.ed && typeof j.ed === 'object' ? fundo(j.ed) : { v: 1, tile: 32, terreno: 0 };
     return { id: id || j.name || 'mapa', nome: typeof j.title === 'string' ? j.title : (id || j.name || 'mapa'), W, H, tema: TEMAS[j.theme] ? j.theme : 'folha', chao, col, objetos,
       spawn: Array.isArray(j.spawn) ? j.spawn.slice() : [W / 2 + .5, H / 2 + .5], boss: Array.isArray(j.boss) ? j.boss.slice() : null,
-      areas: Array.isArray(j.areas) ? fundo(j.areas) : [], pvp: j.pvp !== 0, eventos: Array.isArray(j.ev) ? fundo(j.ev) : [], npcs: Array.isArray(j.npcs) ? fundo(j.npcs) : [], tilesets: Array.isArray(j.tilesets) ? j.tilesets.slice() : [], camadas: Array.isArray(j.camadas) ? fundo(j.camadas) : [],
+      areas: Array.isArray(j.areas) ? fundo(j.areas) : [], pvp: j.pvp !== 0, mus: typeof j.mus === 'string' ? j.mus : '', eventos: Array.isArray(j.ev) ? fundo(j.ev) : [], npcs: Array.isArray(j.npcs) ? fundo(j.npcs) : [], tilesets: Array.isArray(j.tilesets) ? j.tilesets.slice() : [], camadas: Array.isArray(j.camadas) ? fundo(j.camadas) : [],
       extra, tem: { cn: Array.isArray(j.camadas) ? j.camadas.map(c => c && c.n) : [], v: j.v, k: typeof j.k === 'string', title: typeof j.title === 'string', boss: 'boss' in j, areas: 'areas' in j, theme: 'theme' in j, name: j.name }, ed }; }
 
   /* ---------- modelo -> formato do jogo ---------- */
@@ -70,6 +70,7 @@
     if (m.tem.k || m.col.some(v => v)) j.k = Array.from(m.col).join('');
     if (m.areas.length || m.tem.areas) j.areas = fundo(m.areas);
     if (m.pvp === false) j.pvp = 0; // sem o campo = PvP ligado (como sempre foi)
+    if (m.mus) j.mus = m.mus; // música do mapa (server/musicas/<id>.mp3)
     if (m.eventos && m.eventos.length) j.ev = fundo(m.eventos); // eventos ao pisar: {x, y, t:'tp', m: mapa, tx, ty}
     if (m.npcs && m.npcs.length) j.npcs = fundo(m.npcs); // NPCs: {id:'n1', n: nome, x, y (tile), a: aparência, f: [falas], b: 0 = não bloqueia}
     // camadas padrão vazias criadas só pelo editor não vão para o arquivo (mapa antigo continua igual se ninguém pintou)

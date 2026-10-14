@@ -246,6 +246,10 @@ let MR = null, MCAT = null; try { MR = require('./mapas_regras.js'); MCAT = JSON
 const MAPAS_BASE = new Set(Object.keys(MAPS)); // os que vêm no jogo não são trocados pelo painel
 let MP_DB = { n: 0, quando: 0, motivo: 'iniciando' }, MP_PUB = {}, MP_V = '0', MP_PUB0 = {}, MP_V0 = '0', MP_IMG = {}, MP_TS = {}, MP_CV = '';
 const STORE = () => SB_URL + '/storage/v1/object/public/mapa-recursos/'; // arte do editor (bucket de leitura pública; só admin grava)
+// ---------------------------------------------------------------- músicas dos mapas: server/musicas/<id>.mp3 (+ nomes em musicas.json); v = pedaço do sha1 (o app baixa de novo se mudar)
+const MUSICAS = {}; try { const dir = path.join(__dirname, 'musicas'); let nomes = {}; try { nomes = JSON.parse(fs.readFileSync(path.join(dir, 'musicas.json'), 'utf8')); } catch (e) { }
+  for (const f of fs.readdirSync(dir)) { const m = /^([a-z0-9_]{1,30})\.mp3$/.exec(f); if (!m) continue; const arq = path.join(dir, f), b = fs.readFileSync(arq);
+    MUSICAS[m[1]] = { arq, size: b.length, v: crypto.createHash('sha1').update(b).digest('hex').slice(0, 10), nome: str((nomes[m[1]] && nomes[m[1]].nome) || m[1], 60) }; } } catch (e) { }
 // ---------------------------------------------------------------- missões (SQL 19)
 // definições: tabela "missoes" (editor); progresso: "missao_progresso" (0 = não começou, 1..N = passo, 999 = concluída), só o servidor grava.
 // O app escolhe a página de fala do NPC (condições) e, no fim da fala, avisa o servidor; o servidor confere tudo de novo e grava.
@@ -332,7 +336,7 @@ async function mapasDb() {
     for (const id in MP_PUB) if (!pub[id]) { // despublicado: sai da lista; quem está dentro termina a visita, a sala some quando esvaziar
       const rm = rooms[id]; if (rm && rm.players.size) { pub[id] = MP_PUB[id]; continue; } delete MAPS[id]; delete rooms[id]; }
     MP_PUB = pub; MP_IMG = {}; MP_TS = {}; for (const id in pub) { for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]]; for (const c of pub[id].npcs || []) for (const k of (c.a ? [c.a.k].concat(c.a.q || [], c.a.qc || [], c.a.qb || [], c.a.qh || []) : []).concat(typeof c.rt === 'string' ? [c.rt] : [])) if (k && IM[k]) MP_IMG[k] = IM[k]; for (const e of pub[id].ev || []) for (const a of e.a || []) if (a.t === 'msg' && typeof a.rt === 'string' && IM[a.rt]) MP_IMG[a.rt] = IM[a.rt]; for (const t of pub[id].tilesets || []) if (TSM[t]) MP_TS[t] = TSM[t]; }
-    MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, (MP_IMG[k].png || MP_IMG[k].url).length, MP_IMG[k].url, MP_IMG[k].sx, MP_IMG[k].sy, MP_IMG[k].w, MP_IMG[k].h, MP_IMG[k].ax, MP_IMG[k].ay, MP_IMG[k].corte]), MP_TS, MIS])).digest('hex').slice(0, 12);
+    MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, (MP_IMG[k].png || MP_IMG[k].url).length, MP_IMG[k].url, MP_IMG[k].sx, MP_IMG[k].sy, MP_IMG[k].w, MP_IMG[k].h, MP_IMG[k].ax, MP_IMG[k].ay, MP_IMG[k].corte]), MP_TS, MIS, Object.keys(MUSICAS).map(k => k + MUSICAS[k].v)])).digest('hex').slice(0, 12);
     MP_PUB0 = {}; for (const id in pub) if (!pub[id].W) MP_PUB0[id] = pub[id]; // apps antigos só sabem desenhar 50×50
     MP_V0 = crypto.createHash('sha1').update(MP_V + ':' + Object.keys(MP_PUB0).join(',')).digest('hex').slice(0, 12);
     const n = Object.keys(pub).length; if (n !== MP_DB.n || MP_DB.motivo) log('mapas do painel: ' + n + ' publicado(s)');
@@ -1014,7 +1018,7 @@ const server = http.createServer((req, res) => {
   if (u === '/mapas') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
     const q = new URLSearchParams(req.url.split('?')[1] || ''), dim = q.get('dim') === '1', v = dim ? MP_V : MP_V0; // dim=1: o app sabe desenhar mapas de outro tamanho
     if ((q.get('v') || '') === v) return res.end(JSON.stringify({ v, igual: 1 })); // o jogo já tem esta versão: não manda tudo de novo
-    return res.end(JSON.stringify({ v, mapas: dim ? MP_PUB : MP_PUB0, imagens: MP_IMG, tilesets: MP_TS, missoes: MIS })); }
+    return res.end(JSON.stringify({ v, mapas: dim ? MP_PUB : MP_PUB0, imagens: MP_IMG, tilesets: MP_TS, missoes: MIS, musicas: Object.fromEntries(Object.entries(MUSICAS).map(([id, x]) => [id, x.v])) })); }
   // editor novo (/painel/editor): a página e os arquivos dele (só nomes simples dentro de server/editor). mapas_regras.js é a mesma regra de colisão do servidor.
   { const me = /^\/painel\/editor(?:\/([a-z0-9_]+\.(?:js|css)))?\/?$/.exec(u);
     if (me) { try {
@@ -1025,6 +1029,14 @@ const server = http.createServer((req, res) => {
       if (gz) { res.writeHead(200, { ...h2, 'Content-Encoding': 'gzip' }); return res.end(require('zlib').gzipSync(b)); }
       res.writeHead(200, h2); return res.end(b);
     } catch (e) { res.writeHead(404, cors); return res.end('não encontrado'); } } }
+  // músicas dos mapas (server/musicas/<id>.mp3): lista para o editor e o arquivo (com Range, para o celular tocar em partes e repetir)
+  if (u === '/musicas.json') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' }); return res.end(JSON.stringify(Object.entries(MUSICAS).map(([id, x]) => ({ id, nome: x.nome, v: x.v, kb: Math.round(x.size / 1024) })))); }
+  { const mm = /^\/musica\/([a-z0-9_]{1,30})\.mp3$/.exec(u); if (mm) { const x = MUSICAS[mm[1]]; if (!x) { res.writeHead(404, cors); return res.end('não encontrada'); }
+    const tam = x.size, rg = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || ''), h = { ...cors, 'Content-Type': 'audio/mpeg', 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=604800', ETag: '"' + x.v + '"' };
+    if (req.headers['if-none-match'] === '"' + x.v + '"') { res.writeHead(304, h); return res.end(); }
+    if (rg) { let a = rg[1] === '' ? tam - Math.min(tam, +rg[2] || 0) : +rg[1], b = rg[1] === '' || rg[2] === '' ? tam - 1 : Math.min(tam - 1, +rg[2]); if (!(a >= 0 && a <= b && a < tam)) { res.writeHead(416, { ...h, 'Content-Range': 'bytes */' + tam }); return res.end(); }
+      res.writeHead(206, { ...h, 'Content-Range': 'bytes ' + a + '-' + b + '/' + tam, 'Content-Length': b - a + 1 }); return fs.createReadStream(x.arq, { start: a, end: b }).pipe(res); }
+    res.writeHead(200, { ...h, 'Content-Length': tam }); return fs.createReadStream(x.arq).pipe(res); } }
   // lista de itens para o editor (condição “tem item” das falas dos NPCs)
   if (u === '/painel/editor/itens.json') { res.writeHead(200, { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' }); return res.end(JSON.stringify(Object.keys(ITEMS).map(id => ({ id, n: ITEMS[id].name || id })))); }
   // o editor de mapas antigo foi removido: o endereço antigo leva ao editor novo

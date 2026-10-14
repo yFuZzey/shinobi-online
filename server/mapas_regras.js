@@ -62,6 +62,7 @@ function validar(id, nome, m, cat) {
   if (typeof m.k === 'string' && m.k.length === W * H && !/[^0-2]/.test(m.k)) out.k = m.k;
   if (A.length) out.areas = A;
   if (m.pvp === 0) out.pvp = 0; // mapa sem PvP (o mapa todo é zona segura)
+  if (typeof m.mus === 'string' && /^[a-z0-9_]{1,30}$/.test(m.mus)) out.mus = m.mus; // música do mapa (server/musicas/<mus>.mp3)
   // ---- ajudantes das falas, condições e ações (eventos e NPCs)
   const txt = (s, n) => String(s).replace(/[\u0000-\u0009\u000b-\u001f<>]/g, '').trim().slice(0, n), ci = (v, a, b) => Number.isInteger(v) && v >= a && v <= b ? v : a;
   const QI = /^q_[a-z0-9_]{2,40}$/, falas = v => (Array.isArray(v) ? v : []).filter(s => typeof s === 'string').map(s => txt(s, 300)).filter(Boolean).slice(0, 20);

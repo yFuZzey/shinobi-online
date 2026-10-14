@@ -204,7 +204,7 @@
 
   /* ---------- painéis ---------- */
   function abrirAba(a) { if (E.aba === a) return fecharPainel(); E.aba = a; document.querySelectorAll('[data-aba]').forEach(b => b.setAttribute('aria-selected', b.dataset.aba === a)); $('#painel').hidden = false; painel(a); tamanhoCv(); }
-  function fecharPainel() { E.aba = null; $('#painel').hidden = true; document.querySelectorAll('[data-aba]').forEach(b => b.setAttribute('aria-selected', 'false')); tamanhoCv(); }
+  function fecharPainel() { if (E.musAudio) { E.musAudio.pause(); E.musAudio = null; } E.aba = null; $('#painel').hidden = true; document.querySelectorAll('[data-aba]').forEach(b => b.setAttribute('aria-selected', 'false')); tamanhoCv(); }
   const chk = (id, txt, on) => `<label class="chk"><input type="checkbox" data-v="${id}" ${on ? 'checked' : ''}> ${txt}</label>`;
   function painel(a) {
     const C = $('#pnC'), m = E.m, so = E.reg.base; let h = ''; Ferr.padrao(m);
@@ -267,7 +267,8 @@
         <div class="grade2"><div><label class="lbl">Tema</label><select id="pTema" ${so ? 'disabled' : ''}><option value="folha" ${m.tema === 'folha' ? 'selected' : ''}>Folha</option><option value="areia" ${m.tema === 'areia' ? 'selected' : ''}>Areia</option><option value="vazio" ${m.tema === 'vazio' ? 'selected' : ''}>Sem fundo (preto)</option></select></div>
         <div><label class="lbl">Tile da arte (px)</label><input id="pTile" type="number" min="4" max="512" value="${(m.ed && m.ed.tile) || 32}" ${so ? 'disabled' : ''}></div></div>
         <label class="chk"><input type="checkbox" id="pPvp" ${m.pvp !== false ? 'checked' : ''} ${so ? 'disabled' : ''}> ⚔️ PvP neste mapa (desligado = o mapa todo é zona segura)</label>
-        <label class="lbl">Ponto de nascimento (tiles)</label><div class="linha"><input id="pSx" type="number" step="0.5" value="${m.spawn[0]}" ${so ? 'disabled' : ''}><input id="pSy" type="number" step="0.5" value="${m.spawn[1]}" ${so ? 'disabled' : ''}><button class="btn peq" id="pSt" ${so ? 'disabled' : ''}>Tocar no mapa</button></div>
+        <label class="lbl">🎵 Música do mapa</label><div class="linha"><select id="pMus" class="cresce" ${so ? 'disabled' : ''}><option value="">Nenhuma</option>${(E.musicas || (m.mus ? [{ id: m.mus, nome: m.mus }] : [])).map(t => `<option value="${esc(t.id)}" ${m.mus === t.id ? 'selected' : ''}>${esc(t.nome)}${t.kb ? ' · ' + t.kb + ' KB' : ''}</option>`).join('')}${m.mus && E.musicas && !E.musicas.some(t => t.id === m.mus) ? `<option value="${esc(m.mus)}" selected>${esc(m.mus)} (arquivo não encontrado)</option>` : ''}</select><button class="btn peq" id="pMusO">${E.musAudio && !E.musAudio.paused ? '⏹ Parar' : '▶ Ouvir'}</button></div>
+        <label class="lbl" style="margin-top:10px">Ponto de nascimento (tiles)</label><div class="linha"><input id="pSx" type="number" step="0.5" value="${m.spawn[0]}" ${so ? 'disabled' : ''}><input id="pSy" type="number" step="0.5" value="${m.spawn[1]}" ${so ? 'disabled' : ''}><button class="btn peq" id="pSt" ${so ? 'disabled' : ''}>Tocar no mapa</button></div>
         <label class="lbl" style="margin-top:10px">Chefe (tiles)</label><div class="linha">${m.boss ? `<input id="pBx" type="number" step="0.5" value="${m.boss[0]}" ${so ? 'disabled' : ''}><input id="pBy" type="number" step="0.5" value="${m.boss[1]}" ${so ? 'disabled' : ''}>` : '<span class="mudo cresce">Sem chefe</span>'}<button class="btn peq" id="pBt" ${so ? 'disabled' : ''}>Tocar no mapa</button>${m.boss ? `<button class="btn peq perigo" id="pBn" ${so ? 'disabled' : ''}>Tirar</button>` : ''}</div>
         <div class="campo" style="margin-top:14px"><button class="btn" id="pCop" ${so ? 'disabled' : ''}>Cópias de segurança…</button></div>`; }
     else if (a === 'conferir') { $('#pnT').textContent = 'Conferir';
@@ -326,7 +327,12 @@
       if ($('#cNova')) $('#cNova').onclick = async () => { const v = await dlg('Nova camada de tiles', '<label class="lbl">Nome</label><input id="ncN" maxlength="30" placeholder="Ex.: Telhados"><div class="presets" style="margin-top:8px"><button data-nz="baixo" aria-pressed="true">Por baixo do personagem</button><button data-nz="acima" aria-pressed="false">Por cima do personagem</button></div>',
           [{ t: 'Criar', v: 1, c: 'pri', antes: () => !!$('#ncN').value.trim() }, { t: 'Cancelar', v: 0 }], c => c.querySelectorAll('[data-nz]').forEach(x => x.onclick = () => c.querySelectorAll('[data-nz]').forEach(y => y.setAttribute('aria-pressed', y === x))));
         if (!v) return; const nome = $('#ncN').value.trim(), z = $('[data-nz="acima"]').getAttribute('aria-pressed') === 'true' ? 'acima' : 'baixo'; let n; mudar(x => { n = Ferr.novaCamada(x, nome, z).n; }, 'tiles'); ativar(n); }; }
+    if (a === 'prop') { if (!E.musicas) fetch('/musicas.json').then(r => r.json()).then(L => { E.musicas = Array.isArray(L) ? L : []; if (E.aba === 'prop' && $('#pMus')) painel('prop'); }).catch(() => { E.musicas = []; });
+      $('#pMusO').onclick = () => { if (E.musAudio && !E.musAudio.paused) { E.musAudio.pause(); E.musAudio = null; return painel('prop'); }
+        const id = $('#pMus').value; if (!id) return toast('Escolha uma música'); E.musAudio = new Audio('/musica/' + id + '.mp3'); E.musAudio.volume = .6; E.musAudio.onended = () => { E.musAudio = null; if ($('#pMusO')) $('#pMusO').textContent = '▶ Ouvir'; };
+        E.musAudio.play().then(() => { if ($('#pMusO')) $('#pMusO').textContent = '⏹ Parar'; }).catch(() => { E.musAudio = null; toast('Não consegui tocar a música'); }); }; }
     if (a === 'prop' && !so) {
+      $('#pMus').onchange = e => { const v = e.target.value; if (E.musAudio) { E.musAudio.pause(); E.musAudio = null; } mudar(x => { x.mus = v; }, 'nada'); painel('prop'); };
       $('#pNome').onchange = e => { const v = e.target.value.trim().slice(0, 40); if (v && v !== m.nome) mudar(x => { x.nome = v; x.tem.title = true; }, 'nada'); };
       $('#pTema').onchange = e => mudar(x => { x.tema = e.target.value; }, 'chao');
       $('#pPvp').onchange = e => mudar(x => { x.pvp = e.target.checked; }, 'nada');

@@ -1555,10 +1555,19 @@ function tlDraw(g,cima){if(!TLM)return;g.save();g.imageSmoothingEnabled=false;
 {const _bg=buildGround;buildGround=function(){_bg();if(TLM&&GC)tlDraw(GC.getContext('2d'),false)}}
 function tlAcima(){if(scene||!TLM||!tlReady())return;if(!GA){if(!TLM.camadas.some(c=>c.t==='tiles'&&tlCima(c)&&c.d.length))return;GA=document.createElement('canvas');GA.width=N*T;GA.height=NH*T;tlDraw(GA.getContext('2d'),true)}
  const m=ctx.getTransform(),k=m.a||1,x=Math.floor(-m.e/k),y=Math.floor(-m.f/k),w=Math.ceil(cv.width/k)+2,h=Math.ceil(cv.height/k)+2;ctx.drawImage(GA,x,y,w,h,x,y,w,h)}
-async function mpApply(j){await mpImg(j.imagens);await tlsLoad(j.tilesets);if(j.missoes&&typeof j.missoes==='object'){MIS.def=j.missoes;misHud()}return mpPut(j.mapas)}
+/* música dos mapas: o editor põe m.mus (id de server/musicas/<id>.mp3, servido pelo servidor do jogo); toca em repetição só com o jogo na tela, com fade; volume em ⚙️ Configurações (0 = desligada) */
+let MUSV={};const MAPMUS={id:'',a:null,vol:.5};
+try{const v=localStorage.getItem('so-musica');if(v!==null&&v!==''&&isFinite(+v))MAPMUS.vol=Math.max(0,Math.min(1,+v))}catch(_){}
+function musFade(a,alvo,fim){clearInterval(a._fd);a._fd=setInterval(()=>{const d=alvo-a.volume;if(Math.abs(d)<=.04){a.volume=alvo;clearInterval(a._fd);if(fim)fim()}else a.volume=Math.max(0,Math.min(1,a.volume+(d>0?.04:-.04)))},50)}
+function musSync(){const M=MAPMUS,m=MAPS[CURMAP],id=ONL.ok&&m&&typeof m.mus==='string'&&/^[a-z0-9_]{1,30}$/.test(m.mus)&&MUSV[m.mus]?m.mus:'',on=!!id&&cur==='game'&&!document.hidden&&M.vol>0;
+ if(M.a&&M.id!==id){const a=M.a;M.a=null;musFade(a,0,()=>{a.pause();a.removeAttribute('src');try{a.load()}catch(_){}})} // trocou de mapa: a música antiga some aos poucos
+ M.id=id;if(!id)return;
+ if(!M.a){if(!on)return;const a=new Audio(GS_URL+'/musica/'+id+'.mp3?v='+encodeURIComponent(MUSV[id]));a.loop=true;a.preload='auto';a.volume=0;M.a=a}
+ const a=M.a;if(on){if(a.paused){const p=a.play();if(p&&p.catch)p.catch(()=>{})}musFade(a,M.vol)}else if(!a.paused)musFade(a,0,()=>a.pause())}
+async function mpApply(j){await mpImg(j.imagens);await tlsLoad(j.tilesets);if(j.missoes&&typeof j.missoes==='object'){MIS.def=j.missoes;misHud()}if(j.musicas&&typeof j.musicas==='object')MUSV=j.musicas;const ch=mpPut(j.mapas);musSync();return ch}
 async function mapasSync(){if(!ONL.ok)return false;let ch=false;
  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),9000);const r=await fetch(GS_URL+'/mapas?dim=1'+(MPV?'&v='+MPV:''),{cache:'no-store',signal:c.signal});clearTimeout(t);if(!r.ok)return false;const j=await r.json();
-  if(j.igual)return false;ch=await mpApply(j);MPV=j.v||'';try{localStorage.setItem(MPK,JSON.stringify({v:MPV,mapas:j.mapas||{},imagens:j.imagens||{},tilesets:j.tilesets||{}}))}catch(_){}}catch(_){}return ch}
+  if(j.igual)return false;ch=await mpApply(j);MPV=j.v||'';try{localStorage.setItem(MPK,JSON.stringify({v:MPV,mapas:j.mapas||{},imagens:j.imagens||{},tilesets:j.tilesets||{},musicas:j.musicas||{}}))}catch(_){}}catch(_){}return ch}
 try{const c=JSON.parse(localStorage.getItem(MPK)||'null');if(c&&c.mapas){MPV=c.v||'';mpApply(c)}}catch(_){}
 setTimeout(mapasSync,1200);
 {const mb=$('#mapbtn'),o=mb&&mb.onclick;if(o)mb.onclick=function(e){o.call(this,e);mapasSync().then(ch=>{if(ch&&!$('#mapmenu').hidden)mmDraw()})}}
@@ -1955,4 +1964,12 @@ layLoad();
  addEventListener('resize',()=>layApply(1));
  {const _sh=show;show=function(w){_sh(w);if(w==='game')setTimeout(()=>layApply(1),60)}}
  layApply()}}
+/* música dos mapas: liga/desliga junto com a tela do jogo, o mapa e o app em segundo plano; volume salvo no aparelho */
+{const _am=applyMap;applyMap=function(m){_am(m);musSync()}}
+{const _sh=show;show=function(w){const r=_sh.apply(this,arguments);musSync();return r}}
+document.addEventListener('visibilitychange',musSync);
+['pointerdown','keydown'].forEach(e=>document.addEventListener(e,()=>{if(MAPMUS.a&&MAPMUS.a.paused)musSync()},true)); /* o celular só deixa tocar depois de um toque */
+{const p=$('#cfgp');if(p&&!$('#musVol')){p.insertAdjacentHTML('beforeend','<h4>Som</h4><label>Música dos mapas <span id="musVolV"></span><input type="range" id="musVol" min="0" max="100" step="5"></label>');
+ const r=$('#musVol'),t=$('#musVolV'),mo=()=>{const v=Math.round(MAPMUS.vol*100);r.value=v;t.textContent=v?v+'%':'Desligada'};mo();
+ r.oninput=e=>{MAPMUS.vol=+e.target.value/100;mo();try{localStorage.setItem('so-musica',String(MAPMUS.vol))}catch(_){}if(MAPMUS.a&&!MAPMUS.a.paused){clearInterval(MAPMUS.a._fd);MAPMUS.a.volume=MAPMUS.vol}musSync()}}}
 //ONLINE-END
