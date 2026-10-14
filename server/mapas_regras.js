@@ -23,7 +23,7 @@ function validar(id, nome, m, cat) {
     const o = [r[0], +r[1].toFixed(4), +r[2].toFixed(4)];
     // opções do editor novo (r[5]): escala (e), sempre no chão/por cima (z), ajuste fino da ordem (b, px)
     const q = r[5] && typeof r[5] === 'object' ? r[5] : null, op = {};
-    if (q) { if (fin(q.e) && q.e > 0 && q.e !== 1) op.e = +Math.min(8, Math.max(.1, q.e)).toFixed(4); if (q.z === 'chao' || q.z === 'acima') op.z = q.z; if (fin(q.b) && q.b) op.b = clamp(Math.round(q.b), -1024, 1024); }
+    if (q) { if (fin(q.e) && q.e > 0 && q.e !== 1) op.e = +Math.min(8, Math.max(.1, q.e)).toFixed(4); if (q.z === 'chao' || q.z === 'acima') op.z = q.z; if (fin(q.b) && q.b) op.b = clamp(Math.round(q.b), -1024, 1024); if (fin(q.r)) { const r = +((((q.r % 360) + 360) % 360).toFixed(1)); if (r && r !== 360) op.r = r; } }
     const temOp = Object.keys(op).length > 0, cel = Array.isArray(r[4]) && r[4].length <= 120 ? r[4].filter(a => Array.isArray(a) && fin(a[0]) && fin(a[1])).map(a => [Math.round(a[0]), Math.round(a[1])]) : null;
     if (r[3] || cel || temOp) o.push(r[3] ? 1 : 0);
     if (cel) o.push(cel); else if (temOp) o.push(null);

@@ -102,16 +102,21 @@
     return null; }
   const opc = o => (o.f && o.f[2] && typeof o.f[2] === 'object') ? o.f[2] : {};
   // retângulo do desenho no mapa (px)
-  function caixa(J, o) { const i = info(J, o.k), e = opc(o).e || 1; if (!i) return { x0: o.x * T - 14, y0: o.y * T - 28, x1: o.x * T + 14, y1: o.y * T };
-    const x0 = o.x * T - i.ax * e, y0 = o.y * T - i.ay * e; return { x0, y0, x1: x0 + i.dw * e, y1: y0 + i.dh * e }; }
+  // cantos do desenho no mapa (px), já com escala e rotação em volta da âncora: [sup-esq, sup-dir, inf-dir, inf-esq]
+  function cantos(J, o) { const i = info(J, o.k), q = opc(o), e = q.e || 1, x = o.x * T, y = o.y * T; if (!i) return [[x - 14, y - 28], [x + 14, y - 28], [x + 14, y], [x - 14, y]];
+    const a = (q.r || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), L = [[-i.ax * e, -i.ay * e], [(i.dw - i.ax) * e, -i.ay * e], [(i.dw - i.ax) * e, (i.dh - i.ay) * e], [-i.ax * e, (i.dh - i.ay) * e]];
+    return L.map(([u, v]) => [x + u * c - v * s, y + u * s + v * c]); }
+  function caixa(J, o) { const P = cantos(J, o), xs = P.map(p => p[0]), ys = P.map(p => p[1]); return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) }; }
   // ordem de desenho (igual ao jogo); devolve [{y, d}] já com a parte de cima (corte) separada
   function listaObjetos(J, m, vis, marca) { const L = [];
     m.objetos.forEach((o, n) => { const i = info(J, o.k), q = opc(o), e = q.e || 1, x = o.x * T, y = o.y * T;
       if (!i) { L.push({ y, n, d: c => falta(c, x, y, true) }); return; }
       const dw = i.dw * e, dh = i.dh * e, X = Math.floor(x - i.ax * e), Y = Math.floor(y - i.ay * e);
-      if (vis && (X + dw < vis.x0 || X > vis.x1 || Y + dh < vis.y0 || Y > vis.y1)) return;
+      if (vis && !q.r && (X + dw < vis.x0 || X > vis.x1 || Y + dh < vis.y0 || Y > vis.y1)) return;
       const oy = q.z === 'chao' ? y - 1e9 : q.z === 'acima' ? 1e9 - 1 : y + (q.b || 0), ct = i.corte > 0 ? Math.min(dh, i.corte * e) : 0, cs = ct ? ct / dh * i.sh : 0;
-      const dr = (c, a, b, c0, d0) => { if (!i.ok) { falta(c, x, y, i.falhou); return; } const sm = c.imageSmoothingEnabled; c.imageSmoothingEnabled = !i.px; c.drawImage(i.img, i.sx, i.sy + a, i.sw, b - a, X, Y + c0, dw, d0 - c0); c.imageSmoothingEnabled = sm; };
+      const rot = (q.r || 0) * Math.PI / 180; // girado: desenha em volta da âncora (o jogo faz igual)
+      const dr = (c, a, b, c0, d0) => { if (!i.ok) { falta(c, x, y, i.falhou); return; } const sm = c.imageSmoothingEnabled; c.imageSmoothingEnabled = !i.px;
+        if (rot) { c.save(); c.translate(x, y); c.rotate(rot); c.drawImage(i.img, i.sx, i.sy + a, i.sw, b - a, -i.ax * e, -i.ay * e + c0, dw, d0 - c0); c.restore(); } else c.drawImage(i.img, i.sx, i.sy + a, i.sw, b - a, X, Y + c0, dw, d0 - c0); c.imageSmoothingEnabled = sm; };
       if (ct) { L.push({ y: oy, n, d: c => dr(c, cs, i.sh, ct, dh) }); L.push({ y: 1e9 - 2, n, d: c => dr(c, 0, cs, 0, ct) }); } else L.push({ y: oy, n, d: c => dr(c, 0, i.sh, 0, dh) }); });
     return L.sort((a, b) => a.y - b.y || a.n - b.n); }
   function objetos(ctx, J, m, vis) { for (const it of listaObjetos(J, m, vis)) it.d(ctx); }
@@ -134,5 +139,5 @@
   // borda de 2 tiles que o jogo sempre bloqueia
   function borda(ctx, m, s) { ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.setLineDash([6 / s, 5 / s]); ctx.lineWidth = 1.5 / s; ctx.strokeRect(2 * T, 2 * T, (m.W - 4) * T, (m.H - 4) * T); ctx.restore(); }
 
-  G.Render = { T, TX, IMG, TSI, RC, RIM, recursos, info, caixa, listaObjetos, opc, carregar, imagens, tilesets, cat, tamanho, chao, chaoParcial, camadaCv, camada, objetos, colisao, grade, areas, marcador, borda };
+  G.Render = { T, TX, IMG, TSI, RC, RIM, recursos, info, caixa, cantos, listaObjetos, opc, carregar, imagens, tilesets, cat, tamanho, chao, chaoParcial, camadaCv, camada, objetos, colisao, grade, areas, marcador, borda };
 })(window);

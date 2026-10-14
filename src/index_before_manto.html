@@ -461,11 +461,11 @@ function render(ts,dt){
    ctx.fillStyle='#ffffff38';
    for(let ty=Math.max(0,cy/T|0);ty<=Math.min(NH-1,(cy+h)/T|0);ty++)for(let tx=Math.max(0,cx/T|0);tx<=Math.min(N-1,(cx+w)/T|0);tx++)if(M[ty*N+tx]==2&&WC[(ty>>1)*AGW+(tx>>1)]==2)ctx.fillRect(tx*T+6+Math.sin(ts/500+tx+ty)*5,ty*T+10+(ty%2)*10,12,2);
    for(const o of OB){const s=TSZ[o.k],im0=TX[o.k];
-    if(im0&&(im0.rc||o.e||o.z||o.b)){ // objetos do editor novo: âncora (ax,ay), escala (e), sempre no chão/por cima (z), ajuste da ordem (b) e parte de cima na frente do personagem (corte)
+    if(im0&&(im0.rc||o.e||o.z||o.b||o.r)){ // objetos do editor novo: âncora (ax,ay), escala (e), sempre no chão/por cima (z), ajuste da ordem (b) e parte de cima na frente do personagem (corte)
      const e=o.e||1,bw=im0.dw||im0.width,bh=im0.dh||im0.height,dw=bw*e,dh=bh*e,X=o.x-(Number.isFinite(im0.ax)?im0.ax:bw/2)*e|0,Y=o.y-(Number.isFinite(im0.ay)?im0.ay:bh)*e|0;
-     if(X+dw<cx||X>cx+w||Y+dh<cy||Y>cy+h)continue;
+     if(!o.r&&(X+dw<cx||X>cx+w||Y+dh<cy||Y>cy+h))continue;const rr=(o.r||0)*Math.PI/180; // girado em volta da âncora
      const oy=o.z==='chao'?o.y-1e9:o.z==='acima'?1e9-1:o.y+(o.b||0),ct=im0.corte>0?Math.min(dh,im0.corte*e):0,sw=im0.width,sh=im0.height,cs=ct?ct/dh*sh:0;
-     const dr=(a,b,c,d)=>{const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=!im0.px;ctx.drawImage(im0,0,a,sw,b-a,X,Y+c,dw,d-c);ctx.imageSmoothingEnabled=sm};
+     const dr=(a,b,c,d)=>{const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=!im0.px;if(rr){ctx.save();ctx.translate(o.x,o.y);ctx.rotate(rr);ctx.drawImage(im0,0,a,sw,b-a,X-o.x,Y-o.y+c,dw,d-c);ctx.restore()}else ctx.drawImage(im0,0,a,sw,b-a,X,Y+c,dw,d-c);ctx.imageSmoothingEnabled=sm};
      if(ct){L.push({y:oy,d:()=>dr(cs,sh,ct,dh)});L.push({y:1e9-2,d:()=>dr(0,cs,0,ct)})}else L.push({y:oy,d:()=>dr(0,sh,0,dh)});continue}
     if(o.x+s[0]/2<cx||o.x-s[0]/2>cx+w||o.y<cy||o.y-s[1]>cy+h)continue;L.push({y:o.y,d:()=>{const im=TX[o.k];if(im.dw){const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=!im.px;ctx.drawImage(im,o.x-s[0]/2|0,o.y-s[1]|0,im.dw,im.dh);ctx.imageSmoothingEnabled=sm}else ctx.drawImage(im,o.x-s[0]/2|0,o.y-s[1]|0)}})}}
  L.push({y:p.y,d:()=>{HERO?drawHero(ctx,p.x,p.y,{fl:p.fl,t:ts,mv:p.mv,run:p.run,aura:p.au,th:p.th}):drawChar(ctx,p.x,p.y,{...look,clan,dir:p.dir,t:ts,mv:p.mv,run:p.run});

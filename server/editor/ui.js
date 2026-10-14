@@ -240,6 +240,7 @@
         h = `<div class="prob ok"><b>${esc(nomeObj(o.k))}</b> <small class="mudo">${esc(o.k)}</small><br>${i ? (i.tipo === 'rc' ? 'Recorte do arquivo: ' : 'Imagem: ') + i.sw + '×' + i.sh + ' px · No mapa: ' + Math.round(i.dw) + '×' + Math.round(i.dh) + (e !== 1 ? ' · Com a escala: ' + Math.round(i.dw * e) + '×' + Math.round(i.dh * e) : '') : 'Imagem não encontrada'} · Colisão: ${ns ? 'nenhuma' : cel.length + ' tile(s)'}${q.tv ? ' · <b>bloqueado</b>' : ''}</div>
           <div class="grade2"><div><label class="lbl">X (tiles)</label><input id="obX" type="number" step="0.5" value="${o.x}" ${dis}></div><div><label class="lbl">Y da base (tiles)</label><input id="obY" type="number" step="0.5" value="${o.y}" ${dis}></div></div>
           <label class="lbl" style="margin-top:8px">Escala no mapa (%) — não muda o arquivo nem a colisão</label><div class="linha"><input id="obE" type="number" min="10" max="800" value="${Math.round(e * 100)}" ${dis}><button class="btn peq" id="obE1" ${dis}>100%</button></div>
+          <label class="lbl" style="margin-top:8px">Giro (graus) — a colisão não gira junto</label><div class="linha"><input id="obR" type="number" min="-360" max="360" step="5" value="${q.r || 0}" ${dis}><button class="btn peq" id="obR0" ${dis}>0°</button></div>
           <label class="lbl" style="margin-top:8px">Ordem de desenho</label><select id="obZ" ${dis}><option value="" ${!q.z ? 'selected' : ''}>Automática (pela base: o personagem passa na frente ou atrás)</option><option value="chao" ${q.z === 'chao' ? 'selected' : ''}>Sempre no chão (por baixo de tudo)</option><option value="acima" ${q.z === 'acima' ? 'selected' : ''}>Sempre por cima do personagem</option></select>
           <label class="lbl" style="margin-top:8px">Ajuste fino da ordem (px; positivo = mais para a frente)</label><input id="obB" type="number" min="-1024" max="1024" value="${q.b || 0}" ${dis}>
           <label class="chk"><input type="checkbox" id="obNs" ${ns ? 'checked' : ''} ${dis}> Sem colisão (o personagem atravessa)</label>
@@ -279,6 +280,8 @@
       num('#obX', (x, v) => { x.x = clamp(v, 0, m.W - .01); }); num('#obY', (x, v) => { x.y = clamp(v, .03, m.H); });
       num('#obE', (x, v) => { const q = Object.assign({}, Ferr.objOp(x)); const e = clamp(v, 10, 800) / 100; if (e === 1) delete q.e; else q.e = e; Ferr.objF(x, Ferr.objNs(x), Ferr.objCel(x), q); });
       num('#obB', (x, v) => { const q = Object.assign({}, Ferr.objOp(x)); const b = clamp(Math.round(v), -1024, 1024); if (b) q.b = b; else delete q.b; Ferr.objF(x, Ferr.objNs(x), Ferr.objCel(x), q); });
+      num('#obR', (x, v) => { const q = Object.assign({}, Ferr.objOp(x)), r = +((((v % 360) + 360) % 360).toFixed(1)); if (r) q.r = r; else delete q.r; Ferr.objF(x, Ferr.objNs(x), Ferr.objCel(x), q); });
+      if ($('#obR0')) $('#obR0').onclick = () => { mudaObj(x => { const q = Object.assign({}, Ferr.objOp(x)); delete q.r; Ferr.objF(x, Ferr.objNs(x), Ferr.objCel(x), q); }); re(); };
       if ($('#obE1')) $('#obE1').onclick = () => { mudaObj(x => { const q = Object.assign({}, Ferr.objOp(x)); delete q.e; Ferr.objF(x, Ferr.objNs(x), Ferr.objCel(x), q); }); re(); };
       if ($('#obZ')) $('#obZ').onchange = e => { mudaObj(x => { const q = Object.assign({}, Ferr.objOp(x)); if (e.target.value) q.z = e.target.value; else delete q.z; Ferr.objF(x, Ferr.objNs(x), Ferr.objCel(x), q); }); re(); };
       if ($('#obNs')) $('#obNs').onchange = e => { mudaObj(x => { Ferr.objF(x, e.target.checked, e.target.checked ? null : Ferr.objCel(x), Ferr.objOp(x)); }); re(); };
@@ -446,7 +449,10 @@
     if (E.objSel && m.objetos.indexOf(E.objSel) >= 0) { const o = E.objSel, b = R.caixa(J, o); ctx.setLineDash([5 / s, 4 / s]); ctx.strokeStyle = Ferr.objOp(o).tv ? '#9aa3b2' : '#ff9a3c'; ctx.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0); ctx.setLineDash([]);
       const bx = Math.floor(o.x), by = Ferr.baseLin(o); ctx.fillStyle = E.colObj === o ? 'rgba(230,40,60,.55)' : 'rgba(230,40,60,.3)'; for (const [dx, dy] of celulasObj(o)) ctx.fillRect((bx + dx) * T, (by + dy) * T, T, T);
       if (E.colObj === o) { ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 1 / s; for (let y = by - 6; y <= by + 3; y++) for (let x = bx - 6; x <= bx + 6; x++) ctx.strokeRect(x * T, y * T, T, T); ctx.lineWidth = 2 / s; }
-      ctx.fillStyle = '#2f8cff'; ctx.beginPath(); ctx.arc(o.x * T, o.y * T, 4 / s + 2, 0, 7); ctx.fill(); }
+      ctx.fillStyle = '#2f8cff'; ctx.beginPath(); ctx.arc(o.x * T, o.y * T, 4 / s + 2, 0, 7); ctx.fill();
+      if (E.ativa === 'objetos' && !Ferr.objOp(o).tv && !E.reg.base) { const h = alcasObj(o), w2 = p => [(p[0] - E.ox) / s, (p[1] - E.oy) / s], g = w2(h.gira), t2 = w2(h.topo), e2 = w2(h.esc);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 / s; ctx.beginPath(); ctx.moveTo(t2[0], t2[1]); ctx.lineTo(g[0], g[1]); ctx.stroke();
+        for (const [pp, txt] of [[g, '⟳'], [e2, '⤡']]) { ctx.fillStyle = '#ff9a3c'; ctx.beginPath(); ctx.arc(pp[0], pp[1], 13 / s, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#1a1206'; ctx.font = 'bold ' + (15 / s) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, pp[0], pp[1] + 1 / s); } } }
     if (w && E.ativa === 'objetos' && E.ferr === 'pincel' && E.tinta.obj) { const q = snapObj(w), o = novoObj(E.tinta.obj, q), it = R.listaObjetos(J, { objetos: [o] }); ctx.globalAlpha = .65; for (const x of it) x.d(ctx); ctx.globalAlpha = 1;
       ctx.fillStyle = 'rgba(230,40,60,.3)'; for (const [dx, dy] of celulasObj(o)) ctx.fillRect((Math.floor(o.x) + dx) * T, (Ferr.baseLin(o) + dy) * T, T, T); ctx.fillStyle = '#2f8cff'; ctx.beginPath(); ctx.arc(o.x * T, o.y * T, 4 / s + 2, 0, 7); ctx.fill(); }
     else if (w && E.ferr === 'colar' && E.colarClip) { const [x, y] = cel(w), c = E.colarClip; ctx.globalAlpha = .65; desenhaClip(c, x * T, y * T); ctx.globalAlpha = 1; ctx.strokeStyle = '#38d6ff'; ctx.strokeRect(x * T, y * T, c.w * T, c.h * T); }
@@ -487,15 +493,22 @@
   const ptr = new Map(); let gesto = null;
   const pt = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   cv.addEventListener('pointerdown', e => { try { cv.setPointerCapture(e.pointerId); } catch (_) { } ptr.set(e.pointerId, pt(e));
+    if (ptr.size === 1 && !E.colObj && !E.modo) { const p = pt(e), k = alcaEm(p); if (k) { const o = E.objSel, h = alcasObj(o), q = Ferr.objOp(o), pre = Mo.copia(E.m); pre.nome = E.m.nome;
+      gesto = { t: 'alca', k, o, pre, e0: q.e || 1, r0: q.r || 0, d0: Math.hypot(p.x - h.ancora[0], p.y - h.ancora[1]) || 1, a0: Math.atan2(p.y - h.ancora[1], p.x - h.ancora[0]), A: h.ancora, mudou: false }; return; } }
     if (ptr.size === 1) { const p = pt(e); if (E.ferr !== 'mover' && !E.modo && !E.colObj) { const t = iniFerr(p); gesto = t ? { t: 'ferr', p0: p, moveu: false } : { t: 'nada' }; } else gesto = { t: 'um', p0: p, ox: E.ox, oy: E.oy, moveu: false }; }
     else if (ptr.size === 2) { if (gesto && gesto.t === 'ferr') cancelaFerr(); const [a, b] = [...ptr.values()]; gesto = { t: 'dois', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, c0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, s0: E.s, ox: E.ox, oy: E.oy }; } });
   cv.addEventListener('pointermove', e => { const p = pt(e); if (!ptr.has(e.pointerId)) { if (e.pointerType === 'mouse' && E.ferr !== 'mover') { E.mira = mundo(p); desenhar(); } return; } if (!gesto) return; ptr.set(e.pointerId, p);
     if (gesto.t === 'um' && ptr.size === 1) { const dx = p.x - gesto.p0.x, dy = p.y - gesto.p0.y; if (Math.hypot(dx, dy) > 8) gesto.moveu = true; if (gesto.moveu) { E.ox = gesto.ox + dx; E.oy = gesto.oy + dy; desenhar(); } }
+    else if (gesto.t === 'alca' && ptr.size === 1) { const g = gesto, o = g.o, q = Object.assign({}, Ferr.objOp(o));
+      if (g.k === 'esc') { const e = clamp(Math.round(g.e0 * Math.hypot(p.x - g.A[0], p.y - g.A[1]) / g.d0 * 100) / 100, .1, 8); if (e === 1) delete q.e; else q.e = e; }
+      else { let r = g.r0 + (Math.atan2(p.y - g.A[1], p.x - g.A[0]) - g.a0) * 180 / Math.PI; r = ((Math.round(r / 5) * 5 % 360) + 360) % 360; if (r) q.r = r; else delete q.r; }
+      Ferr.objF(o, Ferr.objNs(o), Ferr.objCel(o), q); g.mudou = true; barraObj(); desenhar(); }
     else if (gesto.t === 'ferr' && ptr.size === 1) { if (Math.hypot(p.x - gesto.p0.x, p.y - gesto.p0.y) > 6) gesto.moveu = true; moveFerr(p); }
     else if (gesto.t === 'dois' && ptr.size >= 2) { const [a, b] = [...ptr.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, ns = clamp(gesto.s0 * d / gesto.d0, .05, 4);
       const wx = (gesto.c0.x - gesto.ox) / gesto.s0, wy = (gesto.c0.y - gesto.oy) / gesto.s0; E.s = ns; E.ox = c.x - wx * ns; E.oy = c.y - wy * ns; ajusta(); desenhar(); } });
   const solta = e => { if (!ptr.has(e.pointerId)) return; const p = pt(e); ptr.delete(e.pointerId);
     if (gesto && gesto.t === 'ferr') { if (e.type === 'pointercancel') cancelaFerr(); else fimFerr(p, gesto.moveu); gesto = null; return; }
+    if (gesto && gesto.t === 'alca') { const g = gesto; gesto = null; if (g.mudou) { E.des.push(g.pre); if (E.des.length > 80) E.des.shift(); E.ref.length = 0; marcarSujo('nada'); } return; }
     if (gesto && gesto.t === 'um' && !gesto.moveu && e.type === 'pointerup') toque(p);
     if (!ptr.size) gesto = null; else if (gesto && gesto.t === 'dois') { const q = [...ptr.values()][0]; gesto = { t: 'um', p0: q, ox: E.ox, oy: E.oy, moveu: true }; } };
   cv.addEventListener('pointerup', solta); cv.addEventListener('pointercancel', solta);
@@ -520,13 +533,15 @@
   function selObj(o, aqui) { E.objSel = o || null; if (aqui) E.aqui = aqui; barraObj(); desenhar(); if (E.aba === 'objeto') { if (o) painel('objeto'); else fecharPainel(); } }
   function barraObj() { const b = $('#objBar'), o = E.objSel; if (!o || !E.m || E.m.objetos.indexOf(o) < 0) { b.hidden = true; E.objSel = null; return; }
     const tv = !!Ferr.objOp(o).tv, n = (E.aqui || []).length; b.hidden = false;
-    b.innerHTML = `<span class="cresce"><b>${esc(nomeObj(o.k))}</b> <small class="mudo">${o.x.toFixed(2)}, ${o.y.toFixed(2)}${tv ? ' · bloqueado' : ''}</small></span>${n > 1 ? `<button class="btn peq" data-o="aqui">Aqui: ${n}</button>` : ''}<button class="btn peq" data-o="prop">Propriedades</button><button class="btn peq" data-o="dup">Duplicar</button><button class="btn peq" data-o="col">Colisão</button><button class="btn peq" data-o="tv">${tv ? '🔒' : '🔓'}</button><button class="btn peq perigo" data-o="del">Excluir</button><button class="btn peq" data-o="x">✕</button>`;
+    const q0 = Ferr.objOp(o);
+    b.innerHTML = `<span class="cresce"><b>${esc(nomeObj(o.k))}</b> <small class="mudo">${o.x.toFixed(2)}, ${o.y.toFixed(2)} · ${Math.round((q0.e || 1) * 100)}% · ${Math.round(q0.r || 0)}°${tv ? ' · bloqueado' : ''}</small></span>`+(tv || E.reg.base ? '' : `<button class="btn peq" data-o="r-" aria-label="Girar para a esquerda">⟲ 15°</button><button class="btn peq" data-o="r+" aria-label="Girar para a direita">⟳ 15°</button><button class="btn peq" data-o="s-" aria-label="Diminuir">−</button><button class="btn peq" data-o="s+" aria-label="Aumentar">+</button>`)+`${n > 1 ? `<button class="btn peq" data-o="aqui">Aqui: ${n}</button>` : ''}<button class="btn peq" data-o="prop">Propriedades</button><button class="btn peq" data-o="dup">Duplicar</button><button class="btn peq" data-o="col">Colisão</button><button class="btn peq" data-o="tv">${tv ? '🔒' : '🔓'}</button><button class="btn peq perigo" data-o="del">Excluir</button><button class="btn peq" data-o="x">✕</button>`;
     b.querySelectorAll('[data-o]').forEach(x => x.onclick = () => acaoObj(x.dataset.o)); }
   const idxSel = () => E.m.objetos.indexOf(E.objSel);
   // mexe no objeto selecionado com desfazer (o desfazer troca o modelo inteiro, então reencontra pelo índice)
   function mudaObj(fn) { const i = idxSel(); if (i < 0) return; mudar(x => fn(x.objetos[i]), 'nada'); E.objSel = E.m.objetos[i]; barraObj(); }
   async function acaoObj(a) { const o = E.objSel; if (!o) return; const tv = !!Ferr.objOp(o).tv;
     if (a === 'x') return selObj(null);
+    if (/^[rs][+-]$/.test(a)) { if (tv) return toast('Objeto bloqueado'); mudaObj(x => { const q = Object.assign({}, Ferr.objOp(x)); if (a[0] === 'r') { const r = ((((q.r || 0) + (a[1] === '+' ? 15 : -15)) % 360) + 360) % 360; if (r) q.r = r; else delete q.r; } else { const e = clamp(Math.round((q.e || 1) * (a[1] === '+' ? 1.1 : 1 / 1.1) * 100) / 100, .1, 8); if (e === 1) delete q.e; else q.e = e; } Ferr.objF(x, Ferr.objNs(x), Ferr.objCel(x), q); }); if (E.aba === 'objeto') painel('objeto'); return; }
     if (a === 'prop') return abrirAba('objeto');
     if (a === 'aqui') { const L = (E.aqui || []).filter(x => E.m.objetos.includes(x)); const v = await dlg('Objetos neste ponto', '<p class="mudo">Do que aparece na frente para o de trás.</p>', L.map((x, i) => ({ t: nomeObj(x.k) + ' (' + x.x.toFixed(1) + ', ' + x.y.toFixed(1) + ')' + (Ferr.objOp(x).tv ? ' 🔒' : ''), v: 'o' + i })).concat([{ t: 'Cancelar', v: null }]));
       if (v) selObj(L[+v.slice(1)]); return; }
@@ -535,6 +550,11 @@
     if (a === 'del') { if (tv) return toast('Objeto bloqueado: desbloqueie para excluir'); const i = idxSel(); mudar(x => { x.objetos.splice(i, 1); }, 'nada'); selObj(null); toast('Objeto excluído (↶ desfaz)'); return; }
     if (a === 'col') { E.colObj = o; const av = $('#modoAviso'); av.hidden = false; av.innerHTML = '<span>Toque nos tiles para ligar/desligar a colisão deste objeto</span><button class="btn peq">Pronto</button>'; av.querySelector('button').onclick = () => { E.colObj = null; av.hidden = true; desenhar(); }; desenhar(); } }
   // colisão do objeto: células a partir do tile da base (mesma conta do jogo)
+  // alças do objeto escolhido (na tela): ⤡ tamanho no canto de cima/direita, ⟳ giro acima do meio
+  function alcasObj(o) { const P = R.cantos(J, o), q = Ferr.objOp(o), a = (q.r || 0) * Math.PI / 180, sc = p => [E.ox + p[0] * E.s, E.oy + p[1] * E.s], mt = [(P[0][0] + P[1][0]) / 2, (P[0][1] + P[1][1]) / 2], d = 30 / E.s;
+    return { esc: sc(P[1]), gira: sc([mt[0] + Math.sin(a) * d, mt[1] - Math.cos(a) * d]), topo: sc(mt), ancora: sc([o.x * T, o.y * T]) }; }
+  function alcaEm(p) { const o = E.objSel; if (!o || E.ativa !== 'objetos' || E.reg.base || travada('objetos') || Ferr.objOp(o).tv || E.m.objetos.indexOf(o) < 0) return null; const h = alcasObj(o);
+    for (const k of ['gira', 'esc']) if (Math.hypot(p.x - h[k][0], p.y - h[k][1]) <= 26) return k; return null; }
   function celulasObj(o) { const c = Ferr.objCel(o); if (c) return c; if (Ferr.objNs(o)) return [];
     const f = (R.cat(J).fpt[o.k]) || [1, 1, 0], base = Ferr.baseLin(o), x0 = Math.round(o.x - f[0] / 2), y1 = base - f[2], bx = Math.floor(o.x), L = [];
     for (let y = y1 - f[1] + 1; y <= y1; y++) for (let x = x0; x < x0 + f[0]; x++) L.push([x - bx, y - base]); return L; }

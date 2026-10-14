@@ -38,7 +38,7 @@ function applyMap(m){
   if(t==2)SWC[cy*AGW+cx]=1;
   else{WC[cy*AGW+cx]=t==3?2:1;for(let j=0;j<2;j++)for(let i=0;i<2;i++)setM(cx*2+i,cy*2+j,t==5?3:2);if(t==5)BRD.push([cx,cy])}}
  for(let y=0;y<NH;y++)for(let x=0;x<N;x++)if(ring(x,y))M[y*N+x]=1;
- for(const r of m.objects){const k=r[0];if(!TSZ[k])continue;const o={k,x:r[1]*T,y:r[2]*T};OB.push(o);const q=r[5];if(q&&typeof q==='object'){if(q.e>0)o.e=Math.min(8,+q.e);if(q.z==='chao'||q.z==='acima')o.z=q.z;if(q.b)o.b=q.b|0}
+ for(const r of m.objects){const k=r[0];if(!TSZ[k])continue;const o={k,x:r[1]*T,y:r[2]*T};OB.push(o);const q=r[5];if(q&&typeof q==='object'){if(q.e>0)o.e=Math.min(8,+q.e);if(q.z==='chao'||q.z==='acima')o.z=q.z;if(q.b)o.b=q.b|0;if(q.r)o.r=+q.r||0}
   const f=FPT[k]||[1,1,0],base=Math.floor((o.y-1)/T),x0=Math.round(r[1]-f[0]/2),y1=base-f[2];
   if(Array.isArray(r[4])){const bx=Math.floor(r[1]);for(const a of r[4])setM(bx+a[0],base+a[1],1)}
   else if(!r[3])for(let y=y1-f[1]+1;y<=y1;y++)for(let x=x0;x<x0+f[0];x++)setM(x,y,1);

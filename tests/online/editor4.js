@@ -90,6 +90,24 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.click('#objBar [data-o="aqui"]');await W(150);const nl=await ev(()=>document.querySelectorAll('#dlgB button').length);ok(nl===3,'lista os dois objetos para escolher');await P.click('#dlgB button >> nth=1');
  // duplicar e excluir
  await P.click('#objBar [data-o="dup"]');ok(await ev(()=>EDITOR.m.objetos.length===4),'duplicar objeto');await P.click('#objBar [data-o="del"]');ok(await ev(()=>EDITOR.m.objetos.length===3),'excluir objeto');
+ // girar e mudar o tamanho (botões e alças no mapa) — no objeto do jogo (tb1)
+ await ev(()=>{EDITOR.api.selObj(EDITOR.m.objetos.find(o=>o.k==='tb1'))});await W(150);
+ await ev(()=>{const r=document.querySelector('#cv').getBoundingClientRect(),o=EDITOR.m.objetos.find(o=>o.k==='tb1');EDITOR.s=.8;EDITOR.ox=r.width/2-o.x*32*.8;EDITOR.oy=r.height/2-(o.y*32-40)*.8});await W(100);
+ await P.click('#objBar [data-o="r+"]');await P.click('#objBar [data-o="r+"]');await P.click('#objBar [data-o="s+"]');
+ let tb=await ev(()=>EDITOR.m.objetos.find(o=>o.k==='tb1').f);ok(tb[2]&&tb[2].r===30&&tb[2].e===1.1,'botões: girar 2×15° e aumentar 10% ('+JSON.stringify(tb[2])+')');
+ const al=await ev(()=>{const o=EDITOR.m.objetos.find(o=>o.k==='tb1'),r=document.querySelector('#cv').getBoundingClientRect(),P=Render.cantos(JOGO,o),q=o.f[2],a=q.r*Math.PI/180,mt=[(P[0][0]+P[1][0])/2,(P[0][1]+P[1][1])/2],d=30/EDITOR.s;
+   return{esc:[r.left+EDITOR.ox+P[1][0]*EDITOR.s,r.top+EDITOR.oy+P[1][1]*EDITOR.s],gira:[r.left+EDITOR.ox+(mt[0]+Math.sin(a)*d)*EDITOR.s,r.top+EDITOR.oy+(mt[1]-Math.cos(a)*d)*EDITOR.s],anc:[r.left+EDITOR.ox+o.x*32*EDITOR.s,r.top+EDITOR.oy+o.y*32*EDITOR.s]}});
+ // alça de tamanho: afastar do ponto da âncora até o dobro da distância
+ await arrasta(al.esc,[al.anc[0]+(al.esc[0]-al.anc[0])*2,al.anc[1]+(al.esc[1]-al.anc[1])*2],6);tb=await ev(()=>EDITOR.m.objetos.find(o=>o.k==='tb1').f);
+ ok(Math.abs(tb[2].e-2.2)<.03,'alça ⤡ no mapa: arrastar para fora dobra o tamanho ('+tb[2].e+')');
+ // alça de giro: girar 90° em volta da âncora
+ const al2=await ev(()=>{const o=EDITOR.m.objetos.find(o=>o.k==='tb1'),r=document.querySelector('#cv').getBoundingClientRect(),P=Render.cantos(JOGO,o),q=o.f[2],a=q.r*Math.PI/180,mt=[(P[0][0]+P[1][0])/2,(P[0][1]+P[1][1])/2],d=30/EDITOR.s;
+   return{gira:[r.left+EDITOR.ox+(mt[0]+Math.sin(a)*d)*EDITOR.s,r.top+EDITOR.oy+(mt[1]-Math.cos(a)*d)*EDITOR.s],anc:[r.left+EDITOR.ox+o.x*32*EDITOR.s,r.top+EDITOR.oy+o.y*32*EDITOR.s]}});
+ const vx=al2.gira[0]-al2.anc[0],vy=al2.gira[1]-al2.anc[1];await arrasta(al2.gira,[al2.anc[0]-vy,al2.anc[1]+vx],10);tb=await ev(()=>EDITOR.m.objetos.find(o=>o.k==='tb1').f);
+ ok(tb[2].r===120,'alça ⟳ no mapa: girar 90° (30° → '+tb[2].r+'°)');
+ await P.click('#desf');ok(await ev(()=>EDITOR.m.objetos.find(o=>o.k==='tb1').f[2].r===30),'desfazer o giro');await P.click('#ref');
+ ok(await ev(()=>JSON.stringify(EDITOR.m.objetos.find(o=>o.k==='tb1').f[1]||null))==='null','a colisão não muda com o tamanho nem com o giro');
+ await ev(()=>EDITOR.api.selObj(null));await ev(()=>{EDITOR.s=.6;EDITOR.ox=10;EDITOR.oy=40});await W(100);
  // copiar/colar uma área com objeto
  await ev(()=>EDITOR.api.selObj(null));await arrasta(await tela(8*32+16,9*32+16),await tela(11*32+16,11*32+16),5);await P.click('#selBar [data-s="copiar"]');await P.click('[data-f="colar"]');await tap(await tela(3*32+16,3*32+16));
  ok(await ev(()=>EDITOR.m.objetos.some(o=>o.k.endsWith('.c1')&&o.x===5.5&&o.y===5)),'copiar/colar uma área leva os objetos junto');
@@ -98,11 +116,13 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.click('#salvar');await W(300);await P.click('#publicar');await W(200);await D('Enviar e pôr no jogo');await W(1500);
  await W(1500);const pub=await (await fetch(GS+'/mapas?dim=1')).json(),pm2=pub.mapas[id],im=pub.imagens[kA];
  ok(im&&im.sx===0&&im.w===40&&im.h===64&&im.dw===80&&im.dh===128&&im.ax===40&&im.ay===128&&im.corte===80,'servidor entrega o recorte (pedaço, tamanho, âncora, parte da frente)');
+ const tbS=pm2.objects.find(o=>o[0]==='tb1');ok(tbS&&tbS[5]&&tbS[5].r===120&&Math.abs(tbS[5].e-2.2)<.03,'servidor recebe giro e tamanho do objeto');
  const arv=pm2.objects.find(o=>o[0]===kA&&o[1]===10.5);ok(arv&&JSON.stringify(arv[4])==='[[0,0],[1,0],[0,-1]]'&&arv[5]&&arv[5].e===1.5&&arv[5].b===-8,'objeto chega ao servidor com colisão própria e escala');
  await A.click('#mapbtn');await W(2500);await A.evaluate(n=>[...document.querySelectorAll('#mmList button')].find(x=>x.textContent.toLowerCase().includes(n)).click(),'objetos');await W(2500);
  await A.waitForFunction(k=>TX[k]&&TX[k].rc,kA,{timeout:8000});
  const g=await A.evaluate(()=>({M:Array.from(M).join(''),cur:CURMAP}));
  ok(g.cur===id,'jogo entrou no mapa');
+ ok(await A.evaluate(()=>{const o=OB.find(o=>o.k==='tb1');return o&&o.r===120&&Math.abs(o.e-2.2)<.03}),'jogo carrega o objeto girado e maior');
  const srvM=await (async()=>{const cat=JSON.parse(require('fs').readFileSync(path.join(__dirname,'..','paginas','server','mapa_objetos.json'),'utf8'));for(const k of Object.keys(pub.imagens)){cat.tsz.push(k);cat.fpt[k]=[pub.imagens[k].fw||1,pub.imagens[k].fh||1,pub.imagens[k].off|0]}return MR.compilar(MR.validar(id,'x',pm2,cat),cat).M})();
  ok(g.M===srvM,'colisão do jogo igual à do servidor (células próprias dos objetos)');
  ok(g.M[10*30+10]==='1'&&g.M[10*30+11]==='1'&&g.M[9*30+10]==='1','tiles de colisão da árvore bloqueados no jogo');
