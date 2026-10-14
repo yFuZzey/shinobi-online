@@ -343,10 +343,12 @@ function npcDraw(L,ts){if(scene|0)return;const dt=Math.min(.1,Math.max(0,(ts-(MA
 const MIS={d:{},def:{},ok:0,min:0};
 function misCond(s){for(const k of s||[]){if(k.t==='mis'){const v=MIS.d[k.q]|0;if(k.e==='nao'?v!==0:k.e==='fim'?v!==999:k.e==='em'?!(v>0&&v!==999):v!==k.n)return false}
   else if(k.t==='nivel'){if(((typeof CH!=='undefined'&&CH.lv)|0)<k.n)return false}else if(k.t==='item'){const n=INV.filter(i=>i===k.i).length+Object.values(EQ).filter(i=>i===k.i).length;if(n<k.n)return false}}return true}
-// página de fala do NPC: a 1ª cujas condições valem (−1 = falas normais)
-function npcPg(c){const P=Array.isArray(c.pg)?c.pg:[];for(let i=0;i<P.length;i++)if(misCond(P[i].se))return i;return -1}
+// página de fala do NPC: a 1ª cujas condições valem e que a pessoa não “encerrou” (−1 = falas normais; −2 = nada, as normais foram encerradas)
+function npcChave(map,npc,pg){const s=map+'|'+npc+'|'+pg;let a=0x811c9dc5,b=0x9747b28c;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=Math.imul(a^c,16777619)>>>0;b=Math.imul(b^c,2246822519)>>>0}return 'q__'+a.toString(16).padStart(8,'0')+b.toString(16).padStart(8,'0')}
+const npcFeito=(c,pid)=>(MIS.d[npcChave(CURMAP,c.id,pid)]|0)===1;
+function npcPg(c){const P=Array.isArray(c.pg)?c.pg:[];for(let i=0;i<P.length;i++)if(!npcFeito(c,P[i].id)&&misCond(P[i].se))return i;return npcFeito(c,'p0')?-2:-1}
 // marca em cima do NPC: “!” = tem missão para começar, “?” = tem missão para avançar/entregar
-function npcMarca(c){if(!MIS.ok||!Array.isArray(c.pg))return '';const i=npcPg(c);if(i<0)return '';const A=c.pg[i].faz||[];return A.some(a=>a.t==='mis'&&a.a==='comecar')?'!':A.some(a=>a.t==='mis')?'?':''}
+function npcMarca(c){if(!MIS.ok||!Array.isArray(c.pg))return '';const i=npcPg(c);if(i<0)return '';const g=c.pg[i],A=(g.faz||[]).concat(...(g.ch||[]).map(e=>e.faz||[]));return A.some(a=>a.t==='mis'&&a.a==='comecar')?'!':A.some(a=>a.t==='mis')?'?':''}
 // diário: as missões em andamento ficam num quadrinho no alto da tela (toque para encolher)
 function misHud(){let h=document.getElementById('misHud');const L=Object.keys(MIS.d).filter(q=>MIS.def[q]&&MIS.d[q]>0&&MIS.d[q]!==999);
  if(!h){h=document.createElement('div');h.id='misHud';h.style.cssText='position:fixed;left:50%;top:6px;transform:translateX(-50%);z-index:25;max-width:min(420px,60vw);background:#14100cc8;border:1px solid #c99a4a;border-radius:10px;padding:5px 10px;color:#f3e6cc;font:12px/1.35 system-ui,sans-serif;pointer-events:auto';
@@ -355,7 +357,7 @@ function misHud(){let h=document.getElementById('misHud');const L=Object.keys(MI
  h.innerHTML=MIS.min?'📜 '+L.length+' missão(ões)':L.map(q=>{const d=MIS.def[q],v=MIS.d[q];return '<div>📜 <b style="color:#ffd27a">'+esc(d.n)+'</b> · '+esc(d.p[v-1]||('passo '+v))+'</div>'}).join('')}
 setInterval(()=>{const h=document.getElementById('misHud');if(h)h.style.display=cur==='game'&&Object.keys(MIS.d).some(q=>MIS.def[q]&&MIS.d[q]>0&&MIS.d[q]!==999)?'block':'none'},1000);
 // botão “Falar” quando o jogador está perto de um NPC; a janela mostra as falas uma a uma (com retrato e %player% = nome do jogador)
-function npcTick(){try{const b=npcBtn();let best=null,bd=1.8*T;if(cur==='game'&&!(scene|0)&&p)for(const c of MAPEV.npcs){const [x,y]=npcPos(c),d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=c}}
+function npcTick(){try{const b=npcBtn();let best=null,bd=1.8*T;if(cur==='game'&&!(scene|0)&&p)for(const c of MAPEV.npcs){if(MIS.ok&&npcPg(c)===-2)continue;const [x,y]=npcPos(c),d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=c}}
  MAPEV.perto=best;if(MAPEV.fala&&MAPEV.fala.c!==best)npcFecha();b.style.display=best&&!MAPEV.fala?'block':'none';if(best)b.textContent='💬 Falar com '+best.n}catch(_){}}
 function npcBtn(){let b=document.getElementById('npcBtn');if(b)return b;b=document.createElement('button');b.id='npcBtn';
  b.style.cssText='position:fixed;left:50%;bottom:24%;transform:translateX(-50%);z-index:30;padding:10px 18px;border-radius:22px;border:2px solid #f0b84a;background:#1b1410e6;color:#ffe2a8;font:bold 15px system-ui,sans-serif;display:none;max-width:80vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
@@ -366,15 +368,22 @@ function npcRetrato(cv,c){const g=cv.getContext('2d'),W=cv.width,H=cv.height;g.s
  try{if(typeof c.rt==='string'){const im=TX[c.rt];if(!im)return false;const w=im.width,h=im.height,z=Math.min(W/w,H/h);g.imageSmoothingEnabled=im.px===false;g.drawImage(im,(W-w*z)/2,(H-h*z)/2,w*z,h*z);return true}
   if(c.a&&c.a.t==='img'){const k=(c.a.q&&c.a.q[0])||c.a.k,im=TX[k];if(!im)return false;const pe=npcPe(im),w=im.width,ty=pe?pe.ty:0,h=(pe?pe.by:im.height)-ty,q=Math.min(w,Math.max(8,h*.45)),sy=Math.max(0,ty-q*.08),sx=pe?Math.max(0,Math.min(w-q,pe.cx-q/2)):(w-q)/2;g.imageSmoothingEnabled=im.px===false;g.drawImage(im,sx,sy,q,q,0,0,W,H);return true}
   const lk={skin:SKIN[c.a&&c.a.s|0]||SKIN[0],hair:HAIR[c.a&&c.a.h|0]||HAIR[0],cloth:CLOTH[c.a&&c.a.c|0]||CLOTH[0]},k=H/HFACE.z;g.setTransform(k,0,0,k,W/2,H/2+HFACE.y*k);if(HERO)drawHero(g,0,0,{fl:0,t:0,mv:0,run:0,aura:-1,th:-1,set:heroFor(lk),act:null,vis:[]});else drawChar(g,0,0,{...lk,dir:0,t:0,mv:0,run:0});g.setTransform(1,0,0,1,0,0);return true}catch(_){return false}}
-function npcAbre(c){if(!c)return;const pi=npcPg(c),pg=pi>=0?c.pg[pi]:null,f0=pg&&pg.f&&pg.f.length?pg.f:c.f&&c.f.length?c.f:['…'],f=f0.map(t=>npcTxt(t,c));let d=document.getElementById('npcDlg');
+function npcAbre(c){if(!c)return;const pi=npcPg(c);if(pi===-2)return;const pg=pi>=0?c.pg[pi]:{id:'p0',f:c.f,faz:[],ch:c.ch},f0=pg.f&&pg.f.length?pg.f:c.f&&c.f.length?c.f:['…'],f=f0.map(t=>npcTxt(t,c));let d=document.getElementById('npcDlg');
  if(!d){d=document.createElement('div');d.id='npcDlg';d.style.cssText='position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(560px,92vw);z-index:40;background:#14100cee;border:2px solid #c99a4a;border-radius:12px;padding:12px 14px;color:#f3e6cc;font:15px/1.45 system-ui,sans-serif;box-shadow:0 6px 24px #000a';
-  d.innerHTML='<div style="display:flex;gap:12px;align-items:flex-start"><canvas id="npcR" width="128" height="128" style="width:64px;height:64px;flex:none;border:2px solid #c99a4a;border-radius:8px;background:#2a1f14;image-rendering:pixelated"></canvas><div style="flex:1;min-width:0"><b id="npcN" style="color:#ffd27a;font-size:16px"></b><p id="npcT" style="margin:6px 0 10px;white-space:pre-wrap"></p></div></div><div style="text-align:right"><button id="npcP" style="padding:9px 18px;border-radius:10px;border:2px solid #c99a4a;background:#2a1f14;color:#ffe2a8;font:bold 14px system-ui,sans-serif"></button></div>';
+  d.innerHTML='<div style="display:flex;gap:12px;align-items:flex-start"><canvas id="npcR" width="128" height="128" style="width:64px;height:64px;flex:none;border:2px solid #c99a4a;border-radius:8px;background:#2a1f14;image-rendering:pixelated"></canvas><div style="flex:1;min-width:0"><b id="npcN" style="color:#ffd27a;font-size:16px"></b><p id="npcT" style="margin:6px 0 10px;white-space:pre-wrap"></p></div></div><div id="npcOps" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px"></div><div style="text-align:right"><button id="npcP" style="padding:9px 18px;border-radius:10px;border:2px solid #c99a4a;background:#2a1f14;color:#ffe2a8;font:bold 14px system-ui,sans-serif"></button></div>';
   d.addEventListener('pointerdown',e=>e.stopPropagation());document.body.appendChild(d)}
  const rc=document.getElementById('npcR');rc.style.display=npcRetrato(rc,c)?'block':'none';
- MAPEV.fala={c,i:0,pi};const mostra=()=>{document.getElementById('npcN').textContent=c.n;document.getElementById('npcT').textContent=f[MAPEV.fala.i];document.getElementById('npcP').textContent=MAPEV.fala.i<f.length-1?'Próximo ▸':'Fechar'};
- mostra();d.style.display='block';npcBtn().style.display='none';document.getElementById('npcP').onclick=e=>{e.stopPropagation();if(MAPEV.fala&&MAPEV.fala.i<f.length-1){MAPEV.fala.i++;mostra()}else{npcFecha();if(pg)npcFaz(c,pi,pg)}}}
-// fim da fala: missões vão para o servidor conferir e gravar; teletransporte é feito aqui
-function npcFaz(c,pi,pg){const A=pg.faz||[];if(A.some(a=>a.t==='mis')&&ONL.on)gsSend({t:'npcfim',id:c.id,pg:pi});
+ const ch=Array.isArray(pg.ch)&&pg.ch.length?pg.ch:null,ops=document.getElementById('npcOps'),bt=document.getElementById('npcP');
+ MAPEV.fala={c,i:0,pi,L:f,op:-1};
+ // mostra a fala atual; na última fala com escolhas, aparecem os botões das escolhas no lugar de “Fechar”
+ const mostra=()=>{const F=MAPEV.fala;document.getElementById('npcN').textContent=c.n;document.getElementById('npcT').textContent=F.L[F.i];const ult=F.i>=F.L.length-1,esc=ult&&ch&&F.op<0;
+  ops.innerHTML='';ops.style.display=esc?'flex':'none';bt.style.display=esc?'none':'inline-block';bt.textContent=ult?'Fechar':'Próximo ▸';
+  if(esc)ch.forEach((o,oi)=>{const b=document.createElement('button');b.className='npcOp';b.textContent='▸ '+npcTxt(o.txt,c);b.style.cssText='text-align:left;padding:10px 14px;border-radius:10px;border:2px solid #c99a4a;background:#2a1f14;color:#ffe2a8;font:bold 14px system-ui,sans-serif';
+   b.onclick=e=>{e.stopPropagation();F.op=oi;const fx=(o.f||[]).map(t=>npcTxt(t,c));if(fx.length){F.L=fx;F.i=0;mostra()}else{npcFecha();npcFaz(c,pi,pg,oi)}};ops.appendChild(b)})};
+ mostra();d.style.display='block';npcBtn().style.display='none';bt.onclick=e=>{e.stopPropagation();const F=MAPEV.fala;if(F&&F.i<F.L.length-1){F.i++;mostra()}else{const oi=F?F.op:-1;npcFecha();npcFaz(c,pi,pg,oi)}}}
+// fim da conversa: missões e “não repetir” vão para o servidor conferir e gravar; teletransporte é feito aqui
+function npcFaz(c,pi,pg,oi){const o=oi>=0&&pg.ch?pg.ch[oi]:null,A=(pg.faz||[]).concat(o?o.faz||[]:[]);if(A.some(a=>a.t==='mis'||a.t==='fim')&&ONL.on)gsSend({t:'npcfim',id:c.id,pg:pi,op:oi>=0?oi:-1});
+ if(A.some(a=>a.t==='fim'))MIS.d[npcChave(CURMAP,c.id,pg.id)]=1; // já esconde a conversa (o servidor confirma)
  const tp=A.find(a=>a.t==='tp');if(tp){if(tp.m!==CURMAP&&!MAPS[tp.m])return onlReg('Este caminho leva a um mapa que não existe mais ('+tp.m+').');
   if(tp.m===CURMAP){if(tp.tx!=null){p.x=Math.max(T,Math.min(N*T-T,tp.tx*T));p.y=Math.max(T,Math.min(NH*T-T,tp.ty*T))}else{p.x=SPAWN[0]*T;p.y=SPAWN[1]*T}flash={col:'#000',a:1}}
   else{if(tp.tx!=null)window.TPD=[tp.tx,tp.ty];switchMap(tp.m)}MAPEV.ult=Math.floor(p.x/T)+','+Math.floor(p.y/T)}}

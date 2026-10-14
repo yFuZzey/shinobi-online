@@ -258,19 +258,26 @@ async function misLoad(p) { p.mis = {}; if (SB_URL && SB_SVC) { try { for (const
   catch (e) { p.misErr = e.status === 404 ? 'falta rodar o SQL 19 (missões) no Supabase' : e.message; } } if (p.conn.open) p.conn.send({ t: 'mis', d: p.mis }); }
 function misCond(p, s, inv) { for (const k of s || []) { if (k.t === 'mis') { const v = p.mis[k.q] | 0; if (k.e === 'nao' ? v !== 0 : k.e === 'fim' ? v !== MIS_FIM : k.e === 'em' ? !(v > 0 && v !== MIS_FIM) : v !== k.n) return false; }
   else if (k.t === 'nivel') { if ((p.lv | 0) < k.n) return false; } else if (k.t === 'item') { if (!inv || (inv[k.i] || 0) < k.n) return false; } } return true; }
+// “não repetir esta conversa”: marca por jogador, guardada junto do progresso das missões com uma chave curta (o app calcula a mesma)
+function npcChave(map, npc, pg) { const s = map + '|' + npc + '|' + pg; let a = 0x811c9dc5, b = 0x9747b28c; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a = Math.imul(a ^ c, 16777619) >>> 0; b = Math.imul(b ^ c, 2246822519) >>> 0; }
+  return 'q__' + a.toString(16).padStart(8, '0') + b.toString(16).padStart(8, '0'); }
+// página que o NPC fala agora (mesma regra do app): a 1ª que vale e não foi encerrada; -1 = falas normais; -2 = nada (as normais foram encerradas)
+function npcPgSrv(p, map, c, inv) { const P = Array.isArray(c.pg) ? c.pg : []; for (let j = 0; j < P.length; j++) if ((p.mis[npcChave(map, c.id, P[j].id)] | 0) !== 1 && misCond(p, P[j].se, inv)) return j; return (p.mis[npcChave(map, c.id, 'p0')] | 0) === 1 ? -2 : -1; }
 async function onNpcFim(p, m) { const t = now(); if (t - (p.npcT || 0) < 0.3 || !p.map || p.sc || !p.mis) return; p.npcT = t;
-  const pm = MP_PUB[p.map], c = pm && Array.isArray(pm.npcs) && pm.npcs.find(x => x.id === m.id), i = m.pg | 0, pg = c && Array.isArray(c.pg) && c.pg[i];
-  if (!pg || !Array.isArray(pg.faz) || !pg.faz.some(a => a.t === 'mis')) return;
+  const pm = MP_PUB[p.map], c = pm && Array.isArray(pm.npcs) && pm.npcs.find(x => x.id === m.id), i = Number.isInteger(m.pg) ? m.pg : -9; if (!c || i < -1) return;
+  const pg = i === -1 ? { id: 'p0', se: [], faz: [], ch: c.ch } : Array.isArray(c.pg) && c.pg[i]; if (!pg) return;
+  const op = Number.isInteger(m.op) && m.op >= 0 && Array.isArray(pg.ch) ? pg.ch[m.op] : null, A = (pg.faz || []).concat(op ? op.faz || [] : []);
+  if (!A.some(a => a.t === 'mis' || a.t === 'fim')) return;
   const r = (c.mv ? c.mv.r : 0) + 3; if (Math.abs(p.x / T - (c.x + .5)) > r || Math.abs(p.y / T - (c.y + 1)) > r) return sys(p, 'Chegue mais perto de ' + c.n + '.');
-  let inv = null; if (c.pg.some(g => (g.se || []).some(k => k.t === 'item'))) { inv = {}; if (INV_OK) for (const row of await invOf(p.id)) inv[row.item] = (inv[row.item] || 0) + 1; }
-  let ok = -1; for (let j = 0; j < c.pg.length; j++) if (misCond(p, c.pg[j].se, inv)) { ok = j; break; }
-  if (ok !== i) return p.conn.send({ t: 'mis', d: p.mis }); // a situação mudou: o app atualiza e escolhe a página certa
-  const msg = [];
-  for (const a of pg.faz) { if (a.t !== 'mis' || !MIS[a.q]) continue; const def = MIS[a.q], v = a.a === 'comecar' ? 1 : a.a === 'fim' ? MIS_FIM : clamp(a.n | 0, 1, Math.max(1, def.p.length));
-    if ((p.mis[a.q] | 0) === v) continue;
-    try { await svc('/rest/v1/missao_progresso?on_conflict=personagem_id,missao', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ personagem_id: p.id, missao: a.q, passo: v, atualizado_em: new Date().toISOString() }) }); }
-    catch (e) { log('missão não salva', p.nome, a.q, e.message); return sys(p, 'Não consegui salvar a missão agora. Tente de novo.'); }
-    p.mis[a.q] = v; msg.push(a.a === 'comecar' ? '📜 Missão iniciada: ' + def.n : a.a === 'fim' ? '✅ Missão concluída: ' + def.n : '📜 ' + def.n + ': ' + (def.p[v - 1] || 'passo ' + v)); }
+  let inv = null; if ((c.pg || []).some(g => (g.se || []).some(k => k.t === 'item'))) { inv = {}; if (INV_OK) for (const row of await invOf(p.id)) inv[row.item] = (inv[row.item] || 0) + 1; }
+  if (npcPgSrv(p, p.map, c, inv) !== i) return p.conn.send({ t: 'mis', d: p.mis }); // a situação mudou: o app atualiza e escolhe a página certa
+  const msg = [], grava = async (k, v) => { await svc('/rest/v1/missao_progresso?on_conflict=personagem_id,missao', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ personagem_id: p.id, missao: k, passo: v, atualizado_em: new Date().toISOString() }) }); p.mis[k] = v; };
+  try { for (const a of A) {
+      if (a.t === 'fim') { const k = npcChave(p.map, c.id, pg.id); if ((p.mis[k] | 0) !== 1) await grava(k, 1); continue; }
+      if (a.t !== 'mis' || !MIS[a.q]) continue; const def = MIS[a.q], v = a.a === 'comecar' ? 1 : a.a === 'fim' ? MIS_FIM : clamp(a.n | 0, 1, Math.max(1, def.p.length));
+      if ((p.mis[a.q] | 0) === v) continue; await grava(a.q, v);
+      msg.push(a.a === 'comecar' ? '📜 Missão iniciada: ' + def.n : a.a === 'fim' ? '✅ Missão concluída: ' + def.n : '📜 ' + def.n + ': ' + (def.p[v - 1] || 'passo ' + v)); } }
+  catch (e) { log('missão não salva', p.nome, e.message); sys(p, 'Não consegui salvar a missão agora. Tente de novo.'); }
   if (p.conn.open) p.conn.send({ t: 'mis', d: p.mis, msg }); }
 async function mapasDb() {
   if (!MR || !MCAT || !SB_URL || !SB_SVC) { MP_DB.motivo = 'sem chave secreta ou sem mapa_objetos.json'; return; }

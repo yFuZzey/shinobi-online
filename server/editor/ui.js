@@ -669,39 +669,49 @@
           toast('Missão salva'); lista(); } catch (e) { aviso('Não consegui salvar a missão', esc(/missoes|PGRST205|42P01/.test(e.message + e.code) ? 'O banco ainda não tem as missões: rode o arquivo sql/19_missoes.sql no Supabase.' : P.erroTexto(e))); } };
       if (q) C2.querySelector('#msD').onclick = async () => { if (!confirm('Excluir a missão “' + q.nome + '”? NPCs que usam ela deixam de funcionar.')) return; try { await P.api('/rest/v1/missoes?id=eq.' + encodeURIComponent(q.id), { method: 'DELETE' }); toast('Missão excluída'); lista(); } catch (e) { aviso('Não consegui excluir', esc(P.erroTexto(e))); } }; };
     lista(); }); }
-  // editor das páginas de fala com condição (dentro da janela do NPC). Cada página: se = condições, f = falas, faz = ações no fim da fala
-  function paginasNpc(box, PG, mapas) { if (!box) return; const M2 = E.missoes || [], IT = E.itens || [];
+  // editor das falas do NPC (dentro da janela do NPC): escolhas das falas normais (R.ch) e páginas com condição (R.pg: id, se = condições, f = falas, faz = ações, ch = escolhas).
+  // Cada campo aponta para o seu lugar por um caminho (ex.: "pg.0.ch.1.faz.0"), então tudo é editado direto no objeto R.
+  function falasNpc(boxCh, boxPg, R, mapas) { const M2 = E.missoes || [], IT = E.itens || [], ob = pt => pt.split('.').reduce((o, k) => o == null ? o : o[k], R);
     const opMis = sel => M2.length ? M2.map(q => `<option value="${esc(q.id)}" ${q.id === sel ? 'selected' : ''}>${esc(q.nome)}</option>`).join('') : '<option value="">(crie em 📜 Missões…)</option>';
-    const inp = (pi, g, i, k, v, w) => `<input class="pgIn" data-pi="${pi}" data-g="${g}" data-i="${i}" data-k="${k}" type="number" min="1" max="99" value="${v || 1}" style="width:${w || 64}px">`;
-    const sel = (pi, g, i, k, html) => `<select class="pgIn" data-pi="${pi}" data-g="${g}" data-i="${i}" data-k="${k}">${html}</select>`;
-    const cond = (pi, i, k) => `<div class="linha" style="flex-wrap:wrap;gap:4px;margin:3px 0">${sel(pi, 'se', i, 't', [['mis', 'Missão'], ['item', 'Tem o item'], ['nivel', 'Nível mínimo']].map(([a, b]) => `<option value="${a}" ${k.t === a ? 'selected' : ''}>${b}</option>`).join(''))}` +
-      (k.t === 'mis' ? sel(pi, 'se', i, 'q', opMis(k.q)) + sel(pi, 'se', i, 'e', [['nao', 'não começou'], ['em', 'em andamento'], ['passo', 'no passo…'], ['fim', 'concluída']].map(([a, b]) => `<option value="${a}" ${k.e === a ? 'selected' : ''}>${b}</option>`).join('')) + (k.e === 'passo' ? inp(pi, 'se', i, 'n', k.n) : '')
-        : k.t === 'item' ? sel(pi, 'se', i, 'i', IT.map(it => `<option value="${esc(it.id)}" ${it.id === k.i ? 'selected' : ''}>${esc(it.n)}</option>`).join('') || '<option value="">(sem itens)</option>') + '<span class="mudo">qtd</span>' + inp(pi, 'se', i, 'n', k.n, 56)
-        : inp(pi, 'se', i, 'n', k.n)) + `<button class="ib" data-pgdel="${pi},se,${i}" aria-label="Tirar">✕</button></div>`;
-    const acao = (pi, i, a) => `<div class="linha" style="flex-wrap:wrap;gap:4px;margin:3px 0">${sel(pi, 'faz', i, 't', [['mis', 'Missão'], ['tp', 'Levar para o mapa']].map(([x, y]) => `<option value="${x}" ${a.t === x ? 'selected' : ''}>${y}</option>`).join(''))}` +
-      (a.t === 'mis' ? sel(pi, 'faz', i, 'q', opMis(a.q)) + sel(pi, 'faz', i, 'a', [['comecar', 'começar'], ['passo', 'ir para o passo…'], ['fim', 'concluir']].map(([x, y]) => `<option value="${x}" ${a.a === x ? 'selected' : ''}>${y}</option>`).join('')) + (a.a === 'passo' ? inp(pi, 'faz', i, 'n', a.n) : '')
-        : sel(pi, 'faz', i, 'm', mapas.map(id => `<option value="${esc(id)}" ${id === a.m ? 'selected' : ''}>${esc(id)}</option>`).join('')) + `<button class="btn peq" data-pgtp="${pi},${i}">📍 ${a.tx != null ? '(' + Math.floor(a.tx) + ', ' + Math.floor(a.ty) + ')' : 'nascimento'}</button>`) + `<button class="ib" data-pgdel="${pi},faz,${i}" aria-label="Tirar">✕</button></div>`;
-    box.innerHTML = PG.map((g, pi) => `<div style="border:1px solid var(--linha);border-radius:10px;padding:8px;margin:6px 0"><div class="linha"><b class="cresce">Página ${pi + 1}</b>${pi ? `<button class="ib" data-pgup="${pi}" aria-label="Subir">▲</button>` : ''}<button class="ib" data-pgx="${pi}" aria-label="Excluir página">🗑</button></div>
-      <label class="lbl">Quando (todas precisam valer)</label>${g.se.map((k, i) => cond(pi, i, k)).join('') || '<p class="mudo">Sempre (sem condição)</p>'}<button class="btn peq" data-pgadd="${pi},se">+ Condição</button>
-      <label class="lbl" style="margin-top:6px">Falas (uma por linha)</label><textarea class="pgF" data-pi="${pi}" rows="3" style="width:100%">${esc((g.f || []).join('\n'))}</textarea>
-      <label class="lbl" style="margin-top:6px">No fim da fala</label>${g.faz.map((a, i) => acao(pi, i, a)).join('') || '<p class="mudo">Nada</p>'}<button class="btn peq" data-pgadd="${pi},faz">+ Ação</button></div>`).join('');
-    const re = () => paginasNpc(box, PG, mapas);
-    box.querySelectorAll('.pgIn').forEach(el => el.onchange = () => { const d = el.dataset, o = PG[+d.pi][d.g][+d.i], k = d.k; o[k] = k === 'n' ? Math.max(1, Math.min(99, +el.value | 0)) : el.value;
-      if (k === 't') { for (const x of Object.keys(o)) if (x !== 't') delete o[x]; if (d.g === 'se') Object.assign(o, o.t === 'mis' ? { q: (M2[0] || {}).id || '', e: 'em' } : o.t === 'item' ? { i: (IT[0] || {}).id || '', n: 1 } : { n: 1 }); else Object.assign(o, o.t === 'mis' ? { q: (M2[0] || {}).id || '', a: 'comecar' } : { m: mapas[0] }); }
-      if ((k === 'e' && o.e === 'passo') || (k === 'a' && o.a === 'passo')) o.n = o.n || 1; if ((k === 'e' && o.e !== 'passo') || (k === 'a' && o.a !== 'passo')) delete o.n; if (k === 'm') { delete o.tx; delete o.ty; } if (k === 't' || k === 'e' || k === 'a' || k === 'm') re(); });
-    box.querySelectorAll('.pgF').forEach(el => el.oninput = () => { PG[+el.dataset.pi].f = el.value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 20).map(x => x.slice(0, 300)); });
-    box.querySelectorAll('[data-pgadd]').forEach(b => b.onclick = () => { const [pi, g] = b.dataset.pgadd.split(','); if (PG[+pi][g].length >= 6) return toast('No máximo 6');
-      PG[+pi][g].push(g === 'se' ? { t: 'mis', q: (M2[0] || {}).id || '', e: 'nao' } : { t: 'mis', q: (M2[0] || {}).id || '', a: 'comecar' }); re(); });
-    box.querySelectorAll('[data-pgdel]').forEach(b => b.onclick = () => { const [pi, g, i] = b.dataset.pgdel.split(','); PG[+pi][g].splice(+i, 1); re(); });
-    box.querySelectorAll('[data-pgx]').forEach(b => b.onclick = () => { PG.splice(+b.dataset.pgx, 1); re(); });
-    box.querySelectorAll('[data-pgup]').forEach(b => b.onclick = () => { const i = +b.dataset.pgup; [PG[i - 1], PG[i]] = [PG[i], PG[i - 1]]; re(); });
-    box.querySelectorAll('[data-pgtp]').forEach(b => b.onclick = async () => { const [pi, i] = b.dataset.pgtp.split(',').map(Number), a = PG[pi].faz[i], d = $('#dlg'); d.hidden = true;
+    const inp = (pt, k, v, w) => `<input class="pgIn" data-p="${pt}" data-k="${k}" type="number" min="1" max="99" value="${v || 1}" style="width:${w || 64}px">`;
+    const sel = (pt, k, html) => `<select class="pgIn" data-p="${pt}" data-k="${k}">${html}</select>`, ops = (L, v) => L.map(([a, b]) => `<option value="${a}" ${v === a ? 'selected' : ''}>${b}</option>`).join('');
+    const del = pt => `<button class="ib" data-del="${pt}" aria-label="Tirar">✕</button>`;
+    const cond = (pt, k) => `<div class="linha" style="flex-wrap:wrap;gap:4px;margin:3px 0">${sel(pt, 't', ops([['mis', 'Missão'], ['item', 'Tem o item'], ['nivel', 'Nível mínimo']], k.t))}` +
+      (k.t === 'mis' ? sel(pt, 'q', opMis(k.q)) + sel(pt, 'e', ops([['nao', 'não começou'], ['em', 'em andamento'], ['passo', 'no passo…'], ['fim', 'concluída']], k.e)) + (k.e === 'passo' ? inp(pt, 'n', k.n) : '')
+        : k.t === 'item' ? sel(pt, 'i', IT.map(it => `<option value="${esc(it.id)}" ${it.id === k.i ? 'selected' : ''}>${esc(it.n)}</option>`).join('') || '<option value="">(sem itens)</option>') + '<span class="mudo">qtd</span>' + inp(pt, 'n', k.n, 56) : inp(pt, 'n', k.n)) + del(pt) + '</div>';
+    const acao = (pt, a) => `<div class="linha" style="flex-wrap:wrap;gap:4px;margin:3px 0">${sel(pt, 't', ops([['mis', 'Missão'], ['tp', 'Levar para o mapa'], ['fim', 'Não repetir esta conversa']], a.t))}` +
+      (a.t === 'mis' ? sel(pt, 'q', opMis(a.q)) + sel(pt, 'a', ops([['comecar', 'começar'], ['passo', 'ir para o passo…'], ['fim', 'concluir']], a.a)) + (a.a === 'passo' ? inp(pt, 'n', a.n) : '')
+        : a.t === 'tp' ? sel(pt, 'm', mapas.map(id => `<option value="${esc(id)}" ${id === a.m ? 'selected' : ''}>${esc(id)}</option>`).join('')) + `<button class="btn peq" data-tp="${pt}">📍 ${a.tx != null ? '(' + Math.floor(a.tx) + ', ' + Math.floor(a.ty) + ')' : 'nascimento'}</button>`
+        : '<span class="mudo">a pessoa não vê mais esta conversa</span>') + del(pt) + '</div>';
+    const acoes = (pt, A) => (A || []).map((a, i) => acao(pt + '.' + i, a)).join('') + `<button class="btn peq" data-add="${pt}">+ Ação</button>`;
+    const escolhas = (pt, CH) => (CH || []).map((e, ci) => `<div style="border-left:3px solid #c99a4a;padding:2px 0 4px 8px;margin:6px 0"><div class="linha"><span class="lbl" style="margin:0">Escolha ${ci + 1}</span><input class="pgIn cresce" data-p="${pt}.${ci}" data-k="txt" maxlength="40" value="${esc(e.txt || '')}" placeholder="Ex.: Sim">${del(pt + '.' + ci)}</div>
+        <label class="lbl">Resposta do NPC (opcional, uma fala por linha)</label><textarea class="pgF" data-p="${pt}.${ci}" rows="2" style="width:100%">${esc((e.f || []).join('\n'))}</textarea>
+        <label class="lbl">Depois da escolha</label>${acoes(pt + '.' + ci + '.faz', e.faz)}</div>`).join('') + ((CH || []).length < 4 ? `<button class="btn peq" data-add="${pt}">+ Escolha</button>` : '');
+    if (boxCh) boxCh.innerHTML = escolhas('ch', R.ch);
+    if (boxPg) boxPg.innerHTML = R.pg.map((g, pi) => `<div style="border:1px solid var(--linha);border-radius:10px;padding:8px;margin:6px 0"><div class="linha"><b class="cresce">Página ${pi + 1}</b>${pi ? `<button class="ib" data-pgup="${pi}" aria-label="Subir">▲</button>` : ''}<button class="ib" data-pgx="${pi}" aria-label="Excluir página">🗑</button></div>
+      <label class="lbl">Quando (todas precisam valer)</label>${g.se.map((k, i) => cond('pg.' + pi + '.se.' + i, k)).join('') || '<p class="mudo">Sempre (sem condição)</p>'}<button class="btn peq" data-add="pg.${pi}.se">+ Condição</button>
+      <label class="lbl" style="margin-top:6px">Falas (uma por linha)</label><textarea class="pgF" data-p="pg.${pi}" rows="3" style="width:100%">${esc((g.f || []).join('\n'))}</textarea>
+      <label class="lbl" style="margin-top:6px">Escolhas no fim da fala (opcional)</label>${escolhas('pg.' + pi + '.ch', g.ch)}
+      <label class="lbl" style="margin-top:6px">No fim da conversa</label>${acoes('pg.' + pi + '.faz', g.faz)}</div>`).join('');
+    const re = () => falasNpc(boxCh, boxPg, R, mapas), Q = sel2 => [boxCh, boxPg].filter(Boolean).flatMap(b => [...b.querySelectorAll(sel2)]);
+    Q('.pgIn').forEach(el => { const fn = () => { const o = ob(el.dataset.p), k = el.dataset.k; if (!o) return; o[k] = k === 'n' ? Math.max(1, Math.min(99, +el.value | 0)) : k === 'txt' ? el.value.slice(0, 40) : el.value;
+        if (k === 't') { for (const x of Object.keys(o)) if (x !== 't') delete o[x]; if (/\.se\.\d+$/.test(el.dataset.p)) Object.assign(o, o.t === 'mis' ? { q: (M2[0] || {}).id || '', e: 'em' } : o.t === 'item' ? { i: (IT[0] || {}).id || '', n: 1 } : { n: 1 }); else Object.assign(o, o.t === 'mis' ? { q: (M2[0] || {}).id || '', a: 'comecar' } : o.t === 'tp' ? { m: mapas[0] } : {}); }
+        if ((k === 'e' && o.e === 'passo') || (k === 'a' && o.a === 'passo')) o.n = o.n || 1; if ((k === 'e' && o.e !== 'passo') || (k === 'a' && o.a !== 'passo')) delete o.n; if (k === 'm') { delete o.tx; delete o.ty; } if (['t', 'e', 'a', 'm'].includes(k)) re(); };
+      if (el.dataset.k === 'txt') el.oninput = fn; else el.onchange = fn; });
+    Q('.pgF').forEach(el => el.oninput = () => { const o = ob(el.dataset.p); if (o) o.f = el.value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 20).map(x => x.slice(0, 300)); });
+    Q('[data-add]').forEach(b => b.onclick = () => { const pt = b.dataset.add, i = pt.lastIndexOf('.'), pai = i < 0 ? R : ob(pt.slice(0, i)), k = pt.slice(i + 1); if (!pai) return; const L = pai[k] = pai[k] || [];
+      if (L.length >= (k === 'ch' ? 4 : 6)) return toast(k === 'ch' ? 'No máximo 4 escolhas' : 'No máximo 6');
+      L.push(k === 'ch' ? { txt: '', f: [], faz: [] } : k === 'se' ? { t: 'mis', q: (M2[0] || {}).id || '', e: 'nao' } : { t: 'mis', q: (M2[0] || {}).id || '', a: 'comecar' }); re(); });
+    Q('[data-del]').forEach(b => b.onclick = () => { const pt = b.dataset.del, i = pt.lastIndexOf('.'), L = ob(pt.slice(0, i)); if (Array.isArray(L)) L.splice(+pt.slice(i + 1), 1); re(); });
+    Q('[data-pgx]').forEach(b => b.onclick = () => { R.pg.splice(+b.dataset.pgx, 1); re(); });
+    Q('[data-pgup]').forEach(b => b.onclick = () => { const i = +b.dataset.pgup, P = R.pg; [P[i - 1], P[i]] = [P[i], P[i - 1]]; re(); });
+    Q('[data-tp]').forEach(b => b.onclick = async () => { const a = ob(b.dataset.tp), d = $('#dlg'); d.hidden = true;
       const r = await escolherChegada(a.m, a.tx != null ? [a.tx, a.ty] : null); d.hidden = false; if (r) { a.tx = r[0]; a.ty = r[1]; } else if (a.tx != null && confirm('Voltar a chegar no ponto de nascimento?')) { delete a.tx; delete a.ty; } re(); }); }
   async function tocaNpc([x, y], apagar) { const m = E.m; m.npcs = m.npcs || []; const L = m.npcs, i = L.findIndex(v => v.x === x && v.y === y), v = L[i];
     if (apagar) { if (i >= 0) { mudar(q => { q.npcs.splice(i, 1); }, 'nada'); toast('NPC apagado (↶ desfaz)'); if (E.aba === 'pintura') painel('pintura'); } return; }
     const a0 = (v && v.a) || { t: 'ninja', s: 0, h: 0, c: 1 }, mv0 = v && v.mv;
     const st = { t: a0.t === 'img' ? 'img' : 'ninja', s: a0.s | 0, h: a0.h | 0, c: a0.c | 0, fl: !!a0.fl, k: a0.k || '', e: a0.e > 0 ? a0.e : 0,
-      q: Array.isArray(a0.q) && a0.q.length > 1 ? a0.q.slice() : [], qc: Array.isArray(a0.qc) ? a0.qc.slice() : [], qb: Array.isArray(a0.qb) ? a0.qb.slice() : [], lq: 'q', rt: v ? v.rt : undefined, pg: v && Array.isArray(v.pg) ? JSON.parse(JSON.stringify(v.pg)) : [], ms: a0.ms || 125, qa: a0.qa === 'andando' ? 'andando' : 'sempre', oe: !!a0.oe, mv: mv0 ? 1 : 0, r: (mv0 && mv0.r) || 3, v: (mv0 && mv0.v) || 2 };
+      q: Array.isArray(a0.q) && a0.q.length > 1 ? a0.q.slice() : [], qc: Array.isArray(a0.qc) ? a0.qc.slice() : [], qb: Array.isArray(a0.qb) ? a0.qb.slice() : [], lq: 'q', rt: v ? v.rt : undefined, pg: v && Array.isArray(v.pg) ? JSON.parse(JSON.stringify(v.pg)).map((g, gi) => Object.assign({ id: 'p' + (gi + 1) }, g)) : [], ch: v && Array.isArray(v.ch) ? JSON.parse(JSON.stringify(v.ch)) : [], ms: a0.ms || 125, qa: a0.qa === 'andando' ? 'andando' : 'sempre', oe: !!a0.oe, mv: mv0 ? 1 : 0, r: (mv0 && mv0.r) || 3, v: (mv0 && mv0.v) || 2 };
     const imgs = Object.keys(R.RC).map(k => [k, R.RC[k].nome]).concat((E.lib && E.lib.imagens || []).map(i => [i.id, i.nome || i.id]));
     const sw = g => PAL[g].map((c, j) => `<button data-sw="${g}" data-v="${j}" aria-pressed="${st[g] === j}" style="width:38px;height:38px;border-radius:8px;background:${c};border:3px solid ${st[g] === j ? '#ff9a3c' : '#0006'}"></button>`).join('');
     const r = await dlg(v ? 'NPC ' + (v.n || '') + ' (' + x + ', ' + y + ')' : 'Novo NPC em (' + x + ', ' + y + ')', `<label class="lbl">Nome</label><input id="npN" maxlength="24" value="${esc(v ? v.n || '' : '')}" placeholder="Ex.: Hokage">
@@ -725,7 +735,8 @@
         <label class="chk" id="npOeL" ${st.t === 'img' ? '' : 'hidden'}><input type="checkbox" id="npOe" ${st.oe ? 'checked' : ''}> A imagem (sem espelhar) olha para a esquerda — para virar certo ao andar</label>
         <p class="mudo">Anda um tile por vez, sem atravessar paredes nem o jogador, e para quando alguém fala com ele.</p></div>
       <label class="lbl" style="margin-top:8px">Falas — uma por linha; no jogo aparece uma de cada vez (“Próximo ▸”)</label><textarea id="npF" rows="5" style="width:100%" placeholder="Bem-vindo à Vila da Folha!&#10;Fale comigo de novo depois.">${esc(v ? (v.f || []).join('\n') : '')}</textarea>
-      <p class="mudo">Nas falas, <b>%player%</b> vira o nome de quem está falando com o NPC.</p>
+      <label class="lbl" style="margin-top:6px">Escolhas no fim da fala (opcional)</label><div id="npCh"></div>
+      <p class="mudo">Nas falas e escolhas, <b>%player%</b> vira o nome de quem está falando com o NPC. Uma escolha sem ação só fecha a conversa (da próxima vez ela se repete).</p>
       <label class="lbl" style="margin-top:8px">Retrato na janela de fala</label><div class="presets"><button data-rt="auto">Automático</button><button data-rt="nenhum">Nenhum</button><button data-rt="img">Escolher imagem</button></div>
       <div class="linha" id="npRtL"><select id="npRtK" class="cresce">${imgs.map(([k, n]) => `<option value="${esc(k)}" ${k === st.rt ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select><canvas id="npRtPrev" width="64" height="64" style="width:64px;height:64px;border:2px solid #c99a4a;border-radius:8px;background:#2a1f14;image-rendering:pixelated"></canvas></div>
       <label class="lbl" style="margin-top:10px">📜 Falas com condição (missões)</label><p class="mudo">A 1ª página cujas condições valerem é a que o NPC fala; se nenhuma valer, ele usa as falas acima. No fim da fala a página pode começar, avançar ou concluir uma missão, ou levar a pessoa para outro lugar.</p>
@@ -774,8 +785,8 @@
         $c('#npRtK').onchange = e2 => { st.rt = e2.target.value; retrato(); };
         // páginas de fala com condição
         const ids = [E.m.id].concat(Mo.BASE_IDS, (E.srv || []).map(r => r.id)).filter((x, j, A) => A.indexOf(x) === j);
-        const pags = () => paginasNpc($c('#npPgs'), st.pg, ids);
-        $c('#npPgAdd').onclick = () => { if (st.pg.length >= 10) return toast('No máximo 10 páginas'); st.pg.push({ se: [], f: [], faz: [] }); pags(); };
+        const pags = () => falasNpc($c('#npCh'), $c('#npPgs'), st, ids);
+        $c('#npPgAdd').onclick = () => { if (st.pg.length >= 10) return toast('No máximo 10 páginas'); let n = 1; while (st.pg.some(g => g.id === 'p' + n)) n++; st.pg.push({ id: 'p' + n, se: [], f: [], faz: [] }); pags(); };
         $c('#npMis').onclick = async () => { const d = $('#dlg'); d.hidden = true; await abrirMissoes(); d.hidden = false; pags(); };
         (async () => { if (!E.missoes) await carregarMis(); if (!E.itens) { try { E.itens = await (await fetch('/painel/editor/itens.json')).json(); } catch (_) { E.itens = []; } } if (!E.srv) { try { E.srv = await P.listarServidor(); } catch (_) { } } pags(); })();
         retrato(); pags(); quadros(); vel(); mov(); prev(); });
@@ -789,7 +800,8 @@
     if ($('#npFl').checked) a.fl = 1;
     const nv = { id, n: $('#npN').value.trim().slice(0, 24), x, y, a, f: $('#npF').value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 20).map(s => s.slice(0, 300)) };
     if (st.mv) nv.mv = { r: st.r, v: st.v }; if (!$('#npB').checked) nv.b = 0; if (st.rt === 0 || typeof st.rt === 'string') nv.rt = st.rt;
-    const pg = st.pg.map(g => ({ se: g.se.filter(k => k.t !== 'mis' || k.q), f: (g.f || []).filter(Boolean), faz: g.faz.filter(x => (x.t !== 'mis' || x.q) && (x.t !== 'tp' || x.m)) })); if (pg.length) nv.pg = pg;
+    const fazOk = A => (A || []).filter(x => (x.t !== 'mis' || x.q) && (x.t !== 'tp' || x.m)), chOk = C => (C || []).map(e => ({ txt: (e.txt || '').trim() || '…', f: (e.f || []).filter(Boolean), faz: fazOk(e.faz) }));
+    const pg = st.pg.map(g => Object.assign({ id: g.id, se: g.se.filter(k => k.t !== 'mis' || k.q), f: (g.f || []).filter(Boolean), faz: fazOk(g.faz) }, (g.ch || []).length ? { ch: chOk(g.ch) } : {})); if (pg.length) nv.pg = pg; if (st.ch.length) nv.ch = chOk(st.ch);
     mudar(q => { q.npcs = q.npcs || []; const j = q.npcs.findIndex(e => e.x === x && e.y === y); if (j >= 0) q.npcs[j] = nv; else q.npcs.push(nv); }, 'nada');
     toast('NPC salvo: ' + nv.n); if (E.aba === 'pintura') painel('pintura'); }
   /* eventos (pisar no tile): por enquanto teletransporte para outro mapa ou outro ponto deste. Sem destino X/Y = nascimento do mapa destino */

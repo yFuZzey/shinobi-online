@@ -28,18 +28,28 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.waitForFunction(()=>EDITOR.missoes&&EDITOR.missoes.length>0,null,{timeout:5000}).catch(()=>{});
  const pgSet=async(pi,se,f,faz)=>ev(([pi,se,f,faz])=>{const box=document.querySelector('#npPgs');return{pi,se,f,faz,box:!!box}},[pi,se,f,faz]);
  // página 1: missão não começou → começar
- await P.click('[data-pgadd="0,se"]');await P.selectOption('.pgIn[data-pi="0"][data-g="se"][data-i="0"][data-k="q"]',qid);await P.selectOption('.pgIn[data-pi="0"][data-g="se"][data-i="0"][data-k="e"]','nao');
- await P.fill('.pgF[data-pi="0"]','Preciso da sua ajuda, %player%.\nAche meu livro!');await P.click('[data-pgadd="0,faz"]');await P.selectOption('.pgIn[data-pi="0"][data-g="faz"][data-i="0"][data-k="q"]',qid);
+ await P.click('[data-add="pg.0.se"]');await P.selectOption('.pgIn[data-p="pg.0.se.0"][data-k="q"]',qid);await P.selectOption('.pgIn[data-p="pg.0.se.0"][data-k="e"]','nao');
+ await P.fill('.pgF[data-p="pg.0"]','Preciso da sua ajuda, %player%.\nAche meu livro!');await P.click('[data-add="pg.0.faz"]');await P.selectOption('.pgIn[data-p="pg.0.faz.0"][data-k="q"]',qid);
  // página 2: no passo 1 → ir para o passo 2
- await P.click('[data-pgadd="1,se"]');await P.selectOption('.pgIn[data-pi="1"][data-g="se"][data-i="0"][data-k="q"]',qid);await P.selectOption('.pgIn[data-pi="1"][data-g="se"][data-i="0"][data-k="e"]','passo');
- await P.fill('.pgF[data-pi="1"]','Procure na floresta.');await P.click('[data-pgadd="1,faz"]');await P.selectOption('.pgIn[data-pi="1"][data-g="faz"][data-i="0"][data-k="q"]',qid);await P.selectOption('.pgIn[data-pi="1"][data-g="faz"][data-i="0"][data-k="a"]','passo');await P.fill('.pgIn[data-pi="1"][data-g="faz"][data-i="0"][data-k="n"]','2');await P.press('.pgIn[data-pi="1"][data-g="faz"][data-i="0"][data-k="n"]','Tab');
+ await P.click('[data-add="pg.1.se"]');await P.selectOption('.pgIn[data-p="pg.1.se.0"][data-k="q"]',qid);await P.selectOption('.pgIn[data-p="pg.1.se.0"][data-k="e"]','passo');
+ await P.fill('.pgF[data-p="pg.1"]','Procure na floresta.');await P.click('[data-add="pg.1.faz"]');await P.selectOption('.pgIn[data-p="pg.1.faz.0"][data-k="q"]',qid);await P.selectOption('.pgIn[data-p="pg.1.faz.0"][data-k="a"]','passo');await P.fill('.pgIn[data-p="pg.1.faz.0"][data-k="n"]','2');await P.press('.pgIn[data-p="pg.1.faz.0"][data-k="n"]','Tab');
  // página 3: no passo 2 e nível ≥ 1 → concluir
- await P.click('[data-pgadd="2,se"]');await P.selectOption('.pgIn[data-pi="2"][data-g="se"][data-i="0"][data-k="q"]',qid);await P.selectOption('.pgIn[data-pi="2"][data-g="se"][data-i="0"][data-k="e"]','passo');await P.fill('.pgIn[data-pi="2"][data-g="se"][data-i="0"][data-k="n"]','2');await P.press('.pgIn[data-pi="2"][data-g="se"][data-i="0"][data-k="n"]','Tab');
- await P.click('[data-pgadd="2,se"]');await P.selectOption('.pgIn[data-pi="2"][data-g="se"][data-i="1"][data-k="t"]','nivel');
- await P.fill('.pgF[data-pi="2"]','Obrigado, %player%!');await P.click('[data-pgadd="2,faz"]');await P.selectOption('.pgIn[data-pi="2"][data-g="faz"][data-i="0"][data-k="q"]',qid);await P.selectOption('.pgIn[data-pi="2"][data-g="faz"][data-i="0"][data-k="a"]','fim');
+ await P.click('[data-add="pg.2.se"]');await P.selectOption('.pgIn[data-p="pg.2.se.0"][data-k="q"]',qid);await P.selectOption('.pgIn[data-p="pg.2.se.0"][data-k="e"]','passo');await P.fill('.pgIn[data-p="pg.2.se.0"][data-k="n"]','2');await P.press('.pgIn[data-p="pg.2.se.0"][data-k="n"]','Tab');
+ await P.click('[data-add="pg.2.se"]');await P.selectOption('.pgIn[data-p="pg.2.se.1"][data-k="t"]','nivel');
+ await P.fill('.pgF[data-p="pg.2"]','Obrigado, %player%!');await P.click('[data-add="pg.2.faz"]');await P.selectOption('.pgIn[data-p="pg.2.faz.0"][data-k="q"]',qid);await P.selectOption('.pgIn[data-p="pg.2.faz.0"][data-k="a"]','fim');
  await D('Salvar');await W(200);
- const npc=await ev(()=>EDITOR.m.npcs[0]);ok(npc.rt===0&&npc.pg.length===3&&JSON.stringify(npc.pg[0].se)===JSON.stringify([{t:'mis',q:qid,e:'nao'}])&&npc.pg[0].faz[0].a==='comecar'&&npc.pg[1].faz[0].n===2&&npc.pg[2].se[1].t==='nivel'&&npc.pg[2].faz[0].a==='fim','NPC com 3 páginas de missão: '+JSON.stringify(npc.pg));
+ const npc=await ev(()=>EDITOR.m.npcs[0]);ok(npc.rt===0&&npc.pg.length===3&&npc.pg.map(g=>g.id).join()==='p1,p2,p3'&&JSON.stringify(npc.pg[0].se)===JSON.stringify([{t:'mis',q:qid,e:'nao'}])&&npc.pg[0].faz[0].a==='comecar'&&npc.pg[1].faz[0].n===2&&npc.pg[2].se[1].t==='nivel'&&npc.pg[2].faz[0].a==='fim','NPC com 3 páginas de missão: '+JSON.stringify(npc.pg));
  await tap(await tela(5*32+10,5*32+10));await W(500);ok(await ev(()=>document.querySelectorAll('#npPgs .pgF').length===3&&document.querySelector('[data-rt="nenhum"]').getAttribute('aria-pressed')==='true'),'reabrir mostra as páginas e o retrato');await D('Cancelar');await W(150);
+ // NPC com escolhas: Sim = resposta + levar para (2, 2) + não repetir; Não = só fecha
+ await ev(()=>EDITOR.api.ferramenta('pincel'));await tap(await tela(9*32+10,5*32+10));await W(500);await P.fill('#npN','Iruka');await P.fill('#npF','Olá, jovem ninja!\nDeseja ir para a academia ninja?');
+ await P.click('[data-add="ch"]');await P.click('[data-add="ch"]');await P.fill('.pgIn[data-p="ch.0"][data-k="txt"]','Sim');await P.fill('.pgIn[data-p="ch.1"][data-k="txt"]','Não');
+ await P.fill('.pgF[data-p="ch.0"]','Boa sorte, %player%!');
+ await P.click('[data-add="ch.0.faz"]');await P.selectOption('.pgIn[data-p="ch.0.faz.0"][data-k="t"]','tp');await P.selectOption('.pgIn[data-p="ch.0.faz.0"][data-k="m"]',id);
+ await ev(()=>{const b=document.querySelector('[data-tp="ch.0.faz.0"]');b.scrollIntoView({block:'center'})});await P.click('[data-tp="ch.0.faz.0"]');await P.waitForFunction(()=>document.querySelector('#escChegada')&&document.querySelector('#escChegada').vis.W>0,null,{timeout:8000});await W(300);
+ const pc=await ev(()=>{const o=document.querySelector('#escChegada'),v=o.vis,r=o.querySelector('canvas').getBoundingClientRect();return[r.left+v.ox+(2*32+16)*v.s,r.top+v.oy+(2*32+16)*v.s]});await tap(pc);await W(150);await P.click('#ecOk');await W(200);
+ await P.click('[data-add="ch.0.faz"]');await P.selectOption('.pgIn[data-p="ch.0.faz.1"][data-k="t"]','fim');await ev(()=>document.querySelector('#npCh').scrollIntoView({block:'start'}));await W(200);await P.screenshot({path:path.join(__dirname,'ed9_ed.png')});
+ await D('Salvar');await W(200);const iru=await ev(()=>EDITOR.m.npcs.find(n=>n.n==='Iruka'));
+ ok(JSON.stringify(iru.ch)===JSON.stringify([{txt:'Sim',f:['Boa sorte, %player%!'],faz:[{t:'tp',m:id,tx:2.5,ty:2.5},{t:'fim'}]},{txt:'Não',f:[],faz:[]}]),'escolhas salvas: '+JSON.stringify(iru.ch));
  await P.click('#salvar');await W(300);await P.click('#publicar');await W(200);await D('Enviar e pôr no jogo');await W(2500);
  const pub=await (await fetch(GS+'/mapas?dim=1')).json(),pm=pub.mapas[id];ok(pm&&pm.npcs[0].pg.length===3&&pm.npcs[0].rt===0&&pub.missoes[qid]&&pub.missoes[qid].p.length===3,'servidor entrega páginas e missões');
  const vpg=MR.validar('xx','x',{...pm,npcs:[{id:'n1',x:1,y:1,pg:[{se:[{t:'mis',q:'bad',e:'nao'},{t:'item',i:'manto',n:500},{t:'zzz'}],f:['a'],faz:[{t:'mis',q:qid,a:'xx'},{t:'tp',m:'konoha',tx:3,ty:4}]}]}]},{tsz:[],fpt:{}}).npcs[0].pg[0];ok(vpg.se.map(k=>k.t+':'+k.n).join()==='item:1'&&vpg.faz.length===1&&vpg.faz[0].t==='tp'&&vpg.faz[0].tx===3,'regras: condições e ações inválidas descartadas: '+JSON.stringify(vpg));
@@ -59,8 +69,18 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  ok(await A.evaluate(()=>document.getElementById('misHud').style.display==='none'&&ONL.reg.some(r=>/Missão concluída/.test(r.t))),'jogo: diário some e avisa “Missão concluída”');
  const pr=(await mget('/__missoes')).PROG;ok(Object.values(pr).some(o=>o[qid]===999),'progresso salvo no banco (999 = concluída)');
  t=await fala();ok(t==='Olá, '+adm+'!','jogo: depois de concluída, volta às falas normais');
+ // escolhas no jogo
+ const fIru=async()=>{await A.evaluate(()=>{p.x=9.5*32;p.y=7*32});await W(400);await A.click('#npcBtn');await W(200);await A.click('#npcP');await W(150)};
+ await fIru();ok(await A.evaluate(()=>document.querySelectorAll('#npcOps .npcOp').length===2&&document.getElementById('npcP').style.display==='none'&&/academia/.test(document.getElementById('npcT').textContent)),'jogo: na última fala aparecem as escolhas Sim/Não');await A.screenshot({path:path.join(__dirname,'ed9_escolhas.png')});
+ await A.click('#npcOps .npcOp >> nth=1');await W(300);ok(await A.evaluate(()=>document.getElementById('npcDlg').style.display==='none'&&Math.abs(p.x-9.5*32)<2),'jogo: “Não” só fecha');
+ await fIru();ok(await A.evaluate(()=>document.querySelectorAll('#npcOps .npcOp').length===2),'jogo: falando de novo, a mesma conversa se repete');
+ await A.click('#npcOps .npcOp >> nth=0');await W(200);ok(await A.evaluate(n=>document.getElementById('npcT').textContent==='Boa sorte, '+n+'!',adm),'jogo: “Sim” mostra a resposta do NPC');
+ await A.click('#npcP');await W(900);ok(await A.evaluate(()=>Math.floor(p.x/32)===2&&Math.floor(p.y/32)===2),'jogo: depois do “Sim” leva para (2, 2)');
+ ok(await A.evaluate(()=>npcPg(MAPEV.npcs.find(c=>c.n==='Iruka'))===-2),'jogo: a conversa do Iruka não se repete mais');
+ const PR2=(await mget('/__missoes')).PROG;ok(Object.values(PR2).some(o=>Object.keys(o).some(k=>/^q__[0-9a-f]{16}$/.test(k)&&o[k]===1)),'servidor grava o “não repetir” na conta');
+ await A.evaluate(()=>{p.x=9.5*32;p.y=7*32});await W(400);ok(await A.evaluate(()=>document.getElementById('npcBtn').style.display==='none'),'jogo: perto do Iruka não aparece mais “Falar”');
  // servidor confere distância e página
- await A.evaluate(q=>{MIS.d[q]=0;gsSend({t:'npcfim',id:'n1',pg:0})},qid);await W(800);ok(await A.evaluate(q=>MIS.d[q]===999,qid),'servidor não deixa recomeçar fora da regra (corrige o app)');
+ await A.evaluate(()=>{p.x=5.5*32;p.y=7*32});await W(700);await A.evaluate(q=>{MIS.d[q]=0;gsSend({t:'npcfim',id:'n1',pg:0})},qid);await W(800);ok(await A.evaluate(q=>MIS.d[q]===999,qid),'servidor não deixa recomeçar fora da regra (corrige o app)');
  // condições no app: item e nível
  ok(await A.evaluate(()=>{const s0=INV.slice();INV.length=0;const a=misCond([{t:'item',i:'manto',n:1}]);INV.push('manto');const b=misCond([{t:'item',i:'manto',n:1}]);INV.length=0;s0.forEach(x=>INV.push(x));return !a&&b&&misCond([{t:'nivel',n:1}])&&!misCond([{t:'nivel',n:99}])}),'app: condições de item e nível');
  // animação: alinhamento pelo pé e quadros por direção
