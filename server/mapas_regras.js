@@ -74,6 +74,7 @@ function validar(id, nome, m, cat) {
     for (const c of m.npcs.slice(0, 100)) { if (!c || typeof c.id !== 'string' || !/^n\d{1,4}$/.test(c.id) || vis.has(c.id) || !Number.isInteger(c.x) || !Number.isInteger(c.y) || c.x < 0 || c.y < 0 || c.x >= W || c.y >= H) continue; vis.add(c.id);
       const a = c.a && typeof c.a === 'object' ? c.a : {}, o = { id: c.id, n: txt(c.n || '', 24) || 'NPC', x: c.x, y: c.y };
       o.a = a.t === 'img' && typeof a.k === 'string' && tsz.has(a.k) ? { t: 'img', k: a.k } : { t: 'ninja', s: ci(a.s, 0, 3), h: ci(a.h, 0, 4), c: ci(a.c, 0, 4) }; if (a.fl) o.a.fl = 1;
+      if (o.a.t === 'img' && fin(a.e) && a.e > 0) o.a.e = +clamp(a.e, .05, 8).toFixed(3); // escala da imagem; sem e = automático (altura de um personagem)
       o.f = (Array.isArray(c.f) ? c.f : []).filter(s => typeof s === 'string').map(s => txt(s, 300)).filter(Boolean).slice(0, 20); if (c.b === 0) o.b = 0;
       NP.push(o); }
     if (NP.length) out.npcs = NP; }

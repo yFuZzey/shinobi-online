@@ -306,12 +306,14 @@ const PVP={on:1,safe:4};let PST=0,HRES={miss:0,d:0,dead:0},pvpTold=0;
 const MAPEV={nopvp:0,ev:[],ult:'',dito:'',npcs:[],perto:null,fala:null};
 {const _am=applyMap;applyMap=function(m){_am(m);MAPEV.nopvp=m&&m.pvp===0?1:0;MAPEV.ev=m&&Array.isArray(m.ev)?m.ev:[];MAPEV.ult='';
  // NPCs (m.npcs): bloqueiam o tile (menos b:0); os de imagem entram como objeto (mesma ordem de desenho); os ninjas são desenhados em onlDraw
- MAPEV.npcs=m&&Array.isArray(m.npcs)?m.npcs:[];npcFecha();for(const c of MAPEV.npcs){if(c.b!==0)setM(c.x,c.y,1);if(c.a&&c.a.t==='img'&&TSZ[c.a.k])OB.push({k:c.a.k,x:(c.x+.5)*T,y:(c.y+1)*T-2})}}}
+ MAPEV.npcs=m&&Array.isArray(m.npcs)?m.npcs:[];npcFecha();for(const c of MAPEV.npcs){if(c.b!==0)setM(c.x,c.y,1);if(c.a&&c.a.t==='img'&&TSZ[c.a.k])OB.push({k:c.a.k,x:(c.x+.5)*T,y:(c.y+1)*T-2,e:npcEsc(c)})}}}
+// tamanho do NPC de imagem: a.e escolhido no editor; sem a.e = automático (imagem alta fica com a altura de um personagem, ~60 px)
+function npcEsc(c){const h=(TSZ[c.a.k]||[0,60])[1]||60;return c.a.e>0?c.a.e:h>64?60/h:1}
 const npcPos=c=>[(c.x+.5)*T,(c.y+1)*T-2];
 function npcDraw(L,ts){if(scene|0)return;for(const c of MAPEV.npcs){const [x,y]=npcPos(c),ninja=!c.a||c.a.t!=='img';
  L.push({y,d:()=>{if(ninja){const lk={skin:SKIN[c.a&&c.a.s|0]||SKIN[0],hair:HAIR[c.a&&c.a.h|0]||HAIR[0],cloth:CLOTH[c.a&&c.a.c|0]||CLOTH[0]};
    try{if(HERO)drawHero(ctx,x,y,{fl:c.a&&c.a.fl?1:0,t:ts+c.x*131+c.y*71,mv:0,run:0,aura:-1,th:-1,set:heroFor(lk),act:null,vis:[]});else drawChar(ctx,x,y,{...lk,dir:0,t:ts,mv:0,run:0})}catch(_){}}
-  const im=!ninja&&TX[c.a.k],top=ninja?y-62:y-((im&&(im.dh||im.height))||48)-6;ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#ffd98a';
+  const im=!ninja&&TX[c.a.k],top=ninja?y-62:y-((im&&(im.dh||im.height))||48)*npcEsc(c)-6;ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#ffd98a';
   const lb=(MAPEV.perto===c?'💬 ':'')+c.n;ctx.strokeText(lb,x,top);ctx.fillText(lb,x,top)}})}}
 // botão “Falar” quando o jogador está perto de um NPC; a janela mostra as falas uma a uma
 function npcTick(){try{const b=npcBtn();let best=null,bd=1.8*T;if(cur==='game'&&!(scene|0)&&p)for(const c of MAPEV.npcs){const [x,y]=npcPos(c),d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=c}}
