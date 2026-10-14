@@ -495,6 +495,9 @@
   cv.addEventListener('pointerdown', e => { try { cv.setPointerCapture(e.pointerId); } catch (_) { } ptr.set(e.pointerId, pt(e));
     if (ptr.size === 1 && !E.colObj && !E.modo) { const p = pt(e), k = alcaEm(p); if (k) { const o = E.objSel, h = alcasObj(o), q = Ferr.objOp(o), pre = Mo.copia(E.m); pre.nome = E.m.nome;
       gesto = { t: 'alca', k, o, pre, e0: q.e || 1, r0: q.r || 0, d0: Math.hypot(p.x - h.ancora[0], p.y - h.ancora[1]) || 1, a0: Math.atan2(p.y - h.ancora[1], p.x - h.ancora[0]), A: h.ancora, mudou: false }; return; } }
+    // ✋ Mover na camada Objetos: arrastar em cima de um objeto move o objeto; fora dele, move a visão
+    if (ptr.size === 1 && E.ferr === 'mover' && E.ativa === 'objetos' && !E.modo && !E.colObj && !E.reg.base && !travada('objetos')) { const p = pt(e), w = mundo(p), L = objetosEm(w);
+      if (L.length && !Ferr.objOp(L[0]).tv) { selObj(L[0], L); const pre = Mo.copia(E.m); pre.nome = E.m.nome; E.traco = { pre, mudou: false, a: w, ult: w, f: 'sel', obj: true, objMov: { o: L[0], x: L[0].x, y: L[0].y, w0: w } }; gesto = { t: 'ferr', p0: p, moveu: false }; return; } }
     if (ptr.size === 1) { const p = pt(e); if (E.ferr !== 'mover' && !E.modo && !E.colObj) { const t = iniFerr(p); gesto = t ? { t: 'ferr', p0: p, moveu: false } : { t: 'nada' }; } else gesto = { t: 'um', p0: p, ox: E.ox, oy: E.oy, moveu: false }; }
     else if (ptr.size === 2) { if (gesto && gesto.t === 'ferr') cancelaFerr(); const [a, b] = [...ptr.values()]; gesto = { t: 'dois', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, c0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, s0: E.s, ox: E.ox, oy: E.oy }; } });
   cv.addEventListener('pointermove', e => { const p = pt(e); if (!ptr.has(e.pointerId)) { if (e.pointerType === 'mouse' && E.ferr !== 'mover') { E.mira = mundo(p); desenhar(); } return; } if (!gesto) return; ptr.set(e.pointerId, p);

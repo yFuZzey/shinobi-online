@@ -71,6 +71,10 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.click('[data-f="sel"]');const o1=await tela(10.5*32,11*32-20);await arrasta(o1,await tela(12.5*32,11*32-20),6);
  ob=await ev(()=>EDITOR.m.objetos[0]);ok(ob.x===12.5&&ob.y===11&&await ev(()=>!document.querySelector('#objBar').hidden),'seleção: arrastar o objeto move (encaixado) e mostra a barra do objeto');
  await P.click('#desf');ok(await ev(()=>EDITOR.m.objetos[0].x===10.5),'desfazer volta a posição');
+ // com ✋ Mover também: arrastar em cima do objeto move o objeto; fora dele move a visão
+ await P.click('[data-f="mover"]');const om=await tela(10.5*32,11*32-20);await arrasta(om,await tela(13.5*32,11*32-20),6);
+ ok(await ev(()=>EDITOR.m.objetos[0].x===13.5&&EDITOR.ox===10),'✋ Mover: arrastar o objeto move o objeto (e não a visão)');
+ await P.click('#desf');const ox0=await ev(()=>EDITOR.ox);await arrasta(await tela(5*32,4*32),await tela(3*32,4*32),5);ok(await ev(o=>EDITOR.ox!==o&&EDITOR.m.objetos[0].x===10.5,ox0),'✋ Mover: arrastar fora de objeto move a visão');await ev(()=>{EDITOR.s=.6;EDITOR.ox=10;EDITOR.oy=40});await P.click('[data-f="sel"]');
  // propriedades do objeto: escala, ordem, ajuste fino
  await tap(await tela(10.5*32,11*32-20));await P.click('#objBar [data-o="prop"]');await W(200);
  await P.fill('#obE','150');await P.press('#obE','Tab');await W(100);await P.selectOption('#obZ','acima');await W(100);await P.fill('#obB','-8');await P.press('#obB','Tab');await W(100);
