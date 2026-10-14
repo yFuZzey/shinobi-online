@@ -2811,7 +2811,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610141815'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610141827'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2927,7 +2927,7 @@ async function mpApply(j){await mpImg(j.imagens);await tlsLoad(j.tilesets);if(j.
 async function mapasSync(){if(!ONL.ok)return false;let ch=false;
  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),9000);const r=await fetch(GS_URL+'/mapas?dim=1'+(MPV?'&v='+MPV:''),{cache:'no-store',signal:c.signal});clearTimeout(t);if(!r.ok)return false;const j=await r.json();
   if(j.igual)return false;ch=await mpApply(j);MPV=j.v||'';try{localStorage.setItem(MPK,JSON.stringify({v:MPV,mapas:j.mapas||{},imagens:j.imagens||{},tilesets:j.tilesets||{},musicas:j.musicas||{}}))}catch(_){}}catch(_){}return ch}
-try{const c=JSON.parse(localStorage.getItem(MPK)||'null');if(c&&c.mapas){MPV=c.v||'';mpApply(c)}}catch(_){}
+try{const c=JSON.parse(localStorage.getItem(MPK)||'null');if(c&&c.mapas){MPV=c.musicas?c.v||'':'';mpApply(c)}}catch(_){} // guardado por versão antiga do app (sem as músicas): baixa tudo de novo uma vez
 setTimeout(mapasSync,1200);
 {const mb=$('#mapbtn'),o=mb&&mb.onclick;if(o)mb.onclick=function(e){o.call(this,e);mapasSync().then(ch=>{if(ch&&!$('#mapmenu').hidden)mmDraw()})}}
 // todo mundo começa na Vila da Areia (a escolha de vila vem depois)

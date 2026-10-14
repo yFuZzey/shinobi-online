@@ -42,6 +42,15 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  const velho=await A.evaluate(()=>{window._velho=MAPMUS.a;return true});await vai('konoha');
  const j4=await A.evaluate(()=>({id:MAPMUS.id,a:!!MAPMUS.a,velho:window._velho.paused,cm:CURMAP}));ok(j4.cm==='konoha'&&j4.id===''&&!j4.a&&j4.velho,'jogo: mapa sem música para a música antiga: '+JSON.stringify(j4));
  ok(await A.evaluate(()=>{const c=JSON.parse(localStorage.getItem(MPK)||'{}');return !!(c.musicas&&c.musicas.hokage)}),'jogo: versões das músicas guardadas junto dos mapas');
+ // app que atualizou depois de já ter baixado os mapas novos (cache sem as versões das músicas e com a mesma versão do servidor): tem que tocar mesmo assim
+ const pub2=await (await fetch(GS+'/mapas?dim=1')).json();const cx=await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:1});
+ await cx.addInitScript(c=>{if(!sessionStorage.getItem('pronto')){sessionStorage.setItem('pronto','1');localStorage.setItem('so-mapas',c)}},JSON.stringify({v:pub2.v,mapas:pub2.mapas,imagens:pub2.imagens,tilesets:pub2.tilesets}));
+ const B=await cx.newPage();B.on('pageerror',e=>{console.log('ERRO JOGO B',e.message);fails++});const adm2='Mv'+suf;
+ await B.goto('file://'+path.join(__dirname,'..','paginas','online.html'));await B.click('#tabNew');await B.fill('#nu',adm2);await B.fill('#np','12345678');await B.fill('#ne','t2@t.com');await B.click('#goNew');
+ await B.waitForFunction(()=>cur==='clan',null,{timeout:20000});await B.click('.card >> nth=0');await B.click('#go2');await B.waitForFunction(()=>ONL.joined,null,{timeout:20000});
+ await mget('/__admin?nome='+adm2);await B.evaluate(()=>ONL.ws.close());await B.waitForFunction(()=>ONL.adm&&ONL.joined,null,{timeout:20000});
+ await B.click('#mapbtn');await W(1500);await B.evaluate(()=>[...document.querySelectorAll('#mmList button')].find(x=>x.textContent.toLowerCase().includes('sala musica')).click());await W(2500);
+ const j5=await B.evaluate(()=>({id:MAPMUS.id,tocando:!!MAPMUS.a&&!MAPMUS.a.paused,src:MAPMUS.a&&MAPMUS.a.src,mv:MUSV}));ok(j5.id==='hokage'&&j5.tocando&&/hokage\.mp3\?v=/.test(j5.src),'jogo: app atualizado com mapas antigos guardados também toca: '+JSON.stringify(j5));
  ok(!erros.length,'editor sem erros de página');
  const lg=fs.readFileSync(LOG,'utf8').slice(n0);ok(!/erro ignorado|inválido ignorado/.test(lg),'servidor sem erros');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();

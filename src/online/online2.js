@@ -1568,7 +1568,7 @@ async function mpApply(j){await mpImg(j.imagens);await tlsLoad(j.tilesets);if(j.
 async function mapasSync(){if(!ONL.ok)return false;let ch=false;
  try{const c=new AbortController(),t=setTimeout(()=>c.abort(),9000);const r=await fetch(GS_URL+'/mapas?dim=1'+(MPV?'&v='+MPV:''),{cache:'no-store',signal:c.signal});clearTimeout(t);if(!r.ok)return false;const j=await r.json();
   if(j.igual)return false;ch=await mpApply(j);MPV=j.v||'';try{localStorage.setItem(MPK,JSON.stringify({v:MPV,mapas:j.mapas||{},imagens:j.imagens||{},tilesets:j.tilesets||{},musicas:j.musicas||{}}))}catch(_){}}catch(_){}return ch}
-try{const c=JSON.parse(localStorage.getItem(MPK)||'null');if(c&&c.mapas){MPV=c.v||'';mpApply(c)}}catch(_){}
+try{const c=JSON.parse(localStorage.getItem(MPK)||'null');if(c&&c.mapas){MPV=c.musicas?c.v||'':'';mpApply(c)}}catch(_){} // guardado por versão antiga do app (sem as músicas): baixa tudo de novo uma vez
 setTimeout(mapasSync,1200);
 {const mb=$('#mapbtn'),o=mb&&mb.onclick;if(o)mb.onclick=function(e){o.call(this,e);mapasSync().then(ch=>{if(ch&&!$('#mapmenu').hidden)mmDraw()})}}
 // todo mundo começa na Vila da Areia (a escolha de vila vem depois)
