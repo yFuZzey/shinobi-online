@@ -72,7 +72,7 @@ function validar(id, nome, m, cat) {
   const acoes = (v, ev) => (Array.isArray(v) ? v : []).slice(0, 6).map(x => !x ? null : x.t === 'mis' && QI.test(x.q || '') && ['comecar', 'passo', 'fim'].includes(x.a) ? Object.assign({ t: 'mis', q: x.q, a: x.a }, x.a === 'passo' ? { n: ci(x.n, 1, 30) } : {})
     : x.t === 'tp' && typeof x.m === 'string' && ID.test(x.m) ? Object.assign({ t: 'tp', m: x.m }, fin(x.tx) && fin(x.ty) ? { tx: clamp(+x.tx, 0, MAX), ty: clamp(+x.ty, 0, MAX) } : {})
     : !ev && x.t === 'fim' ? { t: 'fim' } : ev && x.t === 'npc' && typeof x.npc === 'string' && /^n\d{1,4}$/.test(x.npc) ? { t: 'npc', npc: x.npc }
-    : ev && x.t === 'msg' ? { t: 'msg', nome: txt(x.nome || '', 24), f: falas(x.f) } : null).filter(x => x && !(x.t === 'msg' && !x.f.length));
+    : ev && x.t === 'msg' ? Object.assign({ t: 'msg', nome: txt(x.nome || '', 24), f: falas(x.f) }, typeof x.npc === 'string' && /^n\d{1,4}$/.test(x.npc) ? { npc: x.npc } : {}, x.rt === 0 ? { rt: 0 } : typeof x.rt === 'string' && tsz.has(x.rt) ? { rt: x.rt } : {}) : null).filter(x => x && !(x.t === 'msg' && !x.f.length)); // msg: npc = quem fala (nome e retrato dele), rt = retrato (0 = nenhum)
   const escolhas = v => (Array.isArray(v) ? v : []).slice(0, 4).map(e => e && typeof e === 'object' ? { txt: txt(e.txt || '', 40) || '…', f: falas(e.f), faz: acoes(e.faz) } : null).filter(Boolean);
   // eventos: {id:'e1', x, y, g: 'pisar' (ao pisar no tile) | 'entrar' (ao entrar no mapa), fr: 'sempre' | 'uma' (1 vez por conta) | 'sessao' (1 vez até sair do jogo), se: condições, a: ações}
   // Os antigos ({x, y, t:'tp', m, tx, ty}) viram “ao pisar, sempre, levar para o mapa”; o teletransporte simples continua com t/m/tx/ty (apps antigos entendem)

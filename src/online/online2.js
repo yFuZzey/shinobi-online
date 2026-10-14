@@ -401,7 +401,7 @@ function falaAsync(c,ev){return new Promise(ok=>{MAPEV.aoFechar=ok;npcAbre(c,ev)
 async function evRodar(e){const A=evAcoes(e),mapa=CURMAP,avisa=()=>{if(e.id&&ONL.on&&(e.fr==='uma'||A.some(a=>a.t==='mis')))gsSend({t:'evfim',id:e.id})};
  if(e.fr==='uma')MIS.d[evChave(e)]=1;if(e.fr==='sessao')MAPEV.sess.add(CURMAP+'|'+e.id);let avisou=0;
  for(const a of A){if(CURMAP!==mapa)break;
-  if(a.t==='msg')await falaAsync({n:a.nome||'',f:a.f,rt:0},e.id);
+  if(a.t==='msg'){const c=a.npc&&MAPEV.npcs.find(x=>x.id===a.npc);await falaAsync({n:a.nome||(c?c.n:''),f:a.f,rt:a.rt!==undefined?a.rt:c?c.rt:0,a:c?c.a:undefined},e.id)} // mensagem: “quem fala” pode ser um NPC (nome e retrato dele)
   else if(a.t==='npc'){const c=MAPEV.npcs.find(x=>x.id===a.npc);if(c)await falaAsync(c,e.id)}
   else if(a.t==='tp'){if(!avisou){avisou=1;avisa()}irPara(a.m,a.tx,a.ty);break}}
  if(!avisou&&CURMAP===mapa)avisa()}

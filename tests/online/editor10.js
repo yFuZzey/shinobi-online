@@ -22,10 +22,10 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  // evento “ao entrar no mapa, 1 vez por conta”: mensagem do narrador + conversa com o Kakashi
  await ev(()=>{EDITOR.api.ativar('eventos');EDITOR.api.ferramenta('pincel')});await tap(await tela(1*32+10,1*32+10));await W(500);
  await P.click('[data-evg="entrar"]');await P.click('[data-evf="uma"]');ok(/1 vez por conta/.test(await ev(()=>document.querySelector('#evDica').textContent)),'evento: explica “ao entrar” e “1 vez por conta”');
- await P.selectOption('.pgIn[data-p="a.0"][data-k="t"]','msg');await P.fill('.pgIn[data-p="a.0"][data-k="nome"]','Narrador');await P.fill('.pgF[data-p="a.0"]','Você chegou à Academia Ninja.');
+ await P.selectOption('.pgIn[data-p="a.0"][data-k="t"]','msg');await P.selectOption('.pgIn[data-p="a.0"][data-k="npc"]','n1');await W(100);ok(await ev(()=>/Nome \(vazio = nome do NPC\)/.test(document.querySelector('.pgIn[data-p="a.0"][data-k="nome"]').placeholder)&&/Retrato: o do NPC/.test(document.querySelector('.pgIn[data-p="a.0"][data-k="rt"]').textContent)),'mensagem: escolher o NPC que fala (nome e retrato dele)');await P.fill('.pgF[data-p="a.0"]','Você chegou à Academia Ninja.');
  await P.click('#evA [data-add="a"]');await P.selectOption('.pgIn[data-p="a.1"][data-k="t"]','npc');
  await D('Salvar');await W(200);let e1=await ev(()=>EDITOR.m.eventos[0]);
- ok(JSON.stringify(e1)===JSON.stringify({id:'e1',x:1,y:1,g:'entrar',fr:'uma',a:[{t:'msg',nome:'Narrador',f:['Você chegou à Academia Ninja.']},{t:'npc',npc:'n1'}]}),'evento ao entrar salvo: '+JSON.stringify(e1));
+ ok(JSON.stringify(e1)===JSON.stringify({id:'e1',x:1,y:1,g:'entrar',fr:'uma',a:[{t:'msg',nome:'',f:['Você chegou à Academia Ninja.'],npc:'n1'},{t:'npc',npc:'n1'}]}),'evento ao entrar salvo: '+JSON.stringify(e1));
  // outros dois por código: placa “1 vez por sessão” e um com condição que nunca vale
  await ev(()=>EDITOR.api.mudar(q=>{q.eventos.push({id:'e2',x:6,y:6,g:'pisar',fr:'sessao',a:[{t:'msg',nome:'',f:['Placa: cuidado com os kunais!']}]},{id:'e3',x:8,y:6,g:'pisar',fr:'sempre',se:[{t:'nivel',n:99}],a:[{t:'msg',nome:'',f:['nunca']}]})},'nada'));
  await P.click('#salvar');await W(300);await P.click('#publicar');await W(200);await D('Enviar e pôr no jogo');await W(2500);
@@ -33,7 +33,7 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  // ---- jogo: entrar na Academia
  const entra=async n=>{await A.click('#mapbtn');await W(1500);await A.evaluate(n=>[...document.querySelectorAll('#mmList button')].find(x=>x.textContent.toLowerCase().includes(n)).click(),n);await W(2200)};
  await entra('academia');
- ok(await A.evaluate(()=>document.getElementById('npcDlg')&&document.getElementById('npcDlg').style.display==='block'&&document.getElementById('npcT').textContent==='Você chegou à Academia Ninja.'&&document.getElementById('npcN').textContent==='Narrador'),'jogo: ao entrar abre a mensagem do narrador');
+ ok(await A.evaluate(()=>document.getElementById('npcDlg')&&document.getElementById('npcDlg').style.display==='block'&&document.getElementById('npcT').textContent==='Você chegou à Academia Ninja.'&&document.getElementById('npcN').textContent==='Kakashi'&&document.getElementById('npcR').style.display==='block'),'jogo: ao entrar abre a mensagem falada pelo Kakashi (nome e retrato dele)');
  await A.click('#npcP');await W(300);
  ok(await A.evaluate(n=>document.getElementById('npcDlg').style.display==='block'&&document.getElementById('npcN').textContent==='Kakashi'&&document.getElementById('npcT').textContent==='Bem-vindo à academia, '+n+'!',adm),'jogo: depois abre a conversa do Kakashi (de longe)');
  await A.click('#npcP');await W(900);ok(await A.evaluate(()=>document.getElementById('npcDlg').style.display==='none'),'jogo: conversa fecha');
@@ -47,7 +47,7 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await pisa(8,6);ok(await A.evaluate(()=>document.getElementById('npcDlg').style.display==='none'),'jogo: evento com condição que não vale não acontece');
  // servidor: evento “1 vez” não regrava; evento inexistente é ignorado
  const pk=JSON.stringify((await mget('/__missoes')).PROG);await A.evaluate(()=>{gsSend({t:'evfim',id:'e99'})});await W(500);ok(JSON.stringify((await mget('/__missoes')).PROG)===pk,'servidor ignora evento que não existe');
- ok(MR.validar('xx','x',{...pm,ev:[{x:1,y:1,g:'entrar',fr:'xx',a:[{t:'npc',npc:'zz'},{t:'msg',f:[]},{t:'fim'}]},{x:2,y:2,a:[{t:'msg',nome:'<b>A</b>',f:['oi']}]}]},{tsz:[],fpt:{}}).ev.map(e=>e.id+'|'+e.fr+'|'+e.a.map(a=>a.t+':'+(a.nome||'')).join('+')).join()==='e2|sempre|msg:bA/b','regras: ações inválidas descartadas, frequência padrão “sempre”');
+ ok(MR.validar('xx','x',{...pm,ev:[{x:1,y:1,g:'entrar',fr:'xx',a:[{t:'npc',npc:'zz'},{t:'msg',f:[]},{t:'fim'}]},{x:2,y:2,a:[{t:'msg',nome:'<b>A</b>',f:['oi'],npc:'n1',rt:'naoexiste'}]}]},{tsz:[],fpt:{}}).ev.map(e=>e.id+'|'+e.fr+'|'+e.a.map(a=>a.t+':'+(a.nome||'')+':'+(a.npc||'')+':'+(a.rt===undefined?'':a.rt)).join('+')).join()==='e2|sempre|msg:bA/b:n1:','regras: ações inválidas descartadas, frequência padrão “sempre”');
  ok(!erros.length,'editor sem erros de página');
  const lg=fs.readFileSync(LOG,'utf8').slice(n0);ok(!/erro ignorado|inválido ignorado/.test(lg),'servidor sem erros');
  console.log(fails?fails+' FALHA(S)':'TUDO OK');await b.close()})();
