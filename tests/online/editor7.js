@@ -25,26 +25,26 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await ev(()=>{EDITOR.api.ativar('eventos');EDITOR.api.ferramenta('pincel')});await W(100);
  ok(await ev(()=>/Eventos/.test(document.querySelector('#fCamN').textContent)),'camada Eventos');
  await ev(()=>{EDITOR.srv=null});
- await tap(await tela(2*32+10,2*32+10));await W(500);ok(await ev(()=>!document.querySelector('#dlg').hidden&&!!document.querySelector('#evM')),'tocar no tile abre o evento');
- await ev(id=>{const s=document.querySelector('#evM');if(![...s.options].some(o=>o.value===id)){const o=document.createElement('option');o.value=id;s.appendChild(o)}s.value=id},mA);await D('Salvar');await W(200);
- let evs=await ev(()=>EDITOR.m.eventos);ok(evs.length===1&&evs[0].x===2&&evs[0].y===2&&evs[0].m===mA&&evs[0].tx==null,'evento salvo (nascimento do destino): '+JSON.stringify(evs));
+ await tap(await tela(2*32+10,2*32+10));await W(500);ok(await ev(()=>!document.querySelector('#dlg').hidden&&!!document.querySelector('#evA .pgIn[data-p="a.0"][data-k="m"]')&&document.querySelector('[data-evg="pisar"]').getAttribute('aria-pressed')==='true'),'tocar no tile abre o evento (ao pisar, levar para o mapa)');
+ const mapaEv=id=>ev(id=>{const s=document.querySelector('.pgIn[data-p="a.0"][data-k="m"]');if(![...s.options].some(o=>o.value===id)){const o=document.createElement('option');o.value=id;s.appendChild(o)}s.value=id;s.dispatchEvent(new Event('change'))},id);await mapaEv(mA);await D('Salvar');await W(200);
+ let evs=await ev(()=>EDITOR.m.eventos);ok(evs.length===1&&evs[0].x===2&&evs[0].y===2&&evs[0].g==='pisar'&&evs[0].fr==='sempre'&&evs[0].a[0].m===mA&&evs[0].a[0].tx==null,'evento salvo (nascimento do destino): '+JSON.stringify(evs));
  await publicar();await sair();
  // mapa A (16×12): sem PvP e evento em (3,3) → B (5.5, 5)
  await criar(mA,'Sala A','16,12');
  await P.click('[data-aba="prop"]');await W(200);await P.click('#pPvp');await W(100);ok(await ev(()=>EDITOR.m.pvp===false),'Propriedades: PvP desligado');await P.click('#pnX').catch(()=>{});await W(150);
  await ev(()=>{EDITOR.api.ativar('eventos');EDITOR.api.ferramenta('pincel')});await ev(()=>{EDITOR.srv=null});
  await tap(await tela(3*32+10,3*32+10));await W(500);
- await ev(id=>{document.querySelector('#evM').value=id},mB);await P.click('#evN');await P.fill('#evX','5.5');await P.fill('#evY','5');await D('Salvar');await W(200);
- evs=await ev(()=>EDITOR.m.eventos);ok(evs.length===1&&evs[0].m===mB&&evs[0].tx===5.5&&evs[0].ty===5,'evento com destino X/Y: '+JSON.stringify(evs));
+ await mapaEv(mB);await D('Salvar');await W(200);
+ evs=await ev(()=>EDITOR.m.eventos);ok(evs.length===1&&evs[0].a[0].m===mB&&evs[0].a[0].tx==null,'evento levando para B: '+JSON.stringify(evs));
  // 📍 escolher a chegada tocando no mapa destino (B), tile (7,4)
- await ev(()=>EDITOR.api.ferramenta('pincel'));await tap(await tela(3*32+10,3*32+10));await W(400);await P.click('#evEsc');await P.waitForFunction(()=>document.querySelector('#escChegada')&&document.querySelector('#escChegada').vis.W>0,null,{timeout:8000});await W(300);
+ await ev(()=>EDITOR.api.ferramenta('pincel'));await tap(await tela(3*32+10,3*32+10));await W(400);await P.click('[data-tp="a.0"]');await P.waitForFunction(()=>document.querySelector('#escChegada')&&document.querySelector('#escChegada').vis.W>0,null,{timeout:8000});await W(300);
  ok(await ev(()=>document.querySelector('#escChegada').vis.W===12*32),'abre o mapa destino (B, 12×10) em tela cheia');
  const pc=await ev(()=>{const o=document.querySelector('#escChegada'),v=o.vis,r=o.querySelector('canvas').getBoundingClientRect();return[r.left+v.ox+(7*32+16)*v.s,r.top+v.oy+(4*32+16)*v.s]});await tap(pc);await W(150);
  ok(/\(7, 4\)/.test(await ev(()=>document.querySelector('#ecInfo').textContent)),'tocar marca o tile de chegada (7, 4)');await P.click('#ecOk');await W(200);
- ok(await ev(()=>!document.querySelector('#escChegada')&&!document.querySelector('#dlg').hidden&&document.querySelector('#evX').value==='7.5'&&document.querySelector('#evY').value==='4.5'),'volta ao evento com X 7.5 e Y 4.5 preenchidos');
- await D('Salvar');await W(200);evs=await ev(()=>EDITOR.m.eventos);ok(evs[0].tx===7.5&&evs[0].ty===4.5,'chegada salva: '+JSON.stringify(evs[0]));
+ ok(await ev(()=>!document.querySelector('#escChegada')&&!document.querySelector('#dlg').hidden&&/\(7, 4\)/.test(document.querySelector('[data-tp="a.0"]').textContent)),'volta ao evento com a chegada (7, 4)');
+ await D('Salvar');await W(200);evs=await ev(()=>EDITOR.m.eventos);ok(evs[0].a[0].tx===7.5&&evs[0].a[0].ty===4.5,'chegada salva: '+JSON.stringify(evs[0]));
  // duplicar e mover
- await tap(await tela(3*32+10,3*32+10));await W(400);await D('Duplicar');await W(200);evs=await ev(()=>EDITOR.m.eventos);ok(evs.length===2&&evs[1].x===4&&evs[1].y===3&&evs[1].m===evs[0].m&&evs[1].tx===7.5,'duplicar: cópia no tile ao lado (4, 3)');
+ await tap(await tela(3*32+10,3*32+10));await W(400);await D('Duplicar');await W(200);evs=await ev(()=>EDITOR.m.eventos);ok(evs.length===2&&evs[1].x===4&&evs[1].y===3&&evs[1].id!==evs[0].id&&evs[1].a[0].m===evs[0].a[0].m&&evs[1].a[0].tx===7.5,'duplicar: cópia no tile ao lado (4, 3)');
  await ev(()=>EDITOR.api.ferramenta('mover'));const de=await tela(4*32+16,3*32+16),pa_=await tela(6*32+16,6*32+16);
  await toque('touchStart',[de]);for(let i=1;i<=8;i++){await toque('touchMove',[[de[0]+(pa_[0]-de[0])*i/8,de[1]+(pa_[1]-de[1])*i/8]]);await W(30)}await toque('touchEnd',[]);await W(150);
  evs=await ev(()=>EDITOR.m.eventos);ok(evs[1].x===6&&evs[1].y===6&&evs[0].x===3,'✋ Mover arrasta o evento para (6, 6)');

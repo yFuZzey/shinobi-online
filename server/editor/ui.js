@@ -234,7 +234,7 @@
           (L.length ? L.map((v, i) => `<div class="cam"><button class="nm" data-np="${i}">🧑 ${esc(v.n || 'NPC')} <small class="mudo">(${v.x}, ${v.y}) · ${(v.f || []).length} fala(s)</small></button></div>`).join('') : '<p class="mudo">Nenhum NPC ainda.</p>'); }
       else if (k === 'eventos') { const L = m.eventos || [];
         h += `<p class="mudo">✏️ Pincel: toque num tile para criar ou editar um evento (lá dentro: 📍 escolher a chegada no mapa destino, Duplicar). ✋ Mover ou ⬚ Seleção: arraste o evento. 🧽 Borracha: toque para apagar. Quem pisar no tile é levado para o destino (outro mapa ou outro ponto deste). Dica: ponha uma porta ou escada (objeto) por cima.</p>` +
-          (L.length ? L.map((v, i) => `<div class="cam"><button class="nm" data-ev="${i}">🌀 (${v.x}, ${v.y}) → ${esc(v.m)}${v.tx != null ? ' (' + v.tx + ', ' + v.ty + ')' : ' · nascimento'}</button></div>`).join('') : '<p class="mudo">Nenhum evento ainda.</p>'); }
+          (L.length ? L.map((v, i) => `<div class="cam"><button class="nm" data-ev="${i}">${evNovo(v).g === 'entrar' ? '⚡' : '🌀'} (${v.x}, ${v.y}) ${esc(evRotulo(v))} <small class="mudo">${{ sempre: 'sempre', uma: '1 vez por conta', sessao: '1 vez por sessão' }[evNovo(v).fr] || ''}</small></button></div>`).join('') : '<p class="mudo">Nenhum evento ainda.</p>'); }
       else if (k === 'regioes') h += `<p class="mudo">Áreas de mobs, regiões e saídas chegam na Fase 5. Por enquanto esta camada só pode ser mostrada/escondida e bloqueada.</p>`;
       else { const s = E.tinta.tile; h += `<button class="btn" id="irObj" style="width:100%;margin:4px 0">🌳 Colocar objetos e spritesheets (camada Objetos)</button><p class="mudo">${libTs().length ? (s ? 'Tile escolhido: ' + s.sw + '×' + s.sh + ' do tileset “' + esc((libTs().find(x => x.id === s.id) || {}).nome || s.id) + '”.' : 'Toque num tile abaixo para escolher; “Escolher vários” para um bloco.') : 'Nenhum tileset na biblioteca: importe uma imagem e ligue a grade (Biblioteca → recurso → Grade).'}</p>`;
         if (E.conj.length) h += `<label class="lbl">Conjuntos (carimbos)</label><div class="presets">${E.conj.map(c => `<button data-cj="${esc(c.id)}">${esc(c.nome)} <small>${c.w}×${c.h}</small></button>`).join('')}</div>`; } }
@@ -386,8 +386,8 @@
     if (visivel('regioes')) R.areas(ctx, m, E.s);
     if (visivel('npcs')) desenhaNpcs(ctx, m, E.s);
     if (visivel('eventos')) for (const v of m.eventos || []) { ctx.fillStyle = 'rgba(150,80,255,.38)'; ctx.fillRect(v.x * T, v.y * T, T, T); ctx.strokeStyle = '#c9a6ff'; ctx.lineWidth = 2 / E.s; ctx.strokeRect(v.x * T + 1, v.y * T + 1, T - 2, T - 2);
-      ctx.fillStyle = '#fff'; ctx.font = (16) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🌀', v.x * T + T / 2, v.y * T + T / 2);
-      if (E.s > .5) { ctx.font = 'bold ' + Math.max(9, 11 / E.s) + 'px sans-serif'; ctx.lineWidth = 3 / E.s; ctx.strokeStyle = '#000c'; const tx = '→ ' + v.m; ctx.strokeText(tx, v.x * T + T / 2, v.y * T - 6 / E.s); ctx.fillText(tx, v.x * T + T / 2, v.y * T - 6 / E.s); } }
+      ctx.fillStyle = '#fff'; ctx.font = (16) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(evNovo(v).g === 'entrar' ? '⚡' : '🌀', v.x * T + T / 2, v.y * T + T / 2);
+      if (E.s > .5) { ctx.font = 'bold ' + Math.max(9, 11 / E.s) + 'px sans-serif'; ctx.lineWidth = 3 / E.s; ctx.strokeStyle = '#000c'; const tx = evRotulo(v); ctx.strokeText(tx, v.x * T + T / 2, v.y * T - 6 / E.s); ctx.fillText(tx, v.x * T + T / 2, v.y * T - 6 / E.s); } }
     if (E.ver.marcas) { R.marcador(ctx, m.spawn, E.s, '#2f8cff', 'N'); R.marcador(ctx, m.boss, E.s, '#d23c3c', 'C'); }
     ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2 / E.s; ctx.strokeRect(0, 0, m.W * T, m.H * T);
     previa(); }
@@ -671,7 +671,8 @@
     lista(); }); }
   // editor das falas do NPC (dentro da janela do NPC): escolhas das falas normais (R.ch) e páginas com condição (R.pg: id, se = condições, f = falas, faz = ações, ch = escolhas).
   // Cada campo aponta para o seu lugar por um caminho (ex.: "pg.0.ch.1.faz.0"), então tudo é editado direto no objeto R.
-  function falasNpc(boxCh, boxPg, R, mapas) { const M2 = E.missoes || [], IT = E.itens || [], ob = pt => pt.split('.').reduce((o, k) => o == null ? o : o[k], R);
+  // B2 (eventos do mapa): {se: caixa das condições (R.se), a: caixa das ações (R.a), npcs: [[id, nome]]}; nas ações do evento também há “Mensagem” e “Conversa com NPC”
+  function falasNpc(boxCh, boxPg, R, mapas, B2) { const M2 = E.missoes || [], IT = E.itens || [], NP = (B2 && B2.npcs) || [], ob = pt => pt.split('.').reduce((o, k) => o == null ? o : o[k], R);
     const opMis = sel => M2.length ? M2.map(q => `<option value="${esc(q.id)}" ${q.id === sel ? 'selected' : ''}>${esc(q.nome)}</option>`).join('') : '<option value="">(crie em 📜 Missões…)</option>';
     const inp = (pt, k, v, w) => `<input class="pgIn" data-p="${pt}" data-k="${k}" type="number" min="1" max="99" value="${v || 1}" style="width:${w || 64}px">`;
     const sel = (pt, k, html) => `<select class="pgIn" data-p="${pt}" data-k="${k}">${html}</select>`, ops = (L, v) => L.map(([a, b]) => `<option value="${a}" ${v === a ? 'selected' : ''}>${b}</option>`).join('');
@@ -679,8 +680,11 @@
     const cond = (pt, k) => `<div class="linha" style="flex-wrap:wrap;gap:4px;margin:3px 0">${sel(pt, 't', ops([['mis', 'Missão'], ['item', 'Tem o item'], ['nivel', 'Nível mínimo']], k.t))}` +
       (k.t === 'mis' ? sel(pt, 'q', opMis(k.q)) + sel(pt, 'e', ops([['nao', 'não começou'], ['em', 'em andamento'], ['passo', 'no passo…'], ['fim', 'concluída']], k.e)) + (k.e === 'passo' ? inp(pt, 'n', k.n) : '')
         : k.t === 'item' ? sel(pt, 'i', IT.map(it => `<option value="${esc(it.id)}" ${it.id === k.i ? 'selected' : ''}>${esc(it.n)}</option>`).join('') || '<option value="">(sem itens)</option>') + '<span class="mudo">qtd</span>' + inp(pt, 'n', k.n, 56) : inp(pt, 'n', k.n)) + del(pt) + '</div>';
-    const acao = (pt, a) => `<div class="linha" style="flex-wrap:wrap;gap:4px;margin:3px 0">${sel(pt, 't', ops([['mis', 'Missão'], ['tp', 'Levar para o mapa'], ['fim', 'Não repetir esta conversa']], a.t))}` +
-      (a.t === 'mis' ? sel(pt, 'q', opMis(a.q)) + sel(pt, 'a', ops([['comecar', 'começar'], ['passo', 'ir para o passo…'], ['fim', 'concluir']], a.a)) + (a.a === 'passo' ? inp(pt, 'n', a.n) : '')
+    const evA = pt => /^a\.\d+$/.test(pt);
+    const acao = (pt, a) => `<div class="linha" style="flex-wrap:wrap;gap:4px;margin:4px 0;padding-top:6px;border-top:1px dashed var(--linha)">${sel(pt, 't', ops(evA(pt) ? [['msg', 'Mensagem'], ['npc', 'Conversa com NPC'], ['mis', 'Missão'], ['tp', 'Levar para o mapa']] : [['mis', 'Missão'], ['tp', 'Levar para o mapa'], ['fim', 'Não repetir esta conversa']], a.t))}` +
+      (a.t === 'msg' ? `<input class="pgIn cresce" data-p="${pt}" data-k="nome" maxlength="24" value="${esc(a.nome || '')}" placeholder="Quem fala (opcional)"><textarea class="pgF" data-p="${pt}" rows="2" style="width:100%" placeholder="Uma fala por linha">${esc((a.f || []).join('\n'))}</textarea>`
+        : a.t === 'npc' ? sel(pt, 'npc', NP.map(([id, n]) => `<option value="${esc(id)}" ${id === a.npc ? 'selected' : ''}>${esc(n)}</option>`).join('') || '<option value="">(crie um NPC neste mapa)</option>') + '<span class="mudo">abre a conversa dele (páginas e escolhas)</span>'
+        : a.t === 'mis' ? sel(pt, 'q', opMis(a.q)) + sel(pt, 'a', ops([['comecar', 'começar'], ['passo', 'ir para o passo…'], ['fim', 'concluir']], a.a)) + (a.a === 'passo' ? inp(pt, 'n', a.n) : '')
         : a.t === 'tp' ? sel(pt, 'm', mapas.map(id => `<option value="${esc(id)}" ${id === a.m ? 'selected' : ''}>${esc(id)}</option>`).join('')) + `<button class="btn peq" data-tp="${pt}">📍 ${a.tx != null ? '(' + Math.floor(a.tx) + ', ' + Math.floor(a.ty) + ')' : 'nascimento'}</button>`
         : '<span class="mudo">a pessoa não vê mais esta conversa</span>') + del(pt) + '</div>';
     const acoes = (pt, A) => (A || []).map((a, i) => acao(pt + '.' + i, a)).join('') + `<button class="btn peq" data-add="${pt}">+ Ação</button>`;
@@ -688,20 +692,22 @@
         <label class="lbl">Resposta do NPC (opcional, uma fala por linha)</label><textarea class="pgF" data-p="${pt}.${ci}" rows="2" style="width:100%">${esc((e.f || []).join('\n'))}</textarea>
         <label class="lbl">Depois da escolha</label>${acoes(pt + '.' + ci + '.faz', e.faz)}</div>`).join('') + ((CH || []).length < 4 ? `<button class="btn peq" data-add="${pt}">+ Escolha</button>` : '');
     if (boxCh) boxCh.innerHTML = escolhas('ch', R.ch);
+    if (B2 && B2.se) B2.se.innerHTML = (R.se || []).map((k, i) => cond('se.' + i, k)).join('') + '<button class="btn peq" data-add="se">+ Condição</button>';
+    if (B2 && B2.a) B2.a.innerHTML = acoes('a', R.a);
     if (boxPg) boxPg.innerHTML = R.pg.map((g, pi) => `<div style="border:1px solid var(--linha);border-radius:10px;padding:8px;margin:6px 0"><div class="linha"><b class="cresce">Página ${pi + 1}</b>${pi ? `<button class="ib" data-pgup="${pi}" aria-label="Subir">▲</button>` : ''}<button class="ib" data-pgx="${pi}" aria-label="Excluir página">🗑</button></div>
       <label class="lbl">Quando (todas precisam valer)</label>${g.se.map((k, i) => cond('pg.' + pi + '.se.' + i, k)).join('') || '<p class="mudo">Sempre (sem condição)</p>'}<button class="btn peq" data-add="pg.${pi}.se">+ Condição</button>
       <label class="lbl" style="margin-top:6px">Falas (uma por linha)</label><textarea class="pgF" data-p="pg.${pi}" rows="3" style="width:100%">${esc((g.f || []).join('\n'))}</textarea>
       <label class="lbl" style="margin-top:6px">Escolhas no fim da fala (opcional)</label>${escolhas('pg.' + pi + '.ch', g.ch)}
       <label class="lbl" style="margin-top:6px">No fim da conversa</label>${acoes('pg.' + pi + '.faz', g.faz)}</div>`).join('');
-    const re = () => falasNpc(boxCh, boxPg, R, mapas), Q = sel2 => [boxCh, boxPg].filter(Boolean).flatMap(b => [...b.querySelectorAll(sel2)]);
-    Q('.pgIn').forEach(el => { const fn = () => { const o = ob(el.dataset.p), k = el.dataset.k; if (!o) return; o[k] = k === 'n' ? Math.max(1, Math.min(99, +el.value | 0)) : k === 'txt' ? el.value.slice(0, 40) : el.value;
-        if (k === 't') { for (const x of Object.keys(o)) if (x !== 't') delete o[x]; if (/\.se\.\d+$/.test(el.dataset.p)) Object.assign(o, o.t === 'mis' ? { q: (M2[0] || {}).id || '', e: 'em' } : o.t === 'item' ? { i: (IT[0] || {}).id || '', n: 1 } : { n: 1 }); else Object.assign(o, o.t === 'mis' ? { q: (M2[0] || {}).id || '', a: 'comecar' } : o.t === 'tp' ? { m: mapas[0] } : {}); }
+    const re = () => falasNpc(boxCh, boxPg, R, mapas, B2), Q = sel2 => [boxCh, boxPg, B2 && B2.se, B2 && B2.a].filter(Boolean).flatMap(b => [...b.querySelectorAll(sel2)]);
+    Q('.pgIn').forEach(el => { const fn = () => { const o = ob(el.dataset.p), k = el.dataset.k; if (!o) return; o[k] = k === 'n' ? Math.max(1, Math.min(99, +el.value | 0)) : k === 'txt' ? el.value.slice(0, 40) : k === 'nome' ? el.value.slice(0, 24) : el.value;
+        if (k === 't') { for (const x of Object.keys(o)) if (x !== 't') delete o[x]; if (/\.se\.\d+$/.test(el.dataset.p)) Object.assign(o, o.t === 'mis' ? { q: (M2[0] || {}).id || '', e: 'em' } : o.t === 'item' ? { i: (IT[0] || {}).id || '', n: 1 } : { n: 1 }); else Object.assign(o, o.t === 'mis' ? { q: (M2[0] || {}).id || '', a: 'comecar' } : o.t === 'tp' ? { m: mapas[0] } : o.t === 'msg' ? { nome: '', f: [] } : o.t === 'npc' ? { npc: (NP[0] || [])[0] || '' } : {}); }
         if ((k === 'e' && o.e === 'passo') || (k === 'a' && o.a === 'passo')) o.n = o.n || 1; if ((k === 'e' && o.e !== 'passo') || (k === 'a' && o.a !== 'passo')) delete o.n; if (k === 'm') { delete o.tx; delete o.ty; } if (['t', 'e', 'a', 'm'].includes(k)) re(); };
-      if (el.dataset.k === 'txt') el.oninput = fn; else el.onchange = fn; });
+      if (el.dataset.k === 'txt' || el.dataset.k === 'nome') el.oninput = fn; else el.onchange = fn; });
     Q('.pgF').forEach(el => el.oninput = () => { const o = ob(el.dataset.p); if (o) o.f = el.value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 20).map(x => x.slice(0, 300)); });
     Q('[data-add]').forEach(b => b.onclick = () => { const pt = b.dataset.add, i = pt.lastIndexOf('.'), pai = i < 0 ? R : ob(pt.slice(0, i)), k = pt.slice(i + 1); if (!pai) return; const L = pai[k] = pai[k] || [];
       if (L.length >= (k === 'ch' ? 4 : 6)) return toast(k === 'ch' ? 'No máximo 4 escolhas' : 'No máximo 6');
-      L.push(k === 'ch' ? { txt: '', f: [], faz: [] } : k === 'se' ? { t: 'mis', q: (M2[0] || {}).id || '', e: 'nao' } : { t: 'mis', q: (M2[0] || {}).id || '', a: 'comecar' }); re(); });
+      L.push(k === 'ch' ? { txt: '', f: [], faz: [] } : k === 'se' ? { t: 'mis', q: (M2[0] || {}).id || '', e: 'nao' } : pt === 'a' ? { t: 'msg', nome: '', f: [] } : { t: 'mis', q: (M2[0] || {}).id || '', a: 'comecar' }); re(); });
     Q('[data-del]').forEach(b => b.onclick = () => { const pt = b.dataset.del, i = pt.lastIndexOf('.'), L = ob(pt.slice(0, i)); if (Array.isArray(L)) L.splice(+pt.slice(i + 1), 1); re(); });
     Q('[data-pgx]').forEach(b => b.onclick = () => { R.pg.splice(+b.dataset.pgx, 1); re(); });
     Q('[data-pgup]').forEach(b => b.onclick = () => { const i = +b.dataset.pgup, P = R.pg; [P[i - 1], P[i]] = [P[i], P[i - 1]]; re(); });
@@ -805,25 +811,39 @@
     mudar(q => { q.npcs = q.npcs || []; const j = q.npcs.findIndex(e => e.x === x && e.y === y); if (j >= 0) q.npcs[j] = nv; else q.npcs.push(nv); }, 'nada');
     toast('NPC salvo: ' + nv.n); if (E.aba === 'pintura') painel('pintura'); }
   /* eventos (pisar no tile): por enquanto teletransporte para outro mapa ou outro ponto deste. Sem destino X/Y = nascimento do mapa destino */
-  async function tocaEvento([x, y], apagar) { const m = E.m, L = m.eventos || [], i = L.findIndex(v => v.x === x && v.y === y), v = L[i];
+  // evento antigo (só teletransporte) → modelo novo; o servidor devolve os dois jeitos
+  const evNovo = v => v && Array.isArray(v.a) ? v : v ? { id: v.id, x: v.x, y: v.y, g: 'pisar', fr: 'sempre', a: v.t === 'tp' ? [Object.assign({ t: 'tp', m: v.m }, v.tx != null ? { tx: v.tx, ty: v.ty } : {})] : [] } : null;
+  const evRotulo = v => { const e = evNovo(v), a = (e.a || [])[0] || {}, npc = a.t === 'npc' && (E.m.npcs || []).find(n => n.id === a.npc); return a.t === 'tp' ? '→ ' + a.m : a.t === 'npc' ? '💬 ' + (npc ? npc.n : a.npc) : a.t === 'msg' ? '💬 ' + (a.nome || 'mensagem') : a.t === 'mis' ? '📜 missão' : '…'; };
+  /* eventos do mapa (como no RPG Maker): gatilho (ao pisar no tile / ao entrar no mapa), frequência (sempre / 1 vez por conta / 1 vez por sessão), condições e ações em ordem */
+  async function tocaEvento([x, y], apagar) { const m = E.m, L = m.eventos || [], i = L.findIndex(v => v.x === x && v.y === y), v0 = L[i], v = evNovo(v0);
     if (apagar) { if (i >= 0) { mudar(q => { q.eventos.splice(i, 1); }, 'nada'); toast('Evento apagado (↶ desfaz)'); if (E.aba === 'pintura') painel('pintura'); } return; }
     let ids = [m.id].concat(Mo.BASE_IDS); try { if (!E.srv) E.srv = await P.listarServidor(); } catch (_) { } for (const r of E.srv || []) ids.push(r.id); ids = [...new Set(ids)];
-    const dst = v ? v.m : (ids.find(id => id !== m.id) || m.id), nasc = v ? v.tx == null : dst !== m.id;
-    const r = await dlg(v ? 'Evento (' + x + ', ' + y + ')' : 'Novo evento em (' + x + ', ' + y + ')', `<label class="lbl">Ao pisar: teletransportar para o mapa</label>
-      <select id="evM">${ids.map(id => `<option value="${esc(id)}" ${id === dst ? 'selected' : ''}>${esc(id === m.id ? id + ' (este mapa)' : id)}</option>`).join('')}</select>
-      <label class="chk"><input type="checkbox" id="evN" ${nasc ? 'checked' : ''}> Chegar no ponto de nascimento do mapa</label>
-      <button class="btn" id="evEsc" style="width:100%;margin:6px 0">📍 Escolher no mapa destino (tocar onde chega)</button>
-      <div class="grade2" id="evXY" ${nasc ? 'hidden' : ''}><div><label class="lbl">X (tiles)</label><input id="evX" type="number" step="0.5" value="${v && v.tx != null ? v.tx : x + .5}"></div><div><label class="lbl">Y (tiles)</label><input id="evY" type="number" step="0.5" value="${v && v.ty != null ? v.ty : y + 2}"></div></div>
-      <p class="mudo">Se o destino for outro ponto com evento, a pessoa não volta em loop: só dispara ao entrar num tile.</p>`,
-      [{ t: 'Salvar', v: 1, c: 'pri' }].concat(v ? [{ t: 'Duplicar', v: 3 }, { t: 'Apagar', v: 2, c: 'perigo' }] : []).concat([{ t: 'Cancelar', v: 0 }]), c => { c.querySelector('#evN').onchange = e => { c.querySelector('#evXY').hidden = e.target.checked; };
-        c.querySelector('#evEsc').onclick = async () => { const d = $('#dlg'); d.hidden = true; const a = await escolherChegada($('#evM').value, c.querySelector('#evN').checked ? null : [+$('#evX').value, +$('#evY').value]); d.hidden = false;
-          if (a) { $('#evN').checked = false; $('#evXY').hidden = false; $('#evX').value = a[0]; $('#evY').value = a[1]; } }; });
+    if (!E.missoes) await carregarMis(); if (!E.itens) { try { E.itens = await (await fetch('/painel/editor/itens.json')).json(); } catch (_) { E.itens = []; } }
+    const st = v ? JSON.parse(JSON.stringify(v)) : { g: 'pisar', fr: 'sempre', se: [], a: [{ t: 'tp', m: ids.find(id => id !== m.id) || m.id }] }; st.se = st.se || []; st.a = st.a || [];
+    const npcs = (m.npcs || []).map(n => [n.id, n.n || n.id]);
+    const r = await dlg(v ? 'Evento (' + x + ', ' + y + ')' : 'Novo evento em (' + x + ', ' + y + ')', `<label class="lbl">Quando acontece</label><div class="presets"><button data-evg="pisar">🦶 Ao pisar neste tile</button><button data-evg="entrar">🚪 Ao entrar no mapa</button></div>
+      <label class="lbl" style="margin-top:6px">Quantas vezes</label><div class="presets"><button data-evf="sempre">🔁 Sempre</button><button data-evf="uma">1️⃣ 1 vez por conta</button><button data-evf="sessao">🕒 1 vez por sessão</button></div>
+      <p class="mudo" id="evDica"></p>
+      <label class="lbl" style="margin-top:6px">Só se (opcional, todas precisam valer)</label><div id="evSe"></div>
+      <label class="lbl" style="margin-top:6px">O que acontece (em ordem)</label><div id="evA"></div>
+      <p class="mudo">“Mensagem” e “Conversa com NPC” abrem a janela de fala e esperam fechar. “Levar para o mapa” termina o evento. Nas falas, %player% = nome do jogador.</p>`,
+      [{ t: 'Salvar', v: 1, c: 'pri', antes: () => { if (!st.a.length) { toast('Coloque pelo menos uma ação'); return false; } } }].concat(v ? [{ t: 'Duplicar', v: 3 }, { t: 'Apagar', v: 2, c: 'perigo' }] : []).concat([{ t: 'Cancelar', v: 0 }]), c => {
+        const $c = q => c.querySelector(q), marca = (sel2, f) => c.querySelectorAll(sel2).forEach(b => b.setAttribute('aria-pressed', f(b)));
+        const dica = () => { marca('[data-evg]', b => b.dataset.evg === st.g); marca('[data-evf]', b => b.dataset.evf === st.fr);
+          $c('#evDica').textContent = (st.g === 'entrar' ? 'Acontece logo que a pessoa chega neste mapa (o lugar do evento no mapa não importa). ' : 'Acontece quando a pessoa entra neste tile. ') +
+            (st.fr === 'uma' ? 'Só 1 vez por conta: depois nunca mais (fica salvo no servidor).' : st.fr === 'sessao' ? 'Só 1 vez até a pessoa sair do jogo; ao entrar de novo, volta a acontecer.' : 'Toda vez.'); };
+        c.querySelectorAll('[data-evg]').forEach(b => b.onclick = () => { st.g = b.dataset.evg; dica(); });
+        c.querySelectorAll('[data-evf]').forEach(b => b.onclick = () => { st.fr = b.dataset.evf; dica(); });
+        dica(); falasNpc(null, null, st, ids, { se: $c('#evSe'), a: $c('#evA'), npcs }); });
     if (!r) return; if (r === 2) return tocaEvento([x, y], true);
-    if (r === 3) { const L2 = E.m.eventos, p = livreEvento(E.m, x, y); if (!p) return toast('Sem espaço livre para a cópia'); const cp = Object.assign(JSON.parse(JSON.stringify(L2[i])), { x: p[0], y: p[1] });
+    const novoId = () => { let n = 1; while ((E.m.eventos || []).some(e => e.id === 'e' + n)) n++; return 'e' + n; };
+    if (r === 3) { const p = livreEvento(E.m, x, y); if (!p) return toast('Sem espaço livre para a cópia'); const cp = Object.assign(JSON.parse(JSON.stringify(v)), { id: novoId(), x: p[0], y: p[1] });
       mudar(q => { q.eventos.push(cp); }, 'nada'); toast('Cópia em (' + p[0] + ', ' + p[1] + '): arraste com ✋ Mover para posicionar'); if (E.aba === 'pintura') painel('pintura'); return; }
-    const nv = { x, y, t: 'tp', m: $('#evM').value }; if (!$('#evN').checked) { const tx = +$('#evX').value, ty = +$('#evY').value; if (Number.isFinite(tx) && Number.isFinite(ty)) { nv.tx = clamp(tx, 0, 100); nv.ty = clamp(ty, 0, 100); } }
+    const a = st.a.filter(x2 => (x2.t !== 'mis' || x2.q) && (x2.t !== 'tp' || x2.m) && (x2.t !== 'npc' || x2.npc) && (x2.t !== 'msg' || (x2.f || []).length));
+    if (!a.length) return toast('Evento sem ação válida: não salvei');
+    const nv = { id: (v && v.id) || novoId(), x, y, g: st.g, fr: st.fr, a }; const se = st.se.filter(k => k.t !== 'mis' || k.q); if (se.length) nv.se = se;
     mudar(q => { q.eventos = q.eventos || []; const j = q.eventos.findIndex(e => e.x === x && e.y === y); if (j >= 0) q.eventos[j] = nv; else q.eventos.push(nv); }, 'nada');
-    toast('Evento salvo: ' + nv.m); if (E.aba === 'pintura') painel('pintura'); }
+    toast('Evento salvo'); if (E.aba === 'pintura') painel('pintura'); }
   function novoObj(k, w) { const o = { k, x: 0, y: 0, f: [] }, rc = R.RC[k], u = usoObj(k);
     if (rc || u) { const ns = u === 'chao' ? 1 : rc ? rc.ns : 0; Ferr.objF(o, ns, ns || !rc ? null : rc.col, u ? { z: u } : null); } return encaixe(o, w.x, w.y); }
   // objeto de cima no ponto (px do mapa), na mesma ordem em que é desenhado

@@ -62,15 +62,31 @@ function validar(id, nome, m, cat) {
   if (typeof m.k === 'string' && m.k.length === W * H && !/[^0-2]/.test(m.k)) out.k = m.k;
   if (A.length) out.areas = A;
   if (m.pvp === 0) out.pvp = 0; // mapa sem PvP (o mapa todo é zona segura)
-  // eventos ao pisar num tile: por enquanto teletransporte {x, y, t:'tp', m: mapa destino, tx, ty (tiles)}
-  if (Array.isArray(m.ev)) { const EV = [], vis = new Set();
-    for (const e of m.ev.slice(0, 300)) { if (!e || e.t !== 'tp' || !Number.isInteger(e.x) || !Number.isInteger(e.y) || e.x < 0 || e.y < 0 || e.x >= W || e.y >= H || typeof e.m !== 'string' || !ID.test(e.m)) continue;
-      const k = e.x + ',' + e.y; if (vis.has(k)) continue; vis.add(k); const o = { x: e.x, y: e.y, t: 'tp', m: e.m };
-      if (fin(e.tx) && fin(e.ty)) { o.tx = clamp(+e.tx, 0, MAX); o.ty = clamp(+e.ty, 0, MAX); } // sem destino = ponto de nascimento do mapa
-      EV.push(o); }
+  // ---- ajudantes das falas, condições e ações (eventos e NPCs)
+  const txt = (s, n) => String(s).replace(/[\u0000-\u0009\u000b-\u001f<>]/g, '').trim().slice(0, n), ci = (v, a, b) => Number.isInteger(v) && v >= a && v <= b ? v : a;
+  const QI = /^q_[a-z0-9_]{2,40}$/, falas = v => (Array.isArray(v) ? v : []).filter(s => typeof s === 'string').map(s => txt(s, 300)).filter(Boolean).slice(0, 20);
+  // condições: missão (não começou / em andamento / no passo n / concluída), tem item (qtd), nível mínimo
+  const condicoes = v => (Array.isArray(v) ? v : []).slice(0, 6).map(k => !k ? null : k.t === 'mis' && QI.test(k.q || '') && ['nao', 'em', 'passo', 'fim'].includes(k.e) ? Object.assign({ t: 'mis', q: k.q, e: k.e }, k.e === 'passo' ? { n: ci(k.n, 1, 30) } : {})
+    : k.t === 'item' && typeof k.i === 'string' && /^[a-z0-9_]{1,40}$/.test(k.i) ? { t: 'item', i: k.i, n: ci(k.n, 1, 99) } : k.t === 'nivel' ? { t: 'nivel', n: ci(k.n, 1, 99) } : null).filter(Boolean);
+  // ações: mis (começar/passo/concluir), tp (levar para mapa), fim (NPC: não repetir esta conversa), npc (evento: conversa com um NPC deste mapa), msg (evento: mensagem com nome e falas)
+  const acoes = (v, ev) => (Array.isArray(v) ? v : []).slice(0, 6).map(x => !x ? null : x.t === 'mis' && QI.test(x.q || '') && ['comecar', 'passo', 'fim'].includes(x.a) ? Object.assign({ t: 'mis', q: x.q, a: x.a }, x.a === 'passo' ? { n: ci(x.n, 1, 30) } : {})
+    : x.t === 'tp' && typeof x.m === 'string' && ID.test(x.m) ? Object.assign({ t: 'tp', m: x.m }, fin(x.tx) && fin(x.ty) ? { tx: clamp(+x.tx, 0, MAX), ty: clamp(+x.ty, 0, MAX) } : {})
+    : !ev && x.t === 'fim' ? { t: 'fim' } : ev && x.t === 'npc' && typeof x.npc === 'string' && /^n\d{1,4}$/.test(x.npc) ? { t: 'npc', npc: x.npc }
+    : ev && x.t === 'msg' ? { t: 'msg', nome: txt(x.nome || '', 24), f: falas(x.f) } : null).filter(x => x && !(x.t === 'msg' && !x.f.length));
+  const escolhas = v => (Array.isArray(v) ? v : []).slice(0, 4).map(e => e && typeof e === 'object' ? { txt: txt(e.txt || '', 40) || '…', f: falas(e.f), faz: acoes(e.faz) } : null).filter(Boolean);
+  // eventos: {id:'e1', x, y, g: 'pisar' (ao pisar no tile) | 'entrar' (ao entrar no mapa), fr: 'sempre' | 'uma' (1 vez por conta) | 'sessao' (1 vez até sair do jogo), se: condições, a: ações}
+  // Os antigos ({x, y, t:'tp', m, tx, ty}) viram “ao pisar, sempre, levar para o mapa”; o teletransporte simples continua com t/m/tx/ty (apps antigos entendem)
+  if (Array.isArray(m.ev)) { const EV = [], vis = new Set(), ids = new Set();
+    m.ev.slice(0, 300).forEach((e, ei) => { if (!e || !Number.isInteger(e.x) || !Number.isInteger(e.y) || e.x < 0 || e.y < 0 || e.x >= W || e.y >= H) return;
+      const k = e.x + ',' + e.y; if (vis.has(k)) return;
+      const a = Array.isArray(e.a) ? acoes(e.a, true) : e.t === 'tp' ? acoes([{ t: 'tp', m: e.m, tx: e.tx, ty: e.ty }], true) : []; if (!a.length) return; vis.add(k);
+      let id = typeof e.id === 'string' && /^e[1-9]\d{0,3}$/.test(e.id) && !ids.has(e.id) ? e.id : 'e' + (ei + 1); while (ids.has(id)) id = 'e' + (+id.slice(1) + 300); ids.add(id);
+      const o = { id, x: e.x, y: e.y, g: e.g === 'entrar' ? 'entrar' : 'pisar', fr: e.fr === 'uma' || e.fr === 'sessao' ? e.fr : 'sempre', a }, se = condicoes(e.se); if (se.length) o.se = se;
+      if (o.g === 'pisar' && o.fr === 'sempre' && !se.length && a.length === 1 && a[0].t === 'tp') { o.t = 'tp'; o.m = a[0].m; if (a[0].tx != null) { o.tx = a[0].tx; o.ty = a[0].ty; } }
+      EV.push(o); });
     if (EV.length) out.ev = EV; }
   // NPCs: {id:'n1', n: nome, x, y (tile), a: {t:'ninja', s, h, c (cores da paleta do jogo), fl} ou {t:'img', k: imagem do catálogo}, f: [falas], b: 0 = não bloqueia}
-  if (Array.isArray(m.npcs)) { const NP = [], vis = new Set(), txt = (s, n) => String(s).replace(/[\u0000-\u0009\u000b-\u001f<>]/g, '').trim().slice(0, n), ci = (v, a, b) => Number.isInteger(v) && v >= a && v <= b ? v : a;
+  if (Array.isArray(m.npcs)) { const NP = [], vis = new Set();
     for (const c of m.npcs.slice(0, 100)) { if (!c || typeof c.id !== 'string' || !/^n\d{1,4}$/.test(c.id) || vis.has(c.id) || !Number.isInteger(c.x) || !Number.isInteger(c.y) || c.x < 0 || c.y < 0 || c.x >= W || c.y >= H) continue; vis.add(c.id);
       const a = c.a && typeof c.a === 'object' ? c.a : {}, o = { id: c.id, n: txt(c.n || '', 24) || 'NPC', x: c.x, y: c.y };
       o.a = a.t === 'img' && typeof a.k === 'string' && tsz.has(a.k) ? { t: 'img', k: a.k } : { t: 'ninja', s: ci(a.s, 0, 3), h: ci(a.h, 0, 4), c: ci(a.c, 0, 4) }; if (a.fl) o.a.fl = 1;
@@ -82,15 +98,10 @@ function validar(id, nome, m, cat) {
       if (c.rt === 0) o.rt = 0; else if (typeof c.rt === 'string' && tsz.has(c.rt)) o.rt = c.rt; // retrato na janela de fala: 0 = nenhum; sem rt = automático
       // páginas de fala (missões): a 1ª página cujas condições valem (e que a pessoa não “encerrou”) é a que aparece; sem nenhuma, as falas normais (f, ch)
       // ações: mis (começar/passo/concluir), tp (levar para mapa), fim (não repetir esta conversa). Escolhas (ch): até 4 botões no fim da fala, cada um com falas e ações
-      const QI = /^q_[a-z0-9_]{2,40}$/, falas = v => (Array.isArray(v) ? v : []).filter(s => typeof s === 'string').map(s => txt(s, 300)).filter(Boolean).slice(0, 20);
-      const acoes = v => (Array.isArray(v) ? v : []).slice(0, 6).map(x => !x ? null : x.t === 'mis' && QI.test(x.q || '') && ['comecar', 'passo', 'fim'].includes(x.a) ? Object.assign({ t: 'mis', q: x.q, a: x.a }, x.a === 'passo' ? { n: ci(x.n, 1, 30) } : {})
-        : x.t === 'tp' && typeof x.m === 'string' && ID.test(x.m) ? Object.assign({ t: 'tp', m: x.m }, fin(x.tx) && fin(x.ty) ? { tx: clamp(+x.tx, 0, MAX), ty: clamp(+x.ty, 0, MAX) } : {}) : x.t === 'fim' ? { t: 'fim' } : null).filter(Boolean);
-      const escolhas = v => (Array.isArray(v) ? v : []).slice(0, 4).map(e => e && typeof e === 'object' ? { txt: txt(e.txt || '', 40) || '…', f: falas(e.f), faz: acoes(e.faz) } : null).filter(Boolean);
       { const ch = escolhas(c.ch); if (ch.length) o.ch = ch; }
       if (Array.isArray(c.pg)) { const P = [], ids = new Set();
         c.pg.slice(0, 10).forEach((g, gi) => { if (!g || typeof g !== 'object') return; let id = typeof g.id === 'string' && /^p[1-9]\d{0,2}$/.test(g.id) && !ids.has(g.id) ? g.id : 'p' + (gi + 1); while (ids.has(id)) id = 'p' + (+id.slice(1) + 10); ids.add(id);
-          const se = (Array.isArray(g.se) ? g.se : []).slice(0, 6).map(k => !k ? null : k.t === 'mis' && QI.test(k.q || '') && ['nao', 'em', 'passo', 'fim'].includes(k.e) ? Object.assign({ t: 'mis', q: k.q, e: k.e }, k.e === 'passo' ? { n: ci(k.n, 1, 30) } : {})
-            : k.t === 'item' && typeof k.i === 'string' && /^[a-z0-9_]{1,40}$/.test(k.i) ? { t: 'item', i: k.i, n: ci(k.n, 1, 99) } : k.t === 'nivel' ? { t: 'nivel', n: ci(k.n, 1, 99) } : null).filter(Boolean);
+          const se = condicoes(g.se);
           const pg = { id, se, f: falas(g.f), faz: acoes(g.faz) }, ch = escolhas(g.ch); if (ch.length) pg.ch = ch; P.push(pg); });
         if (P.length) o.pg = P; }
       // passeio: anda sozinho até r tiles da posição (v: 1 devagar, 2 normal, 3 rápido)

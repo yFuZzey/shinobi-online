@@ -268,7 +268,9 @@ async function onNpcFim(p, m) { const t = now(); if (t - (p.npcT || 0) < 0.3 || 
   const pg = i === -1 ? { id: 'p0', se: [], faz: [], ch: c.ch } : Array.isArray(c.pg) && c.pg[i]; if (!pg) return;
   const op = Number.isInteger(m.op) && m.op >= 0 && Array.isArray(pg.ch) ? pg.ch[m.op] : null, A = (pg.faz || []).concat(op ? op.faz || [] : []);
   if (!A.some(a => a.t === 'mis' || a.t === 'fim')) return;
-  const r = (c.mv ? c.mv.r : 0) + 3; if (Math.abs(p.x / T - (c.x + .5)) > r || Math.abs(p.y / T - (c.y + 1)) > r) return sys(p, 'Chegue mais perto de ' + c.n + '.');
+  // conversa aberta por um evento do mapa (ex.: ao entrar): vale de longe, se o evento existe e chama este NPC
+  const viaEv = typeof m.ev === 'string' && Array.isArray(pm.ev) && pm.ev.some(e => e.id === m.ev && e.a.some(a => a.t === 'npc' && a.npc === c.id));
+  const r = (c.mv ? c.mv.r : 0) + 3; if (!viaEv && (Math.abs(p.x / T - (c.x + .5)) > r || Math.abs(p.y / T - (c.y + 1)) > r)) return sys(p, 'Chegue mais perto de ' + c.n + '.');
   let inv = null; if ((c.pg || []).some(g => (g.se || []).some(k => k.t === 'item'))) { inv = {}; if (INV_OK) for (const row of await invOf(p.id)) inv[row.item] = (inv[row.item] || 0) + 1; }
   if (npcPgSrv(p, p.map, c, inv) !== i) return p.conn.send({ t: 'mis', d: p.mis }); // a situação mudou: o app atualiza e escolhe a página certa
   const msg = [], grava = async (k, v) => { await svc('/rest/v1/missao_progresso?on_conflict=personagem_id,missao', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ personagem_id: p.id, missao: k, passo: v, atualizado_em: new Date().toISOString() }) }); p.mis[k] = v; };
@@ -278,6 +280,20 @@ async function onNpcFim(p, m) { const t = now(); if (t - (p.npcT || 0) < 0.3 || 
       if ((p.mis[a.q] | 0) === v) continue; await grava(a.q, v);
       msg.push(a.a === 'comecar' ? '📜 Missão iniciada: ' + def.n : a.a === 'fim' ? '✅ Missão concluída: ' + def.n : '📜 ' + def.n + ': ' + (def.p[v - 1] || 'passo ' + v)); } }
   catch (e) { log('missão não salva', p.nome, e.message); sys(p, 'Não consegui salvar a missão agora. Tente de novo.'); }
+  if (p.conn.open) p.conn.send({ t: 'mis', d: p.mis, msg }); }
+// evento do mapa terminou (ações de missão e/ou “1 vez por conta”): o servidor confere o evento, a posição (ao pisar) e as condições, e grava
+async function onEvFim(p, m) { const t = now(); if (t - (p.evT || 0) < 0.3 || !p.map || p.sc || !p.mis) return; p.evT = t;
+  const pm = MP_PUB[p.map], e = pm && Array.isArray(pm.ev) && pm.ev.find(x => x.id === m.id); if (!e) return;
+  if (e.g === 'pisar' && (Math.abs(p.x / T - (e.x + .5)) > 3 || Math.abs(p.y / T - (e.y + .5)) > 3)) return;
+  const k = npcChave(p.map, 'ev', e.id), mis = e.a.filter(a => a.t === 'mis' && MIS[a.q]); if (e.fr !== 'uma' && !mis.length) return;
+  if (e.fr === 'uma' && (p.mis[k] | 0) === 1) return p.conn.send({ t: 'mis', d: p.mis });
+  let inv = null; if ((e.se || []).some(x => x.t === 'item')) { inv = {}; if (INV_OK) for (const row of await invOf(p.id)) inv[row.item] = (inv[row.item] || 0) + 1; }
+  if (!misCond(p, e.se, inv)) return p.conn.send({ t: 'mis', d: p.mis });
+  const msg = [], grava = async (q, v) => { await svc('/rest/v1/missao_progresso?on_conflict=personagem_id,missao', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ personagem_id: p.id, missao: q, passo: v, atualizado_em: new Date().toISOString() }) }); p.mis[q] = v; };
+  try { if (e.fr === 'uma') await grava(k, 1);
+    for (const a of mis) { const def = MIS[a.q], v = a.a === 'comecar' ? 1 : a.a === 'fim' ? MIS_FIM : clamp(a.n | 0, 1, Math.max(1, def.p.length)); if ((p.mis[a.q] | 0) === v) continue; await grava(a.q, v);
+      msg.push(a.a === 'comecar' ? '📜 Missão iniciada: ' + def.n : a.a === 'fim' ? '✅ Missão concluída: ' + def.n : '📜 ' + def.n + ': ' + (def.p[v - 1] || 'passo ' + v)); } }
+  catch (er) { log('evento não salvo', p.nome, er.message); sys(p, 'Não consegui salvar agora. Tente de novo.'); }
   if (p.conn.open) p.conn.send({ t: 'mis', d: p.mis, msg }); }
 async function mapasDb() {
   if (!MR || !MCAT || !SB_URL || !SB_SVC) { MP_DB.motivo = 'sem chave secreta ou sem mapa_objetos.json'; return; }
@@ -520,6 +536,7 @@ function onMessage(c, m) {
     case 'meta': setMeta(p, m); if (p.map) toRoom(room(p.map), { t: 'pm', id: p.id, lv: p.lv, eq: p.eq, look: p.look, clan: p.clan, ey: p.ey || 0 }, p); return;
     case 'gaze': return onGaze(p, m);
     case 'npcfim': return onNpcFim(p, m).catch(e => log('npcfim', e.message));
+    case 'evfim': return onEvFim(p, m).catch(e => log('evfim', e.message));
     case 'cast': return onCast(p, m);
     case 'fx': if (!p.map) return; {
       const fx = Array.isArray(m.fx) ? m.fx.slice(0, 8) : [], pr = Array.isArray(m.pr) ? m.pr.slice(0, 8) : [];
