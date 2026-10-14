@@ -215,7 +215,7 @@
     else if (a === 'pintura') { $('#pnT').textContent = 'Pintura · ' + nomeAtiva();
       const k = E.ativa, ct = Ferr.camada(m, k);
       h = '<label class="lbl">Onde pintar</label><div class="ondes">' + ondes().map(([v, t, d]) => `<button data-op="${esc(v)}" aria-pressed="${k === v}">${t}<br><small class="mudo">${d}</small></button>`).join('') + '</div>' +
-        (k === 'objetos' ? '' : `<div class="presets"><span class="lbl" style="margin:auto 4px auto 0">Retângulo:</span><button data-ct="0" aria-pressed="${!E.contorno}">Preenchido</button><button data-ct="1" aria-pressed="${E.contorno}">Só contorno</button></div>`);
+        (k === 'objetos' || k === 'eventos' ? '' : `<div class="presets"><span class="lbl" style="margin:auto 4px auto 0">Retângulo:</span><button data-ct="0" aria-pressed="${!E.contorno}">Preenchido</button><button data-ct="1" aria-pressed="${E.contorno}">Só contorno</button></div>`);
       if (k === 'terreno') { const t = Mo.TEMAS[m.tema];
         h += `<div class="terrs">${t.terr.map((n, i) => `<button data-tr="${i}" aria-pressed="${E.tinta.terreno === i}">${t.th[i] ? `<img alt="" src="${J.TS[t.th[i]] || ''}">` : '<span style="width:32px;height:32px;background:#0b0d10;border:1px solid #444;border-radius:4px"></span>'}${esc(n)}</button>`).join('')}</div><p class="mudo">Pântano, lagoa, rio e ponte ocupam blocos de 2×2 tiles (regra do jogo). A borracha volta ao terreno inicial.</p>`; }
       else if (k === 'colisao') h += `<div class="presets"><button data-cv="1" aria-pressed="${E.tinta.col === 1}">Bloquear</button><button data-cv="2" aria-pressed="${E.tinta.col === 2}">Liberar (passa mesmo sobre obstáculo/água)</button></div><p class="mudo">A borracha tira a colisão pintada (volta à regra do terreno e dos objetos).</p>`;
@@ -228,6 +228,9 @@
           <label class="chk"><input type="checkbox" id="obIma" ${E.imaObj !== false ? 'checked' : ''}> 🧲 Grudar nos vizinhos (cola um sprite colado no outro, sem vão)</label>
           <p class="mudo">${s ? 'Escolhido: <b>' + esc(nomeObj(s)) + '</b>. ✏️ Pincel: toque/arraste e solte no mapa para colocar. ⬚ Seleção: toque num objeto para escolher e arraste para mover.' : 'Escolha um objeto abaixo.'}${ab === 'bib' && !L.length ? ' Nenhum recorte na biblioteca ainda (Biblioteca → recurso → Recortes).' : ''}</p>
           <div class="grade-obj">${L.map(x => `<button class="obj" data-ob="${esc(x.k)}" aria-pressed="${x.k === s}"><canvas width="64" height="64"></canvas><small>${esc(x.n)}</small></button>`).join('')}</div>`; }
+      else if (k === 'eventos') { const L = m.eventos || [];
+        h += `<p class="mudo">✏️ Pincel: toque num tile para criar ou editar um evento. 🧽 Borracha: toque para apagar. Quem pisar no tile é levado para o destino (outro mapa ou outro ponto deste). Dica: ponha uma porta ou escada (objeto) por cima.</p>` +
+          (L.length ? L.map((v, i) => `<div class="cam"><button class="nm" data-ev="${i}">🌀 (${v.x}, ${v.y}) → ${esc(v.m)}${v.tx != null ? ' (' + v.tx + ', ' + v.ty + ')' : ' · nascimento'}</button></div>`).join('') : '<p class="mudo">Nenhum evento ainda.</p>'); }
       else if (k === 'regioes') h += `<p class="mudo">Áreas de mobs, regiões e saídas chegam na Fase 5. Por enquanto esta camada só pode ser mostrada/escondida e bloqueada.</p>`;
       else { const s = E.tinta.tile; h += `<button class="btn" id="irObj" style="width:100%;margin:4px 0">🌳 Colocar objetos e spritesheets (camada Objetos)</button><p class="mudo">${libTs().length ? (s ? 'Tile escolhido: ' + s.sw + '×' + s.sh + ' do tileset “' + esc((libTs().find(x => x.id === s.id) || {}).nome || s.id) + '”.' : 'Toque num tile abaixo para escolher; “Escolher vários” para um bloco.') : 'Nenhum tileset na biblioteca: importe uma imagem e ligue a grade (Biblioteca → recurso → Grade).'}</p>`;
         if (E.conj.length) h += `<label class="lbl">Conjuntos (carimbos)</label><div class="presets">${E.conj.map(c => `<button data-cj="${esc(c.id)}">${esc(c.nome)} <small>${c.w}×${c.h}</small></button>`).join('')}</div>`; } }
@@ -236,7 +239,7 @@
       const fixa = (k, n, sub) => `<div class="cam ${E.ativa === k ? 'on' : ''}"><button class="nm" data-at="${k}">${n}<br><small class="mudo">${sub}</small></button><button class="ib" data-vi="${k}" aria-label="Mostrar/esconder">${visivel(k) ? '👁' : '◌'}</button><button class="ib" data-tv="${k}" aria-label="Bloquear">${travada(k) ? '🔒' : '🔓'}</button></div>`;
       const tl = c => `<div class="cam ${E.ativa === c.n ? 'on' : ''}"><button class="nm" data-at="${esc(c.n)}">${esc(Ferr.nomeCamada(c))}<br><small class="mudo">${c.d.length} tile(s)</small></button><button class="ib" data-vi="${esc(c.n)}" aria-label="Mostrar/esconder">${visivel(c.n) ? '👁' : '◌'}</button><button class="ib" data-tv="${esc(c.n)}" aria-label="Bloquear">${travada(c.n) ? '🔒' : '🔓'}</button>${so ? '' : `<button class="ib" data-mais="${esc(c.n)}" aria-label="Mais opções">⋯</button>`}</div>`;
       h = '<p class="mudo">A lista mostra o que fica <b>na frente</b> (em cima) e <b>atrás</b> (embaixo). Toque no nome para pintar nela. 👁 mostra/esconde no editor · 🔒 impede mexer sem querer · ⋯ subir, descer, renomear, excluir.</p>' +
-        fixa('regioes', 'Regiões', m.areas.length + ' área(s) de mobs') + fixa('colisao', '🚧 Colisão', 'onde não dá para passar') +
+        fixa('eventos', '🌀 Eventos', (m.eventos || []).length + ' evento(s) · teletransporte ao pisar') + fixa('regioes', 'Regiões', m.areas.length + ' área(s) de mobs') + fixa('colisao', '🚧 Colisão', 'onde não dá para passar') +
         '<div class="cam sep">▲ na frente do personagem</div>' + cima.map(tl).join('') + fixa('objetos', '🏠 Objetos e spritesheets', m.objetos.length + ' objeto(s) · o personagem passa na frente ou atrás') + '<div class="cam sep">▼ por baixo do personagem</div>' + baixo.map(tl).join('') + fixa('terreno', '🌿 Terreno do jogo', 'grama, rua, água (base do mapa)') +
         (so ? '' : '<button class="btn" id="cNova" style="margin-top:8px">+ Camada de tiles</button>'); }
     else if (a === 'objeto') { $('#pnT').textContent = 'Objeto';
@@ -259,6 +262,7 @@
         <div class="campo"><label class="lbl">Tamanho</label><div class="linha"><b class="cresce">${m.W} × ${m.H} tiles (${m.W * T}×${m.H * T} px)</b><button class="btn peq" id="pRed" ${so ? 'disabled' : ''}>Redimensionar…</button></div></div>
         <div class="grade2"><div><label class="lbl">Tema</label><select id="pTema" ${so ? 'disabled' : ''}><option value="folha" ${m.tema === 'folha' ? 'selected' : ''}>Folha</option><option value="areia" ${m.tema === 'areia' ? 'selected' : ''}>Areia</option><option value="vazio" ${m.tema === 'vazio' ? 'selected' : ''}>Sem fundo (preto)</option></select></div>
         <div><label class="lbl">Tile da arte (px)</label><input id="pTile" type="number" min="4" max="512" value="${(m.ed && m.ed.tile) || 32}" ${so ? 'disabled' : ''}></div></div>
+        <label class="chk"><input type="checkbox" id="pPvp" ${m.pvp !== false ? 'checked' : ''} ${so ? 'disabled' : ''}> ⚔️ PvP neste mapa (desligado = o mapa todo é zona segura)</label>
         <label class="lbl">Ponto de nascimento (tiles)</label><div class="linha"><input id="pSx" type="number" step="0.5" value="${m.spawn[0]}" ${so ? 'disabled' : ''}><input id="pSy" type="number" step="0.5" value="${m.spawn[1]}" ${so ? 'disabled' : ''}><button class="btn peq" id="pSt" ${so ? 'disabled' : ''}>Tocar no mapa</button></div>
         <label class="lbl" style="margin-top:10px">Chefe (tiles)</label><div class="linha">${m.boss ? `<input id="pBx" type="number" step="0.5" value="${m.boss[0]}" ${so ? 'disabled' : ''}><input id="pBy" type="number" step="0.5" value="${m.boss[1]}" ${so ? 'disabled' : ''}>` : '<span class="mudo cresce">Sem chefe</span>'}<button class="btn peq" id="pBt" ${so ? 'disabled' : ''}>Tocar no mapa</button>${m.boss ? `<button class="btn peq perigo" id="pBn" ${so ? 'disabled' : ''}>Tirar</button>` : ''}</div>
         <div class="campo" style="margin-top:14px"><button class="btn" id="pCop" ${so ? 'disabled' : ''}>Cópias de segurança…</button></div>`; }
@@ -276,6 +280,7 @@
       C.querySelectorAll('[data-cv]').forEach(b => b.onclick = () => { E.tinta.col = +b.dataset.cv; if (E.ferr === 'mover' || E.ferr === 'sel') ferramenta('pincel'); painel('pintura'); });
       C.querySelectorAll('[data-ca]').forEach(b => b.onclick = () => { E.catAba = b.dataset.ca; painel('pintura'); });
       C.querySelectorAll('[data-op]').forEach(b => b.onclick = () => { const v = b.dataset.op; ativar(v); if (v === 'objetos' && !['pincel', 'sel', 'borracha', 'mover'].includes(E.ferr)) ferramenta('pincel'); });
+      C.querySelectorAll('[data-ev]').forEach(b => b.onclick = () => { const v = (E.m.eventos || [])[+b.dataset.ev]; if (v) tocaEvento([v.x, v.y]); });
       C.querySelectorAll('[data-om]').forEach(b => b.onclick = () => { E.objModo = b.dataset.om; painel('pintura'); });
       if ($('#irObj')) $('#irObj').onclick = () => { ativar('objetos'); E.catAba = 'bib'; if (!['pincel', 'sel', 'borracha'].includes(E.ferr)) ferramenta('pincel'); painel('pintura'); };
       if ($('#obBusca')) { $('#obBusca').oninput = e => { E.busca = e.target.value; clearTimeout(E.bT); E.bT = setTimeout(() => { painel('pintura'); const x = $('#obBusca'); if (x) { x.focus(); x.setSelectionRange(x.value.length, x.value.length); } }, 350); };
@@ -318,6 +323,7 @@
     if (a === 'prop' && !so) {
       $('#pNome').onchange = e => { const v = e.target.value.trim().slice(0, 40); if (v && v !== m.nome) mudar(x => { x.nome = v; x.tem.title = true; }, 'nada'); };
       $('#pTema').onchange = e => mudar(x => { x.tema = e.target.value; }, 'chao');
+      $('#pPvp').onchange = e => mudar(x => { x.pvp = e.target.checked; }, 'nada');
       $('#pTile').onchange = e => { const v = clamp(+e.target.value | 0, 4, 512); mudar(x => { x.ed = Object.assign({}, x.ed, { tile: v }); }, 'nada'); };
       const pnt = (k, ix, iy) => () => { const x = +$(ix).value, y = +$(iy).value; if (!(x >= 2 && x <= m.W - 2 && y >= 2 && y <= m.H - 2)) { toast('Fora do mapa (2 a ' + (m.W - 2) + ', 2 a ' + (m.H - 2) + ')'); painel('prop'); return; } mudar(q => { q[k] = [x, y]; if (k === 'boss') q.tem.boss = true; }, 'nada'); };
       $('#pSx').onchange = $('#pSy').onchange = pnt('spawn', '#pSx', '#pSy');
@@ -372,6 +378,9 @@
     const gp = E.gradePasso; if (gp && E.s * gp >= 5) R.grade(ctx, m, E.s, gp);
     R.borda(ctx, m, E.s);
     if (visivel('regioes')) R.areas(ctx, m, E.s);
+    if (visivel('eventos')) for (const v of m.eventos || []) { ctx.fillStyle = 'rgba(150,80,255,.38)'; ctx.fillRect(v.x * T, v.y * T, T, T); ctx.strokeStyle = '#c9a6ff'; ctx.lineWidth = 2 / E.s; ctx.strokeRect(v.x * T + 1, v.y * T + 1, T - 2, T - 2);
+      ctx.fillStyle = '#fff'; ctx.font = (16) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🌀', v.x * T + T / 2, v.y * T + T / 2);
+      if (E.s > .5) { ctx.font = 'bold ' + Math.max(9, 11 / E.s) + 'px sans-serif'; ctx.lineWidth = 3 / E.s; ctx.strokeStyle = '#000c'; const tx = '→ ' + v.m; ctx.strokeText(tx, v.x * T + T / 2, v.y * T - 6 / E.s); ctx.fillText(tx, v.x * T + T / 2, v.y * T - 6 / E.s); } }
     if (E.ver.marcas) { R.marcador(ctx, m.spawn, E.s, '#2f8cff', 'N'); R.marcador(ctx, m.boss, E.s, '#d23c3c', 'C'); }
     ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2 / E.s; ctx.strokeRect(0, 0, m.W * T, m.H * T);
     previa(); }
@@ -381,7 +390,7 @@
   const visivel = k => { const v = E.m && E.m.ed && E.m.ed.vis; return v && k in v ? !!v[k] : PADV[k] !== false; };
   const travada = k => !!(E.m && E.m.ed && E.m.ed.trava && E.m.ed.trava[k]);
   function marcaEd(campo, k, v) { E.m.ed = Object.assign({}, E.m.ed); E.m.ed[campo] = Object.assign({}, E.m.ed[campo], { [k]: v }); E.sujo = true; topo(); emerg(); desenhar(); }
-  const FIXAS = { terreno: 'Terreno do jogo', colisao: 'Colisão', objetos: 'Objetos e spritesheets', regioes: 'Regiões' };
+  const FIXAS = { terreno: 'Terreno do jogo', colisao: 'Colisão', objetos: 'Objetos e spritesheets', regioes: 'Regiões', eventos: 'Eventos' };
   // botões “Onde pintar”: fixas + camadas de tiles (padrão e criadas), na ordem em que se pensa no mapa
   function ondes() { const m = E.m, L = [['terreno', '🌿 Terreno do jogo', 'grama, rua, água']], cs = Ferr.tiles(m);
     const desc = { chao: ['🟫 Piso (tiles)', 'chão com tiles da biblioteca'], detalhes: ['🪨 Detalhes do piso', 'pedras, tapetes, sobre o piso'], acima: ['☁️ Tiles por cima', 'telhado, copa: na frente do personagem'] };
@@ -390,7 +399,7 @@
     L.push(['objetos', '🏠 Objetos e spritesheets', 'casas, árvores, recortes']);
     L.push(['acima', ...desc.acima]);
     for (const c of cs) if (!Ferr.PADRAO.some(p => p.n === c.n) && Ferr.ehAcima(c)) L.push([c.n, '🧩 ' + esc(Ferr.nomeCamada(c)), 'tiles, por cima do personagem']);
-    L.push(['colisao', '🚧 Colisão', 'onde não dá para passar']); return L; }
+    L.push(['colisao', '🚧 Colisão', 'onde não dá para passar'], ['eventos', '🌀 Eventos', 'pisar e ser teletransportado']); return L; }
   function nomeAtiva() { const c = Ferr.camada(E.m, E.ativa); return FIXAS[E.ativa] || (c ? Ferr.nomeCamada(c) : E.ativa); }
   function camadaAtiva() { if (FIXAS[E.ativa]) return null; let c = Ferr.camada(E.m, E.ativa); if (!c && Ferr.PADRAO.some(p => p.n === E.ativa)) { Ferr.padrao(E.m); c = Ferr.camada(E.m, E.ativa); } return c; }
   function ativar(k) { if (k !== 'objetos' && E.objSel) selObj(null); E.ativa = k; $('#fCamN').textContent = nomeAtiva(); if (E.aba === 'camadas' || E.aba === 'pintura') painel(E.aba); }
@@ -418,6 +427,7 @@
     if (E.reg.base) { toast('Mapa do jogo: duplique para editar'); return false; }
     if (E.ferr === 'sel' || E.ferr === 'colar') return true;
     if (k === 'regioes') { toast('Regiões: ferramentas na Fase 5'); return false; }
+    if (k === 'eventos') { if (travada(k)) { toast('Camada Eventos está bloqueada'); return false; } if (E.ferr !== 'pincel' && E.ferr !== 'borracha') { toast('Eventos: use ✏️ Pincel (criar/editar) ou 🧽 Borracha'); return false; } return true; }
     if (k === 'objetos') { if (travada(k)) { toast('Camada Objetos está bloqueada'); return false; } if (E.ferr === 'balde' || E.ferr === 'ret') { toast('Para objetos use ✏️ Pincel, 🧽 Borracha ou ⬚ Seleção'); return false; }
       if (E.ferr === 'pincel' && !E.tinta.obj) { toast('Escolha um objeto na aba Pintura'); abrirAba('pintura'); return false; } return true; }
     if (travada(k)) { toast('Camada “' + nomeAtiva() + '” está bloqueada'); return false; }
@@ -436,11 +446,12 @@
     for (let i = 1; i <= n; i++) if (pontoPinta({ x: a.x + (w.x - a.x) * i / n, y: a.y + (w.y - a.y) * i / n }, E.ferr === 'borracha')) t.mudou = true; t.ult = w; }
   function iniFerr(p) { const w = mundo(p); E.mira = w; if (!podePintar()) return null;
     const t = E.traco = { pre: Mo.copia(E.m), mudou: false, a: w, ult: w, f: E.ferr }; t.pre.nome = E.m.nome;
+    if (E.ativa === 'eventos') { t.ev = true; return t; }
     if (E.ativa === 'objetos') { t.obj = true; if (E.ferr === 'sel') { const L = objetosEm(w); if (L.length) { selObj(L[0], L); if (!Ferr.objOp(L[0]).tv && !travada('objetos')) t.objMov = { o: L[0], x: L[0].x, y: L[0].y, w0: w }; else t.parado = 1; desenhar(); return t; } selObj(null); } else { desenhar(); return t; } }
     if (E.ferr === 'pincel' || E.ferr === 'borracha') { if (pontoPinta(w, E.ferr === 'borracha')) t.mudou = true; }
     else if (E.ferr === 'sel') { const [x, y] = cel(w), s = E.sel; if (s && x >= s.x && y >= s.y && x < s.x + s.w && y < s.y + s.h) { t.mover = { x0: x, y0: y, dx: 0, dy: 0 }; } else { t.selA = [clamp(x, 0, E.m.W - 1), clamp(y, 0, E.m.H - 1)]; E.sel = { x: t.selA[0], y: t.selA[1], w: 1, h: 1 }; barraSel(); } }
     desenhar(); return t; }
-  function moveFerr(p) { const t = E.traco; if (!t) return; const w = mundo(p); E.mira = w;
+  function moveFerr(p) { const t = E.traco; if (!t || t.ev) return; const w = mundo(p); E.mira = w;
     if (t.obj && t.f !== 'sel') { desenhar(); return; }
     if (t.objMov) { const q = t.objMov, nx = q.x * T + (w.x - q.w0.x), ny = q.y * T + (w.y - q.w0.y); encaixe(q.o, nx, ny, true); t.mudou = q.o.x !== q.x || q.o.y !== q.y; E.cache.M = null; barraObj(); desenhar(); return; }
     if (t.parado) return;
@@ -449,6 +460,7 @@
     else if (t.f === 'sel') { const [x, y] = cel(w); if (t.mover) { t.mover.dx = x - t.mover.x0; t.mover.dy = y - t.mover.y0; } else if (t.selA) { const a = t.selA, X = clamp(x, 0, E.m.W - 1), Y = clamp(y, 0, E.m.H - 1); E.sel = { x: Math.min(a[0], X), y: Math.min(a[1], Y), w: Math.abs(X - a[0]) + 1, h: Math.abs(Y - a[1]) + 1 }; } }
     desenhar(); }
   function fimFerr(p, moveu) { const t = E.traco; E.traco = null; if (!t) return; const m = E.m, w = mundo(p), ti = tsInfo();
+    if (t.ev) { if (!moveu) { const [x, y] = cel(w); if (x >= 0 && y >= 0 && x < m.W && y < m.H) tocaEvento([x, y], t.f === 'borracha'); } return; }
     if (t.obj && t.f === 'pincel') { const o = novoObj(E.tinta.obj, w); E.m.objetos.push(o); t.mudou = true; E.cache.M = null; }
     else if (t.obj && t.f === 'borracha') { if (!moveu) { const L = objetosEm(w).filter(o => !Ferr.objOp(o).tv); if (L.length) { E.m.objetos.splice(E.m.objetos.indexOf(L[0]), 1); t.mudou = true; E.cache.M = null; if (E.objSel === L[0]) selObj(null); } else if (objetosEm(w).length) toast('Objeto bloqueado'); } }
     else if (t.objMov || t.parado) { }
@@ -575,6 +587,21 @@
   // colisão padrão ao colocar: recorte = células definidas no recurso; outros = regra antiga (pegada do catálogo)
   // “Colocar como” (E.objModo): auto = o que o recorte diz na biblioteca; chao = sempre por baixo do personagem e sem colisão; acima = sempre por cima
   function usoObj(k) { const md = E.objModo || 'auto', rc = R.RC[k]; return md === 'auto' ? (rc && rc.uso) || '' : md === 'objeto' ? '' : md; }
+  /* eventos (pisar no tile): por enquanto teletransporte para outro mapa ou outro ponto deste. Sem destino X/Y = nascimento do mapa destino */
+  async function tocaEvento([x, y], apagar) { const m = E.m, L = m.eventos || [], i = L.findIndex(v => v.x === x && v.y === y), v = L[i];
+    if (apagar) { if (i >= 0) { mudar(q => { q.eventos.splice(i, 1); }, 'nada'); toast('Evento apagado (↶ desfaz)'); if (E.aba === 'pintura') painel('pintura'); } return; }
+    let ids = [m.id].concat(Mo.BASE_IDS); try { if (!E.srv) E.srv = await P.listarServidor(); } catch (_) { } for (const r of E.srv || []) ids.push(r.id); ids = [...new Set(ids)];
+    const dst = v ? v.m : (ids.find(id => id !== m.id) || m.id), nasc = v ? v.tx == null : dst !== m.id;
+    const r = await dlg(v ? 'Evento (' + x + ', ' + y + ')' : 'Novo evento em (' + x + ', ' + y + ')', `<label class="lbl">Ao pisar: teletransportar para o mapa</label>
+      <select id="evM">${ids.map(id => `<option value="${esc(id)}" ${id === dst ? 'selected' : ''}>${esc(id === m.id ? id + ' (este mapa)' : id)}</option>`).join('')}</select>
+      <label class="chk"><input type="checkbox" id="evN" ${nasc ? 'checked' : ''}> Chegar no ponto de nascimento do mapa</label>
+      <div class="grade2" id="evXY" ${nasc ? 'hidden' : ''}><div><label class="lbl">X (tiles)</label><input id="evX" type="number" step="0.5" value="${v && v.tx != null ? v.tx : x + .5}"></div><div><label class="lbl">Y (tiles)</label><input id="evY" type="number" step="0.5" value="${v && v.ty != null ? v.ty : y + 2}"></div></div>
+      <p class="mudo">Se o destino for outro ponto com evento, a pessoa não volta em loop: só dispara ao entrar num tile.</p>`,
+      [{ t: 'Salvar', v: 1, c: 'pri' }].concat(v ? [{ t: 'Apagar', v: 2, c: 'perigo' }] : []).concat([{ t: 'Cancelar', v: 0 }]), c => { c.querySelector('#evN').onchange = e => { c.querySelector('#evXY').hidden = e.target.checked; }; });
+    if (!r) return; if (r === 2) return tocaEvento([x, y], true);
+    const nv = { x, y, t: 'tp', m: $('#evM').value }; if (!$('#evN').checked) { const tx = +$('#evX').value, ty = +$('#evY').value; if (Number.isFinite(tx) && Number.isFinite(ty)) { nv.tx = clamp(tx, 0, 100); nv.ty = clamp(ty, 0, 100); } }
+    mudar(q => { q.eventos = q.eventos || []; const j = q.eventos.findIndex(e => e.x === x && e.y === y); if (j >= 0) q.eventos[j] = nv; else q.eventos.push(nv); }, 'nada');
+    toast('Evento salvo: ' + nv.m); if (E.aba === 'pintura') painel('pintura'); }
   function novoObj(k, w) { const o = { k, x: 0, y: 0, f: [] }, rc = R.RC[k], u = usoObj(k);
     if (rc || u) { const ns = u === 'chao' ? 1 : rc ? rc.ns : 0; Ferr.objF(o, ns, ns || !rc ? null : rc.col, u ? { z: u } : null); } return encaixe(o, w.x, w.y); }
   // objeto de cima no ponto (px do mapa), na mesma ordem em que é desenhado

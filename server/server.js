@@ -650,7 +650,7 @@ function areaHurt(r, x, y, rad, d, kb, src, pr) {
 // ---------------------------------------------------------------- PvP (jogador x jogador)
 // quem bate manda o golpe; o servidor confere e repassa para o alvo, que sorteia a esquiva (Esquiva dele x Precisão de quem bateu)
 // e devolve o resultado; aí todo mundo do mapa vê o número e, se morrer, o aviso de quem derrotou quem.
-function pvpSafeAt(map, x, y) { const s = MAPS[map] && MAPS[map].spawn; return !!s && CFG.pvpSafe > 0 && hyp(x - s[0] * T, y - s[1] * T) < CFG.pvpSafe * T; }
+function pvpSafeAt(map, x, y) { if (MAPS[map] && MAPS[map].pvp === 0) return true; const s = MAPS[map] && MAPS[map].spawn; return !!s && CFG.pvpSafe > 0 && hyp(x - s[0] * T, y - s[1] * T) < CFG.pvpSafe * T; }
 function pvpWhy(a, b) {
   if (!CFG.pvp) return 'O PvP está desligado.';
   if (!b || b === a || !a.map || a.map !== b.map || a.sc !== b.sc) return 'longe';

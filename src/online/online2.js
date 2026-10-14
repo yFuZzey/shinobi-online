@@ -302,6 +302,16 @@ function gsHit(e,d,st,kx,ky){if(!ONL.on)return false;if(e.pvp)return pvpHit(e,d,
 // quem bate calcula o golpe igual ao dos monstros; o servidor confere (mapa, distância, grupo, zona segura) e repassa;
 // o alvo sorteia a esquiva (Esquiva dele x sua Precisão), aplica a redução e conta o resultado para todo mundo ver.
 const PVP={on:1,safe:4};let PST=0,HRES={miss:0,d:0,dead:0},pvpTold=0;
+/* mapa sem PvP (m.pvp===0: o mapa todo é zona segura) e eventos ao pisar (m.ev: teletransporte {x,y,t:'tp',m,tx,ty}) — vêm do editor de mapas */
+const MAPEV={nopvp:0,ev:[],ult:'',dito:''};
+{const _am=applyMap;applyMap=function(m){_am(m);MAPEV.nopvp=m&&m.pvp===0?1:0;MAPEV.ev=m&&Array.isArray(m.ev)?m.ev:[];MAPEV.ult=''}}
+function evTick(){try{if(!MAPEV.ev.length||cur!=='game'||(scene|0)||!p)return;const tx=Math.floor(p.x/T),ty=Math.floor(p.y/T),k=tx+','+ty;if(k===MAPEV.ult)return;MAPEV.ult=k;
+ const e=MAPEV.ev.find(v=>v.x===tx&&v.y===ty);if(!e||e.t!=='tp')return;
+ if(e.tx==null){if(e.m!==CURMAP&&MAPS[e.m]){switchMap(e.m)}else if(e.m===CURMAP){p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:1}}MAPEV.ult=Math.floor(p.x/T)+','+Math.floor(p.y/T);return}
+ if(e.m===CURMAP){p.x=Math.max(T,Math.min(N*T-T,e.tx*T));p.y=Math.max(T,Math.min(NH*T-T,e.ty*T));MAPEV.ult=Math.floor(p.x/T)+','+Math.floor(p.y/T);flash={col:'#000',a:1};return}
+ if(!MAPS[e.m]){onlReg('Esta passagem leva a um mapa que não existe mais ('+e.m+').');return}
+ window.TPD=[e.tx,e.ty];switchMap(e.m);MAPEV.ult=Math.floor(p.x/T)+','+Math.floor(p.y/T)}catch(_){}}
+setInterval(evTick,100);
 // PRT = preso no lugar (não anda, mas usa golpes) · PSL = chakra selado (só jutsu que custa até seloLimite% do chakra) · SHD = escudo do Susanoo
 // PSI = silenciado (Kubishibari, Domínio das Sombras): só o golpe básico funciona
 let PRT=0,PSL=0,PSI=0,PCF=0,SHD=null,HCC=null; // PCF = confuso (Genjutsu: Sharingan): anda ao contrário até levar dano
@@ -341,9 +351,9 @@ function shieldAbsorb(n){n=sapoAbsorb(n);if(!SHD||SHD.until<=performance.now()||
 function hurtFix(n,miss,crit){HRES={miss:0,d:0,dead:0};if(miss){HRES.miss=1;FT.push({x:p.x,y:p.y-56,t:'esquivou',txt:1,life:.8});return}
  n=Math.max(1,Math.round(n));n=shieldAbsorb(n);p.hp-=n;HRES.d=n;flash={col:'#e0483a',a:.25};if(n>0)FT.push({x:p.x,y:p.y-52,t:crit?n+'!':n,life:.8,r:1,crit:crit});
  if(p.hp<=0){HRES.dead=1;p.hp=p.max;scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:.6}}}
-const pvpSafeAt=(x,y)=>!!(PVP.safe>0&&SPAWN&&Math.hypot(x-SPAWN[0]*T,y-SPAWN[1]*T)<PVP.safe*T);
+const pvpSafeAt=(x,y)=>!!(MAPEV.nopvp||PVP.safe>0&&SPAWN&&Math.hypot(x-SPAWN[0]*T,y-SPAWN[1]*T)<PVP.safe*T);
 // jogadores que podem ser atingidos agora (entram nas mesmas contas de acerto dos monstros)
-function PVT(){if(!ONL.on||!ONL.joined||!PVP.on||(scene|0))return [];const L=[];
+function PVT(){if(!ONL.on||!ONL.joined||!PVP.on||MAPEV.nopvp||(scene|0))return [];const L=[];
  for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.x===null||pe.sc!==(scene|0)||inGrp(id)||!(pe.hp>0))continue;
   const o=pe._pv||(pe._pv={pvp:id,rad:16,boss:0,dead:0,kind:'pvp'});o.x=pe.x;o.y=pe.y;o.nome=pe.nome;o.fl=pe.fl?1:0;L.push(o)}return L}
 function pvpSafeMsg(pe){if(pe)FT.push({x:pe.x,y:pe.y-60,t:'zona segura',txt:1,life:.8});const now=performance.now();if(!pvpSafeMsg.t||now-pvpSafeMsg.t>6000){pvpSafeMsg.t=now;onlReg('🛡️ Zona segura: aqui ninguém ataca nem é atacado.')}}
@@ -372,7 +382,7 @@ function gsMsg(m){
  case 'banned':{ONL.closing=true;const at=m.ate?new Date(m.ate):null;
   gsBlock('Conta banida','Sua conta foi banida '+(at?'até '+at.toLocaleDateString('pt-BR')+' às '+at.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'por tempo indeterminado')+'.'+(m.motivo?' Motivo: '+m.motivo+'.':''));break}
  case 'kicked':ONL.closing=true;gsBlock('Desconectado',m.msg||'Sua conta entrou em outro aparelho.');break;
- case 'room':if(m.map!==CURMAP)break;ONL.joined=true;if(PVP.on&&!pvpTold){pvpTold=1;setTimeout(()=>onlReg('⚔️ PvP ativo neste mapa. Perto do ponto de início é zona segura.'),800)}ONL.peers={};(m.players||[]).forEach(o=>onlPeer(o.id,o));E=[];(m.mobs||[]).forEach(x=>gsMobState(gsMob(x.def),x.s));ONL.mo=null;onlStatus();gsPos(true);break;
+ case 'room':if(m.map!==CURMAP)break;ONL.joined=true;if(MAPEV.nopvp){if(MAPEV.dito!==CURMAP){MAPEV.dito=CURMAP;setTimeout(()=>onlReg('🛡️ Mapa sem PvP: aqui ninguém ataca outro jogador.'),800)}}else if(PVP.on&&!pvpTold){pvpTold=1;setTimeout(()=>onlReg('⚔️ PvP ativo neste mapa. Perto do ponto de início é zona segura.'),800)}ONL.peers={};(m.players||[]).forEach(o=>onlPeer(o.id,o));E=[];(m.mobs||[]).forEach(x=>gsMobState(gsMob(x.def),x.s));ONL.mo=null;onlStatus();gsPos(true);break;
  case 'pj':{const pe=onlPeer(m.p.id,m.p);if(pe)onlReg('🟢 '+pe.nome+' entrou no mapa');onlStatus();break}
  case 'pl':{const pe=ONL.peers[m.id];if(pe){onlReg('⚪ '+pe.nome+' saiu do mapa');delete ONL.peers[m.id]}onlStatus();grpDraw();break}
  case 'pm':onlPeer(m.id,m);grpDraw();break;
@@ -467,7 +477,7 @@ function onlDraw(L,ts){if(TLM)L.push({y:1e9,d:tlAcima});{const t=tgCur();if(t)L.
  if(!(scene|0))for(const e of E)if(!e.dead&&(e.conf>0))L.push({y:e.y+.22,d:()=>confDraw(e.x,e.y-(e.boss?110:56))});if(PCF>0)L.push({y:p.y+.22,d:()=>confDraw(p.x+12,p.y-66)});
  if(PSI>0)L.push({y:p.y+.21,d:()=>{ctx.save();ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.globalAlpha=.6+.4*Math.sin(ts/150);ctx.fillText('🤐',p.x,p.y-70);ctx.restore()}});
  if(PST>0)L.push({y:p.y+.2,d:()=>{ctx.fillStyle='#d9b3ff';for(let i=0;i<3;i++){const a=ts/200+i*2.1;ctx.beginPath();ctx.arc(p.x+Math.cos(a)*9,p.y-56+Math.sin(a)*3,2.4,0,7);ctx.fill()}}});
- if(!(scene|0)&&PVP.on&&PVP.safe>0&&SPAWN)L.push({y:-1e9,d:()=>{const x=SPAWN[0]*T,y=SPAWN[1]*T,r=PVP.safe*T;ctx.save();ctx.fillStyle='rgba(120,200,255,.07)';ctx.strokeStyle='rgba(150,220,255,.45)';ctx.lineWidth=2;ctx.setLineDash([8,6]);
+ if(!(scene|0)&&PVP.on&&!MAPEV.nopvp&&PVP.safe>0&&SPAWN)L.push({y:-1e9,d:()=>{const x=SPAWN[0]*T,y=SPAWN[1]*T,r=PVP.safe*T;ctx.save();ctx.fillStyle='rgba(120,200,255,.07)';ctx.strokeStyle='rgba(150,220,255,.45)';ctx.lineWidth=2;ctx.setLineDash([8,6]);
   ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.stroke();ctx.setLineDash([]);ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#bfe8ff';ctx.strokeText('🛡 Zona segura (sem PvP)',x,y-r-4);ctx.fillText('🛡 Zona segura (sem PvP)',x,y-r-4);ctx.restore()}})}
 const MOBS=__MOBS__,MOBIMG={},SPRITES=__SPRITES__,SPRIMG={};
 for(const k in SPRITES){SPRIMG[k]={};for(const an in SPRITES[k].anims)SPRIMG[k][an]=SPRITES[k].anims[an].f.map(u=>{const im=new Image();im.src=u;return im})}

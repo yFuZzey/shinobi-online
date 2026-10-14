@@ -61,6 +61,14 @@ function validar(id, nome, m, cat) {
   }
   if (typeof m.k === 'string' && m.k.length === W * H && !/[^0-2]/.test(m.k)) out.k = m.k;
   if (A.length) out.areas = A;
+  if (m.pvp === 0) out.pvp = 0; // mapa sem PvP (o mapa todo é zona segura)
+  // eventos ao pisar num tile: por enquanto teletransporte {x, y, t:'tp', m: mapa destino, tx, ty (tiles)}
+  if (Array.isArray(m.ev)) { const EV = [], vis = new Set();
+    for (const e of m.ev.slice(0, 300)) { if (!e || e.t !== 'tp' || !Number.isInteger(e.x) || !Number.isInteger(e.y) || e.x < 0 || e.y < 0 || e.x >= W || e.y >= H || typeof e.m !== 'string' || !ID.test(e.m)) continue;
+      const k = e.x + ',' + e.y; if (vis.has(k)) continue; vis.add(k); const o = { x: e.x, y: e.y, t: 'tp', m: e.m };
+      if (fin(e.tx) && fin(e.ty)) { o.tx = clamp(+e.tx, 0, MAX); o.ty = clamp(+e.ty, 0, MAX); } // sem destino = ponto de nascimento do mapa
+      EV.push(o); }
+    if (EV.length) out.ev = EV; }
   return out;
 }
 
@@ -84,7 +92,7 @@ function compilar(m, cat) {
     if (k == 'tower') for (let x = x0 + 1; x <= x0 + 2; x++) setM(x, y1, 3);
   }
   if (m.k) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = m.k.charCodeAt(y * W + x) - 48; if (v == 1) setM(x, y, 1); else if (v == 2 && !ring(x, y)) setM(x, y, 3); }
-  return { N: W, W, H, T, spawn: m.spawn, boss: m.boss || null, areas: m.areas || [], M: Array.from(M).join('') };
+  return { N: W, W, H, T, pvp: m.pvp === 0 ? 0 : 1, spawn: m.spawn, boss: m.boss || null, areas: m.areas || [], M: Array.from(M).join('') };
 }
 
 module.exports = { validar, compilar, ID, dims, LIM: { MIN, MAX, AREA } };

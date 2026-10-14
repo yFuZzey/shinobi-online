@@ -519,7 +519,7 @@ function sw(id,arr,key){arr.forEach(c=>{const b=document.createElement('b');b.st
 function mark(){document.querySelectorAll('.sw b').forEach(b=>b.classList.toggle('sel',look[b.dataset.k]==b.dataset.c));if(ready)tint()}
 sw('#o-skin',SKIN,'skin');sw('#o-hair',HAIR,'hair');sw('#o-cloth',CLOTH,'cloth');mark();
 function switchMap(k){
- CURMAP=k;applyMap(MAPS[k]);scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;p.ax=0;p.ay=1;p.dir=0;EP=[];P=[];fx=[];FT=[];
+ CURMAP=k;applyMap(MAPS[k]);scene=0;p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;if(window.TPD){p.x=Math.max(T,Math.min(N*T-T,TPD[0]*T));p.y=Math.max(T,Math.min(NH*T-T,TPD[1]*T));window.TPD=null}p.ax=0;p.ay=1;p.dir=0;EP=[];P=[];fx=[];FT=[];
  E.forEach(e=>{place(e);e.ch=0;e.lunge=0;e.dmgp=0;e.hurt=0;e.stun=0;e.hit=0;e.dt=0;e.rt=0});
  flash={col:'#000',a:1};$('#mapbtn').textContent='Mapa: '+k;
  const h=$('#hint');h.textContent='Mapa: '+k;h.style.opacity=1;clearTimeout(window.__ht);window.__ht=setTimeout(()=>h.style.opacity=0,2500)}
