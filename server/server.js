@@ -331,7 +331,7 @@ async function mapasDb() {
     }
     for (const id in MP_PUB) if (!pub[id]) { // despublicado: sai da lista; quem está dentro termina a visita, a sala some quando esvaziar
       const rm = rooms[id]; if (rm && rm.players.size) { pub[id] = MP_PUB[id]; continue; } delete MAPS[id]; delete rooms[id]; }
-    MP_PUB = pub; MP_IMG = {}; MP_TS = {}; for (const id in pub) { for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]]; for (const c of pub[id].npcs || []) for (const k of (c.a ? [c.a.k].concat(c.a.q || [], c.a.qc || [], c.a.qb || []) : []).concat(typeof c.rt === 'string' ? [c.rt] : [])) if (k && IM[k]) MP_IMG[k] = IM[k]; for (const e of pub[id].ev || []) for (const a of e.a || []) if (a.t === 'msg' && typeof a.rt === 'string' && IM[a.rt]) MP_IMG[a.rt] = IM[a.rt]; for (const t of pub[id].tilesets || []) if (TSM[t]) MP_TS[t] = TSM[t]; }
+    MP_PUB = pub; MP_IMG = {}; MP_TS = {}; for (const id in pub) { for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]]; for (const c of pub[id].npcs || []) for (const k of (c.a ? [c.a.k].concat(c.a.q || [], c.a.qc || [], c.a.qb || [], c.a.qh || []) : []).concat(typeof c.rt === 'string' ? [c.rt] : [])) if (k && IM[k]) MP_IMG[k] = IM[k]; for (const e of pub[id].ev || []) for (const a of e.a || []) if (a.t === 'msg' && typeof a.rt === 'string' && IM[a.rt]) MP_IMG[a.rt] = IM[a.rt]; for (const t of pub[id].tilesets || []) if (TSM[t]) MP_TS[t] = TSM[t]; }
     MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, (MP_IMG[k].png || MP_IMG[k].url).length, MP_IMG[k].url, MP_IMG[k].sx, MP_IMG[k].sy, MP_IMG[k].w, MP_IMG[k].h, MP_IMG[k].ax, MP_IMG[k].ay, MP_IMG[k].corte]), MP_TS, MIS])).digest('hex').slice(0, 12);
     MP_PUB0 = {}; for (const id in pub) if (!pub[id].W) MP_PUB0[id] = pub[id]; // apps antigos só sabem desenhar 50×50
     MP_V0 = crypto.createHash('sha1').update(MP_V + ':' + Object.keys(MP_PUB0).join(',')).digest('hex').slice(0, 12);
@@ -866,7 +866,8 @@ function danoMax(p, j, pvp) { try { const G = BALJ && BALJ.golpes; if (!G || !j 
   const P = BALJ.personagem || {}, R = (G.ranks || {})[g.r] || {}, base = num(R.dmg, 80) * num(g.f, 1);
   const pts = Math.min(num(P.statusMax, 300), 30 + num(p.lv, 1) * num(P.pontosPorNivel, 5)) + 120; // + itens (folga)
   const forca = Math.max(1, num(g.pot, 1), num(g.total, 1)), crit = pvp ? num(COMBATE.critMultPvp, 1.3) : num(COMBATE.critMultPve, 1.5);
-  return (base + pts) * forca * num((BALJ.proficiencia || {}).multMax, 1.3) * 1.6 * (pvp ? 1.2 : 2.2) * crit * 1.25; } catch (e) { return 0; } }
+  const tr = BALJ.treino || {}, trMax = 1 + num(tr.nivelMax, 20) * num(tr.porNivel, .5) * (pvp ? num(tr.pvp, .5) : 1) / 100; // treino por tipo de golpe (até +10%)
+  return (base + pts) * forca * num((BALJ.proficiencia || {}).multMax, 1.3) * trMax * 1.6 * (pvp ? 1.2 : 2.2) * crit * 1.25; } catch (e) { return 0; } }
 function danoConfere(p, m, pvp) { const mx = danoMax(p, str(m.j, 24), pvp), d = num(m.d, 0); if (!(mx > 0) || d <= mx) return;
   p.dmgSusp = (p.dmgSusp || 0) + 1; const t = now(); if (t - (p.dmgSuspT || 0) > 30) { p.dmgSuspT = t; log('DANO? ' + p.nome + ' (' + p.clan + ', Nv ' + p.lv + ') mandou ' + Math.round(d) + ' com ' + str(m.j, 24) + (pvp ? ' no PvP' : ' em monstro') + ' (teto ' + Math.round(mx) + '); suspeitas: ' + p.dmgSusp); } }
 function cdMinimo(p, sl, id) {

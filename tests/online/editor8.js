@@ -58,10 +58,10 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  ok(MR.validar('xx','x',{...pm,npcs:[{id:'zz',x:1,y:1},{id:'n9',x:99,y:1},{id:'n8',x:1,y:1,n:'<b>x</b>',a:{t:'img',k:'naoexiste'},f:['ok',5]}]},{tsz:[],fpt:{}}).npcs.map(c=>c.n+'|'+c.a.t+'|'+c.f.length).join()==='bx/b|ninja|1','regras: NPCs inválidos descartados e texto limpo');
  // jogo
  await A.click('#mapbtn');await W(2500);await A.evaluate(n=>[...document.querySelectorAll('#mmList button')].find(x=>x.textContent.toLowerCase().includes(n)).click(),'sala npc');await W(2500);
- ok(await A.evaluate(k=>MAPEV.npcs.length===3&&M[5*N+5]===1&&M[5*N+9]!==1&&!!TX[k],k),'jogo: NPCs no mapa (o ninja bloqueia o tile, o guarda não; imagem carregada)');
+ ok(await A.evaluate(k=>MAPEV.npcs.length===3&&M[5*N+5]===4&&M[5*N+9]!==4&&!!TX[k],k),'jogo: NPCs no mapa (o ninja bloqueia o tile, o guarda não; imagem carregada)');
  ok(await A.evaluate(()=>Math.abs(npcEsc(MAPEV.npcs.find(c=>c.n==='Kakashi'))-.2)<.001),'jogo: NPC grande no automático fica com 60 px (escala 0.2)');
  let anda=null;for(let i=0;i<40&&!anda;i++){await W(250);anda=await A.evaluate(()=>{const c=MAPEV.npcs.find(c=>c.n==='Kakashi'),s=c._;return s&&(s.ir||s.tx!==c.x||s.ty!==c.y)?{tx:s.tx,ty:s.ty,ir:s.ir,M:M[(s.ir?s.ir[1]:s.ty)*N+(s.ir?s.ir[0]:s.tx)]}:null})}
- ok(anda&&Math.abs((anda.ir?anda.ir[0]:anda.tx)-3)<=2&&Math.abs((anda.ir?anda.ir[1]:anda.ty)-8)<=2&&anda.M===1,'jogo: o NPC anda sozinho perto da posição (raio 2) e bloqueia o tile para onde vai: '+JSON.stringify(anda));
+ ok(anda&&Math.abs((anda.ir?anda.ir[0]:anda.tx)-3)<=2&&Math.abs((anda.ir?anda.ir[1]:anda.ty)-8)<=2&&anda.M===4,'jogo: o NPC anda sozinho perto da posição (raio 2) e bloqueia o tile para onde vai: '+JSON.stringify(anda));
  ok(await A.evaluate(()=>MAPEV.npcs.find(c=>c.n==='Hokage')._.tx===5),'jogo: NPC parado continua no lugar');
  await A.evaluate(()=>{p.x=5.5*32;p.y=7*32});await W(500);
  ok(await A.evaluate(()=>{const b=document.getElementById('npcBtn');return b&&b.style.display==='block'&&/Hokage/.test(b.textContent)}),'jogo: perto do NPC aparece “💬 Falar com Hokage”');

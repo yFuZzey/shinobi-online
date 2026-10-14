@@ -45,14 +45,16 @@ const COLS='nome,cla,nivel,xp,pontos,forca,agilidade,vitalidade,inteligencia,des
 // Save sem número é da versão 1. Save de versão mais nova que este app (voltou de atualização) é lido como está.
 const MIGRA={};
 function chMigra(j){let v=Math.max(1,+j.v||1);while(v<SAVE_V){const f=MIGRA[v+1];if(f)j=f(j)||j;v++}j.v=Math.max(v,+j.v||1);return j}
-async function onlLoadChar(){const q=c=>onlFetch('/rest/v1/personagens?select='+COLS+c+',inventario(item,equipado)&id=eq.'+ONL.uid);let r=null;ONL.profDb=true;ONL.mgkDb=true;ONL.verDb=true;ONL.ctDb=true;
+async function onlLoadChar(){const q=c=>onlFetch('/rest/v1/personagens?select='+COLS+c+',inventario(item,equipado)&id=eq.'+ONL.uid);let r=null;ONL.profDb=true;ONL.mgkDb=true;ONL.verDb=true;ONL.ctDb=true;ONL.trDb=true;
  // colunas novas (proficiência: sql/03; Mangekyō: sql/06): se o banco ainda não tem, segue sem elas e guarda no aparelho
- for(let k=0;k<5;k++){try{r=await q((ONL.profDb?',proficiencia,prof_xp':'')+(ONL.mgkDb?',mangekyo':'')+(ONL.verDb?',versao':'')+(ONL.ctDb?',contrato,contrato_em':''));break}
-  catch(e){const m=String(e.message);if(ONL.ctDb&&/contrato/.test(m))ONL.ctDb=false;else if(ONL.verDb&&/versao/.test(m))ONL.verDb=false;else if(ONL.mgkDb&&/mangekyo/.test(m))ONL.mgkDb=false;else if(ONL.profDb&&/proficiencia|prof_xp/.test(m))ONL.profDb=false;else throw e}}
+ for(let k=0;k<5;k++){try{r=await q((ONL.profDb?',proficiencia,prof_xp':'')+(ONL.mgkDb?',mangekyo':'')+(ONL.verDb?',versao':'')+(ONL.ctDb?',contrato,contrato_em':'')+(ONL.trDb?',treino':''));break}
+  catch(e){const m=String(e.message);if(ONL.trDb&&/treino/.test(m))ONL.trDb=false;else if(ONL.ctDb&&/contrato/.test(m))ONL.ctDb=false;else if(ONL.verDb&&/versao/.test(m))ONL.verDb=false;else if(ONL.mgkDb&&/mangekyo/.test(m))ONL.mgkDb=false;else if(ONL.profDb&&/proficiencia|prof_xp/.test(m))ONL.profDb=false;else throw e}}
  return r&&r[0]||null}
 // uma informação por coluna (dá para editar cada uma no banco)
 function onlCols(){const c={cla:clan,nivel:CH.lv,xp:CH.xp,pontos:CH.pts,forca:CH.st.str,agilidade:CH.st.agi,vitalidade:CH.st.vit,inteligencia:CH.st.int,destreza:CH.st.dex,sorte:CH.st.luk,mapa:CURMAP,pele:look.skin,cabelo:look.hair,roupa:look.cloth};
- if(ONL.profDb){const P=CH.prof||{};c.proficiencia=P.k||null;c.prof_xp=P.k?P.xp|0:0}if(ONL.mgkDb)c.mangekyo=EYES[CH.mgk]?CH.mgk:null;if(ONL.verDb)c.versao=Math.max(1,CH.v|0);if(ONL.ctDb){const t=CH.ct||{};c.contrato=t.k||null;c.contrato_em=t.k&&t.t?new Date(t.t).toISOString():null}return c}
+ if(ONL.profDb){const P=CH.prof||{};c.proficiencia=P.k||null;c.prof_xp=P.k?P.xp|0:0}if(ONL.mgkDb)c.mangekyo=EYES[CH.mgk]?CH.mgk:null;if(ONL.verDb)c.versao=Math.max(1,CH.v|0);if(ONL.ctDb){const t=CH.ct||{};c.contrato=t.k||null;c.contrato_em=t.k&&t.t?new Date(t.t).toISOString():null}if(ONL.trDb)c.treino=trCol();return c}
+// treino como objeto que só muda quando o treino muda (assim o salvamento só manda a coluna quando precisa)
+const TRC={j:null,o:null};function trCol(){const j=JSON.stringify(trNorm(CH.tr));if(j!==TRC.j){TRC.j=j;TRC.o=JSON.parse(j)}return TRC.o}
 function onlInv(){return INV.map(i=>({item:i,equipado:false})).concat(Object.values(EQ).map(i=>({item:i,equipado:true})),ONL.unk||[])}
 async function onlSaveInv(rows){await onlFetch('/rest/v1/rpc/salvar_inventario',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({itens:rows})})}
 async function onlCreateChar(){const c=onlCols(),inv=onlInv();
@@ -202,8 +204,8 @@ const htpDe=(tipo,id)=>tipo?(id?tipo+'#'+id:tipo):null;
 // planilha 12: crítico ×1,5 em monstros e ×1,3 em jogadores; no PvP o bônus de % de dano dos itens vale no máximo pvp.itemDanoMax
 const critPve=()=>+BAL.combate.critMultPve||BAL.combate.critMult,critPvp=()=>+BAL.combate.critMultPvp||BAL.combate.critMult;
 function powPvp(t){const cap=+(BAL.pvp&&BAL.pvp.itemDanoMax),o=+AG.dmg_pct||0;if(!(cap>=0)||o<=cap)return skPow(t);AG.dmg_pct=cap;try{const a=calcChar(1,1).at;return isChakra(t)?a.pc.fin:a.pf.fin}finally{AG.dmg_pct=o}}
-function hitRawPvp(base,tp){const it=typeof tp==='string'&&tp[0]==='@',t=tpN(tp),b=bufSum();return (base+powPvp(t))*profTypeMul(t)*HMUL*(1+b.dmg/100)*(it?1:1+b.cdmg/100)}
-function hitRaw(base,tp){const it=typeof tp==='string'&&tp[0]==='@',t=tpN(tp),b=bufSum();return (base+skPow(t))*profTypeMul(t)*HMUL*(1+b.dmg/100)*(it?1:1+b.cdmg/100)}
+function hitRawPvp(base,tp){const it=typeof tp==='string'&&tp[0]==='@',t=tpN(tp),b=bufSum();return (base+powPvp(t))*profTypeMul(t)*(1+trPct(t,1)/100)*HMUL*(1+b.dmg/100)*(it?1:1+b.cdmg/100)}
+function hitRaw(base,tp){const it=typeof tp==='string'&&tp[0]==='@',t=tpN(tp),b=bufSum();return (base+skPow(t))*profTypeMul(t)*(1+trPct(t)/100)*HMUL*(1+b.dmg/100)*(it?1:1+b.cdmg/100)}
 // reforços temporários (Sharingan +esquiva, Mangekyō +dano, Susanoo −dano recebido…): cada um tem seu tempo e eles somam
 let BUFS={};
 function bufSum(){const n=performance.now(),o={red:0,esq:0,dmg:0,cdmg:0,prec:0,spd:0};for(const k in BUFS){const b=BUFS[k];if(b.until>n)for(const q in o)o[q]+=b[q]||0}return o}
@@ -232,6 +234,21 @@ function profSave(){try{localStorage.setItem(chKey(),JSON.stringify(CH))}catch(_
 function profGain(base){const P=CH.prof;if(!P||!P.k)return;const r0=profRank();P.xp+=Math.max(1,Math.round(base/8));profSave();const r1=profRank();
  if(r1>r0){const t=PROF[P.k].n+' subiu para o rank '+PRK[r1][0]+'!';FT.push({x:p.x,y:p.y-92,t,txt:1,gold:1,life:1.8});fx.push({k:'ring',x:p.x,y:p.y-8,r:70,col:'#ffc94a',life:.6,max:.6,sp:1});toast('🎖️ '+t);onlReg('🎖️ '+t+' As vantagens ficaram mais fortes.');stats()}
  if(!$('#paneSt').hidden&&!$('#inv').hidden)profDraw()}
+/* ---------- treino por tipo de golpe (separado da Especialidade): sobe acertando monstros (inteiro) e o boneco de treino (BAL.treino.boneco × o ganho).
+   Cada nível dá BAL.treino.porNivel % de dano nos golpes daquele tipo (no PvP vale BAL.treino.pvp disso), até nivelMax. Guardado em CH.tr e na coluna “treino” (sql/20) ---------- */
+const TRT=['taijutsu','ninjutsu','genjutsu','bukijutsu'];
+function trB(){return Object.assign({porNivel:.5,nivelMax:20,xpBase:40,xpExpoente:1.3,ganho:.125,boneco:.5,pvp:.5},BAL.treino||{})}
+const trPasso=n=>{const B=trB();return Math.max(1,Math.round(B.xpBase*Math.pow(n,B.xpExpoente)))}; // XP para passar do nível n-1 para n
+function trNivel(t){const xp=Math.max(0,((typeof CH!=='undefined'&&CH&&CH.tr)||{})[t]|0),B=trB();let n=0,acc=0;while(n<B.nivelMax){const q=trPasso(n+1);if(xp<acc+q)break;acc+=q;n++}return {n,xp,acc,prox:n<B.nivelMax?trPasso(n+1):0}}
+function trPct(t,pvp){if(!TRT.includes(t))return 0;const B=trB();return trNivel(t).n*B.porNivel*(pvp?B.pvp:1)}
+const trFmt=v=>(Math.round(v*10)/10).toLocaleString('pt-BR');
+function trNorm(o){const r={};if(o&&typeof o==='object')for(const t of TRT){const v=+o[t];if(v>0&&isFinite(v))r[t]=Math.min(1e9,Math.floor(v))}return r}
+function trGain(t,base,mul){if(!TRT.includes(t)||typeof CH==='undefined'||!CH)return;CH.tr=trNorm(CH.tr);const n0=trNivel(t).n;CH.tr[t]=(CH.tr[t]|0)+Math.max(1,Math.round(base*trB().ganho*mul));const n1=trNivel(t).n;
+ try{localStorage.setItem(chKey(),JSON.stringify(CH))}catch(_){}ONL.dirty=true;
+ if(n1>n0){const txt='Treino de '+PROF[t].n+': nível '+n1+' (+'+trFmt(trPct(t))+'% de dano)';FT.push({x:p.x,y:p.y-92,t:txt,txt:1,gold:1,life:1.8});toast('🥋 '+txt);onlReg('🥋 '+txt)}
+ if(!$('#paneSt').hidden&&!$('#inv').hidden)profDraw()}
+function trHtml(){const B=trB();return '<div class="pfc"><div class="pft pup">🥋 Treino por tipo de golpe</div><p class="pfd">Sobe acertando monstros com golpes do tipo (o boneco de treino rende '+trFmt(B.boneco*100)+'%). Cada nível: +'+trFmt(B.porNivel)+'% de dano nesse tipo (no PvP, '+trFmt(B.pvp*100)+'% disso), até o nível '+B.nivelMax+'.</p>'+
+ TRT.map(t=>{const r=trNivel(t),pc=r.prox?Math.min(100,(r.xp-r.acc)/r.prox*100):100;return '<div class="trl" style="margin:6px 0"><b>'+PROF[t].ic+' '+PROF[t].n+'</b> <span>Nv '+r.n+' · +'+trFmt(trPct(t))+'%</span><div class="bar xpb"><i style="width:'+pc+'%"></i><b>'+(r.prox?(r.xp-r.acc)+' / '+r.prox:'nível máximo')+'</b></div></div>'}).join('')+'</div>'}
 function profChoose(k){if(!PROF[k]||!profReqOk(k))return;const P=CH.prof||(CH.prof={k:null,xp:0});
  if(P.k&&P.k!==k&&profPick!==k){profPick=k;profDraw();return} // trocar pede confirmação: zera o progresso
  P.k=k;P.xp=0;profPick=null;profSave();stats();onlReg('🎖️ Especialidade escolhida: '+PROF[k].n+'.')}
@@ -251,7 +268,7 @@ function profDraw(){const el=$('#stProf');if(!el||!CH)return;CH.prof=profNorm(CH
     +'<div class="pfq">Seus golpes desse tipo: '+(sk.length?sk.join(', '):'nenhum')+'</div>'
     +'<button data-prof="'+k+'"'+(ok&&!cur?'':' disabled')+(conf?' class="conf"':'')+'>'+(cur?'Atual':!ok?'Bloqueada':conf?'Confirmar troca':'Escolher')+'</button></div>'});
   h+='</div>'+(P.k?'<button class="pfx" data-voltar="1">Cancelar</button>':'')}
- el.innerHTML=h;
+ el.innerHTML=h+trHtml();
  el.querySelectorAll('[data-prof]').forEach(b=>b.onclick=()=>profChoose(b.dataset.prof));
  const tr=el.querySelector('[data-trocar]');if(tr)tr.onclick=()=>{profPick='?';profDraw()};
  const vt=el.querySelector('[data-voltar]');if(vt)vt.onclick=()=>{profPick=null;profDraw()}}
@@ -293,9 +310,9 @@ function gsMobFollow(dt){const rt=performance.now()-IP.dm;
   const r=ipAt(e,rt);if(r){e.x=r.x;e.y=r.y;e.jz=r.jz;e.fl=!!r.s.fl;e.mv=r.s.mv}
   for(const q of MTIM)if(e[q]>0)e[q]=Math.max(0,e[q]-dt)}}
 // golpes do jogador vão para o servidor (ele decide a vida da raposa)
-function gsHit(e,d,st,kx,ky){if(!ONL.on)return false;if(e.pvp)return pvpHit(e,d,st,kx,ky);if(!e.sid||e.dead||!ONL.joined)return true;
+function gsHit(e,d,st,kx,ky){if(e&&e.boneco)return bonecoHit(e,d,st);if(!ONL.on)return false;if(e.pvp)return pvpHit(e,d,st,kx,ky);if(!e.sid||e.dead||!ONL.joined)return true;
  const tp=tpN(HTP),pf=profOn(tp),base=d,x=hitRaw(d,HTP);if(pf&&st&&tp==='genjutsu')st*=1+profPerk()/100;
- lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());d=Math.max(1,Math.round(lastCrit?x*critPve():x));if(pf)profGain(base*HMUL);
+ lastCrit=Math.random()*100<D().crit||(pf&&tp==='bukijutsu'&&Math.random()*100<profPerk());d=Math.max(1,Math.round(lastCrit?x*critPve():x));if(pf)profGain(base*HMUL);trGain(tp,base*HMUL,1);
  const cm=ccPveMul(),H=HCC||{};if(H.lento&&+H.lento.t>0)FT.push({x:e.x,y:e.y-(e.boss?110:46),t:'lento',txt:1,life:.6});
  gsSend({t:'hit',m:e.sid,j:tpJ(HTP),d,st:(st||0)*cm,rt:(H.root||0)*cm,lt:H.lento?(+H.lento.t||0)*cm:0,lp:H.lento?+H.lento.v||0:0,cf:(+H.confusao||0)*cm,kx:+(kx||0).toFixed(1),ky:+(ky||0).toFixed(1),c:lastCrit?1:0,pr:Math.round(D().prec)});return true}
 // ---------- PvP: quem não está no seu grupo pode ser atacado (menos na zona segura em volta do ponto de início) ----------
@@ -306,20 +323,20 @@ const PVP={on:1,safe:4};let PST=0,HRES={miss:0,d:0,dead:0},pvpTold=0;
 const MAPEV={nopvp:0,ev:[],ult:'',dito:'',npcs:[],perto:null,fala:null};
 {const _am=applyMap;applyMap=function(m){_am(m);MAPEV.nopvp=m&&m.pvp===0?1:0;MAPEV.ev=m&&Array.isArray(m.ev)?m.ev:[];MAPEV.ult='';MAPEV.ent=performance.now();
  // NPCs (m.npcs): bloqueiam o tile em que estão (menos b:0); desenhados em npcDraw (ninja = boneco do jogo; img = quadro(s) da biblioteca)
- MAPEV.npcs=m&&Array.isArray(m.npcs)?m.npcs:[];npcFecha();MAPEV.m0=M.slice();for(const c of MAPEV.npcs){delete c._;if(c.b!==0)setM(c.x,c.y,1)}}}
+ MAPEV.npcs=m&&Array.isArray(m.npcs)?m.npcs:[];npcFecha();MAPEV.m0=M.slice();for(const c of MAPEV.npcs){delete c._;if(c.b!==0)setM(c.x,c.y,4)}}}
 // tamanho do NPC de imagem: a.e escolhido no editor; sem a.e = automático (imagem alta fica com a altura de um personagem, ~60 px)
 function npcEsc(c){const h=(TSZ[c.a.k]||[0,60])[1]||60;return c.a.e>0?c.a.e:h>64?60/h:1}
 // estado de cada NPC no jogo (posição em px, tile, para onde anda, direção, espelhado). O passeio é só visual (cada aparelho sorteia o seu)
 function npcSt(c){return c._||(c._={x:(c.x+.5)*T,y:(c.y+1)*T-2,tx:c.x,ty:c.y,ir:null,esp:.5+Math.random()*2,anda:0,dir:'l',fl:c.a&&c.a.fl?1:0})}
 const npcPos=c=>{const s=npcSt(c);return [s.x,s.y]};
-const npcLivre=(x,y)=>x>=1&&y>=1&&x<N-1&&y<NH-1&&MAPEV.m0&&(MAPEV.m0[y*N+x]===0||MAPEV.m0[y*N+x]===3)&&M[y*N+x]!==1&&!(Math.floor(p.x/T)===x&&Math.floor(p.y/T)===y);
+const npcLivre=(x,y)=>x>=1&&y>=1&&x<N-1&&y<NH-1&&MAPEV.m0&&(MAPEV.m0[y*N+x]===0||MAPEV.m0[y*N+x]===3)&&M[y*N+x]!==1&&M[y*N+x]!==4&&!(Math.floor(p.x/T)===x&&Math.floor(p.y/T)===y);
 function npcMove(c,dt){const s=npcSt(c),mv=c.mv;if(!mv||(MAPEV.fala&&MAPEV.fala.c===c&&!s.ir)){s.anda=0;return}
  if(s.ir){const gx=(s.ir[0]+.5)*T,gy=(s.ir[1]+1)*T-2,dx=gx-s.x,dy=gy-s.y,d=Math.hypot(dx,dy),sp=[0,38,64,96][mv.v||2]*dt;
   if(d<=sp){s.x=gx;s.y=gy;if(c.b!==0&&MAPEV.m0){const i=s.ty*N+s.tx;M[i]=MAPEV.m0[i]}s.tx=s.ir[0];s.ty=s.ir[1];s.ir=null;s.anda=0;s.esp=.8+Math.random()*2.6}
   else{s.x+=dx/d*sp;s.y+=dy/d*sp;s.anda=1}return}
  if((s.esp-=dt)>0)return;s.esp=.6+Math.random()*1.5;const D=[[1,0],[-1,0],[0,1],[0,-1]][Math.random()*4|0],nx=s.tx+D[0],ny=s.ty+D[1],r=mv.r||3;
  if(Math.abs(nx-c.x)>r||Math.abs(ny-c.y)>r||!npcLivre(nx,ny))return;
- s.ir=[nx,ny];if(c.b!==0)setM(nx,ny,1);s.dir=D[1]<0?'c':D[1]>0?'b':'l';if(D[0])s.fl=c.a&&c.a.t==='img'?((D[0]<0)!==!!c.a.oe?1:0):(D[0]<0?1:0)}
+ s.ir=[nx,ny];if(c.b!==0)setM(nx,ny,4);s.dir=D[1]<0?'c':D[1]>0?'b':'l';if(D[0])s.fl=c.a&&c.a.t==='img'?((D[0]<0)!==!!c.a.oe?1:0):(D[0]<0?1:0)}
 // “pé” de um quadro: base e centro da parte desenhada (pixels não transparentes). Na animação todos os quadros ficam com o pé no mesmo lugar,
 // mesmo que os recortes tenham tamanhos ou margens diferentes (sem tremer). Sem conseguir ler os pixels, usa a âncora do recorte.
 function npcPe(im){if(im._pe!==undefined)return im._pe;im._pe=null;try{const w=im.width,h=im.height,d=im.getContext?im.getContext('2d').getImageData(0,0,w,h).data:null;if(!d)return null;
@@ -331,11 +348,12 @@ function npcImg(k,x,y,e,fl,anim){const im=TX[k];if(!im)return 0;const bw=im.dw||
 // quadros conforme a direção: andando para cima/baixo usa qc/qb se existirem; de lado (ou sem eles) usa q
 function npcQuadros(c,s){const a=c.a,L=s.dir==='c'&&a.qc&&a.qc.length?a.qc:s.dir==='b'&&a.qb&&a.qb.length?a.qb:a.q&&a.q.length>1?a.q:[a.k];return {L,lado:L===a.q||L.length===1&&L[0]===a.k}}
 function npcDraw(L,ts){if(scene|0)return;const dt=Math.min(.1,Math.max(0,(ts-(MAPEV.ts||ts))/1000));MAPEV.ts=ts;
- for(const c of MAPEV.npcs){npcMove(c,dt);const s=npcSt(c),x=s.x,y=s.y,ninja=!c.a||c.a.t!=='img';
+ for(const c of MAPEV.npcs){npcMove(c,dt);const s=npcSt(c),x=s.x,y=s.y,ninja=!c.a||c.a.t!=='img';if(s.hitT>0)s.hitT=Math.max(0,s.hitT-dt);
   L.push({y,d:()=>{let hh=60;if(ninja){const lk={skin:SKIN[c.a&&c.a.s|0]||SKIN[0],hair:HAIR[c.a&&c.a.h|0]||HAIR[0],cloth:CLOTH[c.a&&c.a.c|0]||CLOTH[0]};
     try{if(HERO)drawHero(ctx,x,y,{fl:s.fl,t:ts+c.x*131+c.y*71,mv:s.anda,run:0,aura:-1,th:-1,set:heroFor(lk),act:null,vis:[]});else drawChar(ctx,x,y,{...lk,dir:s.fl?2:0,t:ts,mv:s.anda,run:0})}catch(_){}}
-   else{const Q=npcQuadros(c,s),q=Q.L,an=q.length>1&&(c.a.qa!=='andando'||s.anda),k=an?q[Math.floor(ts/(c.a.ms||125))%q.length]:q[0],anim=!!(c.a.q||c.a.qc||c.a.qb);
-    hh=npcImg(TX[k]?k:c.a.k,x,y,npcEsc(c),Q.lado?s.fl:0,anim)||48}
+   else{const Q=npcQuadros(c,s),q=Q.L,an=q.length>1&&(c.a.qa!=='andando'||s.anda),apanha=s.hitT>0&&c.a.qh&&c.a.qh.length,anim=!!(c.a.q||c.a.qc||c.a.qb||c.a.qh);
+    const k=apanha?c.a.qh[Math.min(c.a.qh.length-1,Math.floor((.5-s.hitT)/.5*c.a.qh.length))]:an?q[Math.floor(ts/(c.a.ms||125))%q.length]:q[0],tx=s.hitT>0&&!apanha?Math.sin(ts/25)*2.5:0;
+    hh=npcImg(TX[k]?k:c.a.k,x+tx,y,npcEsc(c),Q.lado?s.fl:0,anim)||48}
    const top=ninja?y-62:y-hh-6;ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#ffd98a';
    const lb=(MAPEV.perto===c?'💬 ':'')+c.n;ctx.strokeText(lb,x,top);ctx.fillText(lb,x,top);
    const mk=npcMarca(c);if(mk){const b=Math.sin(ts/220)*2;ctx.font='bold 18px system-ui';ctx.lineWidth=4;ctx.strokeStyle='#000c';ctx.fillStyle=mk==='!'?'#ffd23f':'#7fd6ff';ctx.strokeText(mk,x,top-12+b);ctx.fillText(mk,x,top-12+b)}}})}}
@@ -357,7 +375,7 @@ function misHud(){let h=document.getElementById('misHud');const L=Object.keys(MI
  h.innerHTML=MIS.min?'📜 '+L.length+' missão(ões)':L.map(q=>{const d=MIS.def[q],v=MIS.d[q];return '<div>📜 <b style="color:#ffd27a">'+esc(d.n)+'</b> · '+esc(d.p[v-1]||('passo '+v))+'</div>'}).join('')}
 setInterval(()=>{const h=document.getElementById('misHud');if(h)h.style.display=cur==='game'&&Object.keys(MIS.d).some(q=>MIS.def[q]&&MIS.d[q]>0&&MIS.d[q]!==999)?'block':'none'},1000);
 // botão “Falar” quando o jogador está perto de um NPC; a janela mostra as falas uma a uma (com retrato e %player% = nome do jogador)
-function npcTick(){try{const b=npcBtn();let best=null,bd=1.8*T;if(cur==='game'&&!(scene|0)&&p)for(const c of MAPEV.npcs){if(MIS.ok&&npcPg(c)===-2)continue;const [x,y]=npcPos(c),d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=c}}
+function npcTick(){try{const b=npcBtn();let best=null,bd=1.8*T;if(cur==='game'&&!(scene|0)&&p)for(const c of MAPEV.npcs){if(MIS.ok&&npcPg(c)===-2)continue;if(c.bo&&!(c.f&&c.f.length)&&!(c.pg&&c.pg.length))continue;const [x,y]=npcPos(c),d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=c}}
  MAPEV.perto=best;if(MAPEV.fala&&!MAPEV.fala.ev&&MAPEV.fala.c!==best)npcFecha();b.style.display=best&&!MAPEV.fala?'block':'none';if(best)b.textContent='💬 Falar com '+best.n}catch(_){}}
 function npcBtn(){let b=document.getElementById('npcBtn');if(b)return b;b=document.createElement('button');b.id='npcBtn';
  b.style.cssText='position:fixed;left:50%;bottom:24%;transform:translateX(-50%);z-index:30;padding:10px 18px;border-radius:22px;border:2px solid #f0b84a;background:#1b1410e6;color:#ffe2a8;font:bold 15px system-ui,sans-serif;display:none;max-width:80vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
@@ -386,6 +404,12 @@ function npcFaz(c,pi,pg,oi,ev){const o=oi>=0&&pg.ch?pg.ch[oi]:null,A=(pg.faz||[]
  if(c.id&&A.some(a=>a.t==='fim'))MIS.d[npcChave(CURMAP,c.id,pg.id)]=1; // já esconde a conversa (o servidor confirma)
  const tp=A.find(a=>a.t==='tp');if(tp)irPara(tp.m,tp.tx,tp.ty)}
 function npcFecha(){MAPEV.fala=null;const d=document.getElementById('npcDlg');if(d)d.style.display='none';const f=MAPEV.aoFechar;MAPEV.aoFechar=null;if(f)f()}
+// boneco de treino (NPC com bo:1): entra na lista de alvos dos golpes; acertar mostra o dano, toca os quadros “ao apanhar” e treina (rende BAL.treino.boneco de um monstro)
+function BON(){if(scene|0)return [];const L=[];for(const c of MAPEV.npcs){if(!c.bo)continue;const s=npcSt(c),o=c._b||(c._b={boneco:c,id:'bo_'+c.id,rad:16,boss:0,dead:0,kind:'boneco'});o.x=s.x;o.y=s.y;L.push(o)}return L}
+{const _pv=PVT;PVT=function(){return _pv().concat(BON())}}
+function bonecoHit(e,d,st){const c=e.boneco,s=npcSt(c),tp=tpN(HTP),base=d,x=hitRaw(d,HTP),B=trB(),cr=Math.random()*100<D().crit,v=Math.max(1,Math.round(cr?x*critPve():x));
+ FT.push({x:e.x,y:e.y-58,t:v,life:.8});if(cr)FT.push({x:e.x,y:e.y-74,t:'crítico',txt:1,life:.7});s.hitT=.5;
+ if(TRT.includes(tp)){trGain(tp,base*HMUL,B.boneco);if(profOn(tp))profGain(base*HMUL*B.boneco)}return true}
 setInterval(npcTick,150);
 /* ---------- eventos do mapa: g = 'pisar' (no tile) ou 'entrar' (quando o mapa abre); fr = 'sempre' | 'uma' (1 vez por conta, marca no servidor) | 'sessao' (1 vez até sair do jogo)
    se = condições (como nas falas dos NPCs); a = ações em ordem: msg (mensagem), npc (conversa com um NPC deste mapa), mis (missão), tp (levar para o mapa: termina o evento) ---------- */
@@ -946,7 +970,8 @@ function gaze(D){const R=D.cone*T,h=D.ang*Math.PI/180,all=E.concat(PVT()).filter
  if(tg){a=Math.atan2(tg.y-p.y,tg.x-p.x);p.ax=Math.cos(a);p.ay=Math.sin(a);p.fl=p.ax<0}
  const hit=all.filter(e=>{const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy);if(d>R+(e.rad||0)*.6)return false;if(d<16)return true;let da=Math.atan2(dy,dx)-a;da=Math.atan2(Math.sin(da),Math.cos(da));return Math.abs(da)<=h});
  fx.push({k:'cone',x:p.x,y:p.y-22,a,r:R,h,col:D.k==='mgk'?'#9a0018':'#e0102a',life:.5,max:.5});
- const st=+(D.st*(profOn('genjutsu')?1+profPerk()/100:1)).toFixed(2);if(hit.length&&profOn('genjutsu'))profGain(10*hit.length);
+ const st=+(D.st*(profOn('genjutsu')?1+profPerk()/100:1)).toFixed(2),hb=hit.filter(e=>e.boneco),hm=hit.length-hb.length;if(hm&&profOn('genjutsu'))profGain(10*hm);if(hm)trGain('genjutsu',10*hm,1);
+ for(const e of hb){npcSt(e.boneco).hitT=.5;trGain('genjutsu',10,trB().boneco);if(profOn('genjutsu'))profGain(10*trB().boneco)}
  if(ONL.on&&ONL.joined){const ms=hit.filter(e=>!e.pvp&&e.sid!=null).map(e=>e.sid),pl=hit.filter(e=>e.pvp).map(e=>e.pvp);if(ms.length||pl.length)gsSend({t:'gaze',st,m:ms,pl})}
  else hit.forEach(e=>{const s=st*sevMul(e.esq)*(e.boss?BAL.combate.olharChefe:1);e.stun=Math.max(e.stun||0,s);FT.push({x:e.x,y:e.y-(e.boss?120:52),t:'paralisado '+nf(s)+'s',txt:1,life:1})});
  return hit.length}
@@ -1547,11 +1572,12 @@ async function onlAfterLogin(){const er=$('#err');ONL.on=true;ONL.closing=false;
  if(ONL.adm&&INV_ON&&ONL.ctDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem as colunas do contrato de invocação: rode o arquivo sql/08_contrato.sql no Supabase. Até lá o contrato fica salvo só neste aparelho.'),2100);
  if(ONL.adm&&ONL.verDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem a coluna da versão do personagem: rode o arquivo sql/07_versao.sql no Supabase. O jogo funciona sem ela.'),1900);
  if(ONL.adm&&ONL.mgkDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem a coluna da Mangekyō: rode o arquivo sql/06_mangekyo.sql no Supabase. Até lá a escolha do olho fica salva só neste aparelho.'),1700);
+if(ONL.adm&&ONL.trDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem a coluna do treino: rode o arquivo sql/20_treino.sql no Supabase. Até lá ele fica salvo só neste aparelho.'),1700);
  if(ONL.adm&&ONL.profDb===false)setTimeout(()=>onlReg('⚠️ [ADM] O banco ainda não tem as colunas da proficiência: rode o arquivo sql/03_proficiencia.sql no Supabase. Até lá ela fica salva só neste aparelho.'),1500);
  if(row&&row.cla&&CLANS[row.cla]){ONL.hasChar=true;name=ONL.nome=row.nome||ONL.nome;
   ['pele','cabelo','roupa'].forEach((k,i)=>{if(row[k])look[['skin','hair','cloth'][i]]=row[k]});
-  const ch={lv:row.nivel,xp:row.xp,pts:row.pontos,st:{str:row.forca,agi:row.agilidade,vit:row.vitalidade,int:row.inteligencia,dex:row.destreza,luk:row.sorte},prof:{k:row.proficiencia||null,xp:row.prof_xp|0},mgk:row.mangekyo||null,v:ONL.verDb?+row.versao||1:1,ct:ONL.ctDb?ctNorm({k:row.contrato,t:row.contrato_em?Date.parse(row.contrato_em):0}):{k:null,t:0}};
-  if(!ONL.profDb||!ONL.mgkDb||!ONL.verDb||!ONL.ctDb){try{const o=JSON.parse(localStorage.getItem(chKey())||'null');if(o&&o.prof&&!ONL.profDb)ch.prof=o.prof;if(o&&o.mgk&&!ONL.mgkDb)ch.mgk=o.mgk;if(o&&o.v&&!ONL.verDb)ch.v=o.v;if(o&&o.ct&&!ONL.ctDb)ch.ct=ctNorm(o.ct)}catch(_){}} // sem as colunas no banco: mantém o que estava no aparelho
+  const ch={lv:row.nivel,xp:row.xp,pts:row.pontos,st:{str:row.forca,agi:row.agilidade,vit:row.vitalidade,int:row.inteligencia,dex:row.destreza,luk:row.sorte},prof:{k:row.proficiencia||null,xp:row.prof_xp|0},mgk:row.mangekyo||null,v:ONL.verDb?+row.versao||1:1,ct:ONL.ctDb?ctNorm({k:row.contrato,t:row.contrato_em?Date.parse(row.contrato_em):0}):{k:null,t:0},tr:ONL.trDb?trNorm(row.treino):{}};
+  if(!ONL.profDb||!ONL.mgkDb||!ONL.verDb||!ONL.ctDb||!ONL.trDb){try{const o=JSON.parse(localStorage.getItem(chKey())||'null');if(o&&o.tr&&!ONL.trDb)ch.tr=trNorm(o.tr);if(o&&o.prof&&!ONL.profDb)ch.prof=o.prof;if(o&&o.mgk&&!ONL.mgkDb)ch.mgk=o.mgk;if(o&&o.v&&!ONL.verDb)ch.v=o.v;if(o&&o.ct&&!ONL.ctDb)ch.ct=ctNorm(o.ct)}catch(_){}} // sem as colunas no banco: mantém o que estava no aparelho
   const inv={inv:[],eq:{}};ONL.unk=[];(row.inventario||[]).forEach(r=>{const it=ITEMS[r.item];if(!it){ONL.unk.push({item:r.item,equipado:!!r.equipado});return}if(r.equipado&&!inv.eq[it.slot])inv.eq[it.slot]=r.item;else inv.inv.push(r.item)});
   try{localStorage.setItem(chKey(),JSON.stringify(ch));localStorage.setItem(invKey(),JSON.stringify(inv))}catch(_){}
   onlStartMap();
@@ -1577,7 +1603,7 @@ function drenoGanha(pct){const v=Math.round(p.mpMax*pct/100);if(v<1)return;p.mp=
   if(m&&m.t==='hurt'&&m.dr>0&&!m.miss&&!m.blk&&!(scene|0)&&p){const v=Math.round(p.mpMax*m.dr/100);if(v>0){p.mp=Math.max(0,p.mp-v);FT.push({x:p.x-14,y:p.y-80,t:'−'+v+' chakra',txt:1,life:.9,col:'#ff9a3a'});onlReg('🦈 '+(m.src||'Alguém')+' drenou '+v+' do seu chakra.')}}
   if(m&&m.t==='ph'&&m.by===ONL.uid&&m.dr>0&&!m.miss&&!m.blk){const P=drenoOn();if(P)drenoGanha(+P.pvp||0)}
   return r}}
-{let last=0;const _h=hitE;hitE=function(e,d,st,kx,ky){const vivo=e&&!e.dead&&!e.pvp;const r=_h(e,d,st,kx,ky);const P=vivo&&drenoOn(),t=performance.now();
+{let last=0;const _h=hitE;hitE=function(e,d,st,kx,ky){const vivo=e&&!e.dead&&!e.pvp&&!e.boneco;const r=_h(e,d,st,kx,ky);const P=vivo&&drenoOn(),t=performance.now();
   if(P&&t-last>=Math.max(.2,+P.intervalo||.5)*1000){last=t;drenoGanha(+P.pve||0)}return r}}
 /* ---------- visual no corpo: itens equipados em camadas no boneco (capa e arma atrás, cabeça e acessório na frente) ----------
    O desenho de cada item vem do painel ("Visual no corpo"); os pontos de encaixe saem dos pixels de cada quadro do boneco,

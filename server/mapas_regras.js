@@ -93,7 +93,7 @@ function validar(id, nome, m, cat) {
       if (o.a.t === 'img' && fin(a.e) && a.e > 0) o.a.e = +clamp(a.e, .05, 8).toFixed(3); // escala da imagem; sem e = automático (altura de um personagem)
       // animação (img): q = quadros (imagens do catálogo, o 1º é o parado), ms = duração de cada quadro, qa:'andando' = só anima andando; oe = a imagem original olha para a esquerda
       const imgs = v => Array.isArray(v) ? v.filter(k => typeof k === 'string' && tsz.has(k)).slice(0, 24) : [];
-      if (o.a.t === 'img') { const q = imgs(a.q), qc = imgs(a.qc), qb = imgs(a.qb); if (q.length > 1) { o.a.k = q[0]; o.a.q = q; } if (q.length > 1 || qc.length || qb.length) { o.a.ms = clamp(Math.round(fin(a.ms) ? a.ms : 125), 40, 2000); if (a.qa === 'andando') o.a.qa = 'andando'; }
+      if (o.a.t === 'img') { const q = imgs(a.q), qc = imgs(a.qc), qb = imgs(a.qb), qh = imgs(a.qh); if (q.length > 1) { o.a.k = q[0]; o.a.q = q; } if (qh.length) o.a.qh = qh; if (q.length > 1 || qc.length || qb.length) { o.a.ms = clamp(Math.round(fin(a.ms) ? a.ms : 125), 40, 2000); if (a.qa === 'andando') o.a.qa = 'andando'; }
         if (qc.length) o.a.qc = qc; if (qb.length) o.a.qb = qb; if (a.oe) o.a.oe = 1; } // qc/qb = quadros andando para cima/baixo (opcionais)
       if (c.rt === 0) o.rt = 0; else if (typeof c.rt === 'string' && tsz.has(c.rt)) o.rt = c.rt; // retrato na janela de fala: 0 = nenhum; sem rt = automático
       // páginas de fala (missões): a 1ª página cujas condições valem (e que a pessoa não “encerrou”) é a que aparece; sem nenhuma, as falas normais (f, ch)
@@ -106,6 +106,7 @@ function validar(id, nome, m, cat) {
         if (P.length) o.pg = P; }
       // passeio: anda sozinho até r tiles da posição (v: 1 devagar, 2 normal, 3 rápido)
       if (c.mv && typeof c.mv === 'object') o.mv = { r: ci(c.mv.r, 1, 10), v: ci(c.mv.v, 1, 3) };
+      if (c.bo) o.bo = 1; // boneco de treino: recebe golpes, mostra o dano e treina o tipo do golpe (qh = quadros ao apanhar)
       o.f = (Array.isArray(c.f) ? c.f : []).filter(s => typeof s === 'string').map(s => txt(s, 300)).filter(Boolean).slice(0, 20); if (c.b === 0) o.b = 0;
       NP.push(o); }
     if (NP.length) out.npcs = NP; }

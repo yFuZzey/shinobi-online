@@ -425,6 +425,16 @@
   "multMin": 0.7,
   "multMax": 1.3
  },
+ "treino": {
+  "_leia": "Treino por tipo de golpe (Taijutsu, Ninjutsu, Genjutsu, Bukijutsu), separado da Especialidade: sobe acertando monstros com golpes daquele tipo (inteiro) e o boneco de treino (boneco × o ganho). Cada nível dá porNivel % de dano nos golpes do tipo (no PvP vale pvp × isso), até nivelMax. XP para passar do nível N = xpBase × N^xpExpoente; cada acerto dá dano base × ganho (mínimo 1).",
+  "porNivel": 0.5,
+  "nivelMax": 20,
+  "xpBase": 40,
+  "xpExpoente": 1.3,
+  "ganho": 0.125,
+  "boneco": 0.5,
+  "pvp": 0.5
+ },
  "golpes": {
   "_leia": "ranks: dano base, chakra e recarga de cada rank. jutsus: catálogo de cada clã (por id). barra: o que vai nos botões no começo (0 inicial, 1 do meio, 2 grande); o jogador troca na aba Jutsus. Campos dos jutsus novos: pot = força do golpe inteiro (dano + poder; 1 = normal; golpes de vários toques dividem), lento = {v: % mais lento, t: s}, silencio = s em que o alvo só usa o golpe básico, dot = {n toques, int s entre eles, pot de cada}, puxa = tiles que puxa o alvo, raio = área em tiles, dur = s que a área fica no chão, red = % a menos de dano recebido (você) enquanto a área dura, exige = sombra (só em quem está preso na sua sombra), sombra = jutsu de sombra (a passiva Intelecto Nara tira cdSombra% da recarga e deixa os controles ccPve% mais longos em monstros). Uchiha: tiros = bolas de fogo de uma vez (dividem a força), alcance = tiles até o alvo, confusao = s com o controle invertido (passa ao levar dano), mgk = só com a Mangekyō ligada, costas = não pega quem está de costas para você. Hyuga: prec/dreno/resGen = Byakugan ligado (+precisão, % do chakra por segundo, % a menos de genjutsu em você), empurra = tiles que empurra, toques/total = golpes da sequência e quanto valem juntos (64 Palmas usa hakkeTotal), evolui = no nível dele toma o lugar desse jutsu na barra, divide = a força é dividida entre os alvos, imune = bloqueia projéteis de jogadores enquanto gira.",
   "ranks": {

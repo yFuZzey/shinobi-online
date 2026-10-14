@@ -648,7 +648,7 @@
         g.save(); g.translate(x, y); g.scale(a.fl ? -1.36 : 1.36, 1.36); /* ~60 px, como o personagem do jogo */ g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0, 0, 9, 4, 0, 0, 7); g.fill();
         g.fillStyle = '#23283a'; g.fillRect(-5, -12, 4, 12); g.fillRect(1, -12, 4, 12); g.fillStyle = PAL.c[a.c | 0] || PAL.c[0]; g.fillRect(-7, -27, 14, 16);
         g.fillStyle = PAL.s[a.s | 0] || PAL.s[0]; g.beginPath(); g.arc(0, -35, 8, 0, 7); g.fill(); g.fillStyle = PAL.h[a.h | 0] || PAL.h[0]; g.beginPath(); g.arc(0, -35, 8.6, Math.PI, 0); g.fill(); g.restore(); }
-      g.font = 'bold ' + Math.max(9, 10 / s) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineWidth = 3 / s; g.strokeStyle = '#000c'; g.strokeText(v.n || 'NPC', x, top); g.fillStyle = '#ffd98a'; g.fillText(v.n || 'NPC', x, top); } }
+      g.font = 'bold ' + Math.max(9, 10 / s) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineWidth = 3 / s; g.strokeStyle = '#000c'; const nm = (v.bo ? '🎯 ' : '') + (v.n || 'NPC'); g.strokeText(nm, x, top); g.fillStyle = '#ffd98a'; g.fillText(nm, x, top); } }
   /* ---------- missões (SQL 19): nome + passos (o que aparece no diário do jogador). Progresso: 0 = não começou, 1..N = passo, 999 = concluída ---------- */
   async function carregarMis() { try { E.missoes = (await P.api('/rest/v1/missoes?select=*&order=nome.asc')) || []; E.misErro = ''; } catch (e) { E.missoes = []; E.misErro = /missoes|PGRST205|42P01/.test(e.message + e.code) ? 'O banco ainda não tem as missões: rode o arquivo sql/19_missoes.sql no Supabase.' : P.erroTexto(e); } return E.missoes; }
   function abrirMissoes() { return new Promise(async ok => { const ov = document.createElement('div'); ov.className = 'escChegada'; ov.id = 'missoesTela';
@@ -720,7 +720,7 @@
     if (apagar) { if (i >= 0) { mudar(q => { q.npcs.splice(i, 1); }, 'nada'); toast('NPC apagado (↶ desfaz)'); if (E.aba === 'pintura') painel('pintura'); } return; }
     const a0 = (v && v.a) || { t: 'ninja', s: 0, h: 0, c: 1 }, mv0 = v && v.mv;
     const st = { t: a0.t === 'img' ? 'img' : 'ninja', s: a0.s | 0, h: a0.h | 0, c: a0.c | 0, fl: !!a0.fl, k: a0.k || '', e: a0.e > 0 ? a0.e : 0,
-      q: Array.isArray(a0.q) && a0.q.length > 1 ? a0.q.slice() : [], qc: Array.isArray(a0.qc) ? a0.qc.slice() : [], qb: Array.isArray(a0.qb) ? a0.qb.slice() : [], lq: 'q', rt: v ? v.rt : undefined, pg: v && Array.isArray(v.pg) ? JSON.parse(JSON.stringify(v.pg)).map((g, gi) => Object.assign({ id: 'p' + (gi + 1) }, g)) : [], ch: v && Array.isArray(v.ch) ? JSON.parse(JSON.stringify(v.ch)) : [], ms: a0.ms || 125, qa: a0.qa === 'andando' ? 'andando' : 'sempre', oe: !!a0.oe, mv: mv0 ? 1 : 0, r: (mv0 && mv0.r) || 3, v: (mv0 && mv0.v) || 2 };
+      q: Array.isArray(a0.q) && a0.q.length > 1 ? a0.q.slice() : [], qc: Array.isArray(a0.qc) ? a0.qc.slice() : [], qb: Array.isArray(a0.qb) ? a0.qb.slice() : [], qh: Array.isArray(a0.qh) ? a0.qh.slice() : [], bo: !!(v && v.bo), lq: 'q', rt: v ? v.rt : undefined, pg: v && Array.isArray(v.pg) ? JSON.parse(JSON.stringify(v.pg)).map((g, gi) => Object.assign({ id: 'p' + (gi + 1) }, g)) : [], ch: v && Array.isArray(v.ch) ? JSON.parse(JSON.stringify(v.ch)) : [], ms: a0.ms || 125, qa: a0.qa === 'andando' ? 'andando' : 'sempre', oe: !!a0.oe, mv: mv0 ? 1 : 0, r: (mv0 && mv0.r) || 3, v: (mv0 && mv0.v) || 2 };
     const imgs = Object.keys(R.RC).map(k => [k, R.RC[k].nome]).concat((E.lib && E.lib.imagens || []).map(i => [i.id, i.nome || i.id]));
     const sw = g => PAL[g].map((c, j) => `<button data-sw="${g}" data-v="${j}" aria-pressed="${st[g] === j}" style="width:38px;height:38px;border-radius:8px;background:${c};border:3px solid ${st[g] === j ? '#ff9a3c' : '#0006'}"></button>`).join('');
     const r = await dlg(v ? 'NPC ' + (v.n || '') + ' (' + x + ', ' + y + ')' : 'Novo NPC em (' + x + ', ' + y + ')', `<label class="lbl">Nome</label><input id="npN" maxlength="24" value="${esc(v ? v.n || '' : '')}" placeholder="Ex.: Hokage">
@@ -729,8 +729,8 @@
       <div id="npImg" ${st.t === 'img' ? '' : 'hidden'}>${imgs.length ? `<select id="npK">${imgs.map(([k, n]) => `<option value="${esc(k)}" ${k === st.k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
         <label class="lbl" style="margin-top:6px">Tamanho no mapa</label><div class="presets"><button data-npe="auto">Altura de um personagem</button><button data-npe="1">Tamanho do arquivo</button><button data-npe="m">Outro…</button></div>
         <div class="linha" id="npEL" hidden><input id="npE" type="number" min="5" max="800" step="5" style="width:90px"><span class="mudo">% do arquivo</span></div>
-        <label class="chk"><input type="checkbox" id="npAn" ${st.q.length > 1 || st.qc.length || st.qb.length ? 'checked' : ''}> 🎞 Animação (sequência de quadros)</label>
-        <div id="npAnB" ${st.q.length > 1 || st.qc.length || st.qb.length ? '' : 'hidden'}><div class="presets"><button data-lq="q">↔ De lado</button><button data-lq="qc">↑ Andando para cima</button><button data-lq="qb">↓ Andando para baixo</button></div>
+        <label class="chk"><input type="checkbox" id="npAn" ${st.q.length > 1 || st.qc.length || st.qb.length || st.qh.length ? 'checked' : ''}> 🎞 Animação (sequência de quadros)</label>
+        <div id="npAnB" ${st.q.length > 1 || st.qc.length || st.qb.length || st.qh.length ? '' : 'hidden'}><div class="presets"><button data-lq="q">↔ De lado</button><button data-lq="qc">↑ Andando para cima</button><button data-lq="qb">↓ Andando para baixo</button><button data-lq="qh">💥 Ao apanhar</button></div>
           <p class="mudo" id="npQDica"></p><div class="grade-obj" id="npQ"></div>
           <button class="btn peq" id="npQAdd" style="width:100%;margin-top:6px">+ Adicionar quadros</button><div class="grade-obj" id="npQPick" hidden></div>
           <label class="lbl" style="margin-top:6px">Velocidade: <b id="npVv"></b> quadros por segundo</label><input type="range" id="npV" min="1" max="20" style="width:100%;height:40px">
@@ -738,6 +738,7 @@
         <canvas id="npPrev" width="200" height="130" style="display:block;margin:6px auto;background:#3d6b3a;border-radius:8px"></canvas><p class="mudo" id="npInfo" style="text-align:center"></p>
         <button class="btn peq" id="npRec" style="width:100%;white-space:normal;height:auto;padding:8px">✂ Usar só uma parte da imagem (recortar na Biblioteca)</button>` : '<p class="mudo">Nenhuma imagem na biblioteca ainda (Biblioteca → recurso → Recortes).</p>'}</div>
       <label class="chk"><input type="checkbox" id="npFl" ${st.fl ? 'checked' : ''}> ↔ Espelhar (virar para o outro lado)</label>
+      <label class="chk"><input type="checkbox" id="npBo" ${st.bo ? 'checked' : ''}> 🎯 Boneco de treino (os golpes acertam ele, mostram o dano e treinam Taijutsu/Ninjutsu/Genjutsu/Bukijutsu pela metade)</label>
       <label class="lbl" style="margin-top:8px">Movimento</label><div class="presets"><button data-mv="0">🧍 Parado</button><button data-mv="1">🚶 Anda por perto</button></div>
       <div id="npMvB" ${st.mv ? '' : 'hidden'}><label class="lbl">Distância máxima da posição: <b id="npRv"></b> tile(s)</label><input type="range" id="npR" min="1" max="10" style="width:100%;height:40px">
         <div class="presets"><button data-mvv="1">Devagar</button><button data-mvv="2">Normal</button><button data-mvv="3">Rápido</button></div>
@@ -755,7 +756,7 @@
         const $c = q => c.querySelector(q), marca = (sel, f) => c.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', f(b)));
         // quadros: a sequência (st.q) e o catálogo para escolher (recortes do mesmo recurso primeiro)
         const quadros = () => { const Q = $c('#npQ'); if (!Q) return; const Lq = st[st.lq]; marca('[data-lq]', b => b.dataset.lq === st.lq);
-          $c('#npQDica').textContent = st.lq === 'q' ? 'Quadros na ordem em que tocam (o 1º é o NPC parado). Toque num quadro para tirar.' : 'Opcional: quadros usados quando o NPC anda para ' + (st.lq === 'qc' ? 'cima' : 'baixo') + ' (o 1º é ele parado olhando para lá). Vazio = usa os de lado.';
+          $c('#npQDica').textContent = st.lq === 'q' ? 'Quadros na ordem em que tocam (o 1º é o NPC parado). Toque num quadro para tirar.' : st.lq === 'qh' ? 'Boneco de treino: quadros tocados uma vez (meio segundo) quando ele é acertado. Vazio = ele só treme.' : 'Opcional: quadros usados quando o NPC anda para ' + (st.lq === 'qc' ? 'cima' : 'baixo') + ' (o 1º é ele parado olhando para lá). Vazio = usa os de lado.';
           Q.innerHTML = Lq.map((k, j) => `<button class="obj" data-qi="${j}" aria-label="Tirar quadro ${j + 1}"><canvas width="64" height="64"></canvas><small>${j + 1}${j ? '' : ' · parado'}</small></button>`).join('') || '<p class="mudo">Nenhum quadro.</p>';
           Q.querySelectorAll('[data-qi]').forEach(b => { miniatura(b.querySelector('canvas'), Lq[+b.dataset.qi]); b.onclick = () => { Lq.splice(+b.dataset.qi, 1); if (st.lq === 'q') { if (!st.q.length) st.q = [st.k]; st.k = st.q[0]; } quadros(); prev(); }; }); };
         const catalogoQ = () => { const P2 = $c('#npQPick'), rec = R.RC[st.k] && R.RC[st.k].rec, L2 = imgs.map(x => x[0]).sort((a, b) => ((R.RC[b] && R.RC[b].rec === rec) ? 1 : 0) - ((R.RC[a] && R.RC[a].rec === rec) ? 1 : 0));
@@ -804,11 +805,11 @@
       mudar(q => { q.npcs.push(cp); }, 'nada'); toast('Cópia em (' + p[0] + ', ' + p[1] + '): arraste com ✋ Mover para posicionar'); if (E.aba === 'pintura') painel('pintura'); return; }
     let id = v && v.id; if (!id) { let n = 1; while (L.some(q => q.id === 'n' + n)) n++; id = 'n' + n; }
     const anOn = $('#npAn') && $('#npAn').checked && st.q.length > 1, a = st.t === 'img' && st.k ? { t: 'img', k: anOn ? st.q[0] : st.k } : { t: 'ninja', s: st.s, h: st.h, c: st.c };
-    const anOn2 = $('#npAn') && $('#npAn').checked && (st.qc.length || st.qb.length);
-    if (a.t === 'img') { if (st.e > 0) a.e = +st.e.toFixed(3); if (anOn) a.q = st.q.slice(0, 24); if (anOn2) { if (st.qc.length) a.qc = st.qc.slice(0, 24); if (st.qb.length) a.qb = st.qb.slice(0, 24); } if (anOn || anOn2) { a.ms = st.ms; if (st.qa === 'andando') a.qa = 'andando'; } if (st.mv && $('#npOe').checked) a.oe = 1; }
+    const anOn2 = $('#npAn') && $('#npAn').checked && (st.qc.length || st.qb.length), anH = $('#npAn') && $('#npAn').checked && st.qh.length;
+    if (a.t === 'img') { if (st.e > 0) a.e = +st.e.toFixed(3); if (anOn) a.q = st.q.slice(0, 24); if (anOn2) { if (st.qc.length) a.qc = st.qc.slice(0, 24); if (st.qb.length) a.qb = st.qb.slice(0, 24); } if (anH) a.qh = st.qh.slice(0, 24); if (anOn || anOn2) { a.ms = st.ms; if (st.qa === 'andando') a.qa = 'andando'; } if (st.mv && $('#npOe').checked) a.oe = 1; }
     if ($('#npFl').checked) a.fl = 1;
     const nv = { id, n: $('#npN').value.trim().slice(0, 24), x, y, a, f: $('#npF').value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 20).map(s => s.slice(0, 300)) };
-    if (st.mv) nv.mv = { r: st.r, v: st.v }; if (!$('#npB').checked) nv.b = 0; if (st.rt === 0 || typeof st.rt === 'string') nv.rt = st.rt;
+    if (st.mv) nv.mv = { r: st.r, v: st.v }; if (!$('#npB').checked) nv.b = 0; if ($('#npBo').checked) nv.bo = 1; if (st.rt === 0 || typeof st.rt === 'string') nv.rt = st.rt;
     const fazOk = A => (A || []).filter(x => (x.t !== 'mis' || x.q) && (x.t !== 'tp' || x.m)), chOk = C => (C || []).map(e => ({ txt: (e.txt || '').trim() || '…', f: (e.f || []).filter(Boolean), faz: fazOk(e.faz) }));
     const pg = st.pg.map(g => Object.assign({ id: g.id, se: g.se.filter(k => k.t !== 'mis' || k.q), f: (g.f || []).filter(Boolean), faz: fazOk(g.faz) }, (g.ch || []).length ? { ch: chOk(g.ch) } : {})); if (pg.length) nv.pg = pg; if (st.ch.length) nv.ch = chOk(st.ch);
     mudar(q => { q.npcs = q.npcs || []; const j = q.npcs.findIndex(e => e.x === x && e.y === y); if (j >= 0) q.npcs[j] = nv; else q.npcs.push(nv); }, 'nada');

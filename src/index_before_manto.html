@@ -244,7 +244,8 @@ function applyMap(m){
 {const h=(location.hash||'').slice(1);CURMAP=MAPS[h]?h:(MAPS.konoha?'konoha':Object.keys(MAPS)[0]);applyMap(MAPS[CURMAP])}
 //MAPS-END
 const sol=(x,y)=>{const tx=x/T|0,ty=y/T|0;if(scene){if(x<0||y<0||tx>=50||ty>=50)return 1;const v=SM[ty*50+tx];return v==1||v==2}if(x<0||y<0||tx>=N||ty>=NH)return 1;const v=M[ty*N+tx];return v==1||v==2};
-const blk=(x,y)=>sol(x-7,y-3)||sol(x+7,y-3)||sol(x-7,y+3)||sol(x+7,y+3);
+const npm=(x,y)=>{if(scene)return 0;const tx=x/T|0,ty=y/T|0;return tx>=0&&ty>=0&&tx<N&&ty<NH&&M[ty*N+tx]==4}; // 4 = NPC: bloqueia quem anda, não os golpes
+const blk=(x,y)=>sol(x-7,y-3)||sol(x+7,y-3)||sol(x-7,y+3)||sol(x+7,y+3)||npm(x-7,y-3)||npm(x+7,y-3)||npm(x-7,y+3)||npm(x+7,y+3);
 // ---------- Sala do Hokage (interior, teleporte pela porta da torre) ----------
 let scene=0,RC=null;
 const SM=new Uint8Array(50*50).fill(1); // a sala é sempre 50×50
