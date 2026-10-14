@@ -224,7 +224,8 @@
           <input id="obBusca" type="search" placeholder="Pesquisar objeto" value="${esc(E.busca || '')}" autocomplete="off">
           <label class="lbl">Colocar como</label><div class="presets">${[['auto', 'Automático'], ['objeto', '🏠 Objeto'], ['chao', '🟫 Chão'], ['acima', '☁️ Por cima']].map(([v, t]) => `<button data-om="${v}" aria-pressed="${(E.objModo || 'auto') === v}">${t}</button>`).join('')}</div>
           <p class="mudo">${{ auto: 'Usa o “Como usar no mapa” de cada recorte (Biblioteca → recurso → Recortes). Sem isso, é objeto.', objeto: 'Objeto: o personagem passa na frente ou atrás, conforme a base.', chao: 'Chão: fica sempre por baixo do personagem e sem colisão (piso, tapete, sombra, mancha).', acima: 'Por cima: fica sempre na frente do personagem (copa, telhado, nuvem).' }[E.objModo || 'auto']}</p>
-          <label class="chk"><input type="checkbox" id="obEnc" ${E.encaixarObj !== false ? 'checked' : ''}> Encaixar no tile (centro do tile, base na linha de baixo)</label>
+          <label class="chk"><input type="checkbox" id="obEnc" ${E.encaixarObj !== false ? 'checked' : ''}> Encaixar na grade de tiles</label>
+          <label class="chk"><input type="checkbox" id="obIma" ${E.imaObj !== false ? 'checked' : ''}> 🧲 Grudar nos vizinhos (cola um sprite colado no outro, sem vão)</label>
           <p class="mudo">${s ? 'Escolhido: <b>' + esc(nomeObj(s)) + '</b>. ✏️ Pincel: toque/arraste e solte no mapa para colocar. ⬚ Seleção: toque num objeto para escolher e arraste para mover.' : 'Escolha um objeto abaixo.'}${ab === 'bib' && !L.length ? ' Nenhum recorte na biblioteca ainda (Biblioteca → recurso → Recortes).' : ''}</p>
           <div class="grade-obj">${L.map(x => `<button class="obj" data-ob="${esc(x.k)}" aria-pressed="${x.k === s}"><canvas width="64" height="64"></canvas><small>${esc(x.n)}</small></button>`).join('')}</div>`; }
       else if (k === 'regioes') h += `<p class="mudo">Áreas de mobs, regiões e saídas chegam na Fase 5. Por enquanto esta camada só pode ser mostrada/escondida e bloqueada.</p>`;
@@ -278,7 +279,7 @@
       C.querySelectorAll('[data-om]').forEach(b => b.onclick = () => { E.objModo = b.dataset.om; painel('pintura'); });
       if ($('#irObj')) $('#irObj').onclick = () => { ativar('objetos'); E.catAba = 'bib'; if (!['pincel', 'sel', 'borracha'].includes(E.ferr)) ferramenta('pincel'); painel('pintura'); };
       if ($('#obBusca')) { $('#obBusca').oninput = e => { E.busca = e.target.value; clearTimeout(E.bT); E.bT = setTimeout(() => { painel('pintura'); const x = $('#obBusca'); if (x) { x.focus(); x.setSelectionRange(x.value.length, x.value.length); } }, 350); };
-        $('#obEnc').onchange = e => { E.encaixarObj = e.target.checked; };
+        $('#obEnc').onchange = e => { E.encaixarObj = e.target.checked; }; $('#obIma').onchange = e => { E.imaObj = e.target.checked; };
         C.querySelectorAll('[data-ob]').forEach(b => { miniatura(b.querySelector('canvas'), b.dataset.ob); b.onclick = () => { E.tinta.obj = b.dataset.ob; if (E.ferr !== 'pincel') ferramenta('pincel'); painel('pintura'); }; }); }
       C.querySelectorAll('[data-cj]').forEach(b => b.onclick = () => { const c = E.conj.find(x => x.id === b.dataset.cj); if (!c) return; E.colarClip = c.dados; ferramenta('colar'); toast('Carimbo “' + c.nome + '”: toque no mapa'); }); }
     if (a === 'objeto' && E.objSel && m.objetos.indexOf(E.objSel) >= 0) { const o = E.objSel, re = () => painel('objeto');
@@ -433,14 +434,14 @@
     desenhar(); return t; }
   function moveFerr(p) { const t = E.traco; if (!t) return; const w = mundo(p); E.mira = w;
     if (t.obj && t.f !== 'sel') { desenhar(); return; }
-    if (t.objMov) { const q = t.objMov, nx = q.x * T + (w.x - q.w0.x), ny = q.y * T + (w.y - q.w0.y); if (E.encaixarObj !== false) { q.o.x = clamp(Math.floor(nx / T) + .5, 0, E.m.W - .01); q.o.y = clamp(Math.round(ny / T), 1, E.m.H); } else { q.o.x = clamp(Math.round(nx) / T, 0, E.m.W - .01); q.o.y = clamp(Math.round(ny) / T, .03, E.m.H); } t.mudou = q.o.x !== q.x || q.o.y !== q.y; E.cache.M = null; barraObj(); desenhar(); return; }
+    if (t.objMov) { const q = t.objMov, nx = q.x * T + (w.x - q.w0.x), ny = q.y * T + (w.y - q.w0.y); encaixe(q.o, nx, ny, true); t.mudou = q.o.x !== q.x || q.o.y !== q.y; E.cache.M = null; barraObj(); desenhar(); return; }
     if (t.parado) return;
     if (t.f === 'pincel' || t.f === 'borracha') traco(w);
     else if (t.f === 'ret') t.b = w;
     else if (t.f === 'sel') { const [x, y] = cel(w); if (t.mover) { t.mover.dx = x - t.mover.x0; t.mover.dy = y - t.mover.y0; } else if (t.selA) { const a = t.selA, X = clamp(x, 0, E.m.W - 1), Y = clamp(y, 0, E.m.H - 1); E.sel = { x: Math.min(a[0], X), y: Math.min(a[1], Y), w: Math.abs(X - a[0]) + 1, h: Math.abs(Y - a[1]) + 1 }; } }
     desenhar(); }
   function fimFerr(p, moveu) { const t = E.traco; E.traco = null; if (!t) return; const m = E.m, w = mundo(p), ti = tsInfo();
-    if (t.obj && t.f === 'pincel') { const o = novoObj(E.tinta.obj, snapObj(w)); E.m.objetos.push(o); t.mudou = true; E.cache.M = null; }
+    if (t.obj && t.f === 'pincel') { const o = novoObj(E.tinta.obj, w); E.m.objetos.push(o); t.mudou = true; E.cache.M = null; }
     else if (t.obj && t.f === 'borracha') { if (!moveu) { const L = objetosEm(w).filter(o => !Ferr.objOp(o).tv); if (L.length) { E.m.objetos.splice(E.m.objetos.indexOf(L[0]), 1); t.mudou = true; E.cache.M = null; if (E.objSel === L[0]) selObj(null); } else if (objetosEm(w).length) toast('Objeto bloqueado'); } }
     else if (t.objMov || t.parado) { }
     else if (t.f === 'ret') { const b = t.b || w; if (E.ativa === 'terreno' || E.ativa === 'colisao') { const k = E.ativa, n = Ferr.retGrade(m, cel(t.a), cel(b), E.contorno, (x, y) => k === 'terreno' ? !!Ferr.terreno(m, x, y, E.tinta.terreno) : Ferr.colisao(m, x, y, E.tinta.col)); if (n) { t.mudou = true; E.cache.chao = null; } }
@@ -473,7 +474,7 @@
       if (E.ativa === 'objetos' && !Ferr.objOp(o).tv && !E.reg.base) { const h = alcasObj(o), w2 = p => [(p[0] - E.ox) / s, (p[1] - E.oy) / s], g = w2(h.gira), t2 = w2(h.topo), e2 = w2(h.esc);
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 / s; ctx.beginPath(); ctx.moveTo(t2[0], t2[1]); ctx.lineTo(g[0], g[1]); ctx.stroke();
         for (const [pp, txt] of [[g, '⟳'], [e2, '⤡']]) { ctx.fillStyle = '#ff9a3c'; ctx.beginPath(); ctx.arc(pp[0], pp[1], 13 / s, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#1a1206'; ctx.font = 'bold ' + (15 / s) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, pp[0], pp[1] + 1 / s); } } }
-    if (w && E.ativa === 'objetos' && E.ferr === 'pincel' && E.tinta.obj) { const q = snapObj(w), o = novoObj(E.tinta.obj, q), it = R.listaObjetos(J, { objetos: [o] }); ctx.globalAlpha = .65; for (const x of it) x.d(ctx); ctx.globalAlpha = 1;
+    if (w && E.ativa === 'objetos' && E.ferr === 'pincel' && E.tinta.obj) { const o = novoObj(E.tinta.obj, w), it = R.listaObjetos(J, { objetos: [o] }); ctx.globalAlpha = .65; for (const x of it) x.d(ctx); ctx.globalAlpha = 1;
       ctx.fillStyle = 'rgba(230,40,60,.3)'; for (const [dx, dy] of celulasObj(o)) ctx.fillRect((Math.floor(o.x) + dx) * T, (Ferr.baseLin(o) + dy) * T, T, T); ctx.fillStyle = '#2f8cff'; ctx.beginPath(); ctx.arc(o.x * T, o.y * T, 4 / s + 2, 0, 7); ctx.fill(); }
     else if (w && E.ferr === 'colar' && E.colarClip) { const [x, y] = cel(w), c = E.colarClip; ctx.globalAlpha = .65; desenhaClip(c, x * T, y * T); ctx.globalAlpha = 1; ctx.strokeStyle = '#38d6ff'; ctx.strokeRect(x * T, y * T, c.w * T, c.h * T); }
     else if (w && !t && E.ativa !== 'objetos' && (E.ferr === 'pincel' || E.ferr === 'balde' || E.ferr === 'ret')) { if (!FIXAS[E.ativa] && E.tinta.tile) { const st = E.tinta.tile, inf = tsInfo()[st.id], ts = R.TSI[st.id]; if (inf) { const x = Math.floor(w.x / inf.tw) * inf.tw, y = Math.floor(w.y / inf.th) * inf.th;
@@ -546,13 +547,25 @@
   /* ---------- objetos e estruturas no mapa (Fase 4) ---------- */
   // nome legível do objeto (recorte da biblioteca, imagem do editor antigo ou catálogo do jogo)
   function nomeObj(k) { if (R.RC[k]) return R.RC[k].nome; const c = J.CAT.find(x => x[0] === k); if (c) return c[1]; const i = E.lib.imagens.find(x => x.id === k); return i ? (i.nome || k) : k; }
-  function snapObj(w) { const m = E.m; let x, y; if (E.encaixarObj !== false) { x = Math.floor(w.x / T) + .5; y = Math.floor(w.y / T) + 1; } else { x = Math.round(w.x) / T; y = Math.round(w.y) / T; }
-    return { x: clamp(x, 0, m.W - .01), y: clamp(y, .03, m.H) }; }
+  /* encaixe do objeto (âncora em px do mapa): grade de tiles (centro do tile, base na linha) e ímã nos vizinhos.
+     Ímã: se uma borda do desenho chega perto da borda de outro objeto, cola nela (lado a lado, em cima/embaixo, ou alinhado),
+     sem vão e sem sobrepor; vale por eixo, o eixo sem vizinho perto segue a grade. */
+  function encaixe(o, nx, ny, arrasto) { const m = E.m, enc = E.encaixarObj !== false;
+    let x = enc ? Math.floor(nx / T) + .5 : Math.round(nx) / T, y = enc ? (arrasto ? Math.round(ny / T) : Math.floor(ny / T) + 1) : Math.round(ny) / T;
+    if (E.imaObj !== false) { o.x = nx / T; o.y = ny / T; const d = ima(o); if (d.x != null) x = o.x + d.x / T; if (d.y != null) y = o.y + d.y / T; }
+    o.x = +clamp(x, 0, m.W - .01).toFixed(4); o.y = +clamp(y, .03, m.H).toFixed(4); return o; }
+  function ima(o) { const r = { x: null, y: null }; let b; try { b = R.caixa(J, o); } catch (e) { return r; } if (!b || !Number.isFinite(b.x0)) return r;
+    const th = Math.min(T, Math.max(8, 18 / (E.s || 1))); let bx = th + 1, by = th + 1;
+    for (const p of E.m.objetos) { if (p === o) continue; let c; try { c = R.caixa(J, p); } catch (e) { continue; } if (!c || !Number.isFinite(c.x0)) continue;
+      const juntoY = b.y0 < c.y1 + th && b.y1 > c.y0 - th, juntoX = b.x0 < c.x1 + th && b.x1 > c.x0 - th;
+      if (juntoY) for (const d of [c.x1 - b.x0, c.x0 - b.x1, c.x0 - b.x0, c.x1 - b.x1]) if (Math.abs(d) < bx) { bx = Math.abs(d); r.x = d; }
+      if (juntoX) for (const d of [c.y1 - b.y0, c.y0 - b.y1, c.y0 - b.y0, c.y1 - b.y1]) if (Math.abs(d) < by) { by = Math.abs(d); r.y = d; } }
+    return r; }
   // colisão padrão ao colocar: recorte = células definidas no recurso; outros = regra antiga (pegada do catálogo)
   // “Colocar como” (E.objModo): auto = o que o recorte diz na biblioteca; chao = sempre por baixo do personagem e sem colisão; acima = sempre por cima
   function usoObj(k) { const md = E.objModo || 'auto', rc = R.RC[k]; return md === 'auto' ? (rc && rc.uso) || '' : md === 'objeto' ? '' : md; }
-  function novoObj(k, p) { const o = { k, x: +p.x.toFixed(4), y: +p.y.toFixed(4), f: [] }, rc = R.RC[k], u = usoObj(k);
-    if (rc || u) { const ns = u === 'chao' ? 1 : rc ? rc.ns : 0; Ferr.objF(o, ns, ns || !rc ? null : rc.col, u ? { z: u } : null); } return o; }
+  function novoObj(k, w) { const o = { k, x: 0, y: 0, f: [] }, rc = R.RC[k], u = usoObj(k);
+    if (rc || u) { const ns = u === 'chao' ? 1 : rc ? rc.ns : 0; Ferr.objF(o, ns, ns || !rc ? null : rc.col, u ? { z: u } : null); } return encaixe(o, w.x, w.y); }
   // objeto de cima no ponto (px do mapa), na mesma ordem em que é desenhado
   function objetosEm(w) { const m = E.m, L = []; m.objetos.forEach((o, n) => { const b = R.caixa(J, o); if (w.x >= b.x0 && w.x <= b.x1 && w.y >= b.y0 && w.y <= b.y1) L.push(o); });
     const ord = o => { const q = R.opc(o); return q.z === 'chao' ? o.y - 1e9 : q.z === 'acima' ? 1e9 : o.y * T + (q.b || 0); }; return L.sort((a, b) => ord(b) - ord(a) || m.objetos.indexOf(b) - m.objetos.indexOf(a)); }
@@ -646,6 +659,6 @@
     for (const r of rg) if (R.TSI[r.id]) R.TSI[r.id].arq = r.arquivo + JSON.stringify(r);
     carregarConj(); }
   window.UI = { dlg, aviso, toast, esc, hora, telaEditor: () => { $('#inicio').hidden = true; $('#editor').hidden = !E.m; if (!E.m) inicio(); else { carregarLib(); tamanhoCv(); desenhar(); } }, inicio, carregarLib };
-  E.api = { selObj, objetosEm, snapObj, acaoObj, ferramenta, ativar, libTs, tsInfo, escolheTile: (id, c0, r0, c1, r1) => escolheTile(libTs().find(t => t.id === id), c0, r0, c1 == null ? c0 : c1, r1 == null ? r0 : r1), carregarLib, acaoSel, novo, abrir, abrirLocal, abrirSrv, salvar, publicar, redimensionar, desfazer, refazer, mudar, ajustar, zoomEm, inicio, sairEditor };
+  E.api = { selObj, objetosEm, encaixe, ima, acaoObj, ferramenta, ativar, libTs, tsInfo, escolheTile: (id, c0, r0, c1, r1) => escolheTile(libTs().find(t => t.id === id), c0, r0, c1 == null ? c0 : c1, r1 == null ? r0 : r1), carregarLib, acaoSel, novo, abrir, abrirLocal, abrirSrv, salvar, publicar, redimensionar, desfazer, refazer, mudar, ajustar, zoomEm, inicio, sairEditor };
   R.carregar(J).then(() => { carregarLib(); inicio(); E.pronto = true; });
 })();

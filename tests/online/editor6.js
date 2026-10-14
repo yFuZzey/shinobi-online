@@ -18,7 +18,7 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  // spritesheet com 1 recorte (tapete 64×64) — sem “como usar” ainda
  const rid=await ev(async suf=>{const c=document.createElement('canvas');c.width=64;c.height=64;const g=c.getContext('2d');g.fillStyle='rgb(150,90,30)';g.fillRect(0,0,64,64);
    const bl=await new Promise(ok=>c.toBlob(ok,'image/png')),sha=await Recursos.sha12(await bl.arrayBuffer()),o='originais/'+sha+'.png';await Recursos.subir(o,bl,'image/png');
-   return (await Recursos.criar({id:'r_piso_'+suf,nome:'Piso '+suf,tipo:'spritesheet',categoria:'',colecao:'',original:o,arquivo:o,w:64,h:64,fundo:null,grade:null,recortes:[{id:'c1',nome:'Tapete',cat:'',x:0,y:0,w:64,h:64}],meta:{}})).id},suf);
+   return (await Recursos.criar({id:'r_piso_'+suf,nome:'Piso '+suf,tipo:'spritesheet',categoria:'',colecao:'',original:o,arquivo:o,w:64,h:64,fundo:null,grade:null,recortes:[{id:'c1',nome:'Tapete',cat:'',x:0,y:0,w:64,h:64},{id:'c2',nome:'Pedra',cat:'',x:0,y:0,w:40,h:40,ns:true}],meta:{}})).id},suf);
  await P.click('#abreBib');await W(800);await P.click('#bbLista .rec:has-text("Piso '+suf+'")');await D('Abrir');await P.waitForFunction(()=>BIB.RS.r&&BIB.RS.r.id,null,{timeout:10000});await W(300);
  await ev(()=>BIB.api.abaRc('recortes',true));await P.click('.lrec:has-text("Tapete")');await W(200);
  ok(await ev(()=>document.querySelectorAll('[data-uso]').length===3),'recorte: opções “Como usar no mapa” (Objeto / Chão / Por cima)');
@@ -35,6 +35,14 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  const k=rid+'.c1';await P.click('[data-ob="'+k+'"]');await P.click('#pnX');await W(150);await ev(()=>{EDITOR.s=1;EDITOR.ox=10;EDITOR.oy=40});await W(80);
  await tap(await tela(5*32+10,5*32+20));let ob=await ev(()=>EDITOR.m.objetos.map(o=>o.f));
  ok(ob.length===1&&JSON.stringify(ob[0])==='[1,null,{"z":"chao"}]','Automático: o recorte “Chão” entra por baixo do personagem e sem colisão: '+JSON.stringify(ob[0]));
+ // ímã: uma pedra de 40 px solta a 5 px do tapete cola na borda dele (sem vão), com a base alinhada
+ const im=await ev(k=>{const o={k,x:0,y:0,f:[1]};EDITOR.api.encaixe(o,208+20+5,190);return[o.x,o.y]},rid+'.c2');ok(im[0]===7.125&&im[1]===6,'ímã: sprite cola no vizinho sem vão: '+JSON.stringify(im));
+ const im2=await ev(k=>{const o={k,x:0,y:0,f:[1]};EDITOR.api.encaixe(o,400,300);return[o.x,o.y]},rid+'.c2');ok(im2[0]===12.5&&im2[1]===10,'longe dos vizinhos segue a grade: '+JSON.stringify(im2));
+ // bordas rosadas: quadrado vermelho com anel antisserrilhado rosa sobre magenta
+ const br=await ev(()=>{const W=12,d=new ImageData(W,W);for(let y=0;y<W;y++)for(let x=0;x<W;x++){const p=(y*W+x)*4,inn=x>=4&&x<8&&y>=4&&y<8,anel=x>=3&&x<9&&y>=3&&y<9;const c=inn?[200,40,40]:anel?[228,20,150]:[255,0,255];d.data.set([...c,255],p)}
+   const r=Recursos.removerFundo(d,{cor:[255,0,255],tol:24,modo:'borda'}),a=r.dados.data;let rosa=0,verm=0;for(let p=0;p<a.length;p+=4)if(a[p+3]){if(Math.min(a[p],a[p+2])>a[p+1]+20)rosa++;if(a[p]===200&&a[p+1]===40)verm++}
+   const r0=Recursos.removerFundo(d,{cor:[255,0,255],tol:24,modo:'borda',borda:0}),b=r0.dados.data;let rosa0=0;for(let p=0;p<b.length;p+=4)if(b[p+3]&&Math.min(b[p],b[p+2])>b[p+1]+20)rosa0++;return{rosa,verm,rosa0}});
+ ok(br.rosa0>0&&br.rosa===0&&br.verm===16,'limpar bordas: some o rosa da borda e o miolo fica igual '+JSON.stringify(br));
  // “Colocar como: Por cima” vence o automático
  await P.click('[data-aba="pintura"]');await W(300);await P.click('[data-om="acima"]');await W(100);await P.click('#pnX');await W(150);
  await tap(await tela(10*32+10,8*32+20));ob=await ev(()=>EDITOR.m.objetos.map(o=>o.f));ok(ob.length===2&&ob[1][2]&&ob[1][2].z==='acima','Colocar como “Por cima”');

@@ -67,7 +67,22 @@
       const push = (x, y) => { const i = y * W + x; if (seen[i]) return; seen[i] = 1; if (a[i * 4 + 3] === 0 || perto(i)) q[t++] = i; };
       for (let x = 0; x < W; x++) { push(x, 0); push(x, H - 1); } for (let y = 0; y < H; y++) { push(0, y); push(W - 1, y); }
       while (h < t) { const i = q[h++], x = i % W, y = i / W | 0; if (a[i * 4 + 3] !== 0) { a[i * 4 + 3] = 0; n++; } if (x > 0) push(x - 1, y); if (x < W - 1) push(x + 1, y); if (y > 0) push(x, y - 1); if (y < H - 1) push(x, y + 1); } }
-    return { dados: out, removidos: n }; }
+    return Object.assign({ dados: out, removidos: n }, limparBordas(out, f)); }
+  /* bordas rosadas: os pixels da borda do desenho costumam ser uma mistura da arte com a cor do fundo (antisserrilhado).
+     Para cada anel de pixels encostados no que foi removido (f.borda anéis; padrão 2): se ainda é quase a cor do fundo, sai;
+     senão tira o “vazamento” da cor do fundo (ex.: magenta → tira o excesso de vermelho+azul sobre o verde). Pixels internos não mudam. */
+  function limparBordas(out, f) { const W = out.width, H = out.height, a = out.data, an = f.borda == null ? 2 : Math.max(0, Math.min(3, f.borda | 0)); if (!an) return { bordas: 0 };
+    const k = f.cor, hi = [0, 1, 2].filter(c => k[c] > 128), lo = [0, 1, 2].filter(c => k[c] <= 128), t2 = Math.min(160, f.tol * 2.5 + 20) ** 2;
+    let fora = new Uint8Array(W * H), nb = 0; for (let i = 0; i < W * H; i++) if (a[i * 4 + 3] === 0) fora[i] = 1;
+    for (let r = 0; r < an; r++) { const prox = new Uint8Array(fora);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * W + x; if (fora[i]) continue; let viz = false;
+        for (let dy = -1; dy <= 1 && !viz; dy++) for (let dx = -1; dx <= 1; dx++) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < W && Y < H && fora[Y * W + X]) { viz = true; break; } }
+        if (!viz) continue; const p = i * 4, dr = a[p] - k[0], dg = a[p + 1] - k[1], db = a[p + 2] - k[2];
+        if (dr * dr + dg * dg + db * db <= t2) { a[p + 3] = 0; prox[i] = 1; nb++; continue; }
+        if (hi.length && lo.length) { let mh = 255, ml = 0; for (const c of hi) mh = Math.min(mh, a[p + c]); for (const c of lo) ml = Math.max(ml, a[p + c]); const v = mh - ml; if (v > 0) { for (const c of hi) a[p + c] -= v; nb++; } }
+        prox[i] = 2; }
+      for (let i = 0; i < W * H; i++) if (prox[i] === 2) prox[i] = 1; fora = prox; }
+    return { bordas: nb }; }
   const paraCanvas = d => { const c = document.createElement('canvas'); c.width = d.width; c.height = d.height; c.getContext('2d').putImageData(d, 0, 0); return c; };
   const canvasPng = c => new Promise((ok, no) => c.toBlob(b => b ? ok(b) : no(new Error('Não consegui gerar a cópia PNG.')), 'image/png'));
 

@@ -119,7 +119,9 @@
         ${f ? `<div class="linha"><span class="lbl">Cor</span><input type="color" id="rfCor" value="${Rc.hex(f.cor)}" style="width:64px"><button class="btn peq" id="rfGotas" aria-pressed="${RS.gotas}">${RS.gotas ? 'Toque na imagem…' : 'Conta-gotas'}</button><button class="btn peq" id="rfMag">Magenta</button></div>
         <div class="presets"><button data-rfm="borda" aria-pressed="${f.modo !== 'tudo'}">Só o que toca as bordas</button><button data-rfm="tudo" aria-pressed="${f.modo === 'tudo'}">Toda a imagem</button></div>
         <label class="lbl">Tolerância: <b id="rfTolV">${f.tol}</b></label><input type="range" id="rfTol" min="0" max="120" value="${f.tol}" style="height:44px">
-        <p class="mudo" id="rfInfo">${RS.removidos != null ? 'Removidos ' + RS.removidos.toLocaleString('pt-BR') + ' pixels (' + (RS.removidos / (r.w * r.h) * 100).toFixed(1) + '%).' : ''}</p>
+        <label class="lbl">Limpar bordas rosadas (pixels da borda misturados com o fundo)</label>
+        <div class="presets">${[[0, 'Desligado'], [1, '1 px'], [2, '2 px (padrão)'], [3, '3 px']].map(([v, t]) => `<button data-rfb="${v}" aria-pressed="${(f.borda == null ? 2 : f.borda) === v}">${t}</button>`).join('')}</div>
+        <p class="mudo" id="rfInfo">${RS.removidos != null ? 'Removidos ' + RS.removidos.toLocaleString('pt-BR') + ' pixels (' + (RS.removidos / (r.w * r.h) * 100).toFixed(1) + '%).' + (RS.bordas ? ' Bordas limpas: ' + RS.bordas.toLocaleString('pt-BR') + ' pixels.' : '') : ''}</p>
         <button class="btn" id="rfVolta">Voltar ao original</button>` : ''}`; }
     else if (a === 'grade') { $('#rcPnT').textContent = 'Grade (tileset)';
       const q = r.grade, my = q ? (q.my != null ? q.my : q.mg) : 0; const cr = q ? [Math.max(0, Math.floor((r.w - q.mg + q.sp) / (q.tw + q.sp))), Math.max(0, Math.floor((r.h - my + q.sp) / (q.th + q.sp)))] : null;
@@ -164,7 +166,7 @@
       if (r.fundo) { $('#rfCor').onchange = e => { const v = e.target.value; setFundo({ cor: [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)) }); };
         $('#rfMag').onclick = () => setFundo({ cor: [255, 0, 255] });
         $('#rfGotas').onclick = () => { RS.gotas = !RS.gotas; avisoGotas(); painel('fundo'); };
-        document.querySelectorAll('[data-rfm]').forEach(b => b.onclick = () => setFundo({ modo: b.dataset.rfm }));
+        document.querySelectorAll('[data-rfm]').forEach(b => b.onclick = () => setFundo({ modo: b.dataset.rfm })); document.querySelectorAll('[data-rfb]').forEach(b => b.onclick = () => setFundo({ borda: +b.dataset.rfb }));
         $('#rfTol').oninput = e => { $('#rfTolV').textContent = e.target.value; }; $('#rfTol').onchange = e => setFundo({ tol: +e.target.value });
         $('#rfVolta').onclick = () => { mudar(x => { x.fundo = null; }); refazFundo(); sincVisor(); painel('fundo'); U.toast('Voltou ao original'); }; } }
     if (a === 'grade') { $('#rgOn').onchange = e => { mudar(x => { x.grade = e.target.checked ? { tw: 32, th: 32, mg: 0, sp: 0 } : null; }); painel('grade'); };
@@ -253,7 +255,7 @@
   function prevRecorte(c) { const cv = $('#rrPrev'), src = RS.r.fundo && RS.fundoCv ? RS.fundoCv : RS.img, z = clamp(Math.floor(Math.min(300 / c.w, 160 / c.h)), 1, 16);
     cv.width = c.w * z; cv.height = c.h * z; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(src, c.x, c.y, c.w, c.h, 0, 0, c.w * z, c.h * z); cv.title = 'Ampliado ' + z + '×'; }
   // fundo
-  function refazFundo() { if (!RS.r.fundo || !RS.od) { RS.fundoCv = null; RS.fundoDados = null; RS.removidos = null; return; } const x = Rc.removerFundo(RS.od, RS.r.fundo); RS.fundoDados = x.dados; RS.fundoCv = Rc.paraCanvas(x.dados); RS.removidos = x.removidos; }
+  function refazFundo() { if (!RS.r.fundo || !RS.od) { RS.fundoCv = null; RS.fundoDados = null; RS.removidos = null; return; } const x = Rc.removerFundo(RS.od, RS.r.fundo); RS.fundoDados = x.dados; RS.fundoCv = Rc.paraCanvas(x.dados); RS.removidos = x.removidos; RS.bordas = x.bordas || 0; }
   function setFundo(o) { mudar(x => { x.fundo = Object.assign({}, x.fundo, o); }); refazFundo(); sincVisor(); painel('fundo'); }
   function avisoGotas() { const a = $('#rcAviso'); a.hidden = !RS.gotas; if (RS.gotas) { a.innerHTML = '<span class="cresce">Toque num pixel do fundo</span><button class="btn peq">Cancelar</button>'; a.querySelector('button').onclick = () => { RS.gotas = false; avisoGotas(); if (RS.aba === 'fundo') painel('fundo'); }; } }
   function pegarCor(ip) { const x = Math.floor(ip.x), y = Math.floor(ip.y); if (x < 0 || y < 0 || x >= RS.r.w || y >= RS.r.h) return; const d = RS.od.data, p = (y * RS.r.w + x) * 4;

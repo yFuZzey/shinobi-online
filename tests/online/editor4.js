@@ -59,7 +59,7 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await P.waitForFunction(()=>EDITOR.m&&!document.querySelector('#editor').hidden,null,{timeout:8000});await W(400);
  await ev(()=>EDITOR.api.carregarLib());await W(1200);
  await ev(()=>EDITOR.api.ativar('objetos'));await P.click('[data-aba="pintura"]');await W(500);
- ok(await ev(()=>document.querySelectorAll('[data-ob]').length===2&&/Árvore/.test(document.querySelector('.grade-obj').textContent)),'catálogo da biblioteca na aba Pintura (2 recortes com miniatura)');
+ ok(await ev(id=>document.querySelectorAll('[data-ob^="'+id+'."]').length===2&&/Árvore/.test(document.querySelector('.grade-obj').textContent),ids[1]),'catálogo da biblioteca na aba Pintura (2 recortes com miniatura)');
  const kA=ids[1]+'.c1',kC=ids[1]+'.c2';await P.click('[data-ob="'+kA+'"]');await P.click('#pnX');await W(200);
  await ev(()=>{EDITOR.s=.6;EDITOR.ox=10;EDITOR.oy=40});await W(80);
  await tap(await tela(10*32+10,10*32+20));let ob=await ev(()=>EDITOR.m.objetos.map(o=>({k:o.k,x:o.x,y:o.y,f:o.f})));
