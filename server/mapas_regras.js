@@ -1,5 +1,5 @@
 'use strict';
-// Mapas criados no editor do painel (/painel/mapas): confere o que veio do banco e refaz a colisão do servidor.
+// Mapas criados no editor do painel (/painel/editor): confere o que veio do banco e refaz a colisão do servidor.
 // A colisão segue exatamente applyMap do jogo (terreno, tamanho dos objetos no chão, colisão pintada); o teste "mapas" compara os dois.
 // Tamanho: W (largura) × H (altura) em tiles; mapas sem W/H são 50×50. Limite pensado para a memória do celular (o chão vira uma imagem W·32 × H·32).
 // cat = { fpt: {objeto:[largura,altura,recuo]}, tsz: [objetos que existem] }  (gerado junto com maps.json por src/online/exportmaps.js)
@@ -69,6 +69,14 @@ function validar(id, nome, m, cat) {
       if (fin(e.tx) && fin(e.ty)) { o.tx = clamp(+e.tx, 0, MAX); o.ty = clamp(+e.ty, 0, MAX); } // sem destino = ponto de nascimento do mapa
       EV.push(o); }
     if (EV.length) out.ev = EV; }
+  // NPCs: {id:'n1', n: nome, x, y (tile), a: {t:'ninja', s, h, c (cores da paleta do jogo), fl} ou {t:'img', k: imagem do catálogo}, f: [falas], b: 0 = não bloqueia}
+  if (Array.isArray(m.npcs)) { const NP = [], vis = new Set(), txt = (s, n) => String(s).replace(/[\u0000-\u0009\u000b-\u001f<>]/g, '').trim().slice(0, n), ci = (v, a, b) => Number.isInteger(v) && v >= a && v <= b ? v : a;
+    for (const c of m.npcs.slice(0, 100)) { if (!c || typeof c.id !== 'string' || !/^n\d{1,4}$/.test(c.id) || vis.has(c.id) || !Number.isInteger(c.x) || !Number.isInteger(c.y) || c.x < 0 || c.y < 0 || c.x >= W || c.y >= H) continue; vis.add(c.id);
+      const a = c.a && typeof c.a === 'object' ? c.a : {}, o = { id: c.id, n: txt(c.n || '', 24) || 'NPC', x: c.x, y: c.y };
+      o.a = a.t === 'img' && typeof a.k === 'string' && tsz.has(a.k) ? { t: 'img', k: a.k } : { t: 'ninja', s: ci(a.s, 0, 3), h: ci(a.h, 0, 4), c: ci(a.c, 0, 4) }; if (a.fl) o.a.fl = 1;
+      o.f = (Array.isArray(c.f) ? c.f : []).filter(s => typeof s === 'string').map(s => txt(s, 300)).filter(Boolean).slice(0, 20); if (c.b === 0) o.b = 0;
+      NP.push(o); }
+    if (NP.length) out.npcs = NP; }
   return out;
 }
 

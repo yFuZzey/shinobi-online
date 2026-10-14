@@ -1661,8 +1661,30 @@ function gsHit(e,d,st,kx,ky){if(!ONL.on)return false;if(e.pvp)return pvpHit(e,d,
 // o alvo sorteia a esquiva (Esquiva dele x sua Precisão), aplica a redução e conta o resultado para todo mundo ver.
 const PVP={on:1,safe:4};let PST=0,HRES={miss:0,d:0,dead:0},pvpTold=0;
 /* mapa sem PvP (m.pvp===0: o mapa todo é zona segura) e eventos ao pisar (m.ev: teletransporte {x,y,t:'tp',m,tx,ty}) — vêm do editor de mapas */
-const MAPEV={nopvp:0,ev:[],ult:'',dito:''};
-{const _am=applyMap;applyMap=function(m){_am(m);MAPEV.nopvp=m&&m.pvp===0?1:0;MAPEV.ev=m&&Array.isArray(m.ev)?m.ev:[];MAPEV.ult=''}}
+const MAPEV={nopvp:0,ev:[],ult:'',dito:'',npcs:[],perto:null,fala:null};
+{const _am=applyMap;applyMap=function(m){_am(m);MAPEV.nopvp=m&&m.pvp===0?1:0;MAPEV.ev=m&&Array.isArray(m.ev)?m.ev:[];MAPEV.ult='';
+ // NPCs (m.npcs): bloqueiam o tile (menos b:0); os de imagem entram como objeto (mesma ordem de desenho); os ninjas são desenhados em onlDraw
+ MAPEV.npcs=m&&Array.isArray(m.npcs)?m.npcs:[];npcFecha();for(const c of MAPEV.npcs){if(c.b!==0)setM(c.x,c.y,1);if(c.a&&c.a.t==='img'&&TSZ[c.a.k])OB.push({k:c.a.k,x:(c.x+.5)*T,y:(c.y+1)*T-2})}}}
+const npcPos=c=>[(c.x+.5)*T,(c.y+1)*T-2];
+function npcDraw(L,ts){if(scene|0)return;for(const c of MAPEV.npcs){const [x,y]=npcPos(c),ninja=!c.a||c.a.t!=='img';
+ L.push({y,d:()=>{if(ninja){const lk={skin:SKIN[c.a&&c.a.s|0]||SKIN[0],hair:HAIR[c.a&&c.a.h|0]||HAIR[0],cloth:CLOTH[c.a&&c.a.c|0]||CLOTH[0]};
+   try{if(HERO)drawHero(ctx,x,y,{fl:c.a&&c.a.fl?1:0,t:ts+c.x*131+c.y*71,mv:0,run:0,aura:-1,th:-1,set:heroFor(lk),act:null,vis:[]});else drawChar(ctx,x,y,{...lk,dir:0,t:ts,mv:0,run:0})}catch(_){}}
+  const im=!ninja&&TX[c.a.k],top=ninja?y-62:y-((im&&(im.dh||im.height))||48)-6;ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#ffd98a';
+  const lb=(MAPEV.perto===c?'💬 ':'')+c.n;ctx.strokeText(lb,x,top);ctx.fillText(lb,x,top)}})}}
+// botão “Falar” quando o jogador está perto de um NPC; a janela mostra as falas uma a uma
+function npcTick(){try{const b=npcBtn();let best=null,bd=1.8*T;if(cur==='game'&&!(scene|0)&&p)for(const c of MAPEV.npcs){const [x,y]=npcPos(c),d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=c}}
+ MAPEV.perto=best;if(MAPEV.fala&&MAPEV.fala.c!==best)npcFecha();b.style.display=best&&!MAPEV.fala?'block':'none';if(best)b.textContent='💬 Falar com '+best.n}catch(_){}}
+function npcBtn(){let b=document.getElementById('npcBtn');if(b)return b;b=document.createElement('button');b.id='npcBtn';
+ b.style.cssText='position:fixed;left:50%;bottom:24%;transform:translateX(-50%);z-index:30;padding:10px 18px;border-radius:22px;border:2px solid #f0b84a;background:#1b1410e6;color:#ffe2a8;font:bold 15px system-ui,sans-serif;display:none;max-width:80vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+ b.onclick=e=>{e.stopPropagation();npcAbre(MAPEV.perto)};document.body.appendChild(b);return b}
+function npcAbre(c){if(!c)return;const f=c.f&&c.f.length?c.f:['…'];let d=document.getElementById('npcDlg');
+ if(!d){d=document.createElement('div');d.id='npcDlg';d.style.cssText='position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(560px,92vw);z-index:40;background:#14100cee;border:2px solid #c99a4a;border-radius:12px;padding:12px 14px;color:#f3e6cc;font:15px/1.45 system-ui,sans-serif;box-shadow:0 6px 24px #000a';
+  d.innerHTML='<b id="npcN" style="color:#ffd27a;font-size:16px"></b><p id="npcT" style="margin:6px 0 10px;white-space:pre-wrap"></p><div style="text-align:right"><button id="npcP" style="padding:9px 18px;border-radius:10px;border:2px solid #c99a4a;background:#2a1f14;color:#ffe2a8;font:bold 14px system-ui,sans-serif"></button></div>';
+  d.addEventListener('pointerdown',e=>e.stopPropagation());document.body.appendChild(d)}
+ MAPEV.fala={c,i:0};const mostra=()=>{document.getElementById('npcN').textContent=c.n;document.getElementById('npcT').textContent=f[MAPEV.fala.i];document.getElementById('npcP').textContent=MAPEV.fala.i<f.length-1?'Próximo ▸':'Fechar'};
+ mostra();d.style.display='block';npcBtn().style.display='none';document.getElementById('npcP').onclick=e=>{e.stopPropagation();if(MAPEV.fala&&MAPEV.fala.i<f.length-1){MAPEV.fala.i++;mostra()}else npcFecha()}}
+function npcFecha(){MAPEV.fala=null;const d=document.getElementById('npcDlg');if(d)d.style.display='none'}
+setInterval(npcTick,150);
 function evTick(){try{if(!MAPEV.ev.length||cur!=='game'||(scene|0)||!p)return;const tx=Math.floor(p.x/T),ty=Math.floor(p.y/T),k=tx+','+ty;if(k===MAPEV.ult)return;MAPEV.ult=k;
  const e=MAPEV.ev.find(v=>v.x===tx&&v.y===ty);if(!e||e.t!=='tp')return;
  if(e.tx==null){if(e.m!==CURMAP&&MAPS[e.m]){switchMap(e.m)}else if(e.m===CURMAP){p.x=SPAWN[0]*T;p.y=SPAWN[1]*T;flash={col:'#000',a:1}}MAPEV.ult=Math.floor(p.x/T)+','+Math.floor(p.y/T);return}
@@ -1811,7 +1833,7 @@ function onlStep(dt){kfxStep(dt);if(!ONL.on)return;perfTick(dt);
   if(pe.hitT>0)pe.hitT-=dt;if(pe.th>=0)pe.th+=dt;if(pe.th>.35)pe.th=-1;if(pe.au>=0)pe.au+=dt;if(pe.sayT>0)pe.sayT-=dt}
  if(myT>0)myT-=dt}
 const inGrp=id=>!!(ONL.party&&ONL.party.members.some(x=>x.id===id));
-function onlDraw(L,ts){if(TLM)L.push({y:1e9,d:tlAcima});{const t=tgCur();if(t)L.push({y:t.y-.35,d:()=>tgRing(t,ts)})}if(AIMS.on&&AIMS.a)L.push({y:p.y-.5,d:aimDraw});if(!ONL.on)return;
+function onlDraw(L,ts){npcDraw(L,ts);if(TLM)L.push({y:1e9,d:tlAcima});{const t=tgCur();if(t)L.push({y:t.y-.35,d:()=>tgRing(t,ts)})}if(AIMS.on&&AIMS.a)L.push({y:p.y-.5,d:aimDraw});if(!ONL.on)return;
  for(const id in ONL.peers){const pe=ONL.peers[id];if(pe.x===null||pe.sc!==(scene|0))continue;
   L.push({y:pe.y,d:()=>{const FL=(pe.eq||[]).map(i=>ITEMS[i]).filter(it=>it&&it.fx&&(it.fx.tails||it.fx.orbit||it.fx.glow||it.fx.hand)).map(it=>it.fx);
    fxDraw(ctx,pe.x,pe.y,ts,FL,0);
@@ -2684,7 +2706,7 @@ function castAoe(s,ax,ay){
 // O APK abre um carregador pequeno que roda a versão mais nova guardada no celular (ou a que veio no APK).
 // Aqui o jogo procura versão nova no GitHub, baixa em segundo plano, confere a assinatura (SHA-256) e guarda.
 // Se uma versão nova não conseguir abrir 2 vezes seguidas, o carregador volta sozinho para a do APK.
-const OTA={v:+'202610140621'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
+const OTA={v:+'202610140637'||0,base:'https://raw.githubusercontent.com/yFuZzey/shinobi-online/',api:'https://api.github.com/repos/yFuZzey/shinobi-online/commits/main',loader:1,app:false,busy:0,ready:0,told:0,gate:0};
 try{OTA.app=!!localStorage.getItem('so-ota-loader');OTA.loader=+localStorage.getItem('so-ota-loader')||1}catch(_){}
 function otaVerTxt(v){const m=String(v).match(/^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/);if(!m)return String(v||'teste');const d=new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]));return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
 function otaDb(){return new Promise((res,rej)=>{const r=indexedDB.open('shinobi-ota',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2751,7 +2773,7 @@ async function onlCreate(){if(OTA.gate)return;const n=$('#nu').value.trim(),s=$(
  er.textContent='Criando conta…';onlBusy(true);
  try{await onlLogin(n,s,true,em);$('#u').value=n;if($('#keep').checked)keepSet(n,s);await onlAfterLogin()}catch(e){onlFail(e)}onlBusy(false)}
 function onlFail(e){$('#err').textContent=e.gs?e.message:onlErr(e);ONL.on=false;ONL.closing=false;try{ONL.ws&&ONL.ws.close()}catch(_){}}
-// ---------- Mapas criados no editor do painel (/painel/mapas): o servidor entrega os publicados em /mapas e entram na lista de mapas ----------
+// ---------- Mapas criados no editor do painel (/painel/editor): o servidor entrega os publicados em /mapas e entram na lista de mapas ----------
 const MPK='so-mapas',MPX=new Set(Object.keys(MAPS));let MPV='';
 function mpPut(L){let ch=false;for(const k of Object.keys(L||{})){const m=L[k];if(MPX.has(k)||!m||typeof m.ground!=='string'||!Array.isArray(m.objects)||m.ground.length!==(m.W||m.N||50)*(m.H||m.N||50))continue;if(JSON.stringify(MAPS[k])!==JSON.stringify(m)){MAPS[k]=m;ch=true}}
  for(const k of Object.keys(MAPS))if(!MPX.has(k)&&!(L&&L[k])&&k!==CURMAP){delete MAPS[k];ch=true}return ch}

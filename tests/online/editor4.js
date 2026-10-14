@@ -135,9 +135,6 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  const hid=await A.evaluate(()=>{const cvs=document.querySelector('#cv'),g=cvs.getContext('2d'),k=dpr*z,w=cvs.width/k,h=cvs.height/k,cx=Math.max(0,Math.min(N*T-w,p.x-w/2))|0,cy=Math.max(0,Math.min(NH*T-h,p.y-h/2))|0;
    let n=0,tot=0;for(let dy=-56;dy<=-44;dy+=2)for(let dx=-6;dx<=6;dx+=2){const d=g.getImageData(Math.round((p.x+dx-cx)*k),Math.round((p.y+dy-cy)*k),1,1).data;tot++;if(d[0]===0&&d[1]===160&&d[2]===0)n++}return{n,tot}});
  ok(hid.n===hid.tot,'jogo: a copa (acima da linha de 80 px, escala 150%) fica na frente do personagem ('+hid.n+'/'+hid.tot+')');
- // ---- E) editor antigo recusa mapa do editor novo
- const Q=await (await b.newContext()).newPage();await Q.goto(GS+'/painel/mapas');await Q.waitForFunction(()=>typeof parseMap==='function',null,{timeout:15000});
- ok(await Q.evaluate(()=>{try{parseMap({v:2,N:50,ed:{v:1},ground:'0'.repeat(2500),objects:[]});return false}catch(e){return /editor novo/.test(e.message)}}),'editor antigo recusa abrir mapa salvo pelo editor novo (evita perder dados)');
  ok(!erros.length,'editor sem erros de página');
  const lg=fs.readFileSync(LOG,'utf8').slice(n0);ok(!/erro ignorado|inválido ignorado/.test(lg),'servidor sem erros');
  await P.screenshot({path:path.join(__dirname,'ed4.png')});await A.screenshot({path:path.join(__dirname,'ed4_jogo.png')});

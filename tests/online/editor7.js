@@ -58,9 +58,12 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  // jogo
  await A.click('#mapbtn');await W(2500);await A.evaluate(n=>[...document.querySelectorAll('#mmList button')].find(x=>x.textContent.toLowerCase().includes(n)).click(),'sala a');await W(2500);
  ok(await A.evaluate(()=>MAPEV.nopvp===1&&pvpSafeAt(p.x+500,p.y+500)&&PVT().length===0),'jogo: mapa sem PvP é todo zona segura');
+ const circulo=()=>A.evaluate(async()=>{let n=0;const o=ctx.strokeText;ctx.strokeText=function(t,...a){if(/Zona segura/.test(String(t)))n++;return o.call(this,t,...a)};await new Promise(r=>setTimeout(r,500));ctx.strokeText=o;return n});
+ ok(await circulo()===0,'jogo: mapa sem PvP não mostra o círculo de zona segura');
  await A.evaluate(()=>{p.x=3*32+16;p.y=3*32+20});await W(600);
  let g=await A.evaluate(()=>({m:CURMAP,x:p.x/32,y:p.y/32,np:MAPEV.nopvp}));ok(g.m.includes('ev_b')&&g.x===7.5&&g.y===4.5&&g.np===0,'jogo: pisar no evento leva para B em (7.5, 4.5): '+JSON.stringify(g));
  await W(1500);ok(await A.evaluate(()=>ONL.joined&&CURMAP.includes('ev_b')),'jogo: entrou na sala B no servidor');
+ ok(await circulo()>0,'jogo: mapa com PvP continua mostrando o círculo da zona segura');
  await A.evaluate(()=>{p.x=2*32+16;p.y=2*32+20});await W(600);
  g=await A.evaluate(()=>({m:CURMAP,x:p.x/32,y:p.y/32,s:SPAWN}));ok(g.m.includes('ev_a')&&g.x===g.s[0]&&g.y===g.s[1],'jogo: evento sem destino leva ao nascimento de A: '+JSON.stringify(g));
  ok(!erros.length,'editor sem erros de página');

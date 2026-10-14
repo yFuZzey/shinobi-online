@@ -19,8 +19,8 @@ Regras ajustáveis no topo de `server.js` (objeto `CFG`): alcance de perseguiç�
 - **Estruturas (Fase 4):** cada recorte da biblioteca vira um objeto `recurso.recorte` (ex.: `r_arvores.c1`): pedaço do arquivo (x, y, w, h), tamanho no mapa (dw, dh), âncora (ax, ay = ponto no chão), `corte` (px do topo acima dos quais o desenho fica na frente do personagem, sem duplicar a imagem) e colisão padrão (`col`, tiles a partir da âncora). No mapa, cada objeto guarda em `r[4]` a sua colisão e em `r[5]` `{e: escala, z: 'chao'|'acima', b: ajuste da ordem}`; o servidor e o jogo usam os mesmos dados. A grade dos tilesets tem início X/Y separado (`mg`/`my`). O editor antigo recusa mapas com `ed` (salvos pelo editor novo) para não apagar dados.
 - **Limitação conhecida:** o servidor confere a posição dos jogadores só pelos limites do mapa (não refaz o caminho com colisão); a colisão fina é do app, como antes.
 
-## Editor de mapas (`/painel/mapas`)
-- Abre no navegador do celular, no mesmo login do `/painel` (conta admin). Cria/edita mapas e **Publicar** grava na tabela `mapas` (rode `sql/11_mapas.sql` uma vez no Supabase).
+## Mapas publicados (o editor antigo `/painel/mapas` foi removido; o endereço leva ao editor novo `/painel/editor`)
+- **Publicar** no editor grava na tabela `mapas` (rode `sql/11_mapas.sql` uma vez no Supabase).
 - O servidor relê os mapas publicados a cada 1 min (ou na hora, quando o editor avisa em `POST /painel/recarregar`): refaz a colisão (`mapas_regras.js` + `mapa_objetos.json`, gerado junto com `maps.json`) e cria os mobs das áreas.
 - `GET /mapas` entrega os publicados ao jogo, que mostra na lista de mapas (por enquanto só admin abre outras vilas).
 - Os mapas que já vêm no jogo (`konoha`, `vila_areia`) não são trocados pelo painel.

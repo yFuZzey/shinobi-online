@@ -281,7 +281,7 @@ async function mapasDb() {
     }
     for (const id in MP_PUB) if (!pub[id]) { // despublicado: sai da lista; quem está dentro termina a visita, a sala some quando esvaziar
       const rm = rooms[id]; if (rm && rm.players.size) { pub[id] = MP_PUB[id]; continue; } delete MAPS[id]; delete rooms[id]; }
-    MP_PUB = pub; MP_IMG = {}; MP_TS = {}; for (const id in pub) { for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]]; for (const t of pub[id].tilesets || []) if (TSM[t]) MP_TS[t] = TSM[t]; }
+    MP_PUB = pub; MP_IMG = {}; MP_TS = {}; for (const id in pub) { for (const o of pub[id].objects) if (IM[o[0]]) MP_IMG[o[0]] = IM[o[0]]; for (const c of pub[id].npcs || []) if (c.a && c.a.k && IM[c.a.k]) MP_IMG[c.a.k] = IM[c.a.k]; for (const t of pub[id].tilesets || []) if (TSM[t]) MP_TS[t] = TSM[t]; }
     MP_V = crypto.createHash('sha1').update(JSON.stringify([pub, Object.keys(MP_IMG).map(k => [k, MP_IMG[k].fw, MP_IMG[k].fh, MP_IMG[k].off, MP_IMG[k].dw, MP_IMG[k].dh, MP_IMG[k].px, (MP_IMG[k].png || MP_IMG[k].url).length, MP_IMG[k].url, MP_IMG[k].sx, MP_IMG[k].sy, MP_IMG[k].w, MP_IMG[k].h, MP_IMG[k].ax, MP_IMG[k].ay, MP_IMG[k].corte]), MP_TS])).digest('hex').slice(0, 12);
     MP_PUB0 = {}; for (const id in pub) if (!pub[id].W) MP_PUB0[id] = pub[id]; // apps antigos só sabem desenhar 50×50
     MP_V0 = crypto.createHash('sha1').update(MP_V + ':' + Object.keys(MP_PUB0).join(',')).digest('hex').slice(0, 12);
@@ -971,15 +971,8 @@ const server = http.createServer((req, res) => {
       if (gz) { res.writeHead(200, { ...h2, 'Content-Encoding': 'gzip' }); return res.end(require('zlib').gzipSync(b)); }
       res.writeHead(200, h2); return res.end(b);
     } catch (e) { res.writeHead(404, cors); return res.end('não encontrado'); } } }
-  // editor de mapas do painel (mesmo login do /painel; o banco só deixa admin gravar)
-  if (u === '/painel/mapas' || u === '/painel/mapas/') {
-    try {
-      const h = fs.readFileSync(path.join(__dirname, 'editor_mapas.html'), 'utf8').replace('__SB_URL__', SB_URL).replace('__SB_KEY__', SB_KEY);
-      const gz = /\bgzip\b/.test(req.headers['accept-encoding'] || ''), h2 = { ...cors, 'Content-Type': 'text/html; charset=utf-8' };
-      if (gz) { res.writeHead(200, { ...h2, 'Content-Encoding': 'gzip' }); return res.end(require('zlib').gzipSync(h)); }
-      res.writeHead(200, h2); return res.end(h);
-    } catch (e) { res.writeHead(500, cors); return res.end('editor indisponível'); }
-  }
+  // o editor de mapas antigo foi removido: o endereço antigo leva ao editor novo
+  if (u === '/painel/mapas' || u === '/painel/mapas/') { res.writeHead(302, { ...cors, Location: '/painel/editor' }); return res.end(); }
   // molde do boneco para a IA desenhar os itens no corpo (parado/correndo; _ia = grande, fundo magenta; _4 = os 4 quadros da prévia animada)
   const mm = /^\/painel\/molde\/(parado|correndo)(_ia|_4)?\.png$/.exec(u);
   if (mm) { try { const b = fs.readFileSync(path.join(__dirname, 'molde', mm[1] + (mm[2] || '') + '.png')); res.writeHead(200, { ...cors, 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' }); return res.end(b); } catch (e) { res.writeHead(404, cors); return res.end(); } }

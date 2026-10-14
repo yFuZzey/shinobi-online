@@ -13,7 +13,7 @@
     vazio: { n: 'Sem fundo (preto)', terr: ['Vazio (preto)', 'Rua', 'Pântano', 'Lagoa', 'Rio', 'Ponte'], th: ['', 'p1', 'sw1', 'water', 'river', 'river'] } };
   const INICIAIS = [0, 1, 2]; // terrenos em que dá para andar (água bloqueia: um mapa todo de água não teria onde nascer)
   const ID = /^[a-z0-9_]{2,30}$/, BASE_IDS = ['konoha', 'vila_areia'];
-  const CONHECIDOS = new Set(['v', 'N', 'T', 'W', 'H', 'name', 'title', 'theme', 'ground', 'objects', 'spawn', 'boss', 'k', 'areas', 'tilesets', 'camadas', 'ed', 'pvp', 'ev']);
+  const CONHECIDOS = new Set(['v', 'N', 'T', 'W', 'H', 'name', 'title', 'theme', 'ground', 'objects', 'spawn', 'boss', 'k', 'areas', 'tilesets', 'camadas', 'ed', 'pvp', 'ev', 'npcs']);
   const fin = v => typeof v === 'number' && isFinite(v);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const fundo = o => JSON.parse(JSON.stringify(o));
@@ -36,7 +36,7 @@
     const tema = TEMAS[o.tema] ? o.tema : 'folha', terreno = INICIAIS.includes(o.terreno) ? o.terreno : 0, tile = clamp((o.tile | 0) || 32, 4, 512);
     const sp = Array.isArray(o.spawn) && fin(o.spawn[0]) && fin(o.spawn[1]) ? [clamp(+o.spawn[0], 2, W - 2), clamp(+o.spawn[1], 2, H - 2)] : [Math.floor(W / 2) + .5, Math.floor(H / 2) + .5];
     return { id, nome: String(o.nome || id).slice(0, 40), W, H, tema, chao: new Uint8Array(W * H).fill(terreno), col: new Uint8Array(W * H), objetos: [],
-      spawn: sp, boss: null, areas: [], pvp: true, eventos: [], tilesets: [], camadas: [], extra: {}, tem: { k: false, title: true, boss: false }, ed: { v: 1, tile, terreno, criado: Date.now() } }; }
+      spawn: sp, boss: null, areas: [], pvp: true, eventos: [], npcs: [], tilesets: [], camadas: [], extra: {}, tem: { k: false, title: true, boss: false }, ed: { v: 1, tile, terreno, criado: Date.now() } }; }
 
   /* ---------- formato do jogo -> modelo (sem perder nada) ---------- */
   function deJogo(j, id) {
@@ -54,7 +54,7 @@
     const ed = j.ed && typeof j.ed === 'object' ? fundo(j.ed) : { v: 1, tile: 32, terreno: 0 };
     return { id: id || j.name || 'mapa', nome: typeof j.title === 'string' ? j.title : (id || j.name || 'mapa'), W, H, tema: TEMAS[j.theme] ? j.theme : 'folha', chao, col, objetos,
       spawn: Array.isArray(j.spawn) ? j.spawn.slice() : [W / 2 + .5, H / 2 + .5], boss: Array.isArray(j.boss) ? j.boss.slice() : null,
-      areas: Array.isArray(j.areas) ? fundo(j.areas) : [], pvp: j.pvp !== 0, eventos: Array.isArray(j.ev) ? fundo(j.ev) : [], tilesets: Array.isArray(j.tilesets) ? j.tilesets.slice() : [], camadas: Array.isArray(j.camadas) ? fundo(j.camadas) : [],
+      areas: Array.isArray(j.areas) ? fundo(j.areas) : [], pvp: j.pvp !== 0, eventos: Array.isArray(j.ev) ? fundo(j.ev) : [], npcs: Array.isArray(j.npcs) ? fundo(j.npcs) : [], tilesets: Array.isArray(j.tilesets) ? j.tilesets.slice() : [], camadas: Array.isArray(j.camadas) ? fundo(j.camadas) : [],
       extra, tem: { cn: Array.isArray(j.camadas) ? j.camadas.map(c => c && c.n) : [], v: j.v, k: typeof j.k === 'string', title: typeof j.title === 'string', boss: 'boss' in j, areas: 'areas' in j, theme: 'theme' in j, name: j.name }, ed }; }
 
   /* ---------- modelo -> formato do jogo ---------- */
@@ -71,6 +71,7 @@
     if (m.areas.length || m.tem.areas) j.areas = fundo(m.areas);
     if (m.pvp === false) j.pvp = 0; // sem o campo = PvP ligado (como sempre foi)
     if (m.eventos && m.eventos.length) j.ev = fundo(m.eventos); // eventos ao pisar: {x, y, t:'tp', m: mapa, tx, ty}
+    if (m.npcs && m.npcs.length) j.npcs = fundo(m.npcs); // NPCs: {id:'n1', n: nome, x, y (tile), a: aparência, f: [falas], b: 0 = não bloqueia}
     // camadas padrão vazias criadas só pelo editor não vão para o arquivo (mapa antigo continua igual se ninguém pintou)
     const orig = new Set((m.tem && m.tem.cn) || []), cam = m.camadas.filter(c => !(c && c.t === 'tiles' && !c.d.length && !c.nome && !c.z && ['chao', 'detalhes', 'acima'].includes(c.n) && !orig.has(c.n)));
     if (m.tilesets.length || cam.length) { j.tilesets = m.tilesets.slice(); j.camadas = fundo(cam); }
@@ -104,6 +105,7 @@
       n.areas.push(Object.assign(fundo(a), { x: x0, y: y0, w: x1 - x0, h: y1 - y0 })); }
     const pt = (p, k) => { if (!p) return p; const q = [p[0] + dx, p[1] + dy], c = [clamp(q[0], 2, W2 - 2), clamp(q[1], 2, H2 - 2)]; if (c[0] !== q[0] || c[1] !== q[1]) perdas[k] = true; return c; };
     n.eventos = []; for (const v of m.eventos || []) { const x = v.x + dx, y = v.y + dy; if (x >= 0 && y >= 0 && x < W2 && y < H2) n.eventos.push(Object.assign(fundo(v), { x, y })); else perdas.eventos = (perdas.eventos || 0) + 1; }
+    n.npcs = []; for (const v of m.npcs || []) { const x = v.x + dx, y = v.y + dy; if (x >= 0 && y >= 0 && x < W2 && y < H2) n.npcs.push(Object.assign(fundo(v), { x, y })); else perdas.npcs = (perdas.npcs || 0) + 1; }
     n.spawn = pt(m.spawn, 'spawn'); n.boss = pt(m.boss, 'boss');
     n.camadas = [];
     for (const c of m.camadas) {
@@ -124,6 +126,7 @@
     if (p.terreno) L.push(p.terreno + ' tile(s) de terreno pintado serão cortados');
     if (p.colisao) L.push(p.colisao + ' célula(s) de colisão pintada serão cortadas');
     if (p.tiles) L.push(p.tiles + ' tile(s) das camadas serão apagados');
+    if (p.npcs) L.push(p.npcs + ' NPC(s) ficam fora e serão apagados');
     if (p.eventos) L.push(p.eventos + ' evento(s) ficam fora e serão apagados');
     if (p.areasRemovidas) L.push(p.areasRemovidas + ' área(s) de mobs serão apagadas');
     if (p.areasCortadas) L.push(p.areasCortadas + ' área(s) de mobs ficam menores');
