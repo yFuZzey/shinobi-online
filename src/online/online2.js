@@ -305,16 +305,31 @@ const PVP={on:1,safe:4};let PST=0,HRES={miss:0,d:0,dead:0},pvpTold=0;
 /* mapa sem PvP (m.pvp===0: o mapa todo é zona segura) e eventos ao pisar (m.ev: teletransporte {x,y,t:'tp',m,tx,ty}) — vêm do editor de mapas */
 const MAPEV={nopvp:0,ev:[],ult:'',dito:'',npcs:[],perto:null,fala:null};
 {const _am=applyMap;applyMap=function(m){_am(m);MAPEV.nopvp=m&&m.pvp===0?1:0;MAPEV.ev=m&&Array.isArray(m.ev)?m.ev:[];MAPEV.ult='';
- // NPCs (m.npcs): bloqueiam o tile (menos b:0); os de imagem entram como objeto (mesma ordem de desenho); os ninjas são desenhados em onlDraw
- MAPEV.npcs=m&&Array.isArray(m.npcs)?m.npcs:[];npcFecha();for(const c of MAPEV.npcs){if(c.b!==0)setM(c.x,c.y,1);if(c.a&&c.a.t==='img'&&TSZ[c.a.k])OB.push({k:c.a.k,x:(c.x+.5)*T,y:(c.y+1)*T-2,e:npcEsc(c)})}}}
+ // NPCs (m.npcs): bloqueiam o tile em que estão (menos b:0); desenhados em npcDraw (ninja = boneco do jogo; img = quadro(s) da biblioteca)
+ MAPEV.npcs=m&&Array.isArray(m.npcs)?m.npcs:[];npcFecha();MAPEV.m0=M.slice();for(const c of MAPEV.npcs){delete c._;if(c.b!==0)setM(c.x,c.y,1)}}}
 // tamanho do NPC de imagem: a.e escolhido no editor; sem a.e = automático (imagem alta fica com a altura de um personagem, ~60 px)
 function npcEsc(c){const h=(TSZ[c.a.k]||[0,60])[1]||60;return c.a.e>0?c.a.e:h>64?60/h:1}
-const npcPos=c=>[(c.x+.5)*T,(c.y+1)*T-2];
-function npcDraw(L,ts){if(scene|0)return;for(const c of MAPEV.npcs){const [x,y]=npcPos(c),ninja=!c.a||c.a.t!=='img';
- L.push({y,d:()=>{if(ninja){const lk={skin:SKIN[c.a&&c.a.s|0]||SKIN[0],hair:HAIR[c.a&&c.a.h|0]||HAIR[0],cloth:CLOTH[c.a&&c.a.c|0]||CLOTH[0]};
-   try{if(HERO)drawHero(ctx,x,y,{fl:c.a&&c.a.fl?1:0,t:ts+c.x*131+c.y*71,mv:0,run:0,aura:-1,th:-1,set:heroFor(lk),act:null,vis:[]});else drawChar(ctx,x,y,{...lk,dir:0,t:ts,mv:0,run:0})}catch(_){}}
-  const im=!ninja&&TX[c.a.k],top=ninja?y-62:y-((im&&(im.dh||im.height))||48)*npcEsc(c)-6;ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#ffd98a';
-  const lb=(MAPEV.perto===c?'💬 ':'')+c.n;ctx.strokeText(lb,x,top);ctx.fillText(lb,x,top)}})}}
+// estado de cada NPC no jogo (posição em px, tile, para onde anda, espelhado). O passeio é só visual (cada aparelho sorteia o seu)
+function npcSt(c){return c._||(c._={x:(c.x+.5)*T,y:(c.y+1)*T-2,tx:c.x,ty:c.y,ir:null,esp:.5+Math.random()*2,anda:0,fl:c.a&&c.a.fl?1:0})}
+const npcPos=c=>{const s=npcSt(c);return [s.x,s.y]};
+const npcLivre=(x,y)=>x>=1&&y>=1&&x<N-1&&y<NH-1&&MAPEV.m0&&(MAPEV.m0[y*N+x]===0||MAPEV.m0[y*N+x]===3)&&M[y*N+x]!==1&&!(Math.floor(p.x/T)===x&&Math.floor(p.y/T)===y);
+function npcMove(c,dt){const s=npcSt(c),mv=c.mv;if(!mv||(MAPEV.fala&&MAPEV.fala.c===c&&!s.ir)){s.anda=0;return}
+ if(s.ir){const gx=(s.ir[0]+.5)*T,gy=(s.ir[1]+1)*T-2,dx=gx-s.x,dy=gy-s.y,d=Math.hypot(dx,dy),sp=[0,38,64,96][mv.v||2]*dt;
+  if(d<=sp){s.x=gx;s.y=gy;if(c.b!==0&&MAPEV.m0){const i=s.ty*N+s.tx;M[i]=MAPEV.m0[i]}s.tx=s.ir[0];s.ty=s.ir[1];s.ir=null;s.anda=0;s.esp=.8+Math.random()*2.6}
+  else{s.x+=dx/d*sp;s.y+=dy/d*sp;s.anda=1}return}
+ if((s.esp-=dt)>0)return;s.esp=.6+Math.random()*1.5;const D=[[1,0],[-1,0],[0,1],[0,-1]][Math.random()*4|0],nx=s.tx+D[0],ny=s.ty+D[1],r=mv.r||3;
+ if(Math.abs(nx-c.x)>r||Math.abs(ny-c.y)>r||!npcLivre(nx,ny))return;
+ s.ir=[nx,ny];if(c.b!==0)setM(nx,ny,1);if(D[0])s.fl=c.a&&c.a.t==='img'?((D[0]<0)!==!!c.a.oe?1:0):(D[0]<0?1:0)}
+// desenha um quadro da biblioteca com a âncora no chão, na escala e espelhado se preciso; devolve a altura desenhada
+function npcImg(k,x,y,e,fl){const im=TX[k];if(!im)return 0;const bw=im.dw||im.width,bh=im.dh||im.height,w=bw*e,h=bh*e,ax=(Number.isFinite(im.ax)?im.ax:bw/2)*e,ay=(Number.isFinite(im.ay)?im.ay:bh)*e;
+ ctx.save();ctx.translate(x,y);if(fl)ctx.scale(-1,1);const sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=im.px===false;ctx.drawImage(im,-ax,-ay,w,h);ctx.imageSmoothingEnabled=sm;ctx.restore();return h}
+function npcDraw(L,ts){if(scene|0)return;const dt=Math.min(.1,Math.max(0,(ts-(MAPEV.ts||ts))/1000));MAPEV.ts=ts;
+ for(const c of MAPEV.npcs){npcMove(c,dt);const s=npcSt(c),x=s.x,y=s.y,ninja=!c.a||c.a.t!=='img';
+  L.push({y,d:()=>{let hh=60;if(ninja){const lk={skin:SKIN[c.a&&c.a.s|0]||SKIN[0],hair:HAIR[c.a&&c.a.h|0]||HAIR[0],cloth:CLOTH[c.a&&c.a.c|0]||CLOTH[0]};
+    try{if(HERO)drawHero(ctx,x,y,{fl:s.fl,t:ts+c.x*131+c.y*71,mv:s.anda,run:0,aura:-1,th:-1,set:heroFor(lk),act:null,vis:[]});else drawChar(ctx,x,y,{...lk,dir:s.fl?2:0,t:ts,mv:s.anda,run:0})}catch(_){}}
+   else{const q=c.a.q&&c.a.q.length>1?c.a.q:[c.a.k],an=q.length>1&&(c.a.qa!=='andando'||s.anda),k=an?q[Math.floor(ts/(c.a.ms||125))%q.length]:q[0];hh=npcImg(TX[k]?k:c.a.k,x,y,npcEsc(c),s.fl)||48}
+   const top=ninja?y-62:y-hh-6;ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#000a';ctx.fillStyle='#ffd98a';
+   const lb=(MAPEV.perto===c?'💬 ':'')+c.n;ctx.strokeText(lb,x,top);ctx.fillText(lb,x,top)}})}}
 // botão “Falar” quando o jogador está perto de um NPC; a janela mostra as falas uma a uma
 function npcTick(){try{const b=npcBtn();let best=null,bd=1.8*T;if(cur==='game'&&!(scene|0)&&p)for(const c of MAPEV.npcs){const [x,y]=npcPos(c),d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best=c}}
  MAPEV.perto=best;if(MAPEV.fala&&MAPEV.fala.c!==best)npcFecha();b.style.display=best&&!MAPEV.fala?'block':'none';if(best)b.textContent='💬 Falar com '+best.n}catch(_){}}

@@ -75,6 +75,10 @@ function validar(id, nome, m, cat) {
       const a = c.a && typeof c.a === 'object' ? c.a : {}, o = { id: c.id, n: txt(c.n || '', 24) || 'NPC', x: c.x, y: c.y };
       o.a = a.t === 'img' && typeof a.k === 'string' && tsz.has(a.k) ? { t: 'img', k: a.k } : { t: 'ninja', s: ci(a.s, 0, 3), h: ci(a.h, 0, 4), c: ci(a.c, 0, 4) }; if (a.fl) o.a.fl = 1;
       if (o.a.t === 'img' && fin(a.e) && a.e > 0) o.a.e = +clamp(a.e, .05, 8).toFixed(3); // escala da imagem; sem e = automático (altura de um personagem)
+      // animação (img): q = quadros (imagens do catálogo, o 1º é o parado), ms = duração de cada quadro, qa:'andando' = só anima andando; oe = a imagem original olha para a esquerda
+      if (o.a.t === 'img') { const q = Array.isArray(a.q) ? a.q.filter(k => typeof k === 'string' && tsz.has(k)).slice(0, 24) : []; if (q.length > 1) { o.a.k = q[0]; o.a.q = q; o.a.ms = clamp(Math.round(fin(a.ms) ? a.ms : 125), 40, 2000); if (a.qa === 'andando') o.a.qa = 'andando'; } if (a.oe) o.a.oe = 1; }
+      // passeio: anda sozinho até r tiles da posição (v: 1 devagar, 2 normal, 3 rápido)
+      if (c.mv && typeof c.mv === 'object') o.mv = { r: ci(c.mv.r, 1, 10), v: ci(c.mv.v, 1, 3) };
       o.f = (Array.isArray(c.f) ? c.f : []).filter(s => typeof s === 'string').map(s => txt(s, 300)).filter(Boolean).slice(0, 20); if (c.b === 0) o.b = 0;
       NP.push(o); }
     if (NP.length) out.npcs = NP; }

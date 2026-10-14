@@ -38,6 +38,14 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await tap(await tela(3*32+10,8*32+10));await W(400);await P.click('[data-npe="m"]');await P.fill('#npE','30');await P.press('#npE','Tab');await W(150);
  ok(/90 px/.test(await ev(()=>document.querySelector('#npInfo').textContent)),'outro tamanho: 30% = 90 px de altura');await ev(()=>document.querySelector('#npPrev').scrollIntoView({block:'center'}));await P.screenshot({path:path.join(__dirname,'ed8_dlg.png')});await D('Salvar');await W(200);ok(await ev(()=>EDITOR.m.npcs[2].a.e===.3),'escala 30% salva');
  await tap(await tela(3*32+10,8*32+10));await W(400);await P.click('[data-npe="auto"]');await D('Salvar');await W(200);ok(await ev(()=>EDITOR.m.npcs[2].a.e===undefined),'voltar ao automático');
+ // animação (Kakashi → Guarda), espelhar e andar por perto
+ await tap(await tela(3*32+10,8*32+10));await W(400);await P.click('#npAn');await W(100);ok(await ev(()=>document.querySelectorAll('#npQ [data-qi]').length===1),'animação: começa com o quadro parado');
+ await P.click('#npQAdd');await W(200);await P.click('#npQPick [data-qk="'+k+'"]');await W(100);ok(await ev(()=>document.querySelectorAll('#npQ [data-qi]').length===2),'adicionar quadro');
+ await ev(()=>{const r=document.querySelector('#npV');r.value='4';r.dispatchEvent(new Event('input'))});await P.click('[data-qa="andando"]');await P.click('#npFl');
+ await P.click('[data-mv="1"]');await ev(()=>{const r=document.querySelector('#npR');r.value='2';r.dispatchEvent(new Event('input'))});await P.click('[data-mvv="3"]');await P.click('#npOe');
+ await D('Salvar');await W(200);let kk2=await ev(()=>EDITOR.m.npcs[2]);
+ ok(JSON.stringify(kk2.a)===JSON.stringify({t:'img',k:kk,q:[kk,k],ms:250,qa:'andando',oe:1,fl:1})&&JSON.stringify(kk2.mv)==='{"r":2,"v":3}','NPC animado, espelhado e andando: '+JSON.stringify(kk2));
+ await tap(await tela(3*32+10,8*32+10));await W(400);ok(await ev(()=>document.querySelector('#npAn').checked&&document.querySelectorAll('#npQ [data-qi]').length===2&&document.querySelector('#npFl').checked&&!document.querySelector('#npMvB').hidden&&document.querySelector('#npVv').textContent==='4'),'reabrir mostra a animação e o movimento');await D('Cancelar');await W(150);
  // duplicar, mover e apagar
  await tap(await tela(5*32+10,5*32+10));await W(400);await D('Duplicar');await W(200);np=await ev(()=>EDITOR.m.npcs);ok(np.length===4&&np[3].id==='n4'&&np[3].x===6&&np[3].n==='Hokage','duplicar NPC (novo id, tile ao lado)');
  await ev(()=>EDITOR.api.ferramenta('mover'));const de=await tela(6*32+16,5*32+16),pa_=await tela(6*32+16,8*32+16);
@@ -46,12 +54,15 @@ const mget=p=>fetch(MOCK+p,{headers:{apikey:'x'}}).then(r=>r.json());
  await ev(()=>EDITOR.api.ferramenta('borracha'));await tap(await tela(6*32+10,8*32+10));ok(await ev(()=>EDITOR.m.npcs.length===3),'borracha apaga o NPC');
  await P.click('#salvar');await W(300);await P.click('#publicar');await W(200);await D('Enviar e pôr no jogo');await W(2500);
  const pub=await (await fetch(GS+'/mapas?dim=1')).json(),pm=pub.mapas[id];
- ok(pm&&pm.npcs&&pm.npcs.length===3&&pm.npcs[0].n==='Hokage'&&pm.npcs[0].f.length===2&&pm.npcs[1].a.k===k&&pm.npcs[1].b===0,'servidor entrega os NPCs');ok(!!pub.imagens[k],'servidor manda a imagem do NPC junto');
+ ok(pm&&pm.npcs&&pm.npcs.length===3&&pm.npcs[2].a.q.length===2&&pm.npcs[2].a.ms===250&&pm.npcs[2].mv.r===2&&pm.npcs[0].n==='Hokage'&&pm.npcs[0].f.length===2&&pm.npcs[1].a.k===k&&pm.npcs[1].b===0,'servidor entrega os NPCs');ok(!!pub.imagens[k],'servidor manda a imagem do NPC junto');
  ok(MR.validar('xx','x',{...pm,npcs:[{id:'zz',x:1,y:1},{id:'n9',x:99,y:1},{id:'n8',x:1,y:1,n:'<b>x</b>',a:{t:'img',k:'naoexiste'},f:['ok',5]}]},{tsz:[],fpt:{}}).npcs.map(c=>c.n+'|'+c.a.t+'|'+c.f.length).join()==='bx/b|ninja|1','regras: NPCs inválidos descartados e texto limpo');
  // jogo
  await A.click('#mapbtn');await W(2500);await A.evaluate(n=>[...document.querySelectorAll('#mmList button')].find(x=>x.textContent.toLowerCase().includes(n)).click(),'sala npc');await W(2500);
- ok(await A.evaluate(k=>MAPEV.npcs.length===3&&M[5*N+5]===1&&M[5*N+9]!==1&&OB.some(o=>o.k===k),k),'jogo: NPCs no mapa (o ninja bloqueia o tile, o guarda não; imagem desenhada)');
- ok(await A.evaluate(k=>{const o=OB.find(o=>o.k===k);return o&&Math.abs(o.e-.2)<.001},rid+'.c2'),'jogo: NPC grande no automático fica com 60 px (escala 0.2)');
+ ok(await A.evaluate(k=>MAPEV.npcs.length===3&&M[5*N+5]===1&&M[5*N+9]!==1&&!!TX[k],k),'jogo: NPCs no mapa (o ninja bloqueia o tile, o guarda não; imagem carregada)');
+ ok(await A.evaluate(()=>Math.abs(npcEsc(MAPEV.npcs.find(c=>c.n==='Kakashi'))-.2)<.001),'jogo: NPC grande no automático fica com 60 px (escala 0.2)');
+ let anda=null;for(let i=0;i<40&&!anda;i++){await W(250);anda=await A.evaluate(()=>{const c=MAPEV.npcs.find(c=>c.n==='Kakashi'),s=c._;return s&&(s.ir||s.tx!==c.x||s.ty!==c.y)?{tx:s.tx,ty:s.ty,ir:s.ir,M:M[(s.ir?s.ir[1]:s.ty)*N+(s.ir?s.ir[0]:s.tx)]}:null})}
+ ok(anda&&Math.abs((anda.ir?anda.ir[0]:anda.tx)-3)<=2&&Math.abs((anda.ir?anda.ir[1]:anda.ty)-8)<=2&&anda.M===1,'jogo: o NPC anda sozinho perto da posição (raio 2) e bloqueia o tile para onde vai: '+JSON.stringify(anda));
+ ok(await A.evaluate(()=>MAPEV.npcs.find(c=>c.n==='Hokage')._.tx===5),'jogo: NPC parado continua no lugar');
  await A.evaluate(()=>{p.x=5.5*32;p.y=7*32});await W(500);
  ok(await A.evaluate(()=>{const b=document.getElementById('npcBtn');return b&&b.style.display==='block'&&/Hokage/.test(b.textContent)}),'jogo: perto do NPC aparece “💬 Falar com Hokage”');
  await A.click('#npcBtn');await W(200);

@@ -21,7 +21,8 @@
       const fechar = v => { d.hidden = true; ok(v); };
       for (const b of botoes) { const x = document.createElement('button'); x.className = 'btn ' + (b.c || ''); x.textContent = b.t; x.dataset.v = b.v;
         x.onclick = () => { if (b.antes && b.antes() === false) return; fechar(b.v); }; B.appendChild(x); }
-      d.hidden = false; const t0 = Date.now(); d.onclick = e => { if (e.target === d && Date.now() - t0 > 400) fechar(null); }; /* o clique que vem logo depois do toque que abriu a janela não fecha ela */ aoAbrir && aoAbrir($('#dlgC'), B); }); }
+      d.hidden = false; const t0 = d.t0 = Date.now(); d.onclick = e => { if (e.target === d && Date.now() - t0 > 400) fechar(null); }; /* o clique que vem logo depois do toque que abriu a janela não fecha nem aperta nada nela */
+      if (!d.guarda) { d.guarda = 1; d.addEventListener('click', e => { const n = Date.now(), q = E.toqueCv; if (q && n - (d.t0 || 0) < 400 && n - q.t < 450 && Math.hypot(e.clientX - q.x, e.clientY - q.y) < 14) { e.stopPropagation(); e.preventDefault(); } }, true); } /* só o clique “fantasma” do toque no mapa que abriu a janela */ aoAbrir && aoAbrir($('#dlgC'), B); }); }
   const aviso = (t, msg) => dlg(t, '<p>' + msg + '</p>', [{ t: 'OK', v: 1, c: 'pri' }]);
 
   /* ---------- lista de mapas ---------- */
@@ -561,7 +562,7 @@
     else if (gesto.t === 'ferr' && ptr.size === 1) { if (Math.hypot(p.x - gesto.p0.x, p.y - gesto.p0.y) > 6) gesto.moveu = true; moveFerr(p); }
     else if (gesto.t === 'dois' && ptr.size >= 2) { const [a, b] = [...ptr.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, ns = clamp(gesto.s0 * d / gesto.d0, .05, 4);
       const wx = (gesto.c0.x - gesto.ox) / gesto.s0, wy = (gesto.c0.y - gesto.oy) / gesto.s0; E.s = ns; E.ox = c.x - wx * ns; E.oy = c.y - wy * ns; ajusta(); desenhar(); } });
-  const solta = e => { if (!ptr.has(e.pointerId)) return; const p = pt(e); ptr.delete(e.pointerId);
+  const solta = e => { if (!ptr.has(e.pointerId)) return; const p = pt(e); ptr.delete(e.pointerId); E.toqueCv = { t: Date.now(), x: e.clientX, y: e.clientY };
     if (gesto && gesto.t === 'ferr') { if (e.type === 'pointercancel') cancelaFerr(); else fimFerr(p, gesto.moveu); gesto = null; return; }
     if (gesto && gesto.t === 'alca') { const g = gesto; gesto = null; if (g.mudou) { E.des.push(g.pre); if (E.des.length > 80) E.des.shift(); E.ref.length = 0; marcarSujo('nada'); } return; }
     if (gesto && gesto.t === 'um' && !gesto.moveu && e.type === 'pointerup') toque(p);
@@ -633,47 +634,86 @@
   const PAL = { s: ['#e8a074', '#f4d2ae', '#c98a5a', '#7b513a'], h: ['#202024', '#5a3a22', '#d9b44a', '#c0392b', '#8e7cc3'], c: ['#202024', '#2f4f8f', '#3d7a4a', '#8a3b3b', '#5a4a8a'] }; // mesmas cores do jogo (SKIN, HAIR, CLOTH)
   // escala do NPC de imagem (igual ao jogo): a.e escolhido; sem a.e = automático (imagem alta fica com ~60 px, a altura de um personagem)
   function npcEsc(a) { if (a && a.e > 0) return a.e; const i = a && R.info(J, a.k), h = (i && i.dh) || 60; return h > 64 ? 60 / h : 1; }
+  // um quadro da biblioteca com a âncora no ponto (x, y), na escala e (espelhado se fl); devolve a altura desenhada
+  function quadroNpc(g, k, x, y, e, fl) { const i = R.info(J, k); if (!i || !i.ok) return 0; const w = i.dw * e, h = i.dh * e; g.save(); g.translate(x, y); if (fl) g.scale(-1, 1); g.imageSmoothingEnabled = !i.px; g.drawImage(i.img, i.sx, i.sy, i.sw, i.sh, -i.ax * e, -i.ay * e, w, h); g.restore(); return h; }
   function desenhaNpcs(g, m, s) { for (const v of m.npcs || []) { const x = (v.x + .5) * T, y = (v.y + 1) * T - 2, a = v.a || {}; let top = y - 64;
-      if (a.t === 'img' && R.info(J, a.k)) { const e = npcEsc(a), it = R.listaObjetos(J, { objetos: [{ k: a.k, x: v.x + .5, y: (y) / T, f: [0, null, e !== 1 ? { e } : null] }] }); for (const q of it) q.d(g); const i = R.info(J, a.k); top = y - (i.dh || 48) * e - 4; }
-      else { g.save(); g.translate(x, y); g.scale(a.fl ? -1.36 : 1.36, 1.36); /* ~60 px, como o personagem do jogo */ g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0, 0, 9, 4, 0, 0, 7); g.fill();
+      if (a.t === 'img' && R.info(J, a.k)) { const h = quadroNpc(g, a.k, x, y, npcEsc(a), a.fl); top = y - (h || 48) - 4; if (v.mv) { g.strokeStyle = 'rgba(255,217,138,.5)'; g.setLineDash([4 / s, 4 / s]); g.lineWidth = 1.5 / s; const r = v.mv.r || 3; g.strokeRect((v.x - r) * T, (v.y - r) * T, (2 * r + 1) * T, (2 * r + 1) * T); g.setLineDash([]); } }
+      else { if (v.mv) { g.strokeStyle = 'rgba(255,217,138,.5)'; g.setLineDash([4 / s, 4 / s]); g.lineWidth = 1.5 / s; const r = v.mv.r || 3; g.strokeRect((v.x - r) * T, (v.y - r) * T, (2 * r + 1) * T, (2 * r + 1) * T); g.setLineDash([]); }
+        g.save(); g.translate(x, y); g.scale(a.fl ? -1.36 : 1.36, 1.36); /* ~60 px, como o personagem do jogo */ g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0, 0, 9, 4, 0, 0, 7); g.fill();
         g.fillStyle = '#23283a'; g.fillRect(-5, -12, 4, 12); g.fillRect(1, -12, 4, 12); g.fillStyle = PAL.c[a.c | 0] || PAL.c[0]; g.fillRect(-7, -27, 14, 16);
         g.fillStyle = PAL.s[a.s | 0] || PAL.s[0]; g.beginPath(); g.arc(0, -35, 8, 0, 7); g.fill(); g.fillStyle = PAL.h[a.h | 0] || PAL.h[0]; g.beginPath(); g.arc(0, -35, 8.6, Math.PI, 0); g.fill(); g.restore(); }
       g.font = 'bold ' + Math.max(9, 10 / s) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineWidth = 3 / s; g.strokeStyle = '#000c'; g.strokeText(v.n || 'NPC', x, top); g.fillStyle = '#ffd98a'; g.fillText(v.n || 'NPC', x, top); } }
   async function tocaNpc([x, y], apagar) { const m = E.m; m.npcs = m.npcs || []; const L = m.npcs, i = L.findIndex(v => v.x === x && v.y === y), v = L[i];
     if (apagar) { if (i >= 0) { mudar(q => { q.npcs.splice(i, 1); }, 'nada'); toast('NPC apagado (↶ desfaz)'); if (E.aba === 'pintura') painel('pintura'); } return; }
-    const a0 = (v && v.a) || { t: 'ninja', s: 0, h: 0, c: 1 }, st = { t: a0.t === 'img' ? 'img' : 'ninja', s: a0.s | 0, h: a0.h | 0, c: a0.c | 0, fl: !!a0.fl, k: a0.k || '', e: a0.e > 0 ? a0.e : 0 };
+    const a0 = (v && v.a) || { t: 'ninja', s: 0, h: 0, c: 1 }, mv0 = v && v.mv;
+    const st = { t: a0.t === 'img' ? 'img' : 'ninja', s: a0.s | 0, h: a0.h | 0, c: a0.c | 0, fl: !!a0.fl, k: a0.k || '', e: a0.e > 0 ? a0.e : 0,
+      q: Array.isArray(a0.q) && a0.q.length > 1 ? a0.q.slice() : [], ms: a0.ms || 125, qa: a0.qa === 'andando' ? 'andando' : 'sempre', oe: !!a0.oe, mv: mv0 ? 1 : 0, r: (mv0 && mv0.r) || 3, v: (mv0 && mv0.v) || 2 };
     const imgs = Object.keys(R.RC).map(k => [k, R.RC[k].nome]).concat((E.lib && E.lib.imagens || []).map(i => [i.id, i.nome || i.id]));
-    const sw = (g, n) => PAL[g].map((c, j) => `<button data-sw="${g}" data-v="${j}" aria-pressed="${st[g] === j}" style="width:38px;height:38px;border-radius:8px;background:${c};border:3px solid ${st[g] === j ? '#ff9a3c' : '#0006'}"></button>`).join('');
+    const sw = g => PAL[g].map((c, j) => `<button data-sw="${g}" data-v="${j}" aria-pressed="${st[g] === j}" style="width:38px;height:38px;border-radius:8px;background:${c};border:3px solid ${st[g] === j ? '#ff9a3c' : '#0006'}"></button>`).join('');
     const r = await dlg(v ? 'NPC ' + (v.n || '') + ' (' + x + ', ' + y + ')' : 'Novo NPC em (' + x + ', ' + y + ')', `<label class="lbl">Nome</label><input id="npN" maxlength="24" value="${esc(v ? v.n || '' : '')}" placeholder="Ex.: Hokage">
       <label class="lbl" style="margin-top:8px">Aparência</label><div class="presets"><button data-npa="ninja" aria-pressed="${st.t === 'ninja'}">🥷 Ninja</button><button data-npa="img" aria-pressed="${st.t === 'img'}">🖼 Imagem da biblioteca</button></div>
-      <div id="npNinja" ${st.t === 'ninja' ? '' : 'hidden'}><div class="linha" style="flex-wrap:wrap;gap:6px"><span class="lbl" style="width:52px">Pele</span>${sw('s')}</div><div class="linha" style="flex-wrap:wrap;gap:6px"><span class="lbl" style="width:52px">Cabelo</span>${sw('h')}</div><div class="linha" style="flex-wrap:wrap;gap:6px"><span class="lbl" style="width:52px">Roupa</span>${sw('c')}</div>
-        <label class="chk"><input type="checkbox" id="npFl" ${st.fl ? 'checked' : ''}> Virado para a esquerda</label></div>
-      <div id="npImg" ${st.t === 'img' ? '' : 'hidden'}>${imgs.length ? `<select id="npK">${imgs.map(([k, n]) => `<option value="${esc(k)}" ${k === st.k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select><label class="lbl" style="margin-top:6px">Tamanho no mapa</label><div class="presets"><button data-npe="auto">Altura de um personagem</button><button data-npe="1">Tamanho do arquivo</button><button data-npe="m">Outro…</button></div>
+      <div id="npNinja" ${st.t === 'ninja' ? '' : 'hidden'}><div class="linha" style="flex-wrap:wrap;gap:6px"><span class="lbl" style="width:52px">Pele</span>${sw('s')}</div><div class="linha" style="flex-wrap:wrap;gap:6px"><span class="lbl" style="width:52px">Cabelo</span>${sw('h')}</div><div class="linha" style="flex-wrap:wrap;gap:6px"><span class="lbl" style="width:52px">Roupa</span>${sw('c')}</div></div>
+      <div id="npImg" ${st.t === 'img' ? '' : 'hidden'}>${imgs.length ? `<select id="npK">${imgs.map(([k, n]) => `<option value="${esc(k)}" ${k === st.k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
+        <label class="lbl" style="margin-top:6px">Tamanho no mapa</label><div class="presets"><button data-npe="auto">Altura de um personagem</button><button data-npe="1">Tamanho do arquivo</button><button data-npe="m">Outro…</button></div>
         <div class="linha" id="npEL" hidden><input id="npE" type="number" min="5" max="800" step="5" style="width:90px"><span class="mudo">% do arquivo</span></div>
+        <label class="chk"><input type="checkbox" id="npAn" ${st.q.length > 1 ? 'checked' : ''}> 🎞 Animação (sequência de quadros)</label>
+        <div id="npAnB" ${st.q.length > 1 ? '' : 'hidden'}><p class="mudo">Quadros na ordem em que tocam (o 1º é o NPC parado). Toque num quadro para tirar.</p><div class="grade-obj" id="npQ"></div>
+          <button class="btn peq" id="npQAdd" style="width:100%;margin-top:6px">+ Adicionar quadros</button><div class="grade-obj" id="npQPick" hidden></div>
+          <label class="lbl" style="margin-top:6px">Velocidade: <b id="npVv"></b> quadros por segundo</label><input type="range" id="npV" min="1" max="20" style="width:100%;height:40px">
+          <div class="presets"><button data-qa="sempre">Anima sempre</button><button data-qa="andando">Só quando anda</button></div></div>
         <canvas id="npPrev" width="200" height="130" style="display:block;margin:6px auto;background:#3d6b3a;border-radius:8px"></canvas><p class="mudo" id="npInfo" style="text-align:center"></p>
         <button class="btn peq" id="npRec" style="width:100%;white-space:normal;height:auto;padding:8px">✂ Usar só uma parte da imagem (recortar na Biblioteca)</button>` : '<p class="mudo">Nenhuma imagem na biblioteca ainda (Biblioteca → recurso → Recortes).</p>'}</div>
+      <label class="chk"><input type="checkbox" id="npFl" ${st.fl ? 'checked' : ''}> ↔ Espelhar (virar para o outro lado)</label>
+      <label class="lbl" style="margin-top:8px">Movimento</label><div class="presets"><button data-mv="0">🧍 Parado</button><button data-mv="1">🚶 Anda por perto</button></div>
+      <div id="npMvB" ${st.mv ? '' : 'hidden'}><label class="lbl">Distância máxima da posição: <b id="npRv"></b> tile(s)</label><input type="range" id="npR" min="1" max="10" style="width:100%;height:40px">
+        <div class="presets"><button data-mvv="1">Devagar</button><button data-mvv="2">Normal</button><button data-mvv="3">Rápido</button></div>
+        <label class="chk" id="npOeL" ${st.t === 'img' ? '' : 'hidden'}><input type="checkbox" id="npOe" ${st.oe ? 'checked' : ''}> A imagem (sem espelhar) olha para a esquerda — para virar certo ao andar</label>
+        <p class="mudo">Anda um tile por vez, sem atravessar paredes nem o jogador, e para quando alguém fala com ele.</p></div>
       <label class="lbl" style="margin-top:8px">Falas — uma por linha; no jogo aparece uma de cada vez (“Próximo ▸”)</label><textarea id="npF" rows="5" style="width:100%" placeholder="Bem-vindo à Vila da Folha!&#10;Fale comigo de novo depois.">${esc(v ? (v.f || []).join('\n') : '')}</textarea>
       <label class="chk"><input type="checkbox" id="npB" ${!v || v.b !== 0 ? 'checked' : ''}> Bloqueia a passagem (ninguém atravessa o NPC)</label>`,
       [{ t: 'Salvar', v: 1, c: 'pri', antes: () => { if (!$('#npN').value.trim()) { toast('Dê um nome ao NPC'); return false; } } }].concat(v ? [{ t: 'Duplicar', v: 3 }, { t: 'Apagar', v: 2, c: 'perigo' }] : []).concat([{ t: 'Cancelar', v: 0 }]), c => {
-        // prévia: o NPC no tamanho escolhido ao lado de um personagem (mesma escala), para comparar
-        const prev = () => { const k = c.querySelector('#npK'), cv2 = c.querySelector('#npPrev'); if (!k || !cv2) return; st.k = k.value; const i = R.info(J, st.k), g = cv2.getContext('2d'); g.clearRect(0, 0, cv2.width, cv2.height);
-          c.querySelectorAll('[data-npe]').forEach(b => b.setAttribute('aria-pressed', b.dataset.npe === (st.e ? (st.e === 1 ? '1' : 'm') : 'auto'))); c.querySelector('#npEL').hidden = !st.e || st.e === 1;
-          if (!i || !i.ok) { c.querySelector('#npInfo').textContent = 'Carregando a imagem…'; setTimeout(() => { if (cv2.isConnected && !$('#dlg').hidden) prev(); }, 600); return; } const e = npcEsc({ t: 'img', k: st.k, e: st.e }), w = i.dw * e, h = i.dh * e, z = Math.min(1.6, 110 / Math.max(64, h), 80 / Math.max(32, w));
-          g.save(); g.translate(60, 120); g.scale(z, z); const fake = { npcs: [{ x: 0, y: 0, n: ' ', a: { t: 'ninja', s: 0, h: 0, c: 1 } }] }; g.translate(-16, -30); desenhaNpcs(g, fake, 99); g.restore();
-          g.save(); g.translate(135, 120); g.scale(z, z); g.imageSmoothingEnabled = !i.px; g.drawImage(i.img, i.sx, i.sy, i.sw, i.sh, -w / 2, -h, w, h); g.restore();
-          c.querySelector('#npInfo').textContent = 'No mapa: ' + Math.round(w) + '×' + Math.round(h) + ' px (o personagem tem ~60 px de altura)'; if (!st.e) c.querySelector('#npE').value = Math.round(e * 100); };
-        c.querySelectorAll('[data-npe]').forEach(b => b.onclick = () => { const v = b.dataset.npe; st.e = v === 'auto' ? 0 : v === '1' ? 1 : (+c.querySelector('#npE').value || 100) / 100; if (v === 'm' && st.e === 1) st.e = .5; c.querySelector('#npE').value = Math.round((st.e || npcEsc({ t: 'img', k: st.k })) * 100); prev(); });
-        if (c.querySelector('#npE')) { c.querySelector('#npE').value = Math.round((st.e || 1) * 100); c.querySelector('#npE').onchange = e2 => { const v = clamp(+e2.target.value || 100, 5, 800) / 100; st.e = v; prev(); }; }
-        if (c.querySelector('#npRec')) c.querySelector('#npRec').onclick = () => { const rc = R.RC[st.k]; if (!rc) return toast('Essa imagem não é um recorte da biblioteca'); const x0 = c.parentNode.querySelector('#dlgB button[data-v="0"]'); if (x0) x0.click(); setTimeout(() => { if (window.BIB) { window.BIB.api.telaBib('editor'); window.BIB.api.abrirRecurso(rc.rec); } }, 0); };
-        c.querySelectorAll('[data-npa]').forEach(b => b.onclick = () => { st.t = b.dataset.npa; c.querySelectorAll('[data-npa]').forEach(x => x.setAttribute('aria-pressed', x === b)); c.querySelector('#npNinja').hidden = st.t !== 'ninja'; c.querySelector('#npImg').hidden = st.t !== 'img'; prev(); });
+        const $c = q => c.querySelector(q), marca = (sel, f) => c.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', f(b)));
+        // quadros: a sequência (st.q) e o catálogo para escolher (recortes do mesmo recurso primeiro)
+        const quadros = () => { const Q = $c('#npQ'); if (!Q) return; Q.innerHTML = st.q.map((k, j) => `<button class="obj" data-qi="${j}" aria-label="Tirar quadro ${j + 1}"><canvas width="64" height="64"></canvas><small>${j + 1}${j ? '' : ' · parado'}</small></button>`).join('');
+          Q.querySelectorAll('[data-qi]').forEach(b => { miniatura(b.querySelector('canvas'), st.q[+b.dataset.qi]); b.onclick = () => { st.q.splice(+b.dataset.qi, 1); if (!st.q.length) st.q = [st.k]; st.k = st.q[0]; quadros(); }; }); };
+        const catalogoQ = () => { const P2 = $c('#npQPick'), rec = R.RC[st.k] && R.RC[st.k].rec, L2 = imgs.map(x => x[0]).sort((a, b) => ((R.RC[b] && R.RC[b].rec === rec) ? 1 : 0) - ((R.RC[a] && R.RC[a].rec === rec) ? 1 : 0));
+          P2.innerHTML = L2.map(k => `<button class="obj" data-qk="${esc(k)}"><canvas width="64" height="64"></canvas><small>${esc((R.RC[k] || {}).nome || k)}</small></button>`).join('');
+          P2.querySelectorAll('[data-qk]').forEach(b => { miniatura(b.querySelector('canvas'), b.dataset.qk); b.onclick = () => { if (st.q.length >= 24) return toast('No máximo 24 quadros'); st.q.push(b.dataset.qk); quadros(); }; }); };
+        const vel = () => { if ($c('#npV')) { const f = Math.round(1000 / st.ms); $c('#npV').value = f; $c('#npVv').textContent = f; } marca('[data-qa]', b => b.dataset.qa === st.qa); };
+        const mov = () => { $c('#npMvB').hidden = !st.mv; marca('[data-mv]', b => +b.dataset.mv === st.mv); marca('[data-mvv]', b => +b.dataset.mvv === st.v); $c('#npR').value = st.r; $c('#npRv').textContent = st.r; $c('#npOeL').hidden = st.t !== 'img'; };
+        // prévia: o NPC (animado) no tamanho escolhido ao lado de um personagem, na mesma escala
+        let raf = 0; const prev = () => { cancelAnimationFrame(raf); const k = $c('#npK'), cv2 = $c('#npPrev'); if (!k || !cv2 || !cv2.isConnected || $('#dlg').hidden) return; if (!st.q.length) st.k = k.value;
+          const i = R.info(J, st.k), g = cv2.getContext('2d'); g.clearRect(0, 0, cv2.width, cv2.height);
+          marca('[data-npe]', b => b.dataset.npe === (st.e ? (st.e === 1 ? '1' : 'm') : 'auto')); $c('#npEL').hidden = !st.e || st.e === 1;
+          if (!i || !i.ok) { $c('#npInfo').textContent = 'Carregando a imagem…'; setTimeout(prev, 600); return; } const e = npcEsc({ t: 'img', k: st.k, e: st.e }), w = i.dw * e, h = i.dh * e, z = Math.min(1.6, 110 / Math.max(64, h), 80 / Math.max(32, w));
+          g.save(); g.translate(60, 120); g.scale(z, z); g.translate(-16, -30); desenhaNpcs(g, { npcs: [{ x: 0, y: 0, n: ' ', a: { t: 'ninja', s: 0, h: 0, c: 1 } }] }, 99); g.restore();
+          const an = $c('#npAn') && $c('#npAn').checked && st.q.length > 1, kq = an ? st.q[Math.floor(performance.now() / st.ms) % st.q.length] : st.k;
+          g.save(); g.translate(135, 120); g.scale(z, z); quadroNpc(g, kq, 0, 0, e, $c('#npFl').checked); g.restore();
+          $c('#npInfo').textContent = 'No mapa: ' + Math.round(w) + '×' + Math.round(h) + ' px (o personagem tem ~60 px de altura)' + (an ? ' · ' + st.q.length + ' quadros' : ''); if (!st.e) $c('#npE').value = Math.round(e * 100);
+          if (an) raf = requestAnimationFrame(prev); };
+        c.querySelectorAll('[data-npa]').forEach(b => b.onclick = () => { st.t = b.dataset.npa; marca('[data-npa]', x => x === b); $c('#npNinja').hidden = st.t !== 'ninja'; $c('#npImg').hidden = st.t !== 'img'; mov(); prev(); });
         c.querySelectorAll('[data-sw]').forEach(b => b.onclick = () => { const g = b.dataset.sw; st[g] = +b.dataset.v; c.querySelectorAll('[data-sw="' + g + '"]').forEach(x => { const on = x === b; x.setAttribute('aria-pressed', on); x.style.borderColor = on ? '#ff9a3c' : '#0006'; }); });
-        const k = c.querySelector('#npK'); if (k) { k.onchange = prev; if (!st.k) st.k = k.value; prev(); } });
+        c.querySelectorAll('[data-npe]').forEach(b => b.onclick = () => { const v = b.dataset.npe; st.e = v === 'auto' ? 0 : v === '1' ? 1 : (+$c('#npE').value || 100) / 100; if (v === 'm' && st.e === 1) st.e = .5; $c('#npE').value = Math.round((st.e || npcEsc({ t: 'img', k: st.k })) * 100); prev(); });
+        c.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { st.mv = +b.dataset.mv; mov(); });
+        c.querySelectorAll('[data-mvv]').forEach(b => b.onclick = () => { st.v = +b.dataset.mvv; mov(); });
+        c.querySelectorAll('[data-qa]').forEach(b => b.onclick = () => { st.qa = b.dataset.qa; vel(); });
+        $c('#npR').oninput = e2 => { st.r = +e2.target.value; $c('#npRv').textContent = st.r; }; $c('#npFl').onchange = prev;
+        if ($c('#npE')) { $c('#npE').value = Math.round((st.e || 1) * 100); $c('#npE').onchange = e2 => { st.e = clamp(+e2.target.value || 100, 5, 800) / 100; prev(); }; }
+        if ($c('#npV')) $c('#npV').oninput = e2 => { st.ms = Math.round(1000 / clamp(+e2.target.value || 8, 1, 20)); vel(); };
+        if ($c('#npAn')) $c('#npAn').onchange = e2 => { $c('#npAnB').hidden = !e2.target.checked; if (e2.target.checked && !st.q.length) st.q = [st.k]; quadros(); prev(); };
+        if ($c('#npQAdd')) $c('#npQAdd').onclick = () => { const P2 = $c('#npQPick'); P2.hidden = !P2.hidden; if (!P2.hidden) catalogoQ(); };
+        if ($c('#npRec')) $c('#npRec').onclick = () => { const rc = R.RC[st.k]; if (!rc) return toast('Essa imagem não é um recorte da biblioteca'); const x0 = c.parentNode.querySelector('#dlgB button[data-v="0"]'); if (x0) x0.click(); setTimeout(() => { if (window.BIB) { window.BIB.api.telaBib('editor'); window.BIB.api.abrirRecurso(rc.rec); } }, 0); };
+        const k = $c('#npK'); if (k) { k.onchange = () => { st.k = k.value; if (st.q.length) st.q[0] = st.k; quadros(); prev(); }; if (!st.k) st.k = k.value; if (st.q.length) st.k = st.q[0]; }
+        quadros(); vel(); mov(); prev(); });
     if (!r) return; if (r === 2) return tocaNpc([x, y], true);
     if (r === 3) { const p = livreEvento(E.m, x, y, 'npcs'); if (!p) return toast('Sem espaço livre para a cópia'); let n = 1; while (E.m.npcs.some(q => q.id === 'n' + n)) n++; const cp = Object.assign(JSON.parse(JSON.stringify(L[i])), { id: 'n' + n, x: p[0], y: p[1] });
       mudar(q => { q.npcs.push(cp); }, 'nada'); toast('Cópia em (' + p[0] + ', ' + p[1] + '): arraste com ✋ Mover para posicionar'); if (E.aba === 'pintura') painel('pintura'); return; }
     let id = v && v.id; if (!id) { let n = 1; while (L.some(q => q.id === 'n' + n)) n++; id = 'n' + n; }
-    const nv = { id, n: $('#npN').value.trim().slice(0, 24), x, y, a: st.t === 'img' && st.k ? Object.assign({ t: 'img', k: st.k }, st.e > 0 ? { e: +st.e.toFixed(3) } : {}) : { t: 'ninja', s: st.s, h: st.h, c: st.c }, f: $('#npF').value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 20).map(s => s.slice(0, 300)) };
-    if (st.t !== 'img' && $('#npFl') && $('#npFl').checked) nv.a.fl = 1; if (!$('#npB').checked) nv.b = 0;
+    const anOn = $('#npAn') && $('#npAn').checked && st.q.length > 1, a = st.t === 'img' && st.k ? { t: 'img', k: anOn ? st.q[0] : st.k } : { t: 'ninja', s: st.s, h: st.h, c: st.c };
+    if (a.t === 'img') { if (st.e > 0) a.e = +st.e.toFixed(3); if (anOn) { a.q = st.q.slice(0, 24); a.ms = st.ms; if (st.qa === 'andando') a.qa = 'andando'; } if (st.mv && $('#npOe').checked) a.oe = 1; }
+    if ($('#npFl').checked) a.fl = 1;
+    const nv = { id, n: $('#npN').value.trim().slice(0, 24), x, y, a, f: $('#npF').value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 20).map(s => s.slice(0, 300)) };
+    if (st.mv) nv.mv = { r: st.r, v: st.v }; if (!$('#npB').checked) nv.b = 0;
     mudar(q => { q.npcs = q.npcs || []; const j = q.npcs.findIndex(e => e.x === x && e.y === y); if (j >= 0) q.npcs[j] = nv; else q.npcs.push(nv); }, 'nada');
     toast('NPC salvo: ' + nv.n); if (E.aba === 'pintura') painel('pintura'); }
   /* eventos (pisar no tile): por enquanto teletransporte para outro mapa ou outro ponto deste. Sem destino X/Y = nascimento do mapa destino */
