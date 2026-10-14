@@ -340,7 +340,7 @@ function npcMove(c,dt){const s=npcSt(c),mv=c.mv;if(!mv||(MAPEV.fala&&MAPEV.fala.
 // “pé” de um quadro: base e centro da parte desenhada (pixels não transparentes). Na animação todos os quadros ficam com o pé no mesmo lugar,
 // mesmo que os recortes tenham tamanhos ou margens diferentes (sem tremer). Sem conseguir ler os pixels, usa a âncora do recorte.
 function npcPe(im){if(im._pe!==undefined)return im._pe;im._pe=null;try{const w=im.width,h=im.height,d=im.getContext?im.getContext('2d').getImageData(0,0,w,h).data:null;if(!d)return null;
- let x0=w,x1=-1,y0=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(d[(y*w+x)*4+3]>40){if(x<x0)x0=x;if(x>x1)x1=x;if(y0<0)y0=y;y1=y}if(x1>=0)im._pe={cx:(x0+x1+1)/2,by:y1+1,ty:y0}}catch(_){}return im._pe}
+ let x0=w,x1=-1,y0=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(d[(y*w+x)*4+3]>40){if(x<x0)x0=x;if(x>x1)x1=x;if(y0<0)y0=y;y1=y}if(x1>=0)im._pe={cx:(x0+x1+1)/2,by:y1+1,ty:y0,x0,x1:x1+1}}catch(_){}return im._pe}
 // desenha um quadro da biblioteca com a âncora no chão, na escala e espelhado se preciso; anim = alinhar pelo pé; devolve a altura desenhada
 function npcImg(k,x,y,e,fl,anim){const im=TX[k];if(!im)return 0;const bw=im.dw||im.width,bh=im.dh||im.height,w=bw*e,h=bh*e,pe=anim&&npcPe(im),fx=bw/im.width,fy=bh/im.height;
  const ax=(pe?pe.cx*fx:Number.isFinite(im.ax)?im.ax:bw/2)*e,ay=(pe?pe.by*fy:Number.isFinite(im.ay)?im.ay:bh)*e;
@@ -405,10 +405,16 @@ function npcFaz(c,pi,pg,oi,ev){const o=oi>=0&&pg.ch?pg.ch[oi]:null,A=(pg.faz||[]
  const tp=A.find(a=>a.t==='tp');if(tp)irPara(tp.m,tp.tx,tp.ty)}
 function npcFecha(){MAPEV.fala=null;const d=document.getElementById('npcDlg');if(d)d.style.display='none';const f=MAPEV.aoFechar;MAPEV.aoFechar=null;if(f)f()}
 // boneco de treino (NPC com bo:1): entra na lista de alvos dos golpes; acertar mostra o dano, toca os quadros “ao apanhar” e treina (rende BAL.treino.boneco de um monstro)
-function BON(){if(scene|0)return [];const L=[];for(const c of MAPEV.npcs){if(!c.bo)continue;const s=npcSt(c),o=c._b||(c._b={boneco:c,id:'bo_'+c.id,rad:16,boss:0,dead:0,kind:'boneco'});o.x=s.x;o.y=s.y;L.push(o)}return L}
+// o corpo todo conta (não só a base): bTop..bPe = altura desenhada; o ponto de acerto fica na altura do jogador dentro do corpo (golpes de perto, área, linha, cone)
+// e os projéteis usam bonY (a altura do projétil dentro do corpo). rad = metade da largura desenhada
+function bonCorpo(c){if(!c.a||c.a.t!=='img')return{w:32,h:60};const im=TX[c.a.k];if(!im)return{w:32,h:48};const e=npcEsc(c),bw=im.dw||im.width,bh=im.dh||im.height,pe=npcPe(im),fx=bw/im.width,fy=bh/im.height;
+ return pe&&pe.x1>pe.x0?{w:(pe.x1-pe.x0)*fx*e,h:(pe.by-pe.ty)*fy*e}:{w:bw*e,h:bh*e}}
+function BON(){if(scene|0)return [];const L=[];for(const c of MAPEV.npcs){if(!c.bo)continue;const s=npcSt(c),o=c._b||(c._b={boneco:c,id:'bo_'+c.id,rad:16,boss:0,dead:0,kind:'boneco'}),k=bonCorpo(c),h=Math.max(32,k.h);
+  o.x=s.x;o.bPe=s.y;o.bTop=s.y-h;o.rad=Math.max(16,Math.min(48,k.w/2));o.y=Math.max(s.y-Math.max(0,h-20),Math.min(s.y,p.y));L.push(o)}return L}
+const bonY=(e,b)=>e.boneco?Math.max(e.bTop+16,Math.min(e.bPe,b.y+16)):e.y;
 {const _pv=PVT;PVT=function(){return _pv().concat(BON())}}
 function bonecoHit(e,d,st){const c=e.boneco,s=npcSt(c),tp=tpN(HTP),base=d,x=hitRaw(d,HTP),B=trB(),cr=Math.random()*100<D().crit,v=Math.max(1,Math.round(cr?x*critPve():x));
- FT.push({x:e.x,y:e.y-58,t:v,life:.8});if(cr)FT.push({x:e.x,y:e.y-74,t:'crítico',txt:1,life:.7});s.hitT=.5;
+ const fy=Math.min(s.y-58,(e.bTop||s.y-58)-4);FT.push({x:s.x,y:fy,t:v,life:.8});if(cr)FT.push({x:s.x,y:fy-16,t:'crítico',txt:1,life:.7});s.hitT=.5;
  if(TRT.includes(tp)){trGain(tp,base*HMUL,B.boneco);if(profOn(tp))profGain(base*HMUL*B.boneco)}return true}
 setInterval(npcTick,150);
 /* ---------- eventos do mapa: g = 'pisar' (no tile) ou 'entrar' (quando o mapa abre); fr = 'sempre' | 'uma' (1 vez por conta, marca no servidor) | 'sessao' (1 vez até sair do jogo)
@@ -1169,8 +1175,8 @@ const alvosEm=(x,y,r)=>E.concat(PVT()).filter(e=>!e.dead&&Math.hypot(e.x-x,e.y-y
 function castNui(s,ax,ay){actStart('nnui');const tp=HTP,t=+s.tel||0;fx.push({k:'sarea',x:p.x,y:p.y-4,r:26,col:'#120a22',life:t+.3,max:t+.3,tel:t});
  KDEL.push({t,fn:()=>{const a0=Math.atan2(ay,ax),n=3,sp=s.sp||290;for(let q=0;q<n;q++){const a=a0+(q-1)*.38;
   P.push({x:p.x+Math.cos(a)*8,y:p.y-14,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col:s.col,dmg:s.dmg,life:1.4,sh:1,seek:1,hm:(+s.pot||1)/n,tp,cc:s.lento?{lento:s.lento}:null})}}})}
-function nuiSeek(b,dt){let best=270,tg=null;for(const e of TGL(270,b)){if(e.dead)continue;const d=Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y);if(d<best){best=d;tg=e}}if(!tg)return;
- const want=Math.atan2(tg.y-(tg.boss?44:16)-b.y,tg.x-b.x),cur=Math.atan2(b.vy,b.vx);let da=want-cur;while(da>Math.PI)da-=6.2832;while(da<-Math.PI)da+=6.2832;
+function nuiSeek(b,dt){let best=270,tg=null;for(const e of TGL(270,b)){if(e.dead)continue;const d=Math.hypot(e.x-b.x,bonY(e,b)-(e.boss?44:16)-b.y);if(d<best){best=d;tg=e}}if(!tg)return;
+ const want=Math.atan2(bonY(tg,b)-(tg.boss?44:16)-b.y,tg.x-b.x),cur=Math.atan2(b.vy,b.vx);let da=want-cur;while(da>Math.PI)da-=6.2832;while(da<-Math.PI)da+=6.2832;
  const mx=3.2*dt,na=cur+Math.max(-mx,Math.min(mx,da)),sp=Math.hypot(b.vx,b.vy);b.vx=Math.cos(na)*sp;b.vy=Math.sin(na)*sp}
 function nuiDraw(b){const tr=b.tr||(b.tr=[]);tr.push([b.x,b.y]);if(tr.length>10)tr.shift();ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
  ctx.strokeStyle='#120a22';ctx.globalAlpha=.35;ctx.lineWidth=7;ctx.beginPath();tr.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.stroke();
@@ -1203,7 +1209,7 @@ const JCAST={nui:castNui,kubi:castKubi,yose:castYose,campo:castCampo,dominio:cas
 const alvoPerto=alc=>{let best=alc*T,tg=null;TGL(alc*T).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<best){best=d;tg=e}});return tg};
 const JALVO={genj:1,amat:1,tsuku:1}; // precisam de alguém no alcance (sem alvo não gasta nada)
 // bola de fogo que explode em área (Gōkakyū forte): acerta quem estiver no raio da explosão
-function projArea(b,e0){let n=0;E.concat(PVT()).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y);if(e!==e0&&d>=b.area+(e.rad||0)*.6)return;n++;const u=d||1;hitE(e,b.dmg,0,(e.x-b.x)/u*8,(e.y-b.y)/u*8)});return n}
+function projArea(b,e0){let n=0;E.concat(PVT()).forEach(e=>{if(e.dead)return;const d=Math.hypot(e.x-b.x,bonY(e,b)-(e.boss?44:16)-b.y);if(e!==e0&&d>=b.area+(e.rad||0)*.6)return;n++;const u=d||1;hitE(e,b.dmg,0,(e.x-b.x)/u*8,(e.y-b.y)/u*8)});return n}
 // Gōkakyū forte: a bola grande e mais lenta
 function castGoka(s,ax,ay){actStart('fogo');const tp=HTP;
  KDEL.push({t:s.tel||.3,fn:()=>{const l=Math.hypot(ax,ay)||1,ux=ax/l,uy=ay/l,sp=s.sp||250;P.push({x:p.x+ux*14,y:p.y-24,vx:ux*sp,vy:uy*sp,col:s.col,dmg:s.dmg,life:1.3,big:1,big2:1,fire:1,area:s.r||45,hm:+s.pot||1,tp})}})}

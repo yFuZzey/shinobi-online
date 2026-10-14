@@ -149,7 +149,7 @@ rep('<button id="stLvB">','<button id="stLvB" class="admo">')
 rep('<button id="stRed">','<button id="stRed" class="admo">')
 rep('<button id="stZero">','<button id="stZero" class="admo">')
 # projéteis de outros jogadores são só visuais
-rep("for(const e of E)if(!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE","for(const e of (b.rm?E:E.concat(PVT())))if(!b.rm&&!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE")
+rep("for(const e of E)if(!e.dead&&Math.hypot(e.x-b.x,e.y-(e.boss?44:16)-b.y)<(e.rad||18)){hitE","for(const e of (b.rm?E:E.concat(PVT())))if(!b.rm&&!e.dead&&Math.hypot(e.x-b.x,bonY(e,b)-(e.boss?44:16)-b.y)<(e.rad||18)){hitE") # bonY: boneco de treino acerta no corpo todo
 # ---- proficiência ----
 rep("const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0}});","const chNew=()=>({lv:1,xp:0,pts:0,st:{str:0,agi:0,vit:0,int:0,dex:0,luk:0},prof:{k:null,xp:0},mgk:null,ct:{k:null,t:0},v:SAVE_V});")
 rep("for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(99,+(j.st&&j.st[k])||0))}}catch(e){}}","for(const k in CH.st)CH.st[k]=Math.max(0,Math.min(BAL.personagem.atributoMax,+(j.st&&j.st[k])||0));CH.prof=profNorm(j.prof);CH.mgk=EYES[j.mgk]?j.mgk:null;CH.ct=ctNorm(j.ct);CH.tr=trNorm(j.tr);CH.v=Math.max(SAVE_V,+j.v||1)}}catch(e){}}")
